@@ -1,3 +1,19 @@
 {
-	"name": "Game.Core.Ecs.Systems"
+    "name": "Game.Core.Ecs.Systems",
+    "rootNamespace": "",
+    "references": [
+        "GUID:e59bf9fc7d5a44b18a819a92edd46163",
+        "GUID:f5f01a091e0d746659b4380253d52f4e",
+        "GUID:aaadf7a94e4556f4d89ea0cb53ff3a99",
+        "GUID:072be73ddeba7384fbdb417d49fba86b"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }

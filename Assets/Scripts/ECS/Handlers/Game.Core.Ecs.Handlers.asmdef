@@ -1,3 +1,24 @@
 {
-	"name": "Game.Core.Ecs.Handlers"
+    "name": "Game.Core.Ecs.Handlers",
+    "rootNamespace": "",
+    "references": [
+        "GUID:e59bf9fc7d5a44b18a819a92edd46163",
+        "GUID:f5f01a091e0d746659b4380253d52f4e",
+        "GUID:e06a58708b83247ca9dc984644f5b40b",
+        "GUID:206779980ac58453ea65e900299ccf71",
+        "GUID:a22362b82293644e1bbe51356c008d63",
+        "GUID:b019ab308c8356144bb5284bbbff728e",
+        "GUID:072be73ddeba7384fbdb417d49fba86b",
+        "GUID:aaadf7a94e4556f4d89ea0cb53ff3a99",
+        "GUID:40c9061943587d8468b12e839093bc31"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }
