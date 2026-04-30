@@ -1,12 +1,9 @@
 {
-    "name": "Game.Core.States",
+    "name": "Game.Core.Model.Card.Creature",
     "rootNamespace": "",
     "references": [
-        "GUID:368793d0cac006c43b07656e91c66edb",
-        "GUID:8e8599ac778fe2244a70196e11bba3ce",
-        "GUID:e59bf9fc7d5a44b18a819a92edd46163",
-        "GUID:f5f01a091e0d746659b4380253d52f4e",
-        "GUID:aaadf7a94e4556f4d89ea0cb53ff3a99"
+        "GUID:d1ecd4228e8ef7a448206fe194515758",
+        "GUID:c98c6a667dd727f42947454e3cbf82ea"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
