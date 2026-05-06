@@ -2,7 +2,11 @@
     "name": "Game.Core.Model.Card",
     "rootNamespace": "",
     "references": [
-        "GUID:c98c6a667dd727f42947454e3cbf82ea"
+        "GUID:c98c6a667dd727f42947454e3cbf82ea",
+        "GUID:40c9061943587d8468b12e839093bc31",
+        "GUID:e59bf9fc7d5a44b18a819a92edd46163",
+        "GUID:072be73ddeba7384fbdb417d49fba86b",
+        "GUID:21bb186a30aec5c4eb865c05fce9a856"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

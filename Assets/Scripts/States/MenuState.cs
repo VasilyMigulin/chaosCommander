@@ -1,16 +1,37 @@
+using AwesomeUI.Core;
+using AwesomeUI.Feature;
 using UnityEngine;
+using Game.Core.Shared.Interface;
+using Game.Core.Photon;
+using System.Threading.Tasks;
 
-public class MenuState : MonoBehaviour
+namespace Game.Core.States
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    public class MenuState : State, IMenuStateContext
     {
-        
-    }
+        Task sessionTask;
 
-    // Update is called once per frame
-    void Update()
-    {
-        
+        public override void Awake()
+        {
+            base.Awake();
+
+            PhotonInitializer.Initialize();
+        }
+
+        public override void Start()
+        {
+            UIModule.Open<MainMenuCanvas>();
+            UIModule.Inject(this, this);
+        }
+
+        public void StartMatchMaking()
+        {
+            sessionTask = PhotonInitializer.Instance.Matchmaking.FindMatchAsync();
+        }
+
+        public override void Update()
+        {
+
+        } 
     }
 }

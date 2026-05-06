@@ -1,0 +1,19 @@
+{
+    "name": "AwesomeUI.Editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:ac779221149490743adbc547e00c38d0",
+        "GUID:655ef47d82ce835418745280830d7136",
+        "GUID:ea862300066c2d344bc5a89057742727",
+        "GUID:5683239ff7fb43241b4c0478d964e2b4"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

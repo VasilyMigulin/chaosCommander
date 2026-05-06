@@ -1,0 +1,16 @@
+{
+    "name": "AwesomeUI.Core.Service",
+    "rootNamespace": "",
+    "references": [
+        "GUID:96dd11aeba65a5d4ab3297b7257df338"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

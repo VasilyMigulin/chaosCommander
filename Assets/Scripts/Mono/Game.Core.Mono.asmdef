@@ -1,3 +1,16 @@
 {
-	"name": "Game.Core.Mono"
+    "name": "Game.Core.Mono",
+    "rootNamespace": "",
+    "references": [
+        "GUID:982184ac19c34b04bb4acb35157c4834"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }

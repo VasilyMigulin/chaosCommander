@@ -19,9 +19,7 @@ namespace Game.Core.States
                 return _instance;
             }
         }
-        public abstract void Update();
-        public abstract void FixedUpdate();
-        public abstract void LateUpdate();
+        public abstract void Update(); 
         public virtual void Awake()
         {
         }

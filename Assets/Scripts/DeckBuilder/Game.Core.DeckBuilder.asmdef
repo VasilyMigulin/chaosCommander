@@ -1,0 +1,24 @@
+{
+    "name": "Game.Core.DeckBuilder",
+    "rootNamespace": "Game.Core.DeckBuilder",
+    "references": [
+        "GUID:0da6d172d18a54e4389d0dce1e1ffdf2",
+        "GUID:c98c6a667dd727f42947454e3cbf82ea",
+        "GUID:d1ecd4228e8ef7a448206fe194515758",
+        "GUID:bb3d46bff7a2bca449b7d5db2e8692d4",
+        "GUID:a8cda86cc26058f4e877095699791f63",
+        "GUID:40c9061943587d8468b12e839093bc31",
+        "GUID:de6984b0ce795dd4687ca55928451e48",
+        "GUID:397fdcc0c1080cb42b97b52ad6058e81",
+        "GUID:ab46f0384b91e604cab2878e7c49e9f1"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -173,20 +173,29 @@ namespace Game.Core.Photon
         /// </summary>
         public async Task StopSessionBrowser()
         {
-            if (gameObject.TryGetComponent<NetworkRunner>(out var runner))
-            {
-                await runner.Shutdown(false);
-                Destroy(runner);
+            if (_browserRunner == null) return;
 
-                while (TryGetComponent<NetworkRunner>(out _))
-                {
-                    await Task.Delay(10); // проверяем каждые 10 мс
-                }
+            await _browserRunner.Shutdown(false);
+            Destroy(_browserRunner);
+            _browserRunner = null;
+
+            // Ждём пока компонент полностью удалится
+            while (gameObject.GetComponents<NetworkRunner>()
+                              .Length > (Runner != null ? 1 : 0))
+            {
+                await Task.Delay(10);
             }
         }
         public async Task StartSession(SessionParams session)
         {
             await StopSessionBrowser();
+
+            // Если Runner уже жив — сначала завершаем его
+            if (Runner != null)
+            {
+                Debug.LogWarning("[PhotonInitializer] Runner already exists, ending previous session first.");
+                await EndSession();
+            }
 
             connectedPlayers.Clear();
 
@@ -270,9 +279,10 @@ namespace Game.Core.Photon
                 await Runner.Shutdown(false);
                 Destroy(Runner);
 
-                while (TryGetComponent<NetworkRunner>(out _))
+                while (gameObject.GetComponents<NetworkRunner>()
+                                  .Length > (_browserRunner != null ? 1 : 0))
                 {
-                    await Task.Delay(10); // проверяем каждые 10 мс
+                    await Task.Delay(10);
                 }
 
                 Runner = null;

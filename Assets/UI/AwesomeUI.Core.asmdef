@@ -1,0 +1,20 @@
+{
+    "name": "AwesomeUI.Core",
+    "rootNamespace": "",
+    "references": [
+        "GUID:d611e0440045b34499ade9d7f95e8b53",
+        "GUID:5683239ff7fb43241b4c0478d964e2b4",
+        "GUID:04e162ee04ec792428429f01e7bb171f",
+        "GUID:0e0b0a883a6cf4645b8d19e12d693844",
+        "GUID:326554bdb94e89548ac941b63346402e"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

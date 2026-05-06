@@ -1,0 +1,19 @@
+{
+    "name": "AwesomeUI.Core.Canvas",
+    "rootNamespace": "",
+    "references": [
+        "GUID:ac779221149490743adbc547e00c38d0",
+        "GUID:96dd11aeba65a5d4ab3297b7257df338",
+        "GUID:0e0b0a883a6cf4645b8d19e12d693844",
+        "GUID:4d3efe602141e354ca3041225d215ff7"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

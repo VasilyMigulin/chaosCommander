@@ -1,0 +1,23 @@
+{
+    "name": "AwesomeUI.Core.Panel",
+    "rootNamespace": "",
+    "references": [
+        "GUID:655ef47d82ce835418745280830d7136",
+        "GUID:ea862300066c2d344bc5a89057742727",
+        "GUID:0e0b0a883a6cf4645b8d19e12d693844",
+        "GUID:2bafac87e7f4b9b418d9448d219b01ab",
+        "GUID:7ee68c18140400f418be2b2bc3eae4c6",
+        "GUID:4d3efe602141e354ca3041225d215ff7"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "DOTween.dll"
+    ],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

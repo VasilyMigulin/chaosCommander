@@ -1,13 +1,11 @@
-using Fusion;
+﻿using Fusion;
 using Game.Core.Shared.Interface;
+using Game.Core.Events;
+using Leopotam.EcsLite;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.AddressableAssets;
-using UnityEngine.ResourceManagement.AsyncOperations;
-using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
-using static PlasticGui.PlasticTableColumn;
 
 namespace Game.Core.Photon
 {
@@ -87,7 +85,6 @@ namespace Game.Core.Photon
         public event System.Action<PlayerRef, PlayerLoadingStage> OnPlayerProgressChanged;
 
         private NetworkRunner runner;
-        private AsyncOperationHandle<SceneInstance> _sceneHandle;
         private bool _isLocalSceneLoaded;
 
         // Серверный словарь для отслеживания прогресса загрузки каждого игрока
@@ -232,44 +229,23 @@ namespace Game.Core.Photon
             LoadGameScene();
         }
 
-        private async void LoadGameScene()
+        private void LoadGameScene()
         {
             if (_isLocalSceneLoaded)
                 return;
 
-            try
-            {
-                string scenePath = SessionData.ScenePath.Value;
-                Debug.Log($"[PhotonRunHandler] Starting scene load from Addressables: {scenePath}");
+            Debug.Log("[PhotonRunHandler] Loading game scene by index 3");
 
-                // Загружаем сцену через Addressables
-                _sceneHandle = Addressables.LoadSceneAsync(scenePath, LoadSceneMode.Additive, false);
-                await _sceneHandle.Task;
+            SceneManager.sceneLoaded += OnSceneLoaded;
+            SceneManager.LoadScene(3, LoadSceneMode.Additive);
+        }
 
-                if (_sceneHandle.Status == AsyncOperationStatus.Succeeded)
-                {
-                    Debug.Log($"[PhotonRunHandler] Scene loaded successfully, activating...");
-
-                    // Активируем сцену
-                    var activateOperation = _sceneHandle.Result.ActivateAsync();
-                    activateOperation.completed += (op) =>
-                    {
-                        _isLocalSceneLoaded = true;
-                        Debug.Log("[PhotonRunHandler] Scene activated");
-
-                        // Уведомляем сервер о завершении загрузки
-                        RPC_NotifySceneLoaded();
-                    };
-                }
-                else
-                {
-                    Debug.LogError($"[PhotonRunHandler] Failed to load scene: {_sceneHandle.OperationException}");
-                }
-            }
-            catch (System.Exception ex)
-            {
-                Debug.LogError($"[PhotonRunHandler] Exception while loading scene: {ex.Message}");
-            }
+        private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+            _isLocalSceneLoaded = true;
+            Debug.Log($"[PhotonRunHandler] Scene '{scene.name}' loaded");
+            RPC_NotifySceneLoaded();
         }
 
         [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
@@ -356,7 +332,86 @@ namespace Game.Core.Photon
         private void RPC_StartGame()
         {
             Debug.Log("[PhotonRunHandler] Game started!");
+            GameEventBus.Publish(new Game.Core.Events.AllMulligansCompletedEvent());
         }
+
+        /// <summary>
+        /// <summary>
+        /// Локальный клиент отправляет данные своей колоды оппоненту.
+        /// Вызывается после завершения мулигана.
+        /// </summary>
+        [Rpc(RpcSources.All, RpcTargets.All)]
+        public void RPC_SyncDeckSnapshot(NetworkDeckSnapshotData snapshot, int fromPlayerId, RpcInfo info = default)
+        {
+            var runner = Runner;
+            if (runner != null && info.Source == runner.LocalPlayer)
+                return;
+
+            if (_state == null)
+                return;
+
+            var world      = _state.World;
+            var playerPool = world.GetPool<Game.Core.Ecs.Components.PlayerComponent>();
+            var syncPool   = world.GetPool<Game.Core.Ecs.Components.OpponentDeckSyncComponent>();
+            var filter     = world.Filter<Game.Core.Ecs.Components.PlayerComponent>().End();
+
+            int opponentEntity = -1;
+            foreach (var e in filter)
+            {
+                ref var p = ref playerPool.Get(e);
+                if (p.PlayerId == fromPlayerId) { opponentEntity = e; break; }
+            }
+
+            if (opponentEntity == -1)
+            {
+                opponentEntity = world.NewEntity();
+                ref var p = ref playerPool.Add(opponentEntity);
+                p.PlayerId      = fromPlayerId;
+                p.IsLocalPlayer = false;
+
+                var sidePool = world.GetPool<Game.Core.Ecs.Components.PlayerSideComponent>();
+                ref var side = ref sidePool.Add(opponentEntity);
+                side.Side    = fromPlayerId;
+
+                world.GetPool<Game.Core.Ecs.Components.DeckComponent>().Add(opponentEntity);
+                world.GetPool<Game.Core.Ecs.Components.HandComponent>().Add(opponentEntity);
+
+                _state.AddEntity(opponentEntity, $"player_{fromPlayerId}");
+            }
+
+            var expansionIds = new string[snapshot.DeckCount];
+            var cardIds      = new int[snapshot.DeckCount];
+            var netKeys      = new string[snapshot.DeckCount];
+            for (int i = 0; i < snapshot.DeckCount; i++)
+            {
+                expansionIds[i] = snapshot.Deck[i].ExpansionId.Value;
+                cardIds[i]      = snapshot.Deck[i].CardId;
+                netKeys[i]      = snapshot.Deck[i].EntityKey.Value;
+            }
+
+            var handExpansionIds = new string[snapshot.HandCount];
+            var handCardIds      = new int[snapshot.HandCount];
+            var handNetKeys      = new string[snapshot.HandCount];
+            for (int i = 0; i < snapshot.HandCount; i++)
+            {
+                handExpansionIds[i] = snapshot.Hand[i].ExpansionId.Value;
+                handCardIds[i]      = snapshot.Hand[i].CardId;
+                handNetKeys[i]      = snapshot.Hand[i].EntityKey.Value;
+            }
+
+            ref var sync         = ref syncPool.Add(opponentEntity);
+            sync.DeckExpansionIds = expansionIds;
+            sync.DeckCardIds      = cardIds;
+            sync.DeckNetworkKeys  = netKeys;
+            sync.DeckCount        = snapshot.DeckCount;
+            sync.HandExpansionIds = handExpansionIds;
+            sync.HandCardIds      = handCardIds;
+            sync.HandNetworkKeys  = handNetKeys;
+            sync.HandCount        = snapshot.HandCount;
+
+            Debug.Log($"[PhotonRunHandler] RPC_SyncDeckSnapshot received from player {fromPlayerId}: {snapshot.DeckCount} deck + {snapshot.HandCount} hand cards");
+        }
+
 
         private bool UpdatePlayerStage(PlayerRef player, PlayerLoadingStage newStage)
         {
@@ -405,10 +460,11 @@ namespace Game.Core.Photon
         private void OnDestroy()
         {
             // Выгружаем сцену при уничтожении handler'а
-            if (_sceneHandle.IsValid())
+            /*if (_sceneHandle.IsValid())
             {
                 Addressables.UnloadSceneAsync(_sceneHandle);
-            }
+            }*/
         }
+         
     }
 }

@@ -1,0 +1,16 @@
+{
+    "name": "AwesomeUI.Core.Layout",
+    "rootNamespace": "",
+    "references": [
+        "GUID:581d83ee1d8cbde408a461e635eb5b8d"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

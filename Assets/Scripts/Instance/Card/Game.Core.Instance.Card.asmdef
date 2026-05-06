@@ -1,0 +1,23 @@
+{
+    "name": "Game.Core.Instance.Card",
+    "rootNamespace": "",
+    "references": [
+        "GUID:397fdcc0c1080cb42b97b52ad6058e81",
+        "GUID:d1ecd4228e8ef7a448206fe194515758",
+        "GUID:2a86f8e079f05b442a7bb873885d6cc8",
+        "GUID:bb3d46bff7a2bca449b7d5db2e8692d4",
+        "GUID:b77996445d8c55a45ac449cdb666c492",
+        "GUID:ab46f0384b91e604cab2878e7c49e9f1",
+        "GUID:c98c6a667dd727f42947454e3cbf82ea",
+        "GUID:40c9061943587d8468b12e839093bc31"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

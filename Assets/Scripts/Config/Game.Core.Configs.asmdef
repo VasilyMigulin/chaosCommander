@@ -1,3 +1,19 @@
 {
-	"name": "Game.Core.Configs"
+    "name": "Game.Core.Configs",
+    "rootNamespace": "",
+    "references": [
+        "GUID:d1ecd4228e8ef7a448206fe194515758",
+        "GUID:de6984b0ce795dd4687ca55928451e48",
+        "GUID:397fdcc0c1080cb42b97b52ad6058e81",
+        "GUID:c98c6a667dd727f42947454e3cbf82ea"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }
