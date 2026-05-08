@@ -1,62 +1,47 @@
 ﻿using Leopotam.EcsLite;
 using Leopotam.EcsLite.Di;
 using Game.Core.Ecs.Components;
-using Game.Core.Events;
+using Game.Core.Photon;
 
 namespace Game.Core.Ecs.Systems
 {
     /// <summary>
-    /// Инициализирует TurnState, TurnPhaseState на первом игроке
-    /// и бросает TurnStartEvent на все карты на столе.
+    /// Инициализирует TurnPhaseState = WaitingForTurnStart на всех игроках.
+    /// Создаёт глобальную сущность GlobalTurnState.
+    /// Хост запустит первый ход через StartFirstTurn() в PhotonRunHandler после RPC_StartGame.
     /// </summary>
     public sealed class InitTurnSystem : IEcsInitSystem
     {
         public const float TurnDuration = 60f;
 
-        readonly EcsPoolInject<TurnState> _turnStatePool = default;
         readonly EcsPoolInject<TurnPhaseState> _phasePool = default;
+        readonly EcsPoolInject<GlobalTurnState> _globalTurnPool = default;
         readonly EcsPoolInject<PlayerComponent> _playerPool = default;
-        readonly EcsPoolInject<TurnStartEvent> _turnStartEventPool = default;
         readonly EcsFilterInject<Inc<PlayerComponent>> _playersFilter = default;
-        readonly EcsFilterInject<Inc<AbilityContainerComponent, BoardTag>, Exc<HandTag, DeckTag>> _boardCardsFilter = default;
+        readonly EcsCustomInject<PhotonRunHandler> _photon = default;
 
         public void Init(IEcsSystems systems)
         {
-            int firstEntity = -1;
-            int firstPlayerId = int.MaxValue;
-
+            // Вешаем WaitingForTurnStart на каждого игрока
             foreach (var entity in _playersFilter.Value)
             {
-                int pid = _playerPool.Value.Get(entity).PlayerId;
-                if (pid < firstPlayerId)
+                if (!_phasePool.Value.Has(entity))
                 {
-                    firstPlayerId = pid;
-                    firstEntity = entity;
+                    ref var phase = ref _phasePool.Value.Add(entity);
+                    phase.Phase = TurnPhase.WaitingForTurnStart;
                 }
             }
 
-            if (firstEntity == -1)
-                return;
+            // Создаём singleton GlobalTurnState на новой сущности
+            var world = systems.GetWorld();
+            var globalEntity = world.NewEntity();
+            ref var global = ref _globalTurnPool.Value.Add(globalEntity);
+            global.ActivePlayerId = -1;
+            global.TurnNumber = 0;
+            global.PersonalTurnNumber = 0;
 
-            ref var turnState = ref _turnStatePool.Value.Add(firstEntity);
-            turnState.TurnNumber = 1;
-            turnState.PersonalTurnNumber = 1;
-            turnState.TimeRemaining = TurnDuration;
-
-            ref var phase = ref _phasePool.Value.Add(firstEntity);
-            phase.Phase = TurnPhase.TurnStartAbilities;
-
-            foreach (var cardEntity in _boardCardsFilter.Value)
-            {
-                if (!_turnStartEventPool.Value.Has(cardEntity))
-                    _turnStartEventPool.Value.Add(cardEntity);
-            }
-
-            GameEventBus.Publish(new TurnStartedEvent
-            {
-                ActivePlayerId = firstPlayerId,
-                TurnNumber = 1
-            });
+            // Регистрируем через PhotonRunHandler (у него есть _state)
+            _photon.Value.RegisterGlobalTurnEntity(globalEntity);
         }
     }
 }

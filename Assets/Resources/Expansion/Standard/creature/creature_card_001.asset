@@ -20,17 +20,17 @@ MonoBehaviour:
     - rid: 8401024898135228492
       type: {class: CardCreatureModel, ns: Game.Core.Model.Card.Creature, asm: Game.Core.Model.Card.Creature}
       data:
-        Id: 0
-        Name: "\u0411\u043E\u0435\u0446 \u0430\u0440\u0435\u043D\u044B"
+        Id: 1
+        Name: "\u0421\u0442\u0430\u0440\u0448\u0438\u0439 \u0447\u0435\u0440\u0442"
         Description: 
-        Rarity: 0
-        Element: 0
+        Rarity: 1
+        Element: 33
         Icon: {fileID: 0}
         ExpansionId: standard
         PlayCost: 0
-        PlayCostAmount: 1
+        PlayCostAmount: 2
         MaxHealth: 3
-        Attack: 1
-        Speed: 2
+        Attack: 2
+        Speed: 1
         ViewPrefab: {fileID: 0}
         IsCommander: 0

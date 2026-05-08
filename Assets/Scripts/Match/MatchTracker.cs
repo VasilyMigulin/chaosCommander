@@ -116,7 +116,13 @@ namespace Game.Core.Match
 
             Increment(_cardsPlayedByPlayer, evt.PlayerId);
             Increment(_cardPlaysByName, evt.CardName ?? string.Empty);
-            Increment(_cardsByElement, evt.Element);
+
+            foreach (EnumService.Element flag in System.Enum.GetValues(typeof(EnumService.Element)))
+            {
+                if ((evt.Element & flag) != 0)
+                    Increment(_cardsByElement, flag);
+            }
+
             Increment(_cardsByRarity, evt.Rarity);
             Increment(_cardsByType, evt.CardType);
         }
@@ -176,7 +182,7 @@ namespace Game.Core.Match
             return count;
         }
 
-        /// <summary>Число разыгранных карт с данным элементом.</summary>
+        /// <summary>Число разыгранных карт с данным элементом (поддерживает флаги).</summary>
         public static int CardsPlayedWithElement(EnumService.Element element, int playerId = -1)
         {
             if (playerId < 0)
@@ -184,7 +190,7 @@ namespace Game.Core.Match
 
             int count = 0;
             foreach (var r in _cardPlays)
-                if (r.PlayerId == playerId && r.Element == element)
+                if (r.PlayerId == playerId && (r.Element & element) != 0)
                     count++;
             return count;
         }

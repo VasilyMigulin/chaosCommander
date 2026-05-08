@@ -11,6 +11,7 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<AbilityQueueComponent> _queuePool = default;
         readonly EcsPoolInject<LockState> _lockPool = default;
         readonly EcsPoolInject<ResolveAbilityEvent> _resolvePool = default;
+        readonly EcsPoolInject<ReadyTag> _readyPool = default;
 
         public void Run (IEcsSystems systems) 
         {
@@ -19,6 +20,9 @@ namespace Game.Core.Ecs.Systems
                 ref var queue = ref _queuePool.Value.Get(entity);
 
                 if (!queue.TryPop(out int abilityEntity))
+                    continue;
+
+                if (!_readyPool.Value.Has(abilityEntity))
                     continue;
 
                 ref var resolveEvent = ref _resolvePool.Value.Add(abilityEntity);

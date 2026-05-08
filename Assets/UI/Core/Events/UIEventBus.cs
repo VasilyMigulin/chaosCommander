@@ -150,5 +150,11 @@ namespace AwesomeUI.Core.Events
         public object Sender;
     }
 
+    /// <summary>
+    /// Запрос перехода к MainMenuCanvas.
+    /// Публикуется из любой панели; UIHandler подписывается и выполняет переход.
+    /// </summary>
+    public struct NavigateToMainMenuEvent : IUIEvent { }
+
     #endregion
 }

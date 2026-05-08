@@ -18,6 +18,7 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<TurnPhaseState> _phasePool = default;
         readonly EcsPoolInject<GoldComponent> _goldPool = default;
         readonly EcsPoolInject<DrawCardEvent> _drawPool = default;
+        readonly EcsPoolInject<TurnResourcesGrantedTag> _grantedPool = default;
         readonly EcsFilterInject<Inc<TurnState, TurnPhaseState, GoldComponent, PlayerComponent>> _filter = default;
 
         public void Run(IEcsSystems systems)
@@ -28,12 +29,13 @@ namespace Game.Core.Ecs.Systems
                 if (phase.Phase != TurnPhase.PlayerTurn)
                     continue;
 
-                ref var turnState = ref _turnStatePool.Value.Get(entity);
-
-                // Срабатываем только один раз за ход — пока карта не взята
-                if (_drawPool.Value.Has(entity))
+                // Однократный маркер — снимается TurnEndReadySystem при передаче хода
+                if (_grantedPool.Value.Has(entity))
                     continue;
 
+                _grantedPool.Value.Add(entity);
+
+                ref var turnState = ref _turnStatePool.Value.Get(entity);
                 ref var gold = ref _goldPool.Value.Get(entity);
                 int income = GoldIncome(turnState.PersonalTurnNumber);
                 gold.Current = Mathf.Min(gold.Current + income, gold.Max);
@@ -46,8 +48,10 @@ namespace Game.Core.Ecs.Systems
                     MaxValue = gold.Max
                 });
 
-                _drawPool.Value.Add(entity);
-                GameEventBus.Publish(new InputRestoredEvent());
+                if (!_drawPool.Value.Has(entity))
+                    _drawPool.Value.Add(entity);
+
+                // InputRestoredEvent публикует хост через RPC_PlayerTurnBegin
             }
         }
 

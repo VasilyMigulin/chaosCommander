@@ -22,7 +22,7 @@ namespace Game.Core.States
         {
             UIModule.Initialize();
             UIModule.Open<LoginCanvas>();
-            UIModule.Inject(this);
+            UIModule.Inject(this, this);
         }
 
         // ── IInitStateContext ────────────────────────────────────────────────
@@ -78,6 +78,6 @@ namespace Game.Core.States
 
         static void GoToMenu() => SceneManager.LoadScene(1);
 
-        public override void Update() { }
+        public override void Update() { } 
     }
 }

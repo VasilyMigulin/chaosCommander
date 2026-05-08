@@ -29,16 +29,25 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<GoldCostComponent> _goldCostPool = default;
         readonly EcsPoolInject<ManaCostComponent> _manaCostPool = default;
         readonly EcsPoolInject<HandComponent> _handPool = default;
-        readonly EcsPoolInject<ResolvingAbilitiesState> _resolvingPool = default;
-        readonly EcsPoolInject<OnCastTrigger> _onCastPool = default;
+        readonly EcsPoolInject<ResolvingAbilitiesState> _resolvingPool = default; 
         readonly EcsPoolInject<OwnerComponent> _ownerPool = default;
         readonly EcsPoolInject<CardModelComponent> _modelPool = default;
+        readonly EcsPoolInject<RequiresTargetSelectionTag> _reqTargetPool = default;
+        readonly EcsPoolInject<RequiresCardPickTag>         _reqPickPool   = default;
         readonly EcsFilterInject<Inc<CastEvent>> _filter = default;
 
         public void Run(IEcsSystems systems)
         {
             foreach (var cardEntity in _filter.Value)
             {
+                // Ждём пока игрок выберет цель — TargetSelectionSystem заполнит CastEvent
+                if (_reqTargetPool.Value.Has(cardEntity))
+                    continue;
+
+                // Ждём пока игрок выберет карту из предложенных (раскопка)
+                if (_reqPickPool.Value.Has(cardEntity))
+                    continue;
+
                 ref var castEvent = ref _castPool.Value.Get(cardEntity);
                 int ownerEntity = castEvent.OwnerEntity;
 
@@ -105,13 +114,7 @@ namespace Game.Core.Ecs.Systems
                     resolving.CardEntity = cardEntity;
                     resolving.AbilityIndex = 0;
                 }
-
-                // --- Добавляем триггер OnCast на карту ---
-                if (!_onCastPool.Value.Has(cardEntity))
-                    _onCastPool.Value.Add(cardEntity);
-
-                _castPool.Value.Del(cardEntity);
-
+                  
                 GameEventBus.Publish(new CardPlayedEvent
                 {
                     CardEntity = cardEntity,

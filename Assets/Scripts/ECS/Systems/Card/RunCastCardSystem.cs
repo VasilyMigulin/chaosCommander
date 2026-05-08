@@ -8,9 +8,7 @@ namespace Game.Core.Ecs.Systems
     public sealed class RunCastCardSystem : IEcsRunSystem 
     {
         readonly EcsWorldInject _world = default; 
-        readonly EcsFilterInject<Inc<CastEvent, AbilityContainerComponent, HandTag>> _filter = default; 
-        readonly EcsPoolInject<DeckTag> _deckPool  = default; 
-        readonly EcsPoolInject<HandTag> _handPool  = default; 
+        readonly EcsFilterInject<Inc<CastEvent, AbilityContainerComponent>> _filter = default;  
         readonly EcsPoolInject<CastEvent> _castPool = default;
         readonly EcsPoolInject<AbilityContainerComponent> _abilityContainerPool = default;
         
@@ -23,10 +21,7 @@ namespace Game.Core.Ecs.Systems
                 foreach (var abilityEntity in abilityContainerComp.AbilityEntities)
                 {
                     _castPool.Value.Add(abilityEntity);
-                }
-
-                _handPool.Value.Del(entity);
-                _deckPool.Value.Del(entity);
+                } 
             }
         }
     }

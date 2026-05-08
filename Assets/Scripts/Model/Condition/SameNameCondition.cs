@@ -48,11 +48,6 @@ namespace Game.Core.Model.Condition
             }
         }
 
-        public override bool CheckCondition(EcsWorld world, int entityAbility)
-        {
-            return MatchTracker.CardsPlayedWithName(_trackingName) >= TargetCountCast;
-        } 
-
         public override IAbilityCondition Clone()
         {
             return new SameNameCondition(this);

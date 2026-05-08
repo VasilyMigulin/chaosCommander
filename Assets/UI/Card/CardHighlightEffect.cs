@@ -70,6 +70,12 @@ namespace AwesomeUI.Core.Card
             _image.material = _material;
             _image.raycastTarget = false;
 
+            if (!_material.HasProperty(ID_RimColor))
+            {
+                Debug.LogWarning($"[CardHighlightEffect] Material '{_material.name}' with Shader '{_material.shader.name}' on '{name}' is missing '_RimColor'. Expected shader 'Custom/Selection/Highlight'.", this);
+                return;
+            }
+
             ApplyBorderFractions();
             ApplySettings();
             SetRimAlpha(0f);
@@ -108,6 +114,8 @@ namespace AwesomeUI.Core.Card
         void Refresh()
         {
             if (_material == null) return;
+
+            if (!_material.HasProperty(ID_RimColor)) return;
 
             if (_isSelected)
             {
@@ -156,6 +164,7 @@ namespace AwesomeUI.Core.Card
         void SetRimAlpha(float alpha)
         {
             if (_material == null) return;
+            if (!_material.HasProperty(ID_RimColor)) return;
             Color c = _material.GetColor(ID_RimColor);
             c.a = alpha;
             _material.SetColor(ID_RimColor, c);

@@ -65,27 +65,33 @@ namespace Game.Core.Model.Card
                     world.GetPool<ExoticTag>().Add(entity); 
                     break;
             }
+              
 
-            switch (Element)
+            foreach (EnumService.Element flag in System.Enum.GetValues(typeof(EnumService.Element)))
             {
-                case EnumService.Element.Red:
-                    world.GetPool<RedTag>().Add(entity);
-                    break;
-                case EnumService.Element.Blue:
-                    world.GetPool<BlueTag>().Add(entity);
-                    break;
-                case EnumService.Element.Green:
-                    world.GetPool<GreenTag>().Add(entity);
-                    break;
-                case EnumService.Element.Yellow:
-                    world.GetPool<YellowTag>().Add(entity);
-                    break;
-                case EnumService.Element.White:
-                    world.GetPool<WhiteTag>().Add(entity);
-                    break;
-                case EnumService.Element.Black:
-                    world.GetPool<BlackTag>().Add(entity);
-                    break;
+                if ((Element & flag) == 0) continue;
+
+                switch (flag)
+                {
+                    case EnumService.Element.Red:
+                        world.GetPool<RedTag>().Add(entity);
+                        break;
+                    case EnumService.Element.Blue:
+                        world.GetPool<BlueTag>().Add(entity);
+                        break;
+                    case EnumService.Element.Green:
+                        world.GetPool<GreenTag>().Add(entity);
+                        break;
+                    case EnumService.Element.Yellow:
+                        world.GetPool<YellowTag>().Add(entity);
+                        break;
+                    case EnumService.Element.White:
+                        world.GetPool<WhiteTag>().Add(entity);
+                        break;
+                    case EnumService.Element.Black:
+                        world.GetPool<BlackTag>().Add(entity);
+                        break;
+                }
             }
 
             switch (PlayCost)

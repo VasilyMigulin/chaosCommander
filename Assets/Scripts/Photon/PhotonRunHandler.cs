@@ -107,11 +107,10 @@ namespace Game.Core.Photon
                 Debug.Log("[PhotonRunHandler] Server: Waiting in lobby");
             }
 
-            // Подписываемся на события PhotonInitializer
             if (PhotonInitializer.Instance != null)
-            {
-                PhotonInitializer.Instance.OnAllPlayersReady += OnAllPlayersConnected; 
-            }
+                PhotonInitializer.Instance.OnAllPlayersReady += OnAllPlayersConnected;
+
+            // Turn-события больше не через GameEventBus — ECS-системы вызывают методы напрямую через inject
 
             Debug.Log("[PhotonInitializer] PhotonRunHandler spawned successfully");
         }
@@ -121,10 +120,11 @@ namespace Game.Core.Photon
             base.Despawned(runner, hasState);
 
             if (PhotonInitializer.Instance != null)
-            {
                 PhotonInitializer.Instance.OnAllPlayersReady -= OnAllPlayersConnected;
-            }
+
+            // (подписки на turn-события были удалены)
         }
+
 
         public override void FixedUpdateNetwork()
         {
@@ -333,6 +333,213 @@ namespace Game.Core.Photon
         {
             Debug.Log("[PhotonRunHandler] Game started!");
             GameEventBus.Publish(new Game.Core.Events.AllMulligansCompletedEvent());
+
+            // Хост запускает первый ход после старта игры
+            if (IsServer)
+                StartFirstTurn();
+        }
+
+        // ── Turn coordination ────────────────────────────────────────────────
+
+        // Счётчик подтверждений от клиентов для текущей фазы
+        private int _turnPhaseReadyCount = 0;
+        private int _currentTurnNumber = 0;
+        private int _activePlayerId = -1;
+
+        /// <summary>Хост вычисляет первого игрока и запускает TurnStart-фазу.</summary>
+        private void StartFirstTurn()
+        {
+            if (!IsServer || _state == null) return;
+
+            var world = _state.World;
+            var playerPool = world.GetPool<Game.Core.Ecs.Components.PlayerComponent>();
+            var filter = world.Filter<Game.Core.Ecs.Components.PlayerComponent>().End();
+
+            int firstPlayerId = int.MaxValue;
+            int firstPersonalTurn = 1;
+
+            foreach (var e in filter)
+            {
+                int pid = playerPool.Get(e).PlayerId;
+                if (pid < firstPlayerId) firstPlayerId = pid;
+            }
+
+            _currentTurnNumber = 1;
+            _activePlayerId = firstPlayerId;
+            _turnPhaseReadyCount = 0;
+
+            RPC_TurnEndPhaseBegin(firstPlayerId, _currentTurnNumber, firstPersonalTurn);
+        }
+
+        /// <summary>Хост получил запрос конца хода от активного игрока.</summary>
+        /// <summary>Регистрирует ECS-entity GlobalTurnState для последующего поиска по ключу.</summary>
+        public void RegisterGlobalTurnEntity(int entity)
+        {
+            _state?.AddEntity(entity, "global_turn");
+        }
+
+        [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+        public void RPC_RequestEndTurn(RpcInfo info = default)
+        {
+            if (!IsServer) return;
+
+            _turnPhaseReadyCount = 0;
+            RPC_TurnEndPhaseBegin(_activePlayerId, _currentTurnNumber, GetPersonalTurnNumber(_activePlayerId));
+        }
+
+        /// <summary>Хост → все клиенты: начать отработку OnTurnEnd способностей.</summary>
+        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+        private void RPC_TurnEndPhaseBegin(int activePlayerId, int turnNumber, int personalTurnNumber)
+        {
+            if (_state == null) return;
+            var world = _state.World;
+            var playerPool = world.GetPool<Game.Core.Ecs.Components.PlayerComponent>();
+            var phasePool = world.GetPool<Game.Core.Ecs.Components.TurnPhaseState>();
+            var turnEndPool = world.GetPool<Game.Core.Ecs.Components.TurnEndEvent>();
+            var ownerPool = world.GetPool<Game.Core.Ecs.Components.OwnerComponent>();
+            var filter = world.Filter<Game.Core.Ecs.Components.PlayerComponent>()
+                              .Inc<Game.Core.Ecs.Components.TurnPhaseState>().End();
+
+            foreach (var e in filter)
+            {
+                ref var phase = ref phasePool.Get(e);
+                phase.Phase = Game.Core.Ecs.Components.TurnPhase.TurnEndAbilities;
+            }
+
+            // TurnEndEvent на карты активного игрока
+            var boardFilter = world.Filter<Game.Core.Ecs.Components.AbilityContainerComponent>()
+                                   .Inc<Game.Core.Ecs.Components.BoardTag>()
+                                   .Inc<Game.Core.Ecs.Components.OwnerComponent>()
+                                   .Exc<Game.Core.Ecs.Components.HandTag>()
+                                   .Exc<Game.Core.Ecs.Components.DeckTag>().End();
+
+            foreach (var cardEntity in boardFilter)
+            {
+                if (ownerPool.Get(cardEntity).OwnerId != activePlayerId) continue;
+                if (!turnEndPool.Has(cardEntity))
+                    turnEndPool.Add(cardEntity);
+            }
+
+            GameEventBus.Publish(new Game.Core.Events.TurnEndedEvent { ActivePlayerId = activePlayerId });
+            GameEventBus.Publish(new Game.Core.Events.InputBlockedEvent());
+            Debug.Log($"[PhotonRunHandler] TurnEndPhase begun for player {activePlayerId}, turn {turnNumber}");
+        }
+
+        /// <summary>Клиент → хост: TurnEnd-способности на этом клиенте завершены.</summary>
+        [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+        public void RPC_NotifyTurnEndReady(RpcInfo info = default)
+        {
+            if (!IsServer) return;
+            _turnPhaseReadyCount++;
+            Debug.Log($"[PhotonRunHandler] TurnEndReady {_turnPhaseReadyCount}/2");
+
+            if (_turnPhaseReadyCount >= 2)
+            {
+                _turnPhaseReadyCount = 0;
+                int nextPlayerId = GetNextPlayerId(_activePlayerId);
+                _activePlayerId = nextPlayerId;
+                _currentTurnNumber++;
+                int personal = GetPersonalTurnNumber(nextPlayerId);
+                RPC_TurnStartPhaseBegin(nextPlayerId, _currentTurnNumber, personal);
+            }
+        }
+
+        /// <summary>Хост → все клиенты: начать отработку OnTurnStart способностей следующего игрока.</summary>
+        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+        private void RPC_TurnStartPhaseBegin(int nextPlayerId, int turnNumber, int personalTurnNumber)
+        {
+            if (_state == null) return;
+            var world = _state.World;
+            var transferPool = world.GetPool<Game.Core.Ecs.Components.TurnTransferEvent>();
+            var playerPool = world.GetPool<Game.Core.Ecs.Components.PlayerComponent>();
+            var filter = world.Filter<Game.Core.Ecs.Components.PlayerComponent>().End();
+
+            foreach (var e in filter)
+            {
+                if (playerPool.Get(e).PlayerId != nextPlayerId) continue;
+                if (!transferPool.Has(e))
+                {
+                    ref var t = ref transferPool.Add(e);
+                    t.FromPlayerId = GetNextPlayerId(nextPlayerId); // предыдущий
+                    t.ToPlayerId = nextPlayerId;
+                    t.TurnNumber = turnNumber;
+                    t.PersonalTurnNumber = personalTurnNumber;
+                }
+                break;
+            }
+
+            Debug.Log($"[PhotonRunHandler] TurnStartPhase begun for player {nextPlayerId}, turn {turnNumber}");
+        }
+
+        /// <summary>Клиент → хост: TurnStart-способности на этом клиенте завершены.</summary>
+        [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+        public void RPC_NotifyTurnStartReady(RpcInfo info = default)
+        {
+            if (!IsServer) return;
+            _turnPhaseReadyCount++;
+            Debug.Log($"[PhotonRunHandler] TurnStartReady {_turnPhaseReadyCount}/2");
+
+            if (_turnPhaseReadyCount >= 2)
+            {
+                _turnPhaseReadyCount = 0;
+                RPC_PlayerTurnBegin(_activePlayerId);
+            }
+        }
+
+        /// <summary>Хост → все клиенты: активный игрок начинает свой ход.</summary>
+        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+        private void RPC_PlayerTurnBegin(int activePlayerId)
+        {
+            if (_state == null) return;
+            var world = _state.World;
+            var phasePool = world.GetPool<Game.Core.Ecs.Components.TurnPhaseState>();
+            var playerPool = world.GetPool<Game.Core.Ecs.Components.PlayerComponent>();
+            var filter = world.Filter<Game.Core.Ecs.Components.PlayerComponent>()
+                              .Inc<Game.Core.Ecs.Components.TurnPhaseState>().End();
+
+            foreach (var e in filter)
+            {
+                ref var phase = ref phasePool.Get(e);
+                phase.Phase = Game.Core.Ecs.Components.TurnPhase.PlayerTurn;
+
+                // Восстанавливаем ввод только активному игроку
+                if (playerPool.Get(e).PlayerId == activePlayerId && playerPool.Get(e).IsLocalPlayer)
+                    GameEventBus.Publish(new Game.Core.Events.InputRestoredEvent());
+            }
+
+            Debug.Log($"[PhotonRunHandler] PlayerTurn begun for player {activePlayerId}");
+        }
+
+        private int GetNextPlayerId(int currentPlayerId)
+        {
+            if (_state == null) return currentPlayerId;
+            var world = _state.World;
+            var playerPool = world.GetPool<Game.Core.Ecs.Components.PlayerComponent>();
+            var filter = world.Filter<Game.Core.Ecs.Components.PlayerComponent>().End();
+
+            int minId = int.MaxValue;
+            int nextId = int.MaxValue;
+
+            foreach (var e in filter)
+            {
+                int pid = playerPool.Get(e).PlayerId;
+                if (pid < minId) minId = pid;
+                if (pid > currentPlayerId && pid < nextId) nextId = pid;
+            }
+
+            return nextId == int.MaxValue ? minId : nextId;
+        }
+
+        // Считаем сколько раз этот игрок уже ходил (упрощённо через глобальный счётчик)
+        private readonly System.Collections.Generic.Dictionary<int, int> _personalTurnCounters
+            = new System.Collections.Generic.Dictionary<int, int>();
+
+        private int GetPersonalTurnNumber(int playerId)
+        {
+            if (!_personalTurnCounters.ContainsKey(playerId))
+                _personalTurnCounters[playerId] = 0;
+            _personalTurnCounters[playerId]++;
+            return _personalTurnCounters[playerId];
         }
 
         /// <summary>

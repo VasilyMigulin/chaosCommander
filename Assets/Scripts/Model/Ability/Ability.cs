@@ -17,17 +17,26 @@ namespace Game.Core.Model.Ability
         public List<AbilityEffect> Effects = new List<AbilityEffect>();
         public List<AbilityCondition> Conditions = new List<AbilityCondition>();
 
+        /// <summary>
+        /// Требования к полю боя, необходимые для того, чтобы карта вообще могла
+        /// быть разыграна. Проверяются до разыгрывания, независимо от стоимости.
+        /// Например: «на поле оппонента есть существо», «есть существо с чёрным цветом».
+        /// </summary>
+        public List<AbilityPlayRequirement> PlayRequirements = new List<AbilityPlayRequirement>();
+
         public int Init(EcsWorld world, int entityCard)
         {
             int entity = world.NewEntity();
 
-            AddCondition(world, entity);
+            AddCondition(world, entity, entityCard);
 
             AddEffect(world, entity);
 
             AddTrigger(world, entity);
 
             AddTarget(world, entity);
+
+            AddPlayRequirement(world, entityCard);
 
             OnInit(world, entity, entityCard);
 
@@ -36,14 +45,21 @@ namespace Game.Core.Model.Ability
 
         protected abstract void OnInit(EcsWorld world, int entity, int entityCard);
 
-        void AddCondition(EcsWorld world, int entity)
+        void AddCondition(EcsWorld world, int entity, int entityCard)
         {
             ref var conditionContainerComp = ref world.GetPool<AbilityConditionContainerComponent>().Add(entity);
             conditionContainerComp.AbilityConditions = new List<IAbilityCondition>();
 
             foreach (var condition in Conditions)
             {
-                conditionContainerComp.AbilityConditions.Add(condition.Clone());
+                var clone = condition.Clone();
+                conditionContainerComp.AbilityConditions.Add(clone);
+                clone.AddCondition(world, entity, entityCard);
+            }
+
+            if (conditionContainerComp.AbilityConditions.Count == 0)
+            {
+                world.GetPool<ReadyTag>().Add(entity);
             }
         }
 
@@ -120,6 +136,28 @@ namespace Game.Core.Model.Ability
                         world.GetPool<OnDraw>().Add(entityAbility);
                         break;
                 }
+            }
+        }
+
+        void AddPlayRequirement(EcsWorld world, int entityCard)
+        {
+            if (PlayRequirements == null || PlayRequirements.Count == 0) return;
+
+            ref var reqContainer = ref world.GetPool<AbilityPlayRequirementContainerComponent>().Add(entityCard);
+            reqContainer.PlayRequirements = new List<IAbilityPlayRequirement>();
+
+            foreach (var req in PlayRequirements)
+            {
+                var clone = req.Clone();
+                reqContainer.PlayRequirements.Add(clone);
+
+                // Если это требование выбора цели — сразу вешаем теги на карту
+                if (clone is Game.Core.Model.Condition.RequireTargetPlayRequirement targetReq)
+                    targetReq.ApplyToCard(world, entityCard);
+
+                // Если это требование выбора карты (раскопка) — вешаем тег и компонент
+                if (clone is Game.Core.Model.Condition.RequireCardPickPlayRequirement pickReq)
+                    pickReq.ApplyToCard(world, entityCard);
             }
         }
     }

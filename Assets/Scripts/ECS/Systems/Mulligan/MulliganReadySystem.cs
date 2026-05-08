@@ -33,7 +33,8 @@ namespace Game.Core.Ecs.Systems
                 Debug.Log($"[MulliganReadySystem] Player {player.PlayerId} confirmed mulligan");
             }
 
-            // Проверяем все ли мулиганы завершены
+            // Проверяем все ли мулиганы завершены — только для публикации локальных UI-событий
+            // AllMulligansCompletedEvent публикуется сервером через RPC_StartGame, не здесь
             bool allDone = true;
             int mulliganCount = 0;
 
@@ -48,11 +49,7 @@ namespace Game.Core.Ecs.Systems
                 }
             }
 
-            if (mulliganCount > 0 && allDone)
-            {
-                GameEventBus.Publish(new AllMulligansCompletedEvent());
-                Debug.Log("[MulliganReadySystem] All mulligans completed");
-            }
+            // Не публикуем AllMulligansCompletedEvent — за это отвечает RPC_StartGame с сервера
         }
     }
 }

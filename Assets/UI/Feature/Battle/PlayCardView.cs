@@ -81,13 +81,13 @@ namespace AwesomeUI.Feature.Battle
         /// <summary>Очистить View и деактивировать для повторного использования.</summary>
         public virtual void ClearCard()
         {
+            gameObject?.SetActive(false);
             CardEntity      = -1;
             IsOccupied      = false;
             IsSelected      = false;
             _isAffordable   = false;
             _isAbilityReady = false;
             ResetHighlight();
-            gameObject.SetActive(false);
         }
 
         // ── Highlights ───────────────────────────────────────────────────────

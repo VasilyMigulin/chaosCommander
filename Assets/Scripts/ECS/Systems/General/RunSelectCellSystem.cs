@@ -52,6 +52,9 @@ namespace Game.Core.Ecs.Systems
         // Блокировка анимации
         readonly EcsFilterInject<Inc<AttackAnimPendingTag>> _animPendingFilter = default;
 
+        // Блокировка выбора существ пока ждём выбора цели карты
+        readonly EcsFilterInject<Inc<PendingTargetCardComponent>> _pendingTargetFilter = default;
+
         // Вью
         readonly EcsPoolInject<ViewRefComponent> _viewPool = default;
 
@@ -60,6 +63,9 @@ namespace Game.Core.Ecs.Systems
         {
             // Не обрабатываем клики пока идёт анимация
             if (_animPendingFilter.Value.GetEntitiesCount() > 0) return;
+
+            // Уступаем управление TargetSelectionSystem пока игрок выбирает цель карты
+            if (_pendingTargetFilter.Value.GetEntitiesCount() > 0) return;
 
             // Только в фазе хода игрока
             int activePlayerId = -1;

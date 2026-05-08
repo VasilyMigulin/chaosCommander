@@ -13,14 +13,15 @@ namespace Game.Core.Service
             Exotic  
         }
 
+        [System.Flags]
         public enum Element
         {
-            Red,
-            Blue,
-            Green,
-            Yellow,
-            White,
-            Black
+            Red = 1 << 0,
+            Blue = 1 << 1,
+            Green = 1 << 2,
+            Yellow = 1 << 3,
+            White = 1 << 4,
+            Black = 1 << 5
         }
 
         /// <summary>Extensible resource types used for card play costs.</summary>

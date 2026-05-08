@@ -117,9 +117,6 @@ namespace Game.Core.DeckBuilder
             if (!IsColorAllowed(card))
                 return AddResult.WrongColor;
 
-            if (card.Rarity == EnumService.Rarity.Legendary && IsValidCommander(card))
-                return AddResult.IsCommander; // нельзя добавлять командиров как обычные карты
-
             if (card.Rarity == EnumService.Rarity.Exotic && HasExotic)
                 return AddResult.ExoticLimitReached;
 
@@ -158,13 +155,14 @@ namespace Game.Core.DeckBuilder
             return true;
         }
 
-        // ── Validation ───────────────────────────────────────────────────────
-
+        // ── Validation ─────────────────────────────────────────────────────── 
         public bool IsColorAllowed(CardModel card)
         {
             if (Commander == null) return false;
-            // Бесцветных/нейтральных карт в игре пока нет — строгая проверка по элементу
-            return card.Element == Commander.Element;
+
+            // Если у карты есть хотя бы один флаг,
+            // которого нет у командира → false
+            return (card.Element & ~Commander.Element) == 0;
         }
 
         /// <summary>Перевести колоду в SavedDeckData для сохранения.</summary>
@@ -208,7 +206,6 @@ namespace Game.Core.DeckBuilder
             Ok,
             NoCommander,
             WrongColor,
-            IsCommander,
             ExoticLimitReached,
             CopyLimitReached,
             NotEnoughCopies,

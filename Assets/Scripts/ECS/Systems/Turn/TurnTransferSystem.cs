@@ -1,4 +1,4 @@
-using Leopotam.EcsLite;
+﻿using Leopotam.EcsLite;
 using Leopotam.EcsLite.Di;
 using Game.Core.Ecs.Components;
 using Game.Core.Events;
@@ -6,9 +6,14 @@ using Game.Core.Events;
 namespace Game.Core.Ecs.Systems
 {
     /// <summary>
-    /// Принимает TurnTransferEvent на сущности следующего игрока.
-    /// Добавляет TurnState + TurnPhaseState, бросает TurnStartEvent на все карты на столе.
-    /// На сервере дополнительно публикует TurnTransferRpcEvent для синхронизации клиентов.
+    /// Выполняет команду хоста RPC_TurnStartPhaseBegin(nextPlayerId, turnNumber).
+    /// Команда приходит через TurnTransferEvent на entity нового активного игрока.
+    /// Оба клиента одновременно:
+    ///   - Обновляют GlobalTurnState
+    ///   - Ставят TurnState на нового активного игрока
+    ///   - Вешают фазу TurnStartAbilities на всех игроков
+    ///   - Бросают TurnStartEvent на карты нового активного игрока
+    ///   - Публикуют TurnStartedEvent для UI
     /// </summary>
     public sealed class TurnTransferSystem : IEcsRunSystem
     {
@@ -17,63 +22,64 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<PlayerComponent> _playerPool = default;
         readonly EcsPoolInject<TurnTransferEvent> _transferPool = default;
         readonly EcsPoolInject<TurnStartEvent> _turnStartEventPool = default;
+        readonly EcsPoolInject<OwnerComponent> _ownerPool = default;
+        readonly EcsPoolInject<GlobalTurnState> _globalTurnPool = default;
         readonly EcsFilterInject<Inc<TurnTransferEvent, PlayerComponent>> _filter = default;
-        readonly EcsFilterInject<Inc<PlayerComponent>> _playersFilter = default;
-        readonly EcsFilterInject<Inc<AbilityContainerComponent, BoardTag>, Exc<HandTag, DeckTag>> _boardCardsFilter = default;
+        readonly EcsFilterInject<Inc<PlayerComponent, TurnPhaseState>> _allPlayersFilter = default;
+        readonly EcsFilterInject<Inc<GlobalTurnState>> _globalFilter = default;
+        readonly EcsFilterInject<Inc<AbilityContainerComponent, BoardTag, OwnerComponent>, Exc<HandTag, DeckTag>> _boardCardsFilter = default;
 
         public void Run(IEcsSystems systems)
         {
             foreach (var entity in _filter.Value)
             {
                 ref var transfer = ref _transferPool.Value.Get(entity);
-                ref var player = ref _playerPool.Value.Get(entity);
-
-                int personalTurnNumber = CalculatePersonalTurnNumber(entity, transfer.ToPlayerId);
-                int globalTurnNumber = GetCurrentGlobalTurn() + 1;
-
-                ref var turnState = ref _turnStatePool.Value.Add(entity);
-                turnState.TurnNumber = globalTurnNumber;
-                turnState.PersonalTurnNumber = personalTurnNumber;
-                turnState.TimeRemaining = InitTurnSystem.TurnDuration;
-
-                ref var phase = ref _phasePool.Value.Add(entity);
-                phase.Phase = TurnPhase.TurnStartAbilities;
-
                 _transferPool.Value.Del(entity);
 
-                // Бросаем TurnStartEvent на все карты на столе
+                int activePlayerId = transfer.ToPlayerId;
+                int turnNumber = transfer.TurnNumber;
+                int personalTurnNumber = transfer.PersonalTurnNumber;
+
+                // Обновляем GlobalTurnState
+                foreach (var ge in _globalFilter.Value)
+                {
+                    ref var g = ref _globalTurnPool.Value.Get(ge);
+                    g.ActivePlayerId = activePlayerId;
+                    g.TurnNumber = turnNumber;
+                    g.PersonalTurnNumber = personalTurnNumber;
+                    break;
+                }
+
+                // Ставим TurnState на нового активного игрока
+                if (!_turnStatePool.Value.Has(entity))
+                {
+                    ref var ts = ref _turnStatePool.Value.Add(entity);
+                    ts.TurnNumber = turnNumber;
+                    ts.PersonalTurnNumber = personalTurnNumber;
+                    ts.TimeRemaining = InitTurnSystem.TurnDuration;
+                }
+
+                // Переводим ВСЕХ игроков в фазу TurnStartAbilities
+                foreach (var pe in _allPlayersFilter.Value)
+                {
+                    ref var phase = ref _phasePool.Value.Get(pe);
+                    phase.Phase = TurnPhase.TurnStartAbilities;
+                }
+
+                // TurnStartEvent только на карты нового активного игрока
                 foreach (var cardEntity in _boardCardsFilter.Value)
                 {
+                    if (_ownerPool.Value.Get(cardEntity).OwnerId != activePlayerId) continue;
                     if (!_turnStartEventPool.Value.Has(cardEntity))
                         _turnStartEventPool.Value.Add(cardEntity);
                 }
 
                 GameEventBus.Publish(new TurnStartedEvent
                 {
-                    ActivePlayerId = player.PlayerId,
-                    TurnNumber = globalTurnNumber
+                    ActivePlayerId = activePlayerId,
+                    TurnNumber = turnNumber
                 });
             }
-        }
-
-        private int GetCurrentGlobalTurn()
-        {
-            foreach (var e in _playersFilter.Value)
-            {
-                if (_turnStatePool.Value.Has(e))
-                    return _turnStatePool.Value.Get(e).TurnNumber;
-            }
-            return 0;
-        }
-
-        private int CalculatePersonalTurnNumber(int playerEntity, int playerId)
-        {
-            int playerCount = 0;
-            foreach (var _ in _playersFilter.Value) playerCount++;
-            if (playerCount == 0) playerCount = 1;
-
-            int globalTurn = GetCurrentGlobalTurn() + 1;
-            return (globalTurn / playerCount) + 1;
         }
     }
 }

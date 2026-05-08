@@ -183,20 +183,18 @@ namespace AwesomeUI.Core.Card
             }
         }
 
-        // ── Element ───────────────────────────────────────────────────────────
-
+        // ── Element ─────────────────────────────────────────────────────────── 
         void ApplyElement(EnumService.Element element)
         {
             if (_elementIndicators == null) return;
             foreach (var entry in _elementIndicators)
             {
                 if (entry.Indicator != null)
-                    entry.Indicator.SetActive(entry.Element == element);
+                    entry.Indicator.SetActive((element & entry.Element) != 0);
             }
         }
 
-        // ── Creature Stats ────────────────────────────────────────────────────
-
+        // ── Creature Stats ──────────────────────────────────────────────────── 
         void ApplyCreatureStats(bool isCreature, int attack, int health, int speed)
         {
             if (_creatureStatsRoot != null)
@@ -209,8 +207,7 @@ namespace AwesomeUI.Core.Card
             if (_speedText  != null) _speedText.text  = speed.ToString();
         }
 
-        // ── Helpers ───────────────────────────────────────────────────────────
-
+        // ── Helpers ─────────────────────────────────────────────────────────── 
         static string CardTypeLabel(EnumService.CardType type)
         {
             switch (type)

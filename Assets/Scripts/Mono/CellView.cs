@@ -10,6 +10,7 @@ namespace Game.Core.Mono
         [SerializeField] Color darkColor = Color.black;
         [SerializeField] Color highlightMoveColor = new Color(0.3f, 0.8f, 0.3f, 1f);
         [SerializeField] Color highlightAttackColor = new Color(0.9f, 0.2f, 0.2f, 1f);
+        [SerializeField] Color highlightTargetColor = new Color(0.9f, 0.6f, 0.1f, 1f);
         [SerializeField] Color selectedColor = new Color(0.3f, 0.6f, 1f, 1f);
 
         public int Row { get; private set; }
@@ -42,6 +43,7 @@ namespace Game.Core.Mono
             {
                 CellHighlight.Move   => highlightMoveColor,
                 CellHighlight.Attack => highlightAttackColor,
+                CellHighlight.Target => highlightTargetColor,
                 CellHighlight.Select => selectedColor,
                 _                    => _baseColor,
             };
@@ -53,5 +55,5 @@ namespace Game.Core.Mono
         }
     }
 
-    public enum CellHighlight { None, Move, Attack, Select }
+    public enum CellHighlight { None, Move, Attack, Select, Target }
 }

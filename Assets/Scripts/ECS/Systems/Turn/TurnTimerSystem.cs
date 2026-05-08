@@ -23,6 +23,12 @@ namespace Game.Core.Ecs.Systems
 
             foreach (var entity in _activeFilter.Value)
             {
+                ref var player = ref _playerPool.Value.Get(entity);
+
+                // Таймер тикает только у локального игрока — он авторитетен для своего хода
+                if (!player.IsLocalPlayer)
+                    continue;
+
                 ref var phase = ref _phasePool.Value.Get(entity);
                 if (phase.Phase != TurnPhase.PlayerTurn)
                     continue;
@@ -37,7 +43,7 @@ namespace Game.Core.Ecs.Systems
                     if (!_endTurnPool.Value.Has(entity))
                     {
                         ref var req = ref _endTurnPool.Value.Add(entity);
-                        req.RequestingPlayerId = _playerPool.Value.Get(entity).PlayerId;
+                        req.RequestingPlayerId = player.PlayerId;
                     }
                 }
             }

@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: creature_card_023
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  CardData:
+    rid: 8072968609180155930
+  references:
+    version: 2
+    RefIds:
+    - rid: 8072968609180155930
+      type: {class: CardCreatureModel, ns: Game.Core.Model.Card.Creature, asm: Game.Core.Model.Card.Creature}
+      data:
+        Id: 23
+        Name: "\u041F\u0440\u0435\u0441\u0432\u044F\u0442\u043E\u0439 \u0414\u0443\u0448'\u041D\u0438\u043B\u0430"
+        Description: 
+        Rarity: 3
+        Element: 28
+        Icon: {fileID: 0}
+        ExpansionId: 
+        PlayCost: 0
+        PlayCostAmount: 8
+        MaxHealth: 9
+        Attack: 4
+        Speed: 1
+        ViewPrefab: {fileID: 0}
+        IsCommander: 0

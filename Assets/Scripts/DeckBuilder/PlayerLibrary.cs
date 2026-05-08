@@ -96,6 +96,25 @@ namespace Game.Core.DeckBuilder
             if (instances == null) return;
             foreach (var instance in instances)
             {
+                switch (instance.CardData.Rarity)
+                {
+                    case Service.EnumService.Rarity.Common:
+                        countEach = 4;
+                        break;
+                    case Service.EnumService.Rarity.Rare:
+                        countEach = 3;
+                        break;
+                    case Service.EnumService.Rarity.Epic:
+                        countEach = 2;
+                        break;
+                    case Service.EnumService.Rarity.Legendary:
+                        countEach = 1;
+                        break;
+                    case Service.EnumService.Rarity.Exotic:
+                        countEach = 1;
+                        break;
+                }
+
                 if (instance != null && instance.CardData != null)
                     AddCard(instance.CardData, countEach); // Clone выполняется внутри AddCard
             }

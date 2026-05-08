@@ -206,7 +206,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 98561863ef79c5f4bb1d49c299080ad6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: AwesomeUI.Feature::AwesomeUI.Feature.Battle.SimpleCardView
-  IsButton: 0
+  IsButton: 1
   IsAnimation: 0
   EnableIcon: 1
   _rarityBadge: {fileID: 7423282214813544861}
@@ -234,6 +234,7 @@ MonoBehaviour:
   - Rarity: 4
     Sprite: {fileID: 21300000, guid: 33b6f3b3b18ea02438908bf65b73e370, type: 3}
   _highlight: {fileID: 8931482570235573509}
+  _artImage: {fileID: 0}
   _nameText: {fileID: 6330971195804974351}
   _typeText: {fileID: 437970741202814981}
   _descriptionText: {fileID: 8957473669816242275}
@@ -247,17 +248,17 @@ MonoBehaviour:
   - ResourceType: 2
     Sprite: {fileID: 21300000, guid: a15beef3e99cc42118d9a86018e0767e, type: 3}
   _elementIndicators:
-  - Element: 0
-    Indicator: {fileID: 8905070882181965414}
   - Element: 1
-    Indicator: {fileID: 8885883563739443228}
+    Indicator: {fileID: 8905070882181965414}
   - Element: 2
-    Indicator: {fileID: 7352750043457437429}
-  - Element: 3
-    Indicator: {fileID: 323703911361560512}
+    Indicator: {fileID: 8885883563739443228}
   - Element: 4
+    Indicator: {fileID: 7352750043457437429}
+  - Element: 8
+    Indicator: {fileID: 323703911361560512}
+  - Element: 16
     Indicator: {fileID: 7965984378346266322}
-  - Element: 5
+  - Element: 32
     Indicator: {fileID: 5208317877931991920}
   _creatureStatsRoot: {fileID: 1599014780733104353}
   _attackText: {fileID: 6614252022287907109}

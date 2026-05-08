@@ -59,6 +59,7 @@ namespace AwesomeUI.Feature.DeckBuilder
         [SerializeField] Transform          _libraryContent;
         [SerializeField] LibraryCardView    _libraryCardPrefab;
         [SerializeField] TMP_InputField     _searchInput;
+        [SerializeField] Toggle             _commanderFilterToggle;
 
         [Header("Deck")]
         [SerializeField] Transform          _deckContent;
@@ -76,6 +77,7 @@ namespace AwesomeUI.Feature.DeckBuilder
         [Header("Buttons")]
         [SerializeField] Button             _saveButton;
         [SerializeField] Button             _clearButton;
+        [SerializeField] Button             _exitButton;
 
         // ── Runtime ──────────────────────────────────────────────────────────
 
@@ -103,6 +105,8 @@ namespace AwesomeUI.Feature.DeckBuilder
             _saveButton?.onClick.AddListener(OnSaveClicked);
             _clearButton?.onClick.AddListener(OnClearClicked);
             _searchInput?.onValueChanged.AddListener(OnSearchChanged);
+            _exitButton?.onClick.AddListener(OnExitClicked);
+            _commanderFilterToggle?.onValueChanged.AddListener(OnCommanderFilterChanged);
 
             BuildLibraryViews();
             RefreshAll();
@@ -113,6 +117,8 @@ namespace AwesomeUI.Feature.DeckBuilder
             _saveButton?.onClick.RemoveListener(OnSaveClicked);
             _clearButton?.onClick.RemoveListener(OnClearClicked);
             _searchInput?.onValueChanged.RemoveListener(OnSearchChanged);
+            _exitButton?.onClick.RemoveListener(OnExitClicked);
+            _commanderFilterToggle?.onValueChanged.RemoveListener(OnCommanderFilterChanged);
 
             foreach (var v in _libraryViews) v.OnAddRequested -= OnLibraryCardAdd;
             foreach (var v in _deckViews)    v.OnRemoveRequested -= OnDeckCardRemove;
@@ -160,8 +166,17 @@ namespace AwesomeUI.Feature.DeckBuilder
                 if (!string.IsNullOrEmpty(filter))
                     visible = entry.Model.Name.ToLower().Contains(filter.ToLower());
 
+                // Скрываем командира из библиотеки
+                if (hasCommander && visible && entry.Model == _service.Commander)
+                    visible = false;
+
                 // Скрываем карты чужого цвета (если командир выбран)
                 if (hasCommander && visible && !_service.IsColorAllowed(entry.Model))
+                    visible = false;
+
+                // Фильтр «только командиры» (легендарные существа)
+                if (visible && _commanderFilterToggle != null && _commanderFilterToggle.isOn
+                    && !DeckBuilderService.IsValidCommander(entry.Model))
                     visible = false;
 
                 string key = PlayerLibrary.MakeKey(entry.Model.ExpansionId, entry.Model.Id);
@@ -259,7 +274,7 @@ namespace AwesomeUI.Feature.DeckBuilder
                 foreach (var entry in _colorIndicators)
                 {
                     if (entry.Indicator == null) continue;
-                    entry.Indicator.SetActive(hasCmd && entry.Element == _service.Commander.Element);
+                    entry.Indicator.SetActive(hasCmd && (_service.Commander.Element & entry.Element) != 0);
                 }
             }
         }
@@ -270,21 +285,13 @@ namespace AwesomeUI.Feature.DeckBuilder
         {
             if (view.Model == null) return;
 
-            // Легендарное существо без командира → выбрать командиром
+            // Первое легендарное существо → выбрать командиром
             if (_service.Commander == null && DeckBuilderService.IsValidCommander(view.Model))
             {
                 _service.TrySetCommander(view.Model);
+                if (_commanderFilterToggle != null) _commanderFilterToggle.isOn = false;
                 RefreshAll();
                 ShowFeedback($"Командир: {view.Model.Name}");
-                return;
-            }
-
-            // Уже заменить командира на другого (кликнуть на другое легендарное существо)
-            if (DeckBuilderService.IsValidCommander(view.Model) && view.Model != _service.Commander)
-            {
-                _service.TrySetCommander(view.Model);
-                RefreshAll();
-                ShowFeedback($"Командир заменён: {view.Model.Name}");
                 return;
             }
 
@@ -309,7 +316,7 @@ namespace AwesomeUI.Feature.DeckBuilder
 
         void OnCommanderRemove(DeckCardView view)
         {
-            _service.RemoveCommander();
+            _service.ClearAll();
             RefreshAll();
             ShowFeedback("Командир убран из колоды");
         }
@@ -328,6 +335,11 @@ namespace AwesomeUI.Feature.DeckBuilder
             RefreshLibrary(value);
         }
 
+        void OnCommanderFilterChanged(bool value)
+        {
+            RefreshLibrary(_searchInput != null ? _searchInput.text : "");
+        }
+
         void OnSaveClicked()
         {
             if (_service.Commander == null)
@@ -342,8 +354,22 @@ namespace AwesomeUI.Feature.DeckBuilder
 
             var data = _service.Export(name);
             DeckStorage.SaveOrReplace(data,
-                onSuccess: () => ShowFeedback($"Колода «{name}» сохранена"),
-                onError:   err => ShowFeedback($"Ошибка сохранения: {err}"));
+                onSuccess: () =>
+                {
+                    ShowFeedback($"Колода «{name}» сохранена");
+                    NavigateToMainMenu();
+                },
+                onError: err => ShowFeedback($"Ошибка сохранения: {err}"));
+        }
+
+        void OnExitClicked()
+        {
+            NavigateToMainMenu();
+        }
+
+        void NavigateToMainMenu()
+        {
+            _panelController?.OpenPanel<MainMenuPanel>();
         }
 
         void OnClearClicked()
@@ -364,13 +390,12 @@ namespace AwesomeUI.Feature.DeckBuilder
         {
             switch (result)
             {
-                case DeckBuilderService.AddResult.NoCommander:      return "Сначала выберите командира";
-                case DeckBuilderService.AddResult.WrongColor:       return "Карта не совпадает по цвету с командиром";
-                case DeckBuilderService.AddResult.IsCommander:      return "Легендарных существ нельзя добавлять в колоду — только как командира";
+                case DeckBuilderService.AddResult.NoCommander:        return "Сначала выберите командира";
+                case DeckBuilderService.AddResult.WrongColor:         return "Карта не совпадает по цвету с командиром";
                 case DeckBuilderService.AddResult.ExoticLimitReached: return "В колоде уже есть экзотическая карта";
-                case DeckBuilderService.AddResult.CopyLimitReached:  return "Достигнут лимит копий для этой карты";
-                case DeckBuilderService.AddResult.NotEnoughCopies:   return "У вас нет достаточно копий этой карты";
-                default:                                             return "";
+                case DeckBuilderService.AddResult.CopyLimitReached:   return "Достигнут лимит копий для этой карты";
+                case DeckBuilderService.AddResult.NotEnoughCopies:    return "У вас нет достаточно копий этой карты";
+                default:                                               return "";
             }
         }
     }

@@ -38,6 +38,13 @@ namespace Game.Core.Ecs.Handlers
             _turnSystems = new EcsSystems(World, state);
             _delSystems = new EcsSystems(World, state);
 
+            _mulliganSystems
+                .Add(new MulliganOfferSystem())
+                .Add(new MulliganReplaceSystem())
+                .Add(new MulliganReadySystem())
+                .Add(new SyncDeckToOpponentSystem())
+                ;
+
             _initSystems
                 .Add(new InitLocalPlayerSystem())
                 .Add(new InitTurnSystem())
@@ -58,13 +65,13 @@ namespace Game.Core.Ecs.Handlers
                 ;
 
             _generalSystems
-                // --- Условия способностей ---
-                .Add(new CheckConditionSystem())
                 // --- Доступность карт для розыгрыша (UI) ---
                 .Add(new CardAffordabilitySystem())
                 // --- Ввод ---
                 .Add(new RunSelectCellSystem())
                 .Add(new DrawCardSystem())
+                // --- Выбор карты (раскопка) перед кастом ---
+                .Add(new CardPickSelectionSystem())
                 // --- Розыгрыш карт ---
                 .Add(new CastCardSystem())
                 // --- Движение существ ---
@@ -106,15 +113,17 @@ namespace Game.Core.Ecs.Handlers
             _delSystems 
                 .DelHere<TurnStartEvent>()
                 .DelHere<TurnEndEvent>()
-                .DelHere<TurnTransferEvent>()
                 .DelHere<DieEvent>()
-                .DelHere<CastEvent>()
+                .DelHere<CastEvent>() 
+                .DelHere<OnCastTrigger>()
                 .DelHere<ResolveAbilityEvent>()
                 .DelHere<CellClickEvent>()
                 .DelHere<AttackHitEvent>()
+                .DelHere<CardPickResultComponent>()
                 ;
 
             _allSystems.Add(_initSystems);
+            _allSystems.Add(_mulliganSystems);
             _allSystems.Add(_turnSystems);
             _allSystems.Add(_generalSystems);
             _allSystems.Add(_cardSystems);
