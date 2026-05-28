@@ -1,12 +1,13 @@
 using AwesomeUI.Core;
-using UnityEngine;
-using UnityEngine.SceneManagement;
-using Game.Core.DeckBuilder;
-using Game.Core.Configs;
 using AwesomeUI.Feature.Login;
+using Game.Core.Configs;
+using Game.Core.DeckBuilder;
 using Game.Core.Instance;
 using Game.Core.Instance.Card;
 using Game.Core.Shared.Interface;
+using Game.Core.Model.Card;
+using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Game.Core.States
 {
@@ -14,9 +15,12 @@ namespace Game.Core.States
     {
         [Header("Testing")]
         public CardInstanceData[] TestingLibrary;
+        public CardInstanceData[] TestingDeck;
 
         [Header("Config")]
         public CardConfig CardConfig;
+
+        private DeckBuilderService deckService = new DeckBuilderService();
 
         public override void Start()
         {
@@ -40,11 +44,28 @@ namespace Game.Core.States
                 LoadFromCloud();
         }
 
+        void LoadTestingDeck()
+        {
+            deckService.TrySetCommander(TestingDeck[0].CardData);
+
+            for (int i = 1; i < TestingDeck.Length; i++)
+            {
+                deckService.TryAdd(TestingDeck[i].CardData);
+            }
+
+            var saved = deckService.Export("TestDeck");
+            DeckStorage.SetTesting(saved);
+        }
+
         // ── Private ──────────────────────────────────────────────────────────
 
         void LoadTestingLibrary()
-        {
+        { 
             PlayerLibrary.AddInstanceCards(TestingLibrary);
+
+            if (TestingDeck != null && TestingDeck.Length > 0)
+                LoadTestingDeck();
+
             GoToMenu();
         }
 

@@ -14,10 +14,10 @@ namespace Game.Core.Model.Card.Spell
 
         public override Service.EnumService.CardType GetCardType() => Service.EnumService.CardType.Spell;
 
-        protected override void OnInit(EcsWorld world, int entityCard)
+        protected override void OnInit(EcsWorld world, int entityCard, bool isCommander)
         {
             world.GetPool<SpellTag>().Add(entityCard);
-        } 
+        }
     }
 }
 

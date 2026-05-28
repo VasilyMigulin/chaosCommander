@@ -1,5 +1,6 @@
 using Game.Core.Shared.Interface;
 using Leopotam.EcsLite;
+using System;
 
 namespace Game.Core.Model.Condition
 {
@@ -11,6 +12,7 @@ namespace Game.Core.Model.Condition
     /// Например: «на поле оппонента должно быть хотя бы одно существо»,
     /// «на поле должно быть существо с чёрным цветом» и т.д.
     /// </summary>
+    [Serializable]
     public abstract class AbilityPlayRequirement : IAbilityPlayRequirement
     {
         public abstract bool IsSatisfied(EcsWorld world, int cardEntity);

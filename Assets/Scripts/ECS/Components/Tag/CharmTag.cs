@@ -1,7 +1,8 @@
 namespace Game.Core.Ecs.Components
 {
-    public struct CharmTag 
+    public struct CharmTag
     {
-        // add your data here.
+        /// <summary>Максимум чар под контролем одного игрока.</summary>
+        public const int MaxCharmsOnBoard = 5;
     }
 }

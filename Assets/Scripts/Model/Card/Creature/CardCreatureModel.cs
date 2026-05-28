@@ -24,17 +24,37 @@ namespace Game.Core.Model.Card.Creature
 
         public override Game.Core.Service.EnumService.CardType GetCardType() => Game.Core.Service.EnumService.CardType.Creature;
 
-        protected override void OnInit(EcsWorld world, int entityCard)
+        protected override void OnInit(EcsWorld world, int entityCard, bool isCommander)
         {
-            world.GetPool<AttackComponent>().Add(entityCard).Value = Attack;
-            world.GetPool<HealthComponent>().Add(entityCard).Max = MaxHealth;
+            ref var atk = ref world.GetPool<AttackComponent>().Add(entityCard);
+            atk.Value = Attack;
+            atk.Base  = Attack;
+
+            ref var hp = ref world.GetPool<HealthComponent>().Add(entityCard);
+            hp.Max     = MaxHealth;
+            hp.BaseMax = MaxHealth;
+            hp.Current = MaxHealth;
 
             world.GetPool<CreatureTag>().Add(entityCard);
 
-            if (IsCommander)
+            if (isCommander)
                 world.GetPool<CommanderTag>().Add(entityCard);
 
-            world.GetPool<ViewRefComponent>().Add(entityCard).View = ViewPrefab;
+            world.GetPool<ViewRefComponent>().Add(entityCard).Prefab = ViewPrefab;
+
+            ref var speed = ref world.GetPool<SpeedComponent>().Add(entityCard);
+            speed.Max       = Speed;
+            speed.Remaining = Speed;
+
+            if (world.GetPool<CardViewDataComponent>().Has(entityCard))
+            {
+                ref var viewData    = ref world.GetPool<CardViewDataComponent>().Get(entityCard);
+                viewData.IsCreature = true;
+                viewData.Attack     = Attack;
+                viewData.MaxHealth  = MaxHealth;
+                viewData.Speed      = Speed;
+                viewData.IsCommander = isCommander;
+            }
         }
     }
 }

@@ -27,11 +27,11 @@ MonoBehaviour:
         Rarity: 3
         Element: 37
         Icon: {fileID: 0}
-        ExpansionId: 
+        ExpansionId: standard
         PlayCost: 0
         PlayCostAmount: 5
         MaxHealth: 6
         Attack: 2
         Speed: 3
-        ViewPrefab: {fileID: 0}
+        ViewPrefab: {fileID: 1046069417137952589, guid: f06aa6138ec1c4140ac9af21f0ddde7e, type: 3}
         IsCommander: 0

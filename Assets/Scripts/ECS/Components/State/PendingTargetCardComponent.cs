@@ -20,5 +20,13 @@ namespace Game.Core.Ecs.Components
         AllyCreature,
         AnyCreature,
         AnyCell,
+        /// <summary>Пустая клетка фронтального ряда (row=0) активного игрока. Для размещения существ.</summary>
+        OwnFrontCell,
+        /// <summary>Случайное вражеское существо на доске.</summary>
+        RandomEnemy,
+        /// <summary>Случайное союзное существо на доске.</summary>
+        RandomAlly,
+        /// <summary>Случайное любое существо на доске.</summary>
+        RandomAnyCreature,
     }
 }

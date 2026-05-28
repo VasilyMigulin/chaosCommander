@@ -40,5 +40,16 @@ namespace Game.Core.DeckBuilder
         }
 
         public static IReadOnlyList<SavedDeckData> GetCached() => _cache;
+
+        /// <summary>
+        /// Записывает колоду прямо в кеш без обращения к облаку.
+        /// Используется для тестовых колод, собранных в InitState.
+        /// </summary>
+        public static void SetTesting(SavedDeckData deck)
+        {
+            _cache.Clear();
+            if (deck != null)
+                _cache.Add(deck);
+        }
     }
 }

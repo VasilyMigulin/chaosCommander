@@ -63,6 +63,10 @@ namespace AwesomeUI.Feature.Battle
                 var found = GetComponentsInChildren<ResourceIndicatorView>(true);
                 _resourceIndicators = new List<ResourceIndicatorView>(found);
             }
+
+            // CardLayout скрыт до начала матча (открывается после мулигана)
+            if (_cardLayout != null)
+                _cardLayout.gameObject.SetActive(false);
         }
 
         public override void OnInject()
@@ -85,13 +89,16 @@ namespace AwesomeUI.Feature.Battle
             _turnHintView?.OnInject();
 
             GameEventBus.Subscribe<OpponentCardPlayedUIEvent>(OnOpponentCardPlayed);
+            GameEventBus.Subscribe<PreStartPhaseBeginUIEvent>(OnPreStartPhaseBegin);
         }
 
         public override void Unject()
         {
             GameEventBus.Unsubscribe<OpponentCardPlayedUIEvent>(OnOpponentCardPlayed);
+            GameEventBus.Unsubscribe<PreStartPhaseBeginUIEvent>(OnPreStartPhaseBegin);
 
             _muliganWindow?.Unject();
+            _cardLayout?.Unject();
             _cardLayout?.Dispose();
 
             if (_resourceIndicators != null)
@@ -109,6 +116,14 @@ namespace AwesomeUI.Feature.Battle
         }
 
         // ── Event handlers ────────────────────────────────────────────────────
+
+        private void OnPreStartPhaseBegin(PreStartPhaseBeginUIEvent evt)
+        {
+            if (_cardLayout != null)
+                _cardLayout.gameObject.SetActive(true);
+
+            _cardLayout.OnPreStartPhaseBegin(evt);
+        }
 
         private void OnOpponentCardPlayed(OpponentCardPlayedUIEvent evt)
         {

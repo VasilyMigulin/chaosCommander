@@ -1,7 +1,13 @@
+using AwesomeUI.Core.Attributes;
 using AwesomeUI.Core.Window;
 using DG.Tweening;
+using Game.Core.Ecs.Components;
 using Game.Core.Events;
+using Game.Core.Shared;
+using Game.Core.Shared.Interface;
+using Leopotam.EcsLite;
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -16,15 +22,18 @@ namespace AwesomeUI.Feature.Battle
     /// </summary>
     public class MuliganWindow : SourceWindow
     {
+        [UIInject] EcsWorld _world;
+        [UIInject] IGameStateContext _state;
+
         [Header("Cards")]
         [SerializeField] private List<MuliganCardView> _cardViews;
 
         [Header("UI")]
         [SerializeField] private Button          _confirmButton;
-        [SerializeField] private Button          _skipButton;
-        [SerializeField] private TextMeshProUGUI _titleText;
+        [SerializeField] private Button          _skipButton; 
         [SerializeField] private TextMeshProUGUI _replacementsLeftText;
         [SerializeField] private CanvasGroup     _canvasGroup;
+        [SerializeField] private GameObject      _waitingPanel;
 
         private int   _playerEntity;
         private int   _maxReplacements;
@@ -36,29 +45,55 @@ namespace AwesomeUI.Feature.Battle
         public override SourceWindow Init()
         {
             base.Init();
+            _cardViews.ForEach(x => x.Init());
             if (_canvasGroup == null) _canvasGroup = GetComponent<CanvasGroup>();
+
+            GameEventBus.Subscribe<MulliganStartedEvent>(OnMulliganStarted);
+            GameEventBus.Subscribe<MulliganCardReplacedEvent>(OnCardReplaced);
+            GameEventBus.Subscribe<AllMulligansCompletedEvent>(OnAllMulligansCompleted);
+            GameEventBus.Subscribe<PreStartPhaseBeginUIEvent>(OnPreStartPhaseBegin);
+
+            if (_confirmButton != null) _confirmButton.onClick.AddListener(OnConfirm);
+            if (_skipButton != null) _skipButton.onClick.AddListener(OnSkip);
+
             return this;
+        }
+
+        public override void Dispose()
+        {
+            base.Dispose();
+
+            GameEventBus.Unsubscribe<MulliganStartedEvent>(OnMulliganStarted);
+            GameEventBus.Unsubscribe<MulliganCardReplacedEvent>(OnCardReplaced);
+            GameEventBus.Unsubscribe<AllMulligansCompletedEvent>(OnAllMulligansCompleted);
+            GameEventBus.Unsubscribe<PreStartPhaseBeginUIEvent>(OnPreStartPhaseBegin);
+
+            if (_confirmButton != null) _confirmButton.onClick.RemoveListener(OnConfirm);
+            if (_skipButton != null) _skipButton.onClick.RemoveListener(OnSkip);
         }
 
         public override void OnInject()
         {
-            GameEventBus.Subscribe<MulliganStartedEvent>(OnMulliganStarted);
-            GameEventBus.Subscribe<MulliganCardReplacedEvent>(OnCardReplaced);
-
-            if (_confirmButton != null) _confirmButton.onClick.AddListener(OnConfirm);
-            if (_skipButton    != null) _skipButton.onClick.AddListener(OnSkip);
         }
 
         public override void Unject()
         {
-            GameEventBus.Unsubscribe<MulliganStartedEvent>(OnMulliganStarted);
-            GameEventBus.Unsubscribe<MulliganCardReplacedEvent>(OnCardReplaced);
-
-            if (_confirmButton != null) _confirmButton.onClick.RemoveListener(OnConfirm);
-            if (_skipButton    != null) _skipButton.onClick.RemoveListener(OnSkip);
         }
 
         // ── Event handlers ────────────────────────────────────────────────────
+
+        private void OnAllMulligansCompleted(AllMulligansCompletedEvent _)
+        {
+            // Блокируем UI мулигана и показываем плашку ожидания оппонента
+            SetInteractable(false);
+            if (_waitingPanel != null) _waitingPanel.SetActive(true);
+        }
+
+        private void OnPreStartPhaseBegin(PreStartPhaseBeginUIEvent _)
+        {
+            // Хост начал PreStart — закрываем мулиган
+            OnClose();
+        }
 
         private void OnMulliganStarted(MulliganStartedEvent evt)
         {
@@ -66,11 +101,17 @@ namespace AwesomeUI.Feature.Battle
             _maxReplacements  = evt.MaxReplacements;
             _replacementsUsed = 0;
             _selectedEntities.Clear();
+            _confirmButton.interactable = false;
 
             for (int i = 0; i < _cardViews.Count; i++)
             {
                 if (i < evt.OfferedCardEntities.Length)
-                    _cardViews[i].Setup(evt.OfferedCardEntities[i], null, $"Card {i + 1}", OnCardToggled);
+                {
+                    CardVisualData? visual = evt.OfferedCardVisuals != null && i < evt.OfferedCardVisuals.Length
+                        ? evt.OfferedCardVisuals[i]
+                        : (CardVisualData?)null;
+                    _cardViews[i].Setup(evt.OfferedCardEntities[i], visual, $"Card {i + 1}", OnCardToggled);
+                }
                 else
                     _cardViews[i].Clear();
             }
@@ -81,21 +122,27 @@ namespace AwesomeUI.Feature.Battle
 
         private void OnCardReplaced(MulliganCardReplacedEvent evt)
         {
-            if (evt.PlayerEntity != _playerEntity) return;
-
             for (int i = 0; i < _cardViews.Count; i++)
             {
                 var view = _cardViews[i];
+
                 if (!view.gameObject.activeSelf) continue;
-                if (view.CardEntity != evt.OldCardEntity) continue;
 
-                _selectedEntities.Remove(evt.OldCardEntity);
-                view.Setup(evt.NewCardEntity, null, "New Card", OnCardToggled);
-                break;
-            }
+                for (int j = 0; j < evt.OldCardEntity.Length; j++)
+                { 
+                    int oldCardEntity = evt.OldCardEntity[j];
+                    int newCardEntity = evt.NewCardEntity[j];
+                    CardVisualData cardVisualData = evt.NewCardVisual[j];
 
-            _replacementsUsed++;
-            UpdateReplacementsLabel();
+                    if (view.CardEntity != oldCardEntity) continue;
+
+                    _selectedEntities.Remove(oldCardEntity);
+
+                    view.Setup(newCardEntity, cardVisualData, "New Card", OnCardToggled);
+                    view.Lock();
+                    break;
+                } 
+            } 
         }
 
         // ── Card selection ────────────────────────────────────────────────────
@@ -103,39 +150,62 @@ namespace AwesomeUI.Feature.Battle
         private void OnCardToggled(MuliganCardView view)
         {
             if (view.IsSelected)
-                _selectedEntities.Add(view.CardEntity);
-            else
-                _selectedEntities.Remove(view.CardEntity);
-
-            if (_confirmButton != null)
-                _confirmButton.interactable = _replacementsUsed < _maxReplacements || _selectedEntities.Count == 0;
-        }
-
-        // ── Buttons ───────────────────────────────────────────────────────────
-
-        private void OnConfirm()
-        {
-            foreach (var entity in _selectedEntities)
             {
-                GameEventBus.Publish(new MulliganReplaceRequestedUIEvent
-                {
-                    PlayerEntity = _playerEntity,
-                    CardEntity   = entity
-                });
+                _selectedEntities.Add(view.CardEntity);
+                _replacementsUsed++;
+            }
+            else
+            {
+                _selectedEntities.Remove(view.CardEntity);
+                _replacementsUsed--;
+                view.ResetHighlight();
             }
 
-            PublishCompleted();
+            if (_replacementsUsed == _maxReplacements)
+            {
+                foreach (var cardView in _cardViews)
+                {
+                    if (cardView == view) continue;
+                    if (cardView.IsSelected) continue;
+                    cardView.Lock();
+                }
+            }
+            else
+            {
+                foreach (var cardView in _cardViews)
+                {
+                    if (cardView == view) continue;
+                    if (cardView.IsSelected) continue;
+                    cardView.Unlock();
+                }
+            }
+
+            if (_confirmButton != null)
+            {
+                _confirmButton.interactable = _replacementsUsed > 0;
+            }
+
+            UpdateReplacementsLabel();
+        }
+
+        // ── Buttons ─────────────────────────────────────────────────────────── 
+        private void OnConfirm()
+        { 
+            _world.GetPool<MulliganReplaceRequest>().Add(_playerEntity).CardEntities = _selectedEntities.ToArray();
+
+            _skipButton.gameObject.SetActive(false);
+            _confirmButton.gameObject.SetActive(false);
         }
 
         private void OnSkip()
         {
+            SetInteractable(false);
             PublishCompleted();
         }
 
         private void PublishCompleted()
         {
-            GameEventBus.Publish(new MulliganCompletedEvent { PlayerEntity = _playerEntity });
-            OnClose();
+            _world.GetPool<MulliganCompleteEvent>().Add(_playerEntity);
         }
 
         // ── Show / Hide ───────────────────────────────────────────────────────
@@ -166,10 +236,21 @@ namespace AwesomeUI.Feature.Battle
 
         // ── Helpers ───────────────────────────────────────────────────────────
 
+        private void SetInteractable(bool value)
+        {
+            if (_confirmButton != null) _confirmButton.interactable = value;
+            if (_skipButton    != null) _skipButton.interactable    = value;
+            foreach (var cardView in _cardViews)
+            {
+                if (value) cardView.Unlock();
+                else       cardView.Lock();
+            }
+        }
+
         private void UpdateReplacementsLabel()
         {
             if (_replacementsLeftText != null)
-                _replacementsLeftText.text = $"{_maxReplacements - _replacementsUsed}/{_maxReplacements}";
+                _replacementsLeftText.text = $"{_replacementsUsed}/{_maxReplacements}";
         }
     }
 }

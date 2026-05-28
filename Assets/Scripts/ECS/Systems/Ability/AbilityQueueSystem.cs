@@ -12,6 +12,7 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<LockState> _lockPool = default;
         readonly EcsPoolInject<ResolveAbilityEvent> _resolvePool = default;
         readonly EcsPoolInject<ReadyTag> _readyPool = default;
+        readonly EcsPoolInject<ConditionNotMetTag> _conditionNotMetPool = default;
 
         public void Run (IEcsSystems systems) 
         {
@@ -22,11 +23,13 @@ namespace Game.Core.Ecs.Systems
                 if (!queue.TryPop(out int abilityEntity))
                     continue;
 
-                if (!_readyPool.Value.Has(abilityEntity))
-                    continue;
-
+                int resolveEntity = _world.Value.NewEntity();
                 ref var resolveEvent = ref _resolvePool.Value.Add(abilityEntity);
-                resolveEvent.ResolveEntity = _world.Value.NewEntity();
+                resolveEvent.ResolveEntity = resolveEntity;
+
+                // Если condition способности не выполнен — помечаем resolve как «без эффектов»
+                if (!_readyPool.Value.Has(abilityEntity))
+                    _conditionNotMetPool.Value.Add(abilityEntity);
 
                 _lockPool.Value.Add(entity);
             }

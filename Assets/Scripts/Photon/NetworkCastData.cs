@@ -40,23 +40,4 @@ namespace Game.Core.Photon
         public int TurnNumber;
     }
 
-    /// <summary>
-    /// Снэпшот колоды + руки, отправляемый оппоненту в начале матча.
-    /// Хранит ExpansionId + CardId для восстановления CardModel через CardConfig,
-    /// и EntityKey для привязки к уже созданным локальным entity.
-    /// </summary>
-    public struct NetworkDeckSnapshotData : INetworkStruct
-    {
-        [Capacity(30)] public NetworkArray<NetworkCardSnapshotEntry> Deck { get; }
-        public int DeckCount;
-        [Capacity(10)] public NetworkArray<NetworkCardSnapshotEntry> Hand { get; }
-        public int HandCount;
-    }
-
-    public struct NetworkCardSnapshotEntry : INetworkStruct
-    {
-        public NetworkString<_32> ExpansionId; // ExpansionConfig.ExpansionId
-        public int CardId;                     // CardModel.Id
-        public NetworkString<_32> EntityKey;   // NetworkEntityComponent.NetworkEntityKey
-    }
 }

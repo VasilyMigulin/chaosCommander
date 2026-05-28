@@ -38,56 +38,83 @@ namespace Game.Core.Ecs.Handlers
             _turnSystems = new EcsSystems(World, state);
             _delSystems = new EcsSystems(World, state);
 
-            _mulliganSystems
-                .Add(new MulliganOfferSystem())
-                .Add(new MulliganReplaceSystem())
-                .Add(new MulliganReadySystem())
-                .Add(new SyncDeckToOpponentSystem())
+            _mulliganSystems 
+                .Add(new RunMulliganReplaceSystem())
+                .Add(new RunMulliganReadySystem())
+                .Add(new RunMulliganSyncSystem()) 
                 ;
 
             _initSystems
-                .Add(new InitLocalPlayerSystem())
+                .Add(new InitPlayerSystem()) 
+                .Add(new InitDeckSystem())
                 .Add(new InitTurnSystem())
                 .Add(new InitAbilityQueueSystem())
+                .Add(new InitMulliganSystem())
                 ;
 
             _turnSystems
-                // --- Ожидание завершения способностей начала хода ---
-                .Add(new TurnStartReadySystem())
+                .Add(new RunFirstTurnStartSystem())
+                // --- Ожидание завершения способностей (MatchStart / TurnStart / TurnEnd) ---
+                .Add(new PhaseReadySystem())
                 // --- Ресурсы и взятие карты когда игрок получил управление ---
                 .Add(new TurnStartResourceSystem())
                 // --- Таймер хода (только в фазе PlayerTurn) ---
                 .Add(new TurnTimerSystem())
-                // --- Ожидание завершения способностей конца хода ---
-                .Add(new TurnEndReadySystem())
                 // --- Передача хода следующему игроку ---
                 .Add(new TurnTransferSystem())
                 ;
 
             _generalSystems
+                // --- Создание сущностей карт по CreateCardEvent (оппонент, токены, раскопка из пула) ---
+                .Add(new CreateCardSystem())
                 // --- Доступность карт для розыгрыша (UI) ---
                 .Add(new CardAffordabilitySystem())
+                .Add(new CheckPlayRequirementSystem())
                 // --- Ввод ---
+                .Add(new CardInputSystem())
                 .Add(new RunSelectCellSystem())
                 .Add(new DrawCardSystem())
+                // --- UI-трансляция взятия карты в руку ---
+                .Add(new HandUISystem())
                 // --- Выбор карты (раскопка) перед кастом ---
                 .Add(new CardPickSelectionSystem())
+                // --- Ожидание выбора клетки / цели ---
+                .Add(new TargetSelectionSystem())
                 // --- Розыгрыш карт ---
+                .Add(new RandomTargetSystem())
                 .Add(new CastCardSystem())
+                // --- Спаун визуала существа на доске ---
+                .Add(new SpawnCreatureViewSystem())
+                // --- Пересчёт аур (постоянные эффекты чар) до боя ---
+                .Add(new AuraRecalcSystem())
                 // --- Движение существ ---
                 .Add(new MoveSystem())
                 // --- Бой ---
                 .Add(new AttackSystem())
                 .Add(new TakeDamageSystem())
                 .Add(new DieSystem())
+                // --- Применение эффектов способностей ---
+                .Add(new ApplyHealSystem())
+                .Add(new ApplyDrawSystem())
+                .Add(new ApplyMillSystem())
+                .Add(new ApplyDiscardSystem())
+                .Add(new ApplyBuffSystem())
+                .Add(new ApplyShuffleCardSystem())
+                .Add(new ApplyGainManaSystem())
+                .Add(new ApplyGainGoldSystem())
                 // --- Утилиты ---
                 .Add(new BurnCardSystem())
                 // --- Конец хода ---
                 .Add(new EndTurnRequestSystem())
+                // --- Сбор действий активного игрока и отправка оппоненту ---
+                .Add(new CollectActionSystem())
+                // --- Воспроизведение действий оппонента из очереди снапшотов ---
+                .Add(new ReplayActionSystem())
                 ;
 
             _cardSystems
                 .Add(new RunCastCardSystem())
+                .Add(new RunStartMatchCardSystem())
                 .Add(new RunTurnStartCardSystem())
                 .Add(new RunTurnEndCardSystem())
                 .Add(new RunDieCardSystem())
@@ -96,6 +123,7 @@ namespace Game.Core.Ecs.Handlers
             _abilitySystems
                 .Add(new UnlockAbilityQueueSystem())
                 .Add(new AbilityQueueSystem())
+                .Add(new RunAbilityMatchStartSystem())
                 .Add(new RunAbilityCastSystem())
                 .Add(new RunAbilityTurnStartSystem())
                 .Add(new RunAbilityTurnEndSystem())
@@ -111,15 +139,18 @@ namespace Game.Core.Ecs.Handlers
                 ;
 
             _delSystems 
+                .DelHere<MatchStartEvent>()
                 .DelHere<TurnStartEvent>()
                 .DelHere<TurnEndEvent>()
                 .DelHere<DieEvent>()
                 .DelHere<CastEvent>() 
                 .DelHere<OnCastTrigger>()
                 .DelHere<ResolveAbilityEvent>()
+                .DelHere<ConditionNotMetTag>()
                 .DelHere<CellClickEvent>()
                 .DelHere<AttackHitEvent>()
                 .DelHere<CardPickResultComponent>()
+                .DelHere<AbilityChosenTargetComponent>()
                 ;
 
             _allSystems.Add(_initSystems);

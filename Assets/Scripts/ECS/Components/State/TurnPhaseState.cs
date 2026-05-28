@@ -3,6 +3,7 @@ namespace Game.Core.Ecs.Components
     public enum TurnPhase
     {
         // --- Фазы которыми командует хост ---
+        MatchStartAbilities,  // хост дал команду: отрабатываем OnMatchStart способности
         TurnStartAbilities,   // хост дал команду: отрабатываем OnTurnStart способности
         PlayerTurn,           // хост дал команду: активный игрок ходит, таймер тикает
         TurnEndAbilities,     // хост дал команду: отрабатываем OnTurnEnd способности

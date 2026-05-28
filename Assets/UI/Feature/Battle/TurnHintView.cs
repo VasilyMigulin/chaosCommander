@@ -2,6 +2,7 @@ using DG.Tweening;
 using Game.Core.Events;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace AwesomeUI.Feature.Battle
 {
@@ -26,6 +27,15 @@ namespace AwesomeUI.Feature.Battle
         [SerializeField] private float _hold      = 1.5f;
         [SerializeField] private float _fadeOut   = 0.3f;
         [SerializeField] private float _scaleFrom = 0.7f;
+
+        [SerializeField] private Sprite _yourTurnBackground;
+        [SerializeField] private Sprite _opponentTurnBackground;
+
+        [SerializeField] private Sprite _yourTurnIcon;
+        [SerializeField] private Sprite _opponentTurnIcon;
+
+        [SerializeField] private Image _background;
+        [SerializeField] private Image _icon;
 
         private Sequence _sequence;
 
@@ -53,11 +63,17 @@ namespace AwesomeUI.Feature.Battle
 
         private void OnLocalTurnStarted(LocalTurnStartedEvent evt)
         {
+            _background.sprite = _yourTurnBackground;
+            _icon.sprite = _yourTurnIcon;
+
             ShowHint(_yourTurnText);
         }
 
         private void OnOpponentTurnEnded(OpponentTurnEndedEvent evt)
         {
+            _background.sprite = _opponentTurnBackground;
+            _icon.sprite = _opponentTurnIcon;
+
             ShowHint(_opponentTurnText);
         }
 

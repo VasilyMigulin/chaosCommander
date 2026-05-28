@@ -25,12 +25,31 @@ MonoBehaviour:
         Description: 
         Rarity: 0
         Element: 2
-        Icon: {fileID: 0}
-        ExpansionId: 
+        ArtImage: {fileID: 0}
+        ExpansionId: standard
         PlayCost: 0
         PlayCostAmount: 0
+        IsToken: 0
+        Abilities:
+        - rid: 8072968772568744026
         MaxHealth: 3
         Attack: 1
         Speed: 1
-        ViewPrefab: {fileID: 0}
+        ViewPrefab: {fileID: 1046069417137952589, guid: f06aa6138ec1c4140ac9af21f0ddde7e, type: 3}
         IsCommander: 0
+    - rid: 8072968772568744026
+      type: {class: AbilityToTarget, ns: Game.Core.Model.Ability.Target, asm: Game.Core.Model.Ability.Target}
+      data:
+        Trigger: 1
+        Target: 8
+        Effects:
+        - rid: 8072968772568744027
+        Conditions: []
+        PlayRequirements: []
+        TargetCount: 1
+        ProjectilePrefView: {fileID: 0}
+        HitPrefView: {fileID: 0}
+    - rid: 8072968772568744027
+      type: {class: GainManaEffect, ns: Game.Core.Model.Effect, asm: Game.Core.Model.Effect}
+      data:
+        Amount: 3

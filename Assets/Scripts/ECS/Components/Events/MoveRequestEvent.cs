@@ -7,5 +7,6 @@ namespace Game.Core.Ecs.Components
     {
         public int ToRow;
         public int ToCol;
+        public int ToOwnerId;
     }
 }

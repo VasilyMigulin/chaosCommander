@@ -27,21 +27,19 @@ namespace AwesomeUI.Feature.Battle
 
         public override void OnInject()
         {
+            base.OnInject();
             GameEventBus.Subscribe<CommanderOnCooldownUIEvent>(OnCooldown);
             GameEventBus.Subscribe<CommanderCooldownExpiredUIEvent>(OnCooldownExpired);
         }
 
         public override void Unject()
         {
+            base.Unject();
             GameEventBus.Unsubscribe<CommanderOnCooldownUIEvent>(OnCooldown);
             GameEventBus.Unsubscribe<CommanderCooldownExpiredUIEvent>(OnCooldownExpired);
         }
 
-        public override void OnClick()
-        {
-            if (_onCooldown) return;
-            OnActive();
-        }
+        public override void OnClick() { }
 
         public override void UpdateView()
         {

@@ -23,12 +23,14 @@ namespace AwesomeUI.Core.Card
     [RequireComponent(typeof(Image))]
     public class CardHighlightEffect : MonoBehaviour
     {
-        public enum HighlightType { None, Selection, Affordable, AbilityReady }
+        public enum HighlightType { None, Selection, Affordable, AbilityReady, MulliganSelected }
 
         [Header("Highlight Colors")]
-        [SerializeField] Color _selectionColor    = new Color(0.20f, 0.55f, 1.00f, 1f);
-        [SerializeField] Color _affordableColor   = new Color(0.20f, 0.90f, 0.30f, 1f);
-        [SerializeField] Color _abilityReadyColor = new Color(1.00f, 0.55f, 0.10f, 1f);
+        [SerializeField] Color _refreshColor         = new Color(1f, 1f, 1f, 1f);
+        [SerializeField] Color _selectionColor         = new Color(0.20f, 0.55f, 1.00f, 1f);
+        [SerializeField] Color _affordableColor        = new Color(0.20f, 0.90f, 0.30f, 1f);
+        [SerializeField] Color _abilityReadyColor      = new Color(1.00f, 0.55f, 0.10f, 1f);
+        [SerializeField] Color _mulliganSelectedColor  = new Color(1.00f, 0.15f, 0.15f, 1f);
 
         [Header("Border Size (pixels expanded outside card)")]
         [SerializeField] float _paddingX = 16f;  // пикселей наружу по горизонтали
@@ -44,6 +46,7 @@ namespace AwesomeUI.Core.Card
         [SerializeField] [Range(0f, 2f)]    float _shimmerIntensity = 0.75f;
 
         static readonly int ID_RimColor         = Shader.PropertyToID("_RimColor");
+        static readonly int ID_Color             = Shader.PropertyToID("_Color");
         static readonly int ID_BorderFractionX  = Shader.PropertyToID("_BorderFractionX");
         static readonly int ID_BorderFractionY  = Shader.PropertyToID("_BorderFractionY");
         static readonly int ID_RimSoftness      = Shader.PropertyToID("_RimSoftness");
@@ -61,6 +64,7 @@ namespace AwesomeUI.Core.Card
         bool _isSelected;
         bool _isAffordable;
         bool _isAbilityReady;
+        bool _isMulliganSelected;
 
         void Awake()
         {
@@ -78,7 +82,7 @@ namespace AwesomeUI.Core.Card
 
             ApplyBorderFractions();
             ApplySettings();
-            SetRimAlpha(0f);
+            _image.enabled = false;
         }
 
         void OnDestroy()
@@ -93,48 +97,63 @@ namespace AwesomeUI.Core.Card
         {
             switch (type)
             {
-                case HighlightType.Selection:    _isSelected     = active; break;
-                case HighlightType.Affordable:   _isAffordable   = active; break;
-                case HighlightType.AbilityReady: _isAbilityReady = active; break;
+                case HighlightType.Selection:         _isSelected          = active; break;
+                case HighlightType.Affordable:        _isAffordable        = active; break;
+                case HighlightType.AbilityReady:      _isAbilityReady      = active; break;
+                case HighlightType.MulliganSelected:  _isMulliganSelected  = active; break;
             }
             Refresh();
         }
 
         public void ResetAll()
         {
-            _isSelected     = false;
-            _isAffordable   = false;
-            _isAbilityReady = false;
-            Refresh();
+            _isSelected          = false;
+            _isAffordable        = false;
+            _isAbilityReady      = false;
+            _isMulliganSelected  = false;
+
+            if (_material != null)
+                _material.SetColor(ID_Color, _refreshColor);
+            if (_image != null)
+                _image.enabled = false;
         }
 
         // ── Private ───────────────────────────────────────────────────────────
 
-        // Приоритет: Selection > AbilityReady > Affordable
+        // Приоритет: Selection > (AbilityReady | Affordable, только если доступна) > нет подсветки
         void Refresh()
         {
             if (_material == null) return;
 
-            if (!_material.HasProperty(ID_RimColor)) return;
+            if (!_material.HasProperty(ID_Color)) return;
 
-            if (_isSelected)
+            if (_isMulliganSelected)
             {
-                _material.SetColor(ID_RimColor, _selectionColor);
+                _image.enabled = true;
+                _material.SetColor(ID_Color, _mulliganSelectedColor);
                 ApplySettings();
             }
-            else if (_isAbilityReady)
+            else if (_isSelected)
             {
-                _material.SetColor(ID_RimColor, _abilityReadyColor);
+                _image.enabled = true;
+                _material.SetColor(ID_Color, _selectionColor);
+                ApplySettings();
+            }
+            else if (_isAffordable && _isAbilityReady)
+            {
+                _image.enabled = true;
+                _material.SetColor(ID_Color, _abilityReadyColor);
                 ApplySettings();
             }
             else if (_isAffordable)
             {
-                _material.SetColor(ID_RimColor, _affordableColor);
+                _image.enabled = true;
+                _material.SetColor(ID_Color, _affordableColor);
                 ApplySettings();
             }
             else
             {
-                SetRimAlpha(0f);
+                _image.enabled = false;
             }
         }
 

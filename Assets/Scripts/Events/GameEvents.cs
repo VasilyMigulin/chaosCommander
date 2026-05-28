@@ -1,4 +1,5 @@
 ﻿using Game.Core.Service;
+using Game.Core.Shared;
 
 namespace Game.Core.Events
 {
@@ -17,13 +18,13 @@ namespace Game.Core.Events
     public struct InputBlockedEvent : IGameEvent { }
     public struct InputRestoredEvent : IGameEvent { }
 
-    // в”Ђв”Ђ Card events в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
     public struct CardPlayedEvent : IGameEvent
     {
         public string CardName;
         public int CardEntity;
         public int PlayerId;
-        public int TargetCell; // board cell index, -1 if none
+        public int TargetCell;   // board cell index, -1 if none
+        public int TargetEntity; // entity target, -1 if none
     }
 
     public struct CardDrawnEvent : IGameEvent
@@ -50,19 +51,21 @@ namespace Game.Core.Events
         public bool IsAffordable;
     }
 
-    /// <summary>
-    /// РР·РјРµРЅРёР»РѕСЃСЊ СЃРѕСЃС‚РѕСЏРЅРёРµ СЃРїРѕСЃРѕР±РЅРѕСЃС‚Рё РєР°СЂС‚С‹ (ReadyTag РїРѕСЏРІРёР»СЃСЏ/РёСЃС‡РµР·).
-    /// UI РІРєР»СЋС‡Р°РµС‚/РІС‹РєР»СЋС‡Р°РµС‚ С…Р°Р№Р»Р°Р№С‚РµСЂ "СЃРїРѕСЃРѕР±РЅРѕСЃС‚СЊ Р°РєС‚РёРІРЅР°".
-    /// </summary>
     public struct CardAbilityReadyChangedEvent : IGameEvent
     {
         public int  CardEntity;
         public bool IsReady;
     }
 
-    /// РџСѓР±Р»РёРєСѓРµС‚СЃСЏ РєРѕРіРґР° РєР°СЂС‚Р° РІС…РѕРґРёС‚ РІ СЂСѓРєСѓ Р»РѕРєР°Р»СЊРЅРѕРіРѕ РёРіСЂРѕРєР°.
-    /// UI РїРѕРґРїРёСЃС‹РІР°РµС‚СЃСЏ С‡С‚РѕР±С‹ РїРѕРєР°Р·Р°С‚СЊ РєР°СЂС‚Сѓ РІ CardLayout.
+    /// <summary>
+    /// Публикуется PlayCardView когда карта физически отображена в руке (SetCard вызван).
+    /// CardAffordabilitySystem реагирует и публикует актуальное состояние доступности.
     /// </summary>
+    public struct CardPlacedInHandViewEvent : IGameEvent
+    {
+        public int CardEntity;
+    }
+
     public struct CardAddedToHandUIEvent : IGameEvent
     {
         public int    CardEntity;
@@ -73,45 +76,34 @@ namespace Game.Core.Events
         public Game.Core.Service.EnumService.Element  Element;
         public Game.Core.Service.EnumService.Rarity   Rarity;
         public string CardName;
-        public bool   IsCommander;
-    }
-
-    /// <summary>
-    /// РџСѓР±Р»РёРєСѓРµС‚СЃСЏ РєРѕРіРґР° РєР°СЂС‚Р° СЂР°Р·С‹РіСЂР°РЅР° РёР»Рё СѓР±СЂР°РЅР° РёР· СЂСѓРєРё.
-    /// UI СЃРєСЂС‹РІР°РµС‚ СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓСЋС‰РёР№ PlayCardView.
-    /// </summary>
+        public bool   IsCommander; 
+        public Game.Core.Shared.CardVisualData Visual;
+    } 
     public struct CardRemovedFromHandUIEvent : IGameEvent
     {
         public int CardEntity;
     }
-
-    /// <summary>
-    /// РљРѕРјР°РЅРґРёСЂ СѓС€С‘Р» РЅР° РїРµСЂРµР·Р°СЂСЏРґРєСѓ (СѓРјРµСЂ РЅР° РїРѕР»Рµ).
-    /// UI РїРѕРєР°Р·С‹РІР°РµС‚ РёРєРѕРЅРєСѓ РљР” РЅР° CommanderCardView.
-    /// </summary>
+     
     public struct CommanderOnCooldownUIEvent : IGameEvent
     {
         public int CardEntity;
         public int CooldownTurns;
     }
-
-    /// <summary>
-    /// РљР” РєРѕРјР°РЅРґРёСЂР° РёСЃС‚С‘Рє вЂ” РјРѕР¶РЅРѕ СЃРЅРѕРІР° СЂР°Р·С‹РіСЂС‹РІР°С‚СЊ.
-    /// </summary>
+     
     public struct CommanderCooldownExpiredUIEvent : IGameEvent
     {
         public int CardEntity;
     }
-
-    // в”Ђв”Ђ Creature events в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
-    public struct CreatureMovedEvent : IGameEvent
-    {
-        public int CreatureEntity;
-        public int FromRow;
-        public int FromCol;
-        public int ToRow;
-        public int ToCol;
-    }
+     public struct CreatureMovedEvent : IGameEvent
+     {
+         public int CreatureEntity;
+         public int FromRow;
+         public int FromCol;
+         public int FromOwnerId;
+         public int ToRow;
+         public int ToCol;
+         public int ToOwnerId;
+     }
 
     public struct CreatureAttackedEvent : IGameEvent
     {
@@ -130,8 +122,6 @@ namespace Game.Core.Events
         public int CreatureEntity;
         public int PlayerId;
     }
-
-    // в”Ђв”Ђ Ability events в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
     public struct AbilityActivatedEvent : IGameEvent
     {
         public int SourceEntity;
@@ -141,16 +131,14 @@ namespace Game.Core.Events
     public struct AbilityCascadeStartedEvent : IGameEvent { }
     public struct AbilityCascadeEndedEvent : IGameEvent { }
 
-    // в”Ђв”Ђ Resource events в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
     public struct ResourceChangedEvent : IGameEvent
     {
-        public int PlayerId;
+        public bool isLocalPlayer;
         public EnumService.ResourceType Type;
         public int NewValue;
         public int MaxValue;
     }
-
-    // в”Ђв”Ђ Board / selection events (UI) в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+     
     public struct CellSelectedEvent : IGameEvent
     {
         public int Row;
@@ -165,19 +153,19 @@ namespace Game.Core.Events
 
     public struct CreatureDeselectedEvent : IGameEvent { }
 
-    // в”Ђв”Ђ Mulligan events в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
     public struct MulliganStartedEvent : IGameEvent
     {
         public int PlayerEntity;
         public int[] OfferedCardEntities;
+        public CardVisualData[] OfferedCardVisuals;
         public int MaxReplacements;
     }
 
     public struct MulliganCardReplacedEvent : IGameEvent
-    {
-        public int PlayerEntity;
-        public int OldCardEntity;
-        public int NewCardEntity;
+    { 
+        public int[] OldCardEntity;
+        public int[] NewCardEntity;
+        public CardVisualData[] NewCardVisual;
     }
 
     public struct MulliganCompletedEvent : IGameEvent
@@ -188,38 +176,41 @@ namespace Game.Core.Events
     public struct AllMulligansCompletedEvent : IGameEvent { }
 
     /// <summary>
-    /// UI Р·Р°РїСЂР°С€РёРІР°РµС‚ Р·Р°РјРµРЅСѓ РєРѕРЅРєСЂРµС‚РЅРѕР№ РєР°СЂС‚С‹ РІ РјСѓР»РёРіР°РЅРµ.
-    /// Р§РёС‚Р°РµС‚СЃСЏ MulliganSystem.
+    /// Публикуется когда сервер даёт команду инициализировать игровое состояние.
+    /// BattleState подписывается на это событие и только тогда инициализирует ECS
+    /// и отправляет RPC_NotifyStateReady.
     /// </summary>
-    public struct MulliganReplaceRequestedUIEvent : IGameEvent
+    public struct TriggerStateInitEvent : IGameEvent { }
+
+    /// <summary>
+    /// Публикуется когда хост начинает PreStart фазу (до начала первого хода).
+    /// UI закрывает мулиган и показывает руку с анимацией раздачи карт.
+    /// Содержит готовые данные карт руки чтобы UI не лазил в ECS.
+    /// </summary>
+    public struct PreStartPhaseBeginUIEvent : IGameEvent
     {
-        public int PlayerEntity;
+        public CardAddedToHandUIEvent[] HandCards;
+        public CardAddedToHandUIEvent   CommanderCard;
+        public bool HasCommander;
+    }
+
+    public struct MulliganReplaceRequestedUIEvent : IGameEvent
+    { 
         public int CardEntity;
     }
-
-    // в”Ђв”Ђ Turn hint events в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
-    /// <summary>РќР°С‡Р°Р»СЃСЏ С…РѕРґ Р»РѕРєР°Р»СЊРЅРѕРіРѕ РёРіСЂРѕРєР°.</summary>
+    
     public struct LocalTurnStartedEvent : IGameEvent
     {
-        public int TurnNumber;
-        /// <summary>РЎРєРѕР»СЊРєРѕ СЃРµРєСѓРЅРґ РґР°С‘С‚СЃСЏ РЅР° С…РѕРґ.</summary>
+        public int TurnNumber; 
         public float TurnDurationSeconds;
     }
-
-    /// <summary>РћРїРїРѕРЅРµРЅС‚ Р·Р°РєРѕРЅС‡РёР» СЃРІРѕР№ С…РѕРґ (РїСЂРёС€Р»Рѕ RPC).</summary>
-    public struct OpponentTurnEndedEvent : IGameEvent { }
-
-    // в”Ђв”Ђ Opponent card played events в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
-    /// <summary>
-    /// РћРїРїРѕРЅРµРЅС‚ СЂР°Р·С‹РіСЂР°Р» РєР°СЂС‚Сѓ вЂ” UI РїРѕРєР°Р·С‹РІР°РµС‚ РІСЃРїР»С‹РІР°СЋС‰СѓСЋ РєР°СЂС‚РѕС‡РєСѓ.
-    /// </summary>
+     
+    public struct OpponentTurnEndedEvent : IGameEvent { } 
     public struct OpponentCardPlayedUIEvent : IGameEvent
     {
         public string CardName;
         public UnityEngine.Sprite Icon;
     }
-
-    // в”Ђв”Ђ Match setup events в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
     public struct PlayerAssignedEvent : IGameEvent
     {
         public int PlayerEntity;
@@ -243,66 +234,40 @@ namespace Game.Core.Events
         public int[]    HandCardIds;
         public string[] HandNetworkKeys;
     }
-
-    // в”Ђв”Ђ Ability condition events в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
-
-    /// <summary>
-    /// РџСѓР±Р»РёРєСѓРµС‚СЃСЏ РєРѕРіРґР° РІСЃРµ СѓСЃР»РѕРІРёСЏ СЃРїРѕСЃРѕР±РЅРѕСЃС‚Рё РІС‹РїРѕР»РЅРµРЅС‹ Рё РЅР° РЅРµС‘ РЅР°РІРµС€РёРІР°РµС‚СЃСЏ ReadyTag.
-    /// UI РїРѕРґРїРёСЃС‹РІР°РµС‚СЃСЏ С‡С‚РѕР±С‹ РїРѕРєР°Р·Р°С‚СЊ/СЃРєСЂС‹С‚СЊ РёРЅРґРёРєР°С‚РѕСЂ РіРѕС‚РѕРІРЅРѕСЃС‚Рё РЅР° РєР°СЂС‚Рµ.
-    /// </summary>
+     
     public struct AbilityReadyEvent : IGameEvent
-    {
-        /// <summary>ECS entity СЃРїРѕСЃРѕР±РЅРѕСЃС‚Рё РєРѕС‚РѕСЂР°СЏ СЃС‚Р°Р»Р° РіРѕС‚РѕРІР°.</summary>
-        public int AbilityEntity;
-
-        /// <summary>ECS entity РєР°СЂС‚С‹-РІР»Р°РґРµР»СЊС†Р°.</summary>
+    { 
+        public int AbilityEntity; 
         public int CardEntity;
     }
-
-    /// <summary>
-    /// РџСѓР±Р»РёРєСѓРµС‚СЃСЏ РєРѕРіРґР° СѓСЃР»РѕРІРёРµ СЃРїРѕСЃРѕР±РЅРѕСЃС‚Рё РїРµСЂРµСЃС‚Р°Р»Рѕ РІС‹РїРѕР»РЅСЏС‚СЊСЃСЏ (ReadyTag СЃРЅСЏС‚).
-    /// </summary>
+     
     public struct AbilityNotReadyEvent : IGameEvent
     {
         public int AbilityEntity;
         public int CardEntity;
     }
-
-    // в”Ђв”Ђ Card play requirement events в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
-
-    /// <summary>
-    /// РџСѓР±Р»РёРєСѓРµС‚СЃСЏ РєРѕРіРґР° РІСЃРµ С‚СЂРµР±РѕРІР°РЅРёСЏ Рє РїРѕР»СЋ Р±РѕСЏ РґР»СЏ РєР°СЂС‚С‹ РІС‹РїРѕР»РЅРµРЅС‹
-    /// (PlayableTag РґРѕР±Р°РІР»РµРЅ). UI РІРєР»СЋС‡Р°РµС‚/РІС‹РєР»СЋС‡Р°РµС‚ РёРЅС‚РµСЂР°РєС‚РёРІРЅРѕСЃС‚СЊ РєР°СЂС‚С‹.
-    /// </summary>
+     
     public struct CardPlayableChangedEvent : IGameEvent
     {
         public int  CardEntity;
         public bool IsPlayable;
     }
-
-    // в”Ђв”Ђ Card creation events в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
-
-    /// <summary>
-    /// Р—Р°РїСЂРѕСЃ РЅР° СЃРѕР·РґР°РЅРёРµ ECS entity РєР°СЂС‚С‹ РѕРїРїРѕРЅРµРЅС‚Р° РёР· СЃРµС‚РµРІРѕРіРѕ СЃРЅСЌРїС€РѕС‚Р°.
-    /// РџСѓР±Р»РёРєСѓРµС‚СЃСЏ PhotonRunHandler РїСЂРё РїРѕР»СѓС‡РµРЅРёРё RPC_SyncDeckSnapshot.
-    /// CreateCardSystem С‡РёС‚Р°РµС‚ CardConfig (РёРЅР¶РµРєС‚РёСЂРѕРІР°РЅ) Рё РІС‹Р·С‹РІР°РµС‚ CardModel.InitAndGetEntity.
-    /// </summary>
+     
     public struct CreateCardEvent : IGameEvent
-    {
-        /// <summary>ExpansionConfig.ExpansionId РґР»СЏ РїРѕРёСЃРєР° РІ CardConfig.</summary>
+    { 
         public string ExpansionId;
-
-        /// <summary>CardModel.Id РІРЅСѓС‚СЂРё СЌРєСЃРїР°РЅСЃРёРё.</summary>
+         
         public int CardId;
-
-        /// <summary>NetworkEntityKey РґР»СЏ РїСЂРёРІСЏР·РєРё entity.</summary>
-        public string EntityKey;
-
-        /// <summary>PlayerId РІР»Р°РґРµР»СЊС†Р° (РѕРїРїРѕРЅРµРЅС‚).</summary>
+         
+        public string NetworkEntityKey;
+         
         public int OwnerId;
-
-        /// <summary>РљР°СЂС‚Р° РїСЂРёРЅР°РґР»РµР¶РёС‚ РѕРїРїРѕРЅРµРЅС‚Сѓ вЂ” РЅР°РІРµСЃРёС‚СЊ EnemyCardTag РІРјРµСЃС‚Рѕ OwnCardTag.</summary>
+         
         public bool IsEnemy;
+
+        public bool IsCommander;
+
+        public bool InHand;
     }
     // ── Network turn coordination events ────────────────────────────────────
 
@@ -335,7 +300,42 @@ namespace Game.Core.Events
         public int CardEntity;
     }
 
-    // ── Card pick (discover) events ──────────────────────────────────────────
+    // ── Card play request (from UI) ──────────────────────────────────────────
+
+    /// <summary>
+    /// Публикуется из UI когда игрок кликает по карте в руке.
+    /// CardInputSystem читает это событие и либо сразу создаёт CastEvent (карты без цели),
+    /// либо добавляет PendingTargetCardComponent на игрока (карты с целью).
+    /// </summary>
+    public struct CardPlayRequestedEvent : IGameEvent
+    {
+        public int CardEntity;
+    }
+
+    // ── Card play network sync ────────────────────────────────────────────────
+
+    /// <summary>
+    /// Публикуется после каста карты для сетевой синхронизации с оппонентом.
+    /// </summary>
+    public struct CardCastNetSyncEvent : IGameEvent
+    {
+        public string CardNetworkKey;
+        public string TargetNetworkKey; // пусто если цель не entity
+        public int    TargetCellIndex;  // -1 если цель не клетка
+    }
+
+    /// <summary>
+    /// Публикуется на стороне оппонента когда приходит RPC_NotifyCardCast.
+    /// RemoteCastSystem берёт этот ивент и создаёт CastEvent по ключам.
+    /// </summary>
+    public struct RemoteCardCastEvent : IGameEvent
+    {
+        public string CardEntityKey;
+        public string TargetEntityKey; // "" если цели нет
+        public int    TargetCell;      // -1 если цель не клетка
+    }
+
+    // ── Card pick (discover) events ─────────────────────────────────────────
 
     /// <summary>
     /// Публикуется когда игроку нужно выбрать карту из предложенных (раскопка).
@@ -351,6 +351,9 @@ namespace Game.Core.Events
 
         /// <summary>Entity карт предложенных для выбора.</summary>
         public int[] OfferedCardEntities;
+
+        /// <summary>Визуальные данные предложенных карт (для UI, параллельно OfferedCardEntities).</summary>
+        public Game.Core.Shared.CardVisualData[] OfferedCardVisuals;
 
         /// <summary>Количество предложенных карт.</summary>
         public int OfferedCount;
@@ -384,13 +387,51 @@ namespace Game.Core.Events
     /// </summary>
     public struct CardPickResolvedNetEvent : IGameEvent
     {
-        /// <summary>Entity карты которую разыгрывал игрок.</summary>
+        /// <summary>Entity карты которую разыгрывал игрок (локальное).</summary>
         public int CastingCardEntity;
 
-        /// <summary>ModelId выбранной карты для репликации.</summary>
-        public int ChosenCardModelId;
+        /// <summary>NetworkEntityKey карты-источника (для сетевой репликации выбора).</summary>
+        public string CastingCardNetworkKey;
 
         /// <summary>Entity выбранной карты (локальное, не для сетки).</summary>
         public int ChosenCardEntity;
+
+        /// <summary>ModelId выбранной карты.</summary>
+        public int ChosenCardModelId;
+
+        /// <summary>NetworkEntityKey выбранной карты (существующей или создаваемой из пула).</summary>
+        public string ChosenCardNetworkKey;
+
+        /// <summary>true — выбор из пула: оппонент должен создать сущность.</summary>
+        public bool CreateFromPool;
+
+        /// <summary>Для CreateFromPool: ExpansionId создаваемой карты.</summary>
+        public string ChosenExpansionId;
+
+        /// <summary>Для CreateFromPool: CardId (ModelId) создаваемой карты.</summary>
+        public int ChosenCardId;
+    }
+
+    /// <summary>
+    /// Публикуется на стороне оппонента когда приходит RPC_NotifyCreatureMove.
+    /// RemoteCreatureMoveSystem добавит MoveRequestEvent на нужную сущность.
+    /// </summary>
+    public struct RemoteCreatureMoveEvent : IGameEvent
+    {
+        public string CreatureEntityKey;
+        public int    ToRow;
+        public int    ToCol;
+        public int    ToOwnerId;
+    }
+
+    /// <summary>
+    /// Публикуется на стороне оппонента когда приходит RPC_NotifyCreatureAttack.
+    /// RemoteCreatureAttackSystem добавит AttackRequestEvent на нужную сущность.
+    /// </summary>
+    public struct RemoteCreatureAttackEvent : IGameEvent
+    {
+        public string AttackerEntityKey;
+        public string DefenderEntityKey;
     }
 }
+

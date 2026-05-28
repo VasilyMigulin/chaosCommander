@@ -9,20 +9,21 @@ using Game.Core.Model.Condition;
 
 namespace Game.Core.Model.Ability
 {
+    [System.Serializable]
     public abstract class Ability
     {
         public EnumService.AbilityTrigger Trigger;
         public EnumService.AbilityTarget Target;
 
-        public List<AbilityEffect> Effects = new List<AbilityEffect>();
-        public List<AbilityCondition> Conditions = new List<AbilityCondition>();
+        [SerializeReference] public List<AbilityEffect> Effects = new List<AbilityEffect>();
+        [SerializeReference] public List<AbilityCondition> Conditions = new List<AbilityCondition>();
 
         /// <summary>
         /// Требования к полю боя, необходимые для того, чтобы карта вообще могла
         /// быть разыграна. Проверяются до разыгрывания, независимо от стоимости.
         /// Например: «на поле оппонента есть существо», «есть существо с чёрным цветом».
         /// </summary>
-        public List<AbilityPlayRequirement> PlayRequirements = new List<AbilityPlayRequirement>();
+        [SerializeReference] public List<AbilityPlayRequirement> PlayRequirements = new List<AbilityPlayRequirement>();
 
         public int Init(EcsWorld world, int entityCard)
         {
@@ -35,6 +36,8 @@ namespace Game.Core.Model.Ability
             AddTrigger(world, entity);
 
             AddTarget(world, entity);
+
+            AddAura(world, entity);
 
             AddPlayRequirement(world, entityCard);
 
@@ -76,27 +79,36 @@ namespace Game.Core.Model.Ability
 
         void AddTarget(EcsWorld world, int entityAbility)
         {
-            foreach (EnumService.AbilityTarget flag in System.Enum.GetValues(typeof(EnumService.AbilityTarget)))
-            {
-                if (flag == EnumService.AbilityTarget.None) continue;
-                if ((Target & flag) == 0) continue;
+            if (Target == EnumService.AbilityTarget.None) return;
 
-                switch (flag)
-                {
-                    case EnumService.AbilityTarget.Self:
-                        world.GetPool<TargetTag>().Add(entityAbility);
-                        break;
-                    case EnumService.AbilityTarget.Enemy:
-                        world.GetPool<TargetTag>().Add(entityAbility);
-                        break;
-                    case EnumService.AbilityTarget.Ally:
-                        world.GetPool<TargetTag>().Add(entityAbility);
-                        break;
-                    case EnumService.AbilityTarget.Player:
-                        world.GetPool<TargetTag>().Add(entityAbility);
-                        break;
-                }
-            }
+            var flags = AbilityTargetFlags.None;
+
+            if ((Target & EnumService.AbilityTarget.Self) != 0)
+                flags |= AbilityTargetFlags.Self;
+
+            if ((Target & EnumService.AbilityTarget.EnemyCreature) != 0)
+                flags |= AbilityTargetFlags.EnemyCreature;
+
+            if ((Target & EnumService.AbilityTarget.AllyCreature) != 0)
+                flags |= AbilityTargetFlags.AllyCreature;
+
+            if ((Target & EnumService.AbilityTarget.AllyPlayer) != 0)
+                flags |= AbilityTargetFlags.AllyPlayer;
+
+            if ((Target & EnumService.AbilityTarget.EnemyPlayer) != 0)
+                flags |= AbilityTargetFlags.EnemyPlayer;
+
+            if ((Target & EnumService.AbilityTarget.Random) != 0)
+                flags |= AbilityTargetFlags.Random;
+
+            if ((Target & EnumService.AbilityTarget.ExcludeSelf) != 0)
+                flags |= AbilityTargetFlags.ExcludeSelf;
+
+            ref var targetFlagsComp = ref world.GetPool<AbilityTargetFlagsComponent>().Add(entityAbility);
+            targetFlagsComp.Flags = flags;
+
+            if ((Target & EnumService.AbilityTarget.Field) != 0)
+                world.GetPool<FieldAbilityTag>().Add(entityAbility);
         }
 
         void AddTrigger(EcsWorld world, int entityAbility)
@@ -135,8 +147,32 @@ namespace Game.Core.Model.Ability
                     case EnumService.AbilityTrigger.OnDrawn:
                         world.GetPool<OnDraw>().Add(entityAbility);
                         break;
+                    case EnumService.AbilityTrigger.OnMatchStart:
+                        world.GetPool<OnMatchStartTrigger>().Add(entityAbility);
+                        break;
                 }
             }
+        }
+
+        void AddAura(EcsWorld world, int entityAbility)
+        {
+            if ((Trigger & EnumService.AbilityTrigger.Aura) == 0) return;
+
+            int attackBonus = 0;
+            int healthBonus = 0;
+
+            foreach (var effect in Effects)
+            {
+                if (effect is BuffStatsEffect buff)
+                {
+                    attackBonus += buff.AttackBonus;
+                    healthBonus += buff.HealthBonus;
+                }
+            }
+
+            ref var aura = ref world.GetPool<AuraSourceComponent>().Add(entityAbility);
+            aura.AttackBonus = attackBonus;
+            aura.HealthBonus = healthBonus;
         }
 
         void AddPlayRequirement(EcsWorld world, int entityCard)

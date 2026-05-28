@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Game.Core.Ecs.Components
 {
     /// <summary>
@@ -5,7 +7,7 @@ namespace Game.Core.Ecs.Components
     /// </summary>
     public struct DeckComponent
     {
-        public int[] CardEntities;
+        public List<int> CardEntities;
         public int Count;
     }
 }

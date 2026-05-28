@@ -1,23 +1,17 @@
 using AwesomeUI.Core.Card;
 using AwesomeUI.Core.Slot;
 using DG.Tweening;
-using TMPro;
+using Game.Core.Shared;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace AwesomeUI.Feature.Battle
 {
     /// <summary>
     /// View одной карты в окне мулигана.
-    /// Карту можно выбрать для замены — выбранная подсвечивается оверлеем.
+    /// Карту можно выбрать для замены — выбранная подсвечивается красной обводкой.
     /// </summary>
     public class MuliganCardView : CardBaseView
     {
-        [Header("Mulligan")]
-        [SerializeField] private GameObject      _selectedOverlay;
-        [SerializeField] private TextMeshProUGUI _cardNameText;
-        [SerializeField] private Image           _iconImage;
-
         public int  CardEntity { get; private set; }
         public bool IsSelected { get; private set; }
 
@@ -37,13 +31,13 @@ namespace AwesomeUI.Feature.Battle
 
         // ── Public API ────────────────────────────────────────────────────────
 
-        public void Setup(int cardEntity, Sprite icon, string cardName, System.Action<MuliganCardView> onToggle)
+        public void Setup(int cardEntity, CardVisualData? visualData, string fallbackName, System.Action<MuliganCardView> onToggle)
         {
             CardEntity = cardEntity;
             _onToggle  = onToggle;
 
-            if (_iconImage    != null && icon != null) _iconImage.sprite = icon;
-            if (_cardNameText != null) _cardNameText.text = cardName;
+            if (visualData.HasValue)
+                ApplyVisualData(visualData.Value);
 
             SetSelected(false);
             gameObject.SetActive(true);
@@ -76,12 +70,22 @@ namespace AwesomeUI.Feature.Battle
         private void SetSelected(bool selected)
         {
             IsSelected = selected;
-            if (_selectedOverlay != null)
-                _selectedOverlay.SetActive(selected);
+            SetHighlight(CardHighlightEffect.HighlightType.MulliganSelected, selected);
+        }
+        public void Lock()
+        {
+            if (!IsSelected)        // ← сохраняем подсветку выбранных
+                ResetHighlight();
+
+            _btnClick.interactable = false;
+        }
+        public void Unlock()
+        { 
+            _btnClick.interactable = true;
         }
 
         public override void OnActive()
-        { 
+        {
         }
     }
 }

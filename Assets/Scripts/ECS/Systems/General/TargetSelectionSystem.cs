@@ -74,6 +74,8 @@ namespace Game.Core.Ecs.Systems
             ref var pending = ref _pendingPool.Value.Get(pendingPlayerEntity);
             ref var player  = ref _playerPool.Value.Get(pendingPlayerEntity);
 
+            UnityEngine.Debug.Log($"[TargetSelectionSystem] Pending active for player={player.PlayerId}, target={pending.RequiredTarget}");
+
             // Показываем подсветку один раз при смене pending-карты
             if (!_highlightShown || _lastPendingCard != pending.CardEntity)
             {
@@ -86,6 +88,8 @@ namespace Game.Core.Ecs.Systems
             foreach (var clickEnt in _clickFilter.Value)
             {
                 ref var click = ref _clickPool.Value.Get(clickEnt);
+
+                UnityEngine.Debug.Log($"[TargetSelectionSystem] CellClick row={click.Row} col={click.Col} ownerId={click.OwnerId}, player.PlayerId={player.PlayerId}");
 
                 // Только клики текущего игрока
                 if (click.OwnerId != player.PlayerId)
@@ -139,6 +143,23 @@ namespace Game.Core.Ecs.Systems
                 case TargetRequirementType.AnyCell:
                     targetCell = click.Row * 5 + click.Col;
                     break;
+
+                case TargetRequirementType.OwnFrontCell:
+                    // Только ряд 0 своего игрока, пустая клетка
+                    if (click.OwnerId != player.PlayerId || click.Row != 0) return false;
+                    bool cellOccupied = false;
+                    foreach (var ce in _creaturesFilter.Value)
+                    {
+                        ref var cp = ref _posPool.Value.Get(ce);
+                        if (cp.Row == click.Row && cp.Col == click.Col && cp.OwnerId == click.OwnerId)
+                        {
+                            cellOccupied = true;
+                            break;
+                        }
+                    }
+                    if (cellOccupied) return false;
+                    targetCell = click.Row * 5 + click.Col;
+                    break;
             }
 
             // Создаём CastEvent
@@ -174,6 +195,30 @@ namespace Game.Core.Ecs.Systems
         void ShowTargetHighlights(in PendingTargetCardComponent pending, int activePlayerId)
         {
             _boardView.Value.ClearAllHighlights(activePlayerId);
+
+            if (pending.RequiredTarget == TargetRequirementType.OwnFrontCell)
+            {
+                // Подсвечиваем пустые клетки фронтального ряда (row=0) активного игрока
+                for (int col = 0; col < 5; col++)
+                {
+                    bool occupied = false;
+                    foreach (var ce in _creaturesFilter.Value)
+                    {
+                        ref var p = ref _posPool.Value.Get(ce);
+                        if (p.Row == 0 && p.Col == col && p.OwnerId == activePlayerId)
+                        {
+                            occupied = true;
+                            break;
+                        }
+                    }
+                    if (!occupied)
+                    {
+                        var cell = _boardView.Value.GetCell(0, col, activePlayerId);
+                        cell?.SetHighlight(CellHighlight.Target);
+                    }
+                }
+                return;
+            }
 
             foreach (var ce in _creaturesFilter.Value)
             {

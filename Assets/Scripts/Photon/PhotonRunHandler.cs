@@ -1,4 +1,4 @@
-﻿using Fusion;
+using Fusion;
 using Game.Core.Shared.Interface;
 using Game.Core.Events;
 using Leopotam.EcsLite;
@@ -6,6 +6,10 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using MemoryPack;
+using Game.Core.Network;
+using Game.Core.Ecs.Components;
+using System.Threading.Tasks;
 
 namespace Game.Core.Photon
 {
@@ -72,7 +76,14 @@ namespace Game.Core.Photon
 
     public partial class PhotonRunHandler : NetworkBehaviour
     {
-        private IGameStateContext _state; 
+        private IGameStateContext _state;
+
+        public void RegisterGameState(IGameStateContext state)
+        {
+            _state = state;
+            Debug.Log($"[PhotonRunHandler][{(Runner.IsServer ? "HOST" : "CLIENT")}] RegisterGameState: _state assigned ({state.GetType().Name}).");
+        }
+
         [Networked] public NetworkSessionData SessionData { get; set; }
         [Networked] public SessionState CurrentState { get; set; }
         [Networked] public int PlayersReady { get; set; }
@@ -81,19 +92,24 @@ namespace Game.Core.Photon
         public float DeltaTime => runner.DeltaTime;
         public bool IsServer => runner.IsServer;
 
-        // Событие для уведомления хоста об изменении прогресса загрузки игрока
         public event System.Action<PlayerRef, PlayerLoadingStage> OnPlayerProgressChanged;
 
         private NetworkRunner runner;
         private bool _isLocalSceneLoaded;
 
-        // Серверный словарь для отслеживания прогресса загрузки каждого игрока
         private readonly Dictionary<PlayerRef, NetworkPlayerInfo> _playerProgress = new Dictionary<PlayerRef, NetworkPlayerInfo>();
         public IReadOnlyDictionary<PlayerRef, NetworkPlayerInfo> PlayerProgress => _playerProgress;
 
-        // Pipeline загрузки сессии
-        private readonly List<SessionPhaseRule> _phasePipeline = new List<SessionPhaseRule>();
-        private int _currentPhaseIndex = -1;
+        // Счётчик мулигана
+        private int _mulliganReadyCount = 0;
+
+        // TCS-гейты для async-пайплайна (только на сервере)
+        private TaskCompletionSource<bool> _allPlayersConnectedTcs;
+        private TaskCompletionSource<bool> _allSceneLoadedTcs;
+        private TaskCompletionSource<bool> _allStateInitTcs;
+
+        private bool _pipelineStarted = false;
+        private Task _sessionPipelineTask;
 
         public override void Spawned()
         {
@@ -102,139 +118,145 @@ namespace Game.Core.Photon
 
             if (IsServer)
             {
-                CurrentState = SessionState.WaitingInLobby;
                 _playerProgress.Clear();
-                Debug.Log("[PhotonRunHandler] Server: Waiting in lobby");
+                CurrentState = SessionState.WaitingInLobby;
+                PlayersSceneLoaded = 0;
+                PlayersReady = 0;
+
+                _allPlayersConnectedTcs = new TaskCompletionSource<bool>();
+                _allSceneLoadedTcs     = new TaskCompletionSource<bool>();
+                _allStateInitTcs       = new TaskCompletionSource<bool>();
+
+                // Подписываемся на вход игроков
+                if (PhotonInitializer.Instance != null)
+                    PhotonInitializer.Instance.OnPlayerJoinedEvent += OnPlayerJoinedHandler;
+
+                // Регистрируем уже подключённых игроков
+                foreach (var player in runner.ActivePlayers)
+                    EnsurePlayerRegistered(player);
+
+                Debug.Log($"[PhotonRunHandler][HOST] Spawned with {_playerProgress.Count} players registered");
+
+                // Проверяем: вдруг уже все игроки на месте
+                TryFireAllPlayersConnected();
+
+                _sessionPipelineTask = RunSessionPipelineAsync();
             }
 
-            if (PhotonInitializer.Instance != null)
-                PhotonInitializer.Instance.OnAllPlayersReady += OnAllPlayersConnected;
-
-            // Turn-события больше не через GameEventBus — ECS-системы вызывают методы напрямую через inject
-
-            Debug.Log("[PhotonInitializer] PhotonRunHandler spawned successfully");
+            Debug.Log($"[PhotonRunHandler][{(Runner.IsServer ? "HOST" : "CLIENT")}] Spawned. IsServer={Runner.IsServer} LocalPlayer={Runner.LocalPlayer}");
         }
 
         public override void Despawned(NetworkRunner runner, bool hasState)
         {
             base.Despawned(runner, hasState);
+            _pipelineStarted = false;
 
             if (PhotonInitializer.Instance != null)
-                PhotonInitializer.Instance.OnAllPlayersReady -= OnAllPlayersConnected;
+                PhotonInitializer.Instance.OnPlayerJoinedEvent -= OnPlayerJoinedHandler;
 
-            // (подписки на turn-события были удалены)
-        }
-
-
-        public override void FixedUpdateNetwork()
-        {
-            if (!IsServer)
-                return;
-
-            if (_currentPhaseIndex < 0 || _currentPhaseIndex >= _phasePipeline.Count)
-                return;
-
-            var currentPhase = _phasePipeline[_currentPhaseIndex];
-            if (currentPhase.IsCompleted(AreAllPlayersAtStage))
-            {
-                AdvancePhase();
-            }
-        }
-
-        public override void Render()
-        {
-            base.Render();
-        }
-
-        private void OnAllPlayersConnected()
-        {
-            if (!IsServer)
-                return;
-
-            var oldProgress = new Dictionary<PlayerRef, NetworkPlayerInfo>(_playerProgress);
-            _playerProgress.Clear();
-            foreach (var player in runner.ActivePlayers)
-            {
-                string existingPlayFabId = oldProgress.ContainsKey(player) ? oldProgress[player].PlayFabUserId : null;
-                _playerProgress[player] = new NetworkPlayerInfo
-                {
-                    LoadingStage = PlayerLoadingStage.Connected,
-                    PlayFabUserId = existingPlayFabId
-                };
-            }
-
-            Debug.Log($"[PhotonRunHandler] All {_playerProgress.Count} players connected, starting loading pipeline");
-            PlayersSceneLoaded = 0;
-            PlayersReady = 0;
-
-            BuildPhasePipeline();
-            StartPipeline();
+            // Отменяем незавершённые ожидания
+            _allPlayersConnectedTcs?.TrySetCanceled();
+            _allSceneLoadedTcs?.TrySetCanceled();
+            _allStateInitTcs?.TrySetCanceled();
         }
 
         /// <summary>
-        /// Конфигурация pipeline загрузки. Чтобы добавить новый этап,
-        /// вставьте новый SessionPhaseRule в нужную позицию списка.
+        /// Регистрирует игрока при подключении и проверяет готовность к старту.
         /// </summary>
-        private void BuildPhasePipeline()
+        private void OnPlayerJoinedHandler(PlayerRef player)
         {
-            _phasePipeline.Clear();
-
-            _phasePipeline.Add(new SessionPhaseRule(
-                SessionState.LoadingGameScene,
-                PlayerLoadingStage.SceneLoaded,
-                () => RPC_LoadGameScene()));
-
-            _phasePipeline.Add(new SessionPhaseRule(
-                SessionState.InitializingGameWorld,
-                PlayerLoadingStage.WorldInitialized,
-                () => RPC_InitializeGame()));
-
-            _phasePipeline.Add(new SessionPhaseRule(
-                SessionState.InitializingGameState,
-                PlayerLoadingStage.StateInitialized));
-
-            _phasePipeline.Add(new SessionPhaseRule(
-                SessionState.InitializingPlayerCharacters,
-                PlayerLoadingStage.CharacterSpawned,
-                () => SpawnCharForPlayers()));
-
-            _phasePipeline.Add(new SessionPhaseRule(
-                SessionState.GameStarted,
-                PlayerLoadingStage.None,
-                () => RPC_StartGame()));
+            if (!IsServer) return;
+            EnsurePlayerRegistered(player);
+            TryFireAllPlayersConnected();
         }
 
-        private void StartPipeline()
+        private void EnsurePlayerRegistered(PlayerRef player)
         {
-            _currentPhaseIndex = -1;
-            AdvancePhase();
-        }
-
-        private void AdvancePhase()
-        {
-            _currentPhaseIndex++;
-            if (_currentPhaseIndex >= _phasePipeline.Count)
+            if (_playerProgress.ContainsKey(player))
                 return;
 
-            var phase = _phasePipeline[_currentPhaseIndex];
-            CurrentState = phase.State;
-            Debug.Log($"[PhotonRunHandler] Phase transition -> {phase.State}");
-            phase.Enter();
+            _playerProgress[player] = new NetworkPlayerInfo
+            {
+                LoadingStage = PlayerLoadingStage.Connected
+            };
+            Debug.Log($"[PhotonRunHandler] Registered player {player}, total: {_playerProgress.Count}");
+        }
+
+        private void TryFireAllPlayersConnected()
+        {
+            if (!IsServer || _pipelineStarted) return;
+
+            int expected = SessionData.TargetPlayerCount > 0 ? SessionData.TargetPlayerCount : 2;
+            if (_playerProgress.Count < expected)
+            {
+                Debug.Log($"[PhotonRunHandler][HOST] TryFireAllPlayersConnected: waiting {_playerProgress.Count}/{expected}. Known players: [{string.Join(", ", _playerProgress.Keys)}]");
+                return;
+            }
+
+            _pipelineStarted = true;
+            Debug.Log($"[PhotonRunHandler][HOST] TryFireAllPlayersConnected: all {_playerProgress.Count} players connected. Unblocking pipeline.");
+            _allPlayersConnectedTcs?.TrySetResult(true);
+        }
+
+        /// <summary>
+        /// Главный async-пайплайн загрузки сессии (выполняется только на сервере).
+        /// Порядок: ждём всех игроков → загружаем боевую сцену → инициализируем ECS → стартуем игру.
+        /// </summary>
+        private async Task RunSessionPipelineAsync()
+        {
+            try
+            {
+                // Шаг 1: ждём подключения всех игроков
+                Debug.Log("[Pipeline][HOST] Step 1: Waiting for all players to connect...");
+                await _allPlayersConnectedTcs.Task;
+                Debug.Log($"[Pipeline][HOST] Step 1 DONE: All players connected. Count={_playerProgress.Count}");
+
+                // Шаг 2: просим всех загрузить боевую сцену и ждём подтверждения
+                CurrentState = SessionState.LoadingGameScene;
+                Debug.Log("[Pipeline][HOST] Step 2: -> LoadingGameScene. Sending RPC_LoadGameScene.");
+                RPC_LoadGameScene();
+
+                Debug.Log("[Pipeline][HOST] Step 2: Waiting for all players to load scene...");
+                await _allSceneLoadedTcs.Task;
+                Debug.Log($"[Pipeline][HOST] Step 2 DONE: All players loaded scene. PlayersSceneLoaded={PlayersSceneLoaded}");
+
+                // Шаг 3: просим всех инициализировать ECS / BattleState и ждём подтверждения
+                CurrentState = SessionState.InitializingGameState;
+                Debug.Log("[Pipeline][HOST] Step 3: -> InitializingGameState. Sending RPC_TriggerStateInit.");
+                RPC_TriggerStateInit();
+
+                Debug.Log("[Pipeline][HOST] Step 3: Waiting for all players state init...");
+                await _allStateInitTcs.Task;
+                Debug.Log($"[Pipeline][HOST] Step 3 DONE: All players state initialized. PlayersReady={PlayersReady}");
+
+                // Шаг 4: старт игры / муллиган
+                CurrentState = SessionState.GameStarted;
+                Debug.Log("[Pipeline][HOST] Step 4: -> GameStarted. Sending RPC_StartGame.");
+                RPC_StartGame();
+                Debug.Log("[Pipeline][HOST] Step 4 DONE: Pipeline complete.");
+            }
+            catch (System.Exception ex) when (!(ex is System.OperationCanceledException))
+            {
+                Debug.LogError($"[Pipeline][HOST] Exception in RunSessionPipelineAsync: {ex}");
+            }
         }
 
         [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
         private void RPC_LoadGameScene()
         {
-            Debug.Log($"[PhotonRunHandler] Loading game scene: {SessionData.ScenePath.Value}");
+            Debug.Log($"[PhotonRunHandler][{(Runner.IsServer ? "HOST" : "CLIENT")}] RPC_LoadGameScene received. LocalPlayer={Runner.LocalPlayer}");
             LoadGameScene();
         }
 
         private void LoadGameScene()
         {
             if (_isLocalSceneLoaded)
+            {
+                Debug.LogWarning($"[PhotonRunHandler][{(Runner.IsServer ? "HOST" : "CLIENT")}] LoadGameScene: scene already loaded, skipping.");
                 return;
+            }
 
-            Debug.Log("[PhotonRunHandler] Loading game scene by index 3");
+            Debug.Log($"[PhotonRunHandler][{(Runner.IsServer ? "HOST" : "CLIENT")}] LoadGameScene: starting additive load of scene index 3.");
 
             SceneManager.sceneLoaded += OnSceneLoaded;
             SceneManager.LoadScene(3, LoadSceneMode.Additive);
@@ -244,86 +266,88 @@ namespace Game.Core.Photon
         {
             SceneManager.sceneLoaded -= OnSceneLoaded;
             _isLocalSceneLoaded = true;
-            Debug.Log($"[PhotonRunHandler] Scene '{scene.name}' loaded");
-            RPC_NotifySceneLoaded();
+            Debug.Log($"[PhotonRunHandler][{(Runner.IsServer ? "HOST" : "CLIENT")}] OnSceneLoaded: scene='{scene.name}'. Waiting for BattleState.Start() to call RPC_NotifySceneLoaded.");
         }
 
         [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-        private void RPC_NotifySceneLoaded(RpcInfo info = default)
+        public void RPC_NotifySceneLoaded(RpcInfo info = default)
         {
-            if (!IsServer)
-                return;
+            Debug.Log($"[PhotonRunHandler][{(Runner.IsServer ? "HOST" : "CLIENT")}] RPC_NotifySceneLoaded received. Source={info.Source} LocalPlayer={Runner.LocalPlayer}");
 
-            if (_state == null)
-            {
-                var monoBehaviours = FindObjectsByType<MonoBehaviour>(sortMode: FindObjectsSortMode.None);
-
-                foreach (var mono in monoBehaviours)
-                {
-                    if (mono.TryGetComponent<IGameStateContext>(out var state))
-                    {
-                        _state = state;
-                    }
-                }
-            }
-
-            if (_state == null)
-            {
-                Debug.LogError("Not found Game state context!");
-                return;
-            }
+            if (!IsServer) return;
 
             PlayerRef player = info.Source;
+            if (player == PlayerRef.None)
+            {
+                Debug.LogWarning($"[PhotonRunHandler][HOST] RPC_NotifySceneLoaded: info.Source is None, falling back to LocalPlayer={Runner.LocalPlayer}");
+                player = Runner.LocalPlayer;
+            }
+
+            Debug.Log($"[PhotonRunHandler][HOST] RPC_NotifySceneLoaded: processing player={player}. Known players: [{string.Join(", ", _playerProgress.Keys)}]");
 
             if (UpdatePlayerStage(player, PlayerLoadingStage.SceneLoaded))
             {
                 PlayersSceneLoaded = GetPlayersAtStageCount(PlayerLoadingStage.SceneLoaded);
-                Debug.Log($"[PhotonRunHandler] Player {player} scene loaded: {PlayersSceneLoaded}/{_playerProgress.Count}");
+                Debug.Log($"[PhotonRunHandler][HOST] Player {player} scene loaded: {PlayersSceneLoaded}/{_playerProgress.Count}");
+
+                if (AreAllPlayersAtStage(PlayerLoadingStage.SceneLoaded))
+                {
+                    Debug.Log("[Pipeline][HOST] All players scene loaded — unblocking pipeline.");
+                    _allSceneLoadedTcs?.TrySetResult(true);
+                }
+                else
+                {
+                    Debug.Log($"[Pipeline][HOST] Still waiting for scene load: {PlayersSceneLoaded}/{_playerProgress.Count}");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"[PhotonRunHandler][HOST] RPC_NotifySceneLoaded: UpdatePlayerStage rejected for player={player} (already at this stage or higher)");
             }
         }
 
         [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-        private void RPC_InitializeGame()
+        private void RPC_TriggerStateInit()
         {
-            Debug.Log("[PhotonRunHandler] Initializing game world");
-            InitializeGameWorld();
-            // Уведомляем сервер о завершении инициализации мира
-            RPC_NotifyWorldLoaded();
-        }
-
-        private void InitializeGameWorld()
-        {
-            // TODO: Генерация карты
-            Debug.Log("[PhotonRunHandler] Generating map...");
-            Debug.Log("[PhotonRunHandler] Game world initialized locally");
-        }
-
-        [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-        private void RPC_NotifyWorldLoaded(RpcInfo info = default)
-        {
-            if (!IsServer)
-                return;
-
-            PlayerRef player = info.Source;
-            if (UpdatePlayerStage(player, PlayerLoadingStage.WorldInitialized))
-            {
-                PlayersReady = GetPlayersAtStageCount(PlayerLoadingStage.WorldInitialized);
-                Debug.Log($"[PhotonRunHandler] Player {player} world initialized: {PlayersReady}/{_playerProgress.Count}");
-            }
+            Debug.Log($"[PhotonRunHandler][{(Runner.IsServer ? "HOST" : "CLIENT")}] RPC_TriggerStateInit received. Publishing TriggerStateInitEvent.");
+            GameEventBus.Publish(new TriggerStateInitEvent());
+            Debug.Log($"[PhotonRunHandler][{(Runner.IsServer ? "HOST" : "CLIENT")}] TriggerStateInitEvent published.");
         }
 
         [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
         public void RPC_NotifyStateReady(RpcInfo info = default)
         {
-            if (!IsServer)
-                return;
+            Debug.Log($"[PhotonRunHandler][{(Runner.IsServer ? "HOST" : "CLIENT")}] RPC_NotifyStateReady received. Source={info.Source} LocalPlayer={Runner.LocalPlayer}");
+
+            if (!IsServer) return;
 
             PlayerRef player = info.Source;
+            if (player == PlayerRef.None)
+            {
+                Debug.LogWarning($"[PhotonRunHandler][HOST] RPC_NotifyStateReady: info.Source is None, falling back to LocalPlayer={Runner.LocalPlayer}");
+                player = Runner.LocalPlayer;
+            }
+
+            Debug.Log($"[PhotonRunHandler][HOST] RPC_NotifyStateReady: processing player={player}. Known players: [{string.Join(", ", _playerProgress.Keys)}]");
 
             if (UpdatePlayerStage(player, PlayerLoadingStage.StateInitialized))
             {
                 PlayersReady = GetPlayersAtStageCount(PlayerLoadingStage.StateInitialized);
-                Debug.Log($"[PhotonRunHandler] Player {player} states initialized: {PlayersReady}/{_playerProgress.Count}");
+                Debug.Log($"[PhotonRunHandler][HOST] Player {player} state initialized: {PlayersReady}/{_playerProgress.Count}");
+
+                if (AreAllPlayersAtStage(PlayerLoadingStage.StateInitialized))
+                {
+                    Debug.Log("[Pipeline][HOST] All players state initialized — unblocking pipeline.");
+                    _allStateInitTcs?.TrySetResult(true);
+                }
+                else
+                {
+                    Debug.Log($"[Pipeline][HOST] Still waiting for state init: {PlayersReady}/{_playerProgress.Count}");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"[PhotonRunHandler][HOST] RPC_NotifyStateReady: UpdatePlayerStage rejected for player={player} (already at this stage or higher)");
             }
         }
          
@@ -331,51 +355,229 @@ namespace Game.Core.Photon
         [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
         private void RPC_StartGame()
         {
-            Debug.Log("[PhotonRunHandler] Game started!");
-            GameEventBus.Publish(new Game.Core.Events.AllMulligansCompletedEvent());
+            Debug.Log($"[PhotonRunHandler][{(Runner.IsServer ? "HOST" : "CLIENT")}] RPC_StartGame received — mulligan phase begins.");
+             
+        }
+         
+        [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+        public void RPC_NotifyMulliganReady(RpcInfo info = default)
+        {
+            Debug.Log($"[PhotonRunHandler][{(Runner.IsServer ? "HOST" : "CLIENT")}] RPC_NotifyMulliganReady received. Source={info.Source}");
 
-            // Хост запускает первый ход после старта игры
+            if (!IsServer) return;
+
+            _mulliganReadyCount++;
+            Debug.Log($"[PhotonRunHandler][HOST] MulliganReady {_mulliganReadyCount}/{_playerProgress.Count}");
+
+            if (_mulliganReadyCount >= _playerProgress.Count)
+            {
+                _mulliganReadyCount = 0;
+                RPC_AllMulligansCompleted();
+            }
+        }
+
+        /// <summary>���� > ��� �������: ��� �������� ���������, ��������� ������ ���.</summary>
+        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+        private void RPC_AllMulligansCompleted()
+        {
+            Debug.Log("[PhotonRunHandler] All mulligans completed! Starting first turn.");
+            GameEventBus.Publish(new AllMulligansCompletedEvent());
+
             if (IsServer)
                 StartFirstTurn();
         }
 
-        // ── Turn coordination ────────────────────────────────────────────────
+        // -- Turn coordination ------------------------------------------------
 
-        // Счётчик подтверждений от клиентов для текущей фазы
+        // ������� ������������� �� �������� ��� ������� ����
         private int _turnPhaseReadyCount = 0;
+        private int _matchStartReadyCount = 0;
         private int _currentTurnNumber = 0;
         private int _activePlayerId = -1;
 
-        /// <summary>Хост вычисляет первого игрока и запускает TurnStart-фазу.</summary>
+        /// <summary>���� ��������� ������� ������ (���� ������ ����� ������) � ��������� MatchStart-����.</summary>
         private void StartFirstTurn()
         {
             if (!IsServer || _state == null) return;
 
             var world = _state.World;
-            var playerPool = world.GetPool<Game.Core.Ecs.Components.PlayerComponent>();
-            var filter = world.Filter<Game.Core.Ecs.Components.PlayerComponent>().End();
+            var playerPool = world.GetPool<PlayerComponent>();
+            var sidePool   = world.GetPool<PlayerSideComponent>();
+            var filter = world.Filter<PlayerComponent>()
+                              .Inc<PlayerSideComponent>().End();
 
-            int firstPlayerId = int.MaxValue;
+            int firstPlayerId = -1;
             int firstPersonalTurn = 1;
-
+             
             foreach (var e in filter)
             {
-                int pid = playerPool.Get(e).PlayerId;
-                if (pid < firstPlayerId) firstPlayerId = pid;
+                if (sidePool.Get(e).Side == 1)
+                {
+                    firstPlayerId = playerPool.Get(e).PlayerId;
+                    break;
+                }
+            }
+             
+            if (firstPlayerId == -1)
+            {
+                var filterAll = world.Filter<Game.Core.Ecs.Components.PlayerComponent>().End();
+                foreach (var e in filterAll)
+                {
+                    int pid = playerPool.Get(e).PlayerId;
+                    if (firstPlayerId == -1 || pid < firstPlayerId)
+                        firstPlayerId = pid;
+                }
             }
 
             _currentTurnNumber = 1;
             _activePlayerId = firstPlayerId;
             _turnPhaseReadyCount = 0;
-
-            RPC_TurnEndPhaseBegin(firstPlayerId, _currentTurnNumber, firstPersonalTurn);
+            _matchStartReadyCount = 0;
+             
+            RPC_PreStartPhaseBegin();
         }
-
-        /// <summary>Хост получил запрос конца хода от активного игрока.</summary>
-        /// <summary>Регистрирует ECS-entity GlobalTurnState для последующего поиска по ключу.</summary>
+         
         public void RegisterGlobalTurnEntity(int entity)
         {
             _state?.AddEntity(entity, "global_turn");
+        }
+
+        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+        public void RPC_PreStartPhaseBegin()
+        {
+            if (_state != null)
+            {
+                int playerEntityFirst = -1;
+                int playerEntitySecond = -1;
+
+                var world = _state.World;
+
+                var filter = world.Filter<PlayerComponent>().End();
+
+                foreach (var playerEntity in filter)
+                {
+                    ref var playerComp = ref world.GetPool<PlayerComponent>().Get(playerEntity);
+
+                    if (playerComp.PlayerId == 1)
+                    {
+                        playerEntityFirst = playerEntity;
+                    }
+                    else
+                    {
+                        playerEntitySecond = playerEntity;
+                    }
+                }
+
+                if(playerEntityFirst != -1) world.GetPool<MatchStartEvent>().Add(playerEntityFirst);
+                if(playerEntitySecond != -1) world.GetPool<MatchStartEvent>().Add(playerEntitySecond);
+
+                // ��������� ���� ������� � ���� ��������� OnMatchStart-������������
+                var phasePool = world.GetPool<TurnPhaseState>();
+                var allPlayersFilter = world.Filter<PlayerComponent>().Inc<TurnPhaseState>().End();
+                foreach (var pe in allPlayersFilter)
+                {
+                    ref var phase = ref phasePool.Get(pe);
+                    phase.Phase = TurnPhase.MatchStartAbilities;
+                }
+
+                // ��������� UI-������� � ������� ��������� ���� ���������� ������
+                PublishPreStartHandUI(world);
+            }
+        }
+
+        private void PublishPreStartHandUI(EcsWorld world)
+        {
+            var playerPool = world.GetPool<PlayerComponent>();
+            var handPool = world.GetPool<HandComponent>();
+            var viewPool = world.GetPool<CardViewDataComponent>();
+            var netKeyPool = world.GetPool<NetworkEntityComponent>();
+            var commandPool = world.GetPool<CommanderTag>();
+
+            var localFilter = world.Filter<PlayerComponent>().Inc<HandComponent>().Inc<LocalComponent>().End();
+
+            foreach (var playerEntity in localFilter)
+            {
+                ref var player = ref playerPool.Get(playerEntity);
+                ref var hand = ref handPool.Get(playerEntity);
+
+                var handCards = new List<CardAddedToHandUIEvent>();
+                CardAddedToHandUIEvent commanderCard = default;
+                bool hasCommander = false;
+
+                for (int i = 0; i < hand.Count; i++)
+                {
+                    int cardEntity = hand.CardEntities[i];
+                    if (!viewPool.Has(cardEntity)) continue;
+
+                    ref var view = ref viewPool.Get(cardEntity);
+                    string netKey = netKeyPool.Has(cardEntity) ? netKeyPool.Get(cardEntity).NetworkEntityKey : string.Empty;
+
+                    bool isCommander = commandPool.Has(cardEntity);
+                    var evt = new CardAddedToHandUIEvent
+                    {
+                        CardEntity  = cardEntity,
+                        PlayerId    = player.PlayerId,
+                        NetworkKey  = netKey,
+                        Icon        = view.ArtImage,
+                        CardType    = view.CardType,
+                        Element     = view.Element,
+                        Rarity      = view.Rarity,
+                        CardName    = view.CardName,
+                        IsCommander = isCommander,
+                        Visual      = new Game.Core.Shared.CardVisualData
+                        {
+                            CardName    = view.CardName,
+                            Description = view.Description,
+                            Icon        = view.ArtImage,
+                            CardType    = view.CardType,
+                            Rarity      = view.Rarity,
+                            Element     = view.Element,
+                            CostType    = view.CostType,
+                            CostAmount  = view.CostAmount,
+                            IsCreature  = view.IsCreature,
+                            Attack      = view.Attack,
+                            MaxHealth   = view.MaxHealth,
+                            Speed       = view.Speed,
+                            IsCommander = isCommander,
+                        },
+                    };
+
+                    if (commandPool.Has(cardEntity))
+                    {
+                        commanderCard = evt;
+                        hasCommander = true;
+                    }
+                    else
+                    {
+                        handCards.Add(evt);
+                    }
+                }
+
+                GameEventBus.Publish(new PreStartPhaseBeginUIEvent
+                {
+                    HandCards = handCards.ToArray(),
+                    CommanderCard = commanderCard,
+                    HasCommander = hasCommander,
+                });
+
+                break; // ������ ��������� �����
+            }
+        }
+
+        [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+        public void RPC_NotifyMatchStartReady(RpcInfo info = default)
+        {
+            if (!IsServer) return;
+
+            _matchStartReadyCount++;
+            Debug.Log($"[PhotonRunHandler] MatchStartReady {_matchStartReadyCount}/{_playerProgress.Count}");
+
+            if (_matchStartReadyCount >= _playerProgress.Count)
+            {
+                _matchStartReadyCount = 0;
+                int personal = GetPersonalTurnNumber(_activePlayerId);
+                RPC_TurnStartPhaseBegin(_activePlayerId, _currentTurnNumber, personal);
+            }
         }
 
         [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
@@ -387,31 +589,29 @@ namespace Game.Core.Photon
             RPC_TurnEndPhaseBegin(_activePlayerId, _currentTurnNumber, GetPersonalTurnNumber(_activePlayerId));
         }
 
-        /// <summary>Хост → все клиенты: начать отработку OnTurnEnd способностей.</summary>
+        /// <summary>���� > ��� �������: ������ ��������� OnTurnEnd ������������.</summary>
         [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
         private void RPC_TurnEndPhaseBegin(int activePlayerId, int turnNumber, int personalTurnNumber)
         {
             if (_state == null) return;
             var world = _state.World;
-            var playerPool = world.GetPool<Game.Core.Ecs.Components.PlayerComponent>();
-            var phasePool = world.GetPool<Game.Core.Ecs.Components.TurnPhaseState>();
-            var turnEndPool = world.GetPool<Game.Core.Ecs.Components.TurnEndEvent>();
-            var ownerPool = world.GetPool<Game.Core.Ecs.Components.OwnerComponent>();
-            var filter = world.Filter<Game.Core.Ecs.Components.PlayerComponent>()
-                              .Inc<Game.Core.Ecs.Components.TurnPhaseState>().End();
+            var playerPool = world.GetPool<PlayerComponent>();
+            var phasePool = world.GetPool<TurnPhaseState>();
+            var turnEndPool = world.GetPool<TurnEndEvent>();
+            var ownerPool = world.GetPool<OwnerComponent>();
+            var filter = world.Filter<PlayerComponent>()
+                              .Inc<TurnPhaseState>().End();
 
             foreach (var e in filter)
             {
                 ref var phase = ref phasePool.Get(e);
-                phase.Phase = Game.Core.Ecs.Components.TurnPhase.TurnEndAbilities;
+                phase.Phase = TurnPhase.TurnEndAbilities;
             }
 
-            // TurnEndEvent на карты активного игрока
-            var boardFilter = world.Filter<Game.Core.Ecs.Components.AbilityContainerComponent>()
-                                   .Inc<Game.Core.Ecs.Components.BoardTag>()
-                                   .Inc<Game.Core.Ecs.Components.OwnerComponent>()
-                                   .Exc<Game.Core.Ecs.Components.HandTag>()
-                                   .Exc<Game.Core.Ecs.Components.DeckTag>().End();
+            // TurnEndEvent �� ����� ��������� ������
+            var boardFilter = world.Filter<AbilityContainerComponent>()
+                                   .Inc<BoardTag>()
+                                   .Inc<OwnerComponent>().End();
 
             foreach (var cardEntity in boardFilter)
             {
@@ -420,20 +620,20 @@ namespace Game.Core.Photon
                     turnEndPool.Add(cardEntity);
             }
 
-            GameEventBus.Publish(new Game.Core.Events.TurnEndedEvent { ActivePlayerId = activePlayerId });
-            GameEventBus.Publish(new Game.Core.Events.InputBlockedEvent());
+            GameEventBus.Publish(new TurnEndedEvent { ActivePlayerId = activePlayerId });
+            GameEventBus.Publish(new InputBlockedEvent());
             Debug.Log($"[PhotonRunHandler] TurnEndPhase begun for player {activePlayerId}, turn {turnNumber}");
         }
 
-        /// <summary>Клиент → хост: TurnEnd-способности на этом клиенте завершены.</summary>
+        /// <summary>������ > ����: TurnEnd-����������� �� ���� ������� ���������.</summary>
         [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
         public void RPC_NotifyTurnEndReady(RpcInfo info = default)
         {
             if (!IsServer) return;
             _turnPhaseReadyCount++;
-            Debug.Log($"[PhotonRunHandler] TurnEndReady {_turnPhaseReadyCount}/2");
+            Debug.Log($"[PhotonRunHandler] TurnEndReady {_turnPhaseReadyCount}/{_playerProgress.Count}");
 
-            if (_turnPhaseReadyCount >= 2)
+            if (_turnPhaseReadyCount >= _playerProgress.Count)
             {
                 _turnPhaseReadyCount = 0;
                 int nextPlayerId = GetNextPlayerId(_activePlayerId);
@@ -444,7 +644,7 @@ namespace Game.Core.Photon
             }
         }
 
-        /// <summary>Хост → все клиенты: начать отработку OnTurnStart способностей следующего игрока.</summary>
+        /// <summary>���� > ��� �������: ������ ��������� OnTurnStart ������������ ���������� ������.</summary>
         [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
         private void RPC_TurnStartPhaseBegin(int nextPlayerId, int turnNumber, int personalTurnNumber)
         {
@@ -460,7 +660,7 @@ namespace Game.Core.Photon
                 if (!transferPool.Has(e))
                 {
                     ref var t = ref transferPool.Add(e);
-                    t.FromPlayerId = GetNextPlayerId(nextPlayerId); // предыдущий
+                    t.FromPlayerId = GetNextPlayerId(nextPlayerId); // ����������
                     t.ToPlayerId = nextPlayerId;
                     t.TurnNumber = turnNumber;
                     t.PersonalTurnNumber = personalTurnNumber;
@@ -471,22 +671,22 @@ namespace Game.Core.Photon
             Debug.Log($"[PhotonRunHandler] TurnStartPhase begun for player {nextPlayerId}, turn {turnNumber}");
         }
 
-        /// <summary>Клиент → хост: TurnStart-способности на этом клиенте завершены.</summary>
+        /// <summary>������ > ����: TurnStart-����������� �� ���� ������� ���������.</summary>
         [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
         public void RPC_NotifyTurnStartReady(RpcInfo info = default)
         {
             if (!IsServer) return;
             _turnPhaseReadyCount++;
-            Debug.Log($"[PhotonRunHandler] TurnStartReady {_turnPhaseReadyCount}/2");
+            Debug.Log($"[PhotonRunHandler] TurnStartReady {_turnPhaseReadyCount}/{_playerProgress.Count}");
 
-            if (_turnPhaseReadyCount >= 2)
+            if (_turnPhaseReadyCount >= _playerProgress.Count)
             {
                 _turnPhaseReadyCount = 0;
                 RPC_PlayerTurnBegin(_activePlayerId);
             }
         }
 
-        /// <summary>Хост → все клиенты: активный игрок начинает свой ход.</summary>
+        /// <summary>���� > ��� �������: �������� ����� �������� ���� ���.</summary>
         [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
         private void RPC_PlayerTurnBegin(int activePlayerId)
         {
@@ -502,9 +702,36 @@ namespace Game.Core.Photon
                 ref var phase = ref phasePool.Get(e);
                 phase.Phase = Game.Core.Ecs.Components.TurnPhase.PlayerTurn;
 
-                // Восстанавливаем ввод только активному игроку
-                if (playerPool.Get(e).PlayerId == activePlayerId && playerPool.Get(e).IsLocalPlayer)
-                    GameEventBus.Publish(new Game.Core.Events.InputRestoredEvent());
+                // ��������������� ���� ������ ��������� ������
+                ref var playerComp = ref playerPool.Get(e);
+                bool isActivePlayer = playerComp.PlayerId == activePlayerId;
+
+                if (playerComp.IsLocalPlayer)
+                {
+                    if (isActivePlayer)
+                    {
+                        float turnDuration = 0f;
+                        int turnNumber = 0;
+                        var turnStatePool = world.GetPool<Game.Core.Ecs.Components.TurnState>();
+                        if (turnStatePool.Has(e))
+                        {
+                            ref var ts = ref turnStatePool.Get(e);
+                            turnDuration = ts.TimeRemaining;
+                            turnNumber = ts.TurnNumber;
+                        }
+
+                        GameEventBus.Publish(new Game.Core.Events.InputRestoredEvent());
+                        GameEventBus.Publish(new Game.Core.Events.LocalTurnStartedEvent
+                        {
+                            TurnNumber = turnNumber,
+                            TurnDurationSeconds = turnDuration
+                        });
+                    }
+                    else
+                    {
+                        GameEventBus.Publish(new Game.Core.Events.OpponentTurnEndedEvent());
+                    }
+                }
             }
 
             Debug.Log($"[PhotonRunHandler] PlayerTurn begun for player {activePlayerId}");
@@ -530,7 +757,7 @@ namespace Game.Core.Photon
             return nextId == int.MaxValue ? minId : nextId;
         }
 
-        // Считаем сколько раз этот игрок уже ходил (упрощённо через глобальный счётчик)
+        // ������� ������� ��� ���� ����� ��� ����� (��������� ����� ���������� �������)
         private readonly System.Collections.Generic.Dictionary<int, int> _personalTurnCounters
             = new System.Collections.Generic.Dictionary<int, int>();
 
@@ -543,12 +770,27 @@ namespace Game.Core.Photon
         }
 
         /// <summary>
+        /// ��������� ������ �������� �� ����� � ���������� �� ����� RPC.
+        /// </summary>
+        public void SendDeckSnapshotChunked(byte[] data, int fromPlayerId, int chunkSize = 400)
+        {
+            int totalChunks = (data.Length + chunkSize - 1) / chunkSize;
+            for (int i = 0; i < totalChunks; i++)
+            {
+                int start = i * chunkSize;
+                int length = Math.Min(chunkSize, data.Length - start);
+                var chunk = new byte[length];
+                Buffer.BlockCopy(data, start, chunk, 0, length);
+                RPC_SyncDeckSnapshotChunk(chunk, i, totalChunks, fromPlayerId);
+            }
+        }
+
         /// <summary>
-        /// Локальный клиент отправляет данные своей колоды оппоненту.
-        /// Вызывается после завершения мулигана.
+        /// ��������� ������ ���������� ������ ����� ������ ��������� ������� �� 400 ����.
+        /// ���������� ����� ���������� ��������.
         /// </summary>
         [Rpc(RpcSources.All, RpcTargets.All)]
-        public void RPC_SyncDeckSnapshot(NetworkDeckSnapshotData snapshot, int fromPlayerId, RpcInfo info = default)
+        public void RPC_SyncDeckSnapshotChunk(byte[] chunk, int chunkIndex, int totalChunks, int fromPlayerId, RpcInfo info = default)
         {
             var runner = Runner;
             if (runner != null && info.Source == runner.LocalPlayer)
@@ -557,73 +799,224 @@ namespace Game.Core.Photon
             if (_state == null)
                 return;
 
-            var world      = _state.World;
-            var playerPool = world.GetPool<Game.Core.Ecs.Components.PlayerComponent>();
-            var syncPool   = world.GetPool<Game.Core.Ecs.Components.OpponentDeckSyncComponent>();
-            var filter     = world.Filter<Game.Core.Ecs.Components.PlayerComponent>().End();
-
-            int opponentEntity = -1;
-            foreach (var e in filter)
+            if (_snapshotChunks == null || _snapshotChunks.Length != totalChunks)
             {
-                ref var p = ref playerPool.Get(e);
-                if (p.PlayerId == fromPlayerId) { opponentEntity = e; break; }
+                _snapshotChunks = new byte[totalChunks][];
+                _snapshotChunksReceived = 0;
+                _snapshotFromPlayerId = fromPlayerId;
             }
 
-            if (opponentEntity == -1)
+            if (_snapshotChunks[chunkIndex] == null)
             {
-                opponentEntity = world.NewEntity();
-                ref var p = ref playerPool.Add(opponentEntity);
-                p.PlayerId      = fromPlayerId;
-                p.IsLocalPlayer = false;
-
-                var sidePool = world.GetPool<Game.Core.Ecs.Components.PlayerSideComponent>();
-                ref var side = ref sidePool.Add(opponentEntity);
-                side.Side    = fromPlayerId;
-
-                world.GetPool<Game.Core.Ecs.Components.DeckComponent>().Add(opponentEntity);
-                world.GetPool<Game.Core.Ecs.Components.HandComponent>().Add(opponentEntity);
-
-                _state.AddEntity(opponentEntity, $"player_{fromPlayerId}");
+                _snapshotChunks[chunkIndex] = chunk;
+                _snapshotChunksReceived++;
             }
 
-            var expansionIds = new string[snapshot.DeckCount];
-            var cardIds      = new int[snapshot.DeckCount];
-            var netKeys      = new string[snapshot.DeckCount];
-            for (int i = 0; i < snapshot.DeckCount; i++)
+            if (_snapshotChunksReceived < totalChunks)
+                return;
+             
+            int totalLength = 0;
+            for (int i = 0; i < totalChunks; i++)
+                totalLength += _snapshotChunks[i].Length;
+
+            var fullData = new byte[totalLength];
+            int offset = 0;
+            for (int i = 0; i < totalChunks; i++)
             {
-                expansionIds[i] = snapshot.Deck[i].ExpansionId.Value;
-                cardIds[i]      = snapshot.Deck[i].CardId;
-                netKeys[i]      = snapshot.Deck[i].EntityKey.Value;
+                Buffer.BlockCopy(_snapshotChunks[i], 0, fullData, offset, _snapshotChunks[i].Length);
+                offset += _snapshotChunks[i].Length;
             }
 
-            var handExpansionIds = new string[snapshot.HandCount];
-            var handCardIds      = new int[snapshot.HandCount];
-            var handNetKeys      = new string[snapshot.HandCount];
-            for (int i = 0; i < snapshot.HandCount; i++)
-            {
-                handExpansionIds[i] = snapshot.Hand[i].ExpansionId.Value;
-                handCardIds[i]      = snapshot.Hand[i].CardId;
-                handNetKeys[i]      = snapshot.Hand[i].EntityKey.Value;
-            }
+            _snapshotChunks = null;
+            _snapshotChunksReceived = 0;
 
-            ref var sync         = ref syncPool.Add(opponentEntity);
-            sync.DeckExpansionIds = expansionIds;
-            sync.DeckCardIds      = cardIds;
-            sync.DeckNetworkKeys  = netKeys;
-            sync.DeckCount        = snapshot.DeckCount;
-            sync.HandExpansionIds = handExpansionIds;
-            sync.HandCardIds      = handCardIds;
-            sync.HandNetworkKeys  = handNetKeys;
-            sync.HandCount        = snapshot.HandCount;
-
-            Debug.Log($"[PhotonRunHandler] RPC_SyncDeckSnapshot received from player {fromPlayerId}: {snapshot.DeckCount} deck + {snapshot.HandCount} hand cards");
+            ApplyDeckSnapshot(fullData, _snapshotFromPlayerId);
         }
 
+        byte[][] _snapshotChunks;
+        int _snapshotChunksReceived;
+        int _snapshotFromPlayerId;
+
+        void ApplyDeckSnapshot(byte[] data, int fromPlayerId)
+        {
+            NetworkDeckSnapshotData snapshot = MemoryPackSerializer.Deserialize<NetworkDeckSnapshotData>(data);
+
+            if (_state.TryGetOpponentEntity(out int opponentEntity))
+            {
+                ref var deckSyncComp = ref _state.World.GetPool<OpponentDeckSyncEvent>().Add(opponentEntity);
+
+                var expansionIds = new string[snapshot.DeckCount];
+                var cardIds = new int[snapshot.DeckCount];
+                var netKeys = new string[snapshot.DeckCount];
+                for (int i = 0; i < snapshot.DeckCount; i++)
+                {
+                    expansionIds[i] = snapshot.Deck[i].ExpansionId;
+                    cardIds[i] = snapshot.Deck[i].CardId;
+                    netKeys[i] = snapshot.Deck[i].EntityKey;
+                }
+
+                var handExpansionIds = new string[snapshot.HandCount];
+                var handCardIds = new int[snapshot.HandCount];
+                var handNetKeys = new string[snapshot.HandCount];
+                for (int i = 0; i < snapshot.HandCount; i++)
+                {
+                    handExpansionIds[i] = snapshot.Hand[i].ExpansionId;
+                    handCardIds[i] = snapshot.Hand[i].CardId;
+                    handNetKeys[i] = snapshot.Hand[i].EntityKey;
+                }
+
+                deckSyncComp.DeckExpansionIds = expansionIds;
+                deckSyncComp.DeckCardIds = cardIds;
+                deckSyncComp.DeckNetworkKeys = netKeys;
+                deckSyncComp.DeckCount = snapshot.DeckCount;
+                deckSyncComp.HandExpansionIds = handExpansionIds;
+                deckSyncComp.HandCardIds = handCardIds;
+                deckSyncComp.HandNetworkKeys = handNetKeys;
+                deckSyncComp.HandCount = snapshot.HandCount;
+                deckSyncComp.CommanderExpansionID = snapshot.Commander.ExpansionId;
+                deckSyncComp.CommanderID = snapshot.Commander.CardId;
+                deckSyncComp.CommanderNetKey = snapshot.Commander.EntityKey;
+
+                Debug.Log($"[PhotonRunHandler] RPC_SyncDeckSnapshot received from player {fromPlayerId}: {snapshot.DeckCount} deck + {snapshot.HandCount} hand cards");
+            }
+        }
+
+        [Obsolete("Use RPC_SyncDeckSnapshotChunk instead")] 
+        [Rpc(RpcSources.All, RpcTargets.All)]
+        public void RPC_SyncDeckSnapshot(byte[] data, int fromPlayerId, RpcInfo info = default)
+        {
+            NetworkDeckSnapshotData snapshot = MemoryPackSerializer.Deserialize<NetworkDeckSnapshotData>(data);
+
+            var runner = Runner;
+            if (runner != null && info.Source == runner.LocalPlayer)
+                return;
+
+            if (_state == null)
+                return;
+
+            if (_state.TryGetOpponentEntity(out int opponentEntity))
+            {
+                ref var deckSyncComp = ref _state.World.GetPool<OpponentDeckSyncEvent>().Add(opponentEntity);
+
+                var expansionIds = new string[snapshot.DeckCount];
+                var cardIds = new int[snapshot.DeckCount];
+                var netKeys = new string[snapshot.DeckCount];
+                for (int i = 0; i < snapshot.DeckCount; i++)
+                {
+                    expansionIds[i] = snapshot.Deck[i].ExpansionId;
+                    cardIds[i] = snapshot.Deck[i].CardId;
+                    netKeys[i] = snapshot.Deck[i].EntityKey;
+                }
+
+                var handExpansionIds = new string[snapshot.HandCount];
+                var handCardIds = new int[snapshot.HandCount];
+                var handNetKeys = new string[snapshot.HandCount];
+                for (int i = 0; i < snapshot.HandCount; i++)
+                {
+                    handExpansionIds[i] = snapshot.Hand[i].ExpansionId;
+                    handCardIds[i] = snapshot.Hand[i].CardId;
+                    handNetKeys[i] = snapshot.Hand[i].EntityKey;
+                }
+
+                deckSyncComp.DeckExpansionIds = expansionIds;
+                deckSyncComp.DeckCardIds = cardIds;
+                deckSyncComp.DeckNetworkKeys = netKeys;
+                deckSyncComp.DeckCount = snapshot.DeckCount;
+                deckSyncComp.HandExpansionIds = handExpansionIds;
+                deckSyncComp.HandCardIds = handCardIds;
+                deckSyncComp.HandNetworkKeys = handNetKeys;
+                deckSyncComp.HandCount = snapshot.HandCount;
+                deckSyncComp.CommanderExpansionID = snapshot.Commander.ExpansionId;
+                deckSyncComp.CommanderID = snapshot.Commander.CardId;
+                deckSyncComp.CommanderNetKey = snapshot.Commander.EntityKey;
+
+                Debug.Log($"[PhotonRunHandler] RPC_SyncDeckSnapshot received from player {fromPlayerId}: {snapshot.DeckCount} deck + {snapshot.HandCount} hand cards");
+            } 
+        }
+
+        /// <summary>
+        /// Отправляет снапшот одного действия активного игрока оппоненту.
+        /// Получатель кладёт снапшот в ActionQueue для воспроизведения через ReplayActionSystem.
+        /// </summary>
+        [Rpc(RpcSources.All, RpcTargets.All)]
+        public void RPC_SendActionSnapshot(byte[] data, RpcInfo info = default)
+        {
+            var runner = Runner;
+            if (runner != null && info.Source == runner.LocalPlayer)
+                return;
+
+            if (_state == null)
+                return;
+
+            var snapshot = MemoryPackSerializer.Deserialize<IActionData>(data);
+            ActionQueue.Enqueue(snapshot);
+        }
+         
+        [Rpc(RpcSources.All, RpcTargets.All)]
+        public void RPC_NotifyCardCast(string cardEntityKey, string targetEntityKey, int targetCell, RpcInfo info = default)
+        {
+            var runner = Runner;
+            if (runner != null && info.Source == runner.LocalPlayer)
+                return;
+
+            if (_state == null)
+            { 
+                return;
+            }
+
+            GameEventBus.Publish(new RemoteCardCastEvent
+            {
+                CardEntityKey   = cardEntityKey,
+                TargetEntityKey = targetEntityKey,
+                TargetCell      = targetCell
+            });
+        }
+
+        [Rpc(RpcSources.All, RpcTargets.All)]
+        public void RPC_NotifyCreatureMove(string creatureEntityKey, int toRow, int toCol, int toOwnerId, RpcInfo info = default)
+        {
+            var runner = Runner;
+            if (runner != null && info.Source == runner.LocalPlayer)
+                return;
+
+            if (_state == null)
+                return;
+
+            GameEventBus.Publish(new Game.Core.Events.RemoteCreatureMoveEvent
+            {
+                CreatureEntityKey = creatureEntityKey,
+                ToRow             = toRow,
+                ToCol             = toCol,
+                ToOwnerId         = toOwnerId,
+            });
+        }
+
+        [Rpc(RpcSources.All, RpcTargets.All)]
+        public void RPC_NotifyCreatureAttack(string attackerEntityKey, string defenderEntityKey, RpcInfo info = default)
+        {
+            var runner = Runner;
+            if (runner != null && info.Source == runner.LocalPlayer)
+                return;
+
+            if (_state == null)
+                return;
+
+            GameEventBus.Publish(new Game.Core.Events.RemoteCreatureAttackEvent
+            {
+                AttackerEntityKey = attackerEntityKey,
+                DefenderEntityKey = defenderEntityKey,
+            });
+        }
 
         private bool UpdatePlayerStage(PlayerRef player, PlayerLoadingStage newStage)
         {
+            // Upsert: ���� ����� �� ��������������� � ������������ �� ����.
+            // ��� ������ �� race condition ����� RPC �������� ������ ��� OnPlayerJoined.
             if (!_playerProgress.ContainsKey(player))
-                return false;
+            {
+                Debug.LogWarning($"[PhotonRunHandler] Player {player} not in progress dict, registering on-the-fly.");
+                _playerProgress[player] = new NetworkPlayerInfo { LoadingStage = PlayerLoadingStage.Connected };
+            }
 
             var playerInfo = _playerProgress[player];
             if (newStage <= playerInfo.LoadingStage)
@@ -633,11 +1026,6 @@ namespace Game.Core.Photon
             _playerProgress[player] = playerInfo;
             OnPlayerProgressChanged?.Invoke(player, newStage);
             return true;
-        }
-        
-        private void SpawnCharForPlayers()
-        { 
-
         }
 
         private bool AreAllPlayersAtStage(PlayerLoadingStage stage)
@@ -666,7 +1054,7 @@ namespace Game.Core.Photon
 
         private void OnDestroy()
         {
-            // Выгружаем сцену при уничтожении handler'а
+            // ��������� ����� ��� ����������� handler'�
             /*if (_sceneHandle.IsValid())
             {
                 Addressables.UnloadSceneAsync(_sceneHandle);

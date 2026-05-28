@@ -9,10 +9,9 @@ namespace Game.Core.Photon
     [Serializable]
     public class MatchmakingConfig
     {
-        public int TargetPlayerCount = 1;
-        public int SceneIndex = 1;
-        public string ScenePath = "battle_scene";
-        public string MatchName = "operation";
+        public int TargetPlayerCount = 2;
+        public int SceneIndex = 2; 
+        public string MatchName = "Ladder";
         public string GameVersion = "1.0";
         public int MaxRetries = 3;
         public float RetryDelay = 1f;
@@ -51,6 +50,7 @@ namespace Game.Core.Photon
         private readonly PhotonInitializer _photonInitializer;
         private MatchmakingConfig _config;
         private bool _isCancelled;
+        private bool _isSuccess;
         private List<SessionInfo> _availableSessions = new List<SessionInfo>();
         private TaskCompletionSource<List<SessionInfo>> _sessionListTcs;
 
@@ -96,6 +96,7 @@ namespace Game.Core.Photon
                 Debug.LogError($"[Matchmaking] Error: {ex.Message}");
                 SetState(MatchmakingState.Failed);
                 OnMatchmakingFailed?.Invoke(ex.Message);
+                SetState(MatchmakingState.Idle);
                 return new MatchmakingResult
                 {
                     Success = false,
@@ -186,16 +187,16 @@ namespace Game.Core.Photon
         {
             SetState(MatchmakingState.Joining);
 
+            _isSuccess = false;
             int retryCount = 0;
 
-            while (retryCount < _config.MaxRetries && !_isCancelled)
+            while (retryCount < _config.MaxRetries && !_isCancelled && !_isSuccess)
             {
                 var sessionParams = new SessionParams
                 {
                     Mode = GameMode.AutoHostOrClient,
                     RoomName = sessionName,
-                    LobbySceneIndex = _config.SceneIndex,
-                    GameScenePath = _config.ScenePath,
+                    LobbySceneIndex = _config.SceneIndex, 
                     TargetPlayerCount = _config.TargetPlayerCount,
                     ProvideInput = true
                 };
@@ -220,7 +221,7 @@ namespace Game.Core.Photon
 
                     bool isHost = _photonInitializer.Runner.IsServer;
                     Debug.Log($"[Matchmaking] Connected to {sessionName} as {(isHost ? "Host" : "Client")}");
-
+                    _isSuccess = true;
                     return await WaitForPlayersAsync(isHost, sessionName);
                 }
                 catch (SessionFullException)
@@ -245,6 +246,7 @@ namespace Game.Core.Photon
             }
 
             SetState(MatchmakingState.Failed);
+            SetState(MatchmakingState.Idle);
             return new MatchmakingResult
             {
                 Success = false,
@@ -288,6 +290,7 @@ namespace Game.Core.Photon
                 if (completedTask == timeoutTask)
                 {
                     SetState(MatchmakingState.Failed);
+                    SetState(MatchmakingState.Idle);
                     return new MatchmakingResult
                     {
                         Success = false,
@@ -298,6 +301,7 @@ namespace Game.Core.Photon
                 var result = await tcs.Task;
                 SetState(MatchmakingState.Ready);
                 OnMatchFound?.Invoke(result);
+                SetState(MatchmakingState.Idle);
                 return result;
             }
             finally

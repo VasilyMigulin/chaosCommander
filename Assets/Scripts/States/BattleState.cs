@@ -1,10 +1,14 @@
+using AwesomeUI.Core;
+using AwesomeUI.Feature.Battle;
 using Fusion;
 using Game.Core.Configs;
 using Game.Core.Ecs.Components;
+using System;
 using Game.Core.Ecs.Handlers;
 using Game.Core.Events;
 using Game.Core.Match;
 using Game.Core.Mono;
+using Game.Core.Network;
 using Game.Core.Photon;
 using Game.Core.Shared.Interface;
 using Leopotam.EcsLite;
@@ -96,62 +100,113 @@ namespace Game.Core.States
         }
         public override void Awake()
         {
+            if (PhotonRunHandler == null)
+            {
+                PhotonRunHandler = FindFirstObjectByType<PhotonRunHandler>();
+
+                if (PhotonRunHandler == null)
+                {
+                    Debug.LogError("[BattleState] PhotonRunHandler not found! Make sure it is spawned before BattleState.Start()");
+                    return;
+                }
+            }
+
             MatchTracker.Initialize();
-
-            PhotonRunHandler = FindFirstObjectByType<PhotonRunHandler>();
-
+            // PhotonRunHandler — сетевой объект, может ещё не существовать в Awake.
+            // Пробуем найти сразу, иначе будем искать в Start. 
             EcsHandler = EcsRunHandler.Create(this);
-
-            var runner = PhotonInitializer.Instance?.Runner;
-             
         }
+
         public override void Start()
-        { 
-            EcsHandler.Init(PhotonRunHandler, BoardView, _cardConfig);
+        {
+            // Повторный поиск на случай если в Awake handler ещё не заспавнился
+            if (PhotonRunHandler == null)
+            {
+                PhotonRunHandler = FindFirstObjectByType<PhotonRunHandler>();
 
-            GameEventBus.Subscribe<Game.Core.Events.DeckReadyToSyncEvent>(OnDeckReadyToSync);
+                if (PhotonRunHandler == null)
+                {
+                    Debug.LogError("[BattleState] PhotonRunHandler not found! Make sure it is spawned before BattleState.Start()");
+                    return;
+                }
+            }
 
-            PhotonRunHandler.RPC_NotifyStateReady();
+            UIModule.Open<BattleCanvas>();
+            UIModule.Inject(this, this, EcsHandler.World, _cardConfig);
+
+            // Подписываемся на ECS-init триггер от сервера.
+            GameEventBus.Subscribe<TriggerStateInitEvent>(OnTriggerStateInit);
+            GameEventBus.Subscribe<CellSelectedEvent>(OnCellSelected);
+
+            Debug.Log($"[BattleState][{(PhotonRunHandler.IsServer ? "HOST" : "CLIENT")}] Start(): subscribed to TriggerStateInitEvent. Calling RPC_NotifySceneLoaded.");
+
+            // Сцена полностью загружена и Start() выполнен — уведомляем сервер.
+            PhotonRunHandler.RPC_NotifySceneLoaded();
+
+            Debug.Log($"[BattleState][{(PhotonRunHandler.IsServer ? "HOST" : "CLIENT")}] Start(): RPC_NotifySceneLoaded called.");
         }
 
-        private void OnDeckReadyToSync(Game.Core.Events.DeckReadyToSyncEvent evt)
+        private void OnTriggerStateInit(TriggerStateInitEvent _)
         {
-            var snapshot = new Game.Core.Photon.NetworkDeckSnapshotData();
+            Debug.Log($"[BattleState][{(PhotonRunHandler.IsServer ? "HOST" : "CLIENT")}] OnTriggerStateInit: received. Starting EcsHandler.Init.");
+            GameEventBus.Unsubscribe<TriggerStateInitEvent>(OnTriggerStateInit);
 
-            int deckCount = System.Math.Min(evt.DeckNetworkKeys.Length, 30);
-            for (int i = 0; i < deckCount; i++)
+            try
             {
-                snapshot.Deck.Set(i, new Game.Core.Photon.NetworkCardSnapshotEntry
-                {
-                    ExpansionId = new Fusion.NetworkString<Fusion._32>(evt.DeckExpansionIds[i]),
-                    CardId      = evt.DeckCardIds[i],
-                    EntityKey   = new Fusion.NetworkString<Fusion._32>(evt.DeckNetworkKeys[i])
-                });
+                EcsHandler.Init(PhotonRunHandler, BoardView, _cardConfig);
+                PhotonRunHandler.RegisterGameState(this);
+                Debug.Log($"[BattleState][{(PhotonRunHandler.IsServer ? "HOST" : "CLIENT")}] OnTriggerStateInit: EcsHandler.Init completed successfully.");
             }
-            snapshot.DeckCount = deckCount;
-
-            int handCount = System.Math.Min(evt.HandNetworkKeys.Length, 10);
-            for (int i = 0; i < handCount; i++)
+            catch (Exception e)
             {
-                snapshot.Hand.Set(i, new Game.Core.Photon.NetworkCardSnapshotEntry
-                {
-                    ExpansionId = new Fusion.NetworkString<Fusion._32>(evt.HandExpansionIds[i]),
-                    CardId      = evt.HandCardIds[i],
-                    EntityKey   = new Fusion.NetworkString<Fusion._32>(evt.HandNetworkKeys[i])
-                });
+                Debug.LogError($"[BattleState][{(PhotonRunHandler.IsServer ? "HOST" : "CLIENT")}] OnTriggerStateInit: EcsHandler.Init FAILED: {e}");
             }
-            snapshot.HandCount = handCount;
 
-            PhotonRunHandler.RPC_SyncDeckSnapshot(snapshot, evt.PlayerId);
+            Debug.Log($"[BattleState][{(PhotonRunHandler.IsServer ? "HOST" : "CLIENT")}] OnTriggerStateInit: calling RPC_NotifyStateReady.");
+            PhotonRunHandler.RPC_NotifyStateReady();
+            Debug.Log($"[BattleState][{(PhotonRunHandler.IsServer ? "HOST" : "CLIENT")}] OnTriggerStateInit: RPC_NotifyStateReady called.");
+        }
+
+        private void OnCellSelected(CellSelectedEvent evt)
+        {
+            Debug.Log($"[BattleState] OnCellSelected row={evt.Row} col={evt.Col} ownerId={evt.OwnerId}");
+            if (EcsHandler?.World == null) return;
+            int e = EcsHandler.World.NewEntity();
+            ref var click = ref EcsHandler.World.GetPool<CellClickEvent>().Add(e);
+            click.Row     = evt.Row;
+            click.Col     = evt.Col;
+            click.OwnerId = evt.OwnerId;
         }
 
         public override void OnDestroy()
         {
-            GameEventBus.Unsubscribe<Game.Core.Events.DeckReadyToSyncEvent>(OnDeckReadyToSync);
-            MatchTracker.Shutdown();
+            GameEventBus.Unsubscribe<TriggerStateInitEvent>(OnTriggerStateInit);
+            GameEventBus.Unsubscribe<CellSelectedEvent>(OnCellSelected);
+            EcsHandler?.Dispose();
+            MatchTracker.Shutdown(); 
         }
         public override void Update() => EcsHandler.Run();
         public void FixedUpdate() => EcsHandler.FixedRun();
-        public void LateUpdate() => EcsHandler.LateRun(); 
+        public void LateUpdate() => EcsHandler.LateRun();
+
+        public bool TryGetPlayerEntity(out int playerEntity)
+        {
+            if (TryGetEntity(Service.EntityService.PLAYER_ENTITY, out playerEntity))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        public bool TryGetOpponentEntity(out int opponentEntity)
+        {
+            if (TryGetEntity(Service.EntityService.OPPONENT_ENTITY, out opponentEntity))
+            {
+                return true;
+            }
+
+            return false;
+        }
     }
 }

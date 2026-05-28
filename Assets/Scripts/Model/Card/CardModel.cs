@@ -15,7 +15,7 @@ namespace Game.Core.Model.Card
     {
         public EnumService.Rarity Rarity;
         public EnumService.Element Element;
-        public Sprite Icon;
+        public Sprite ArtImage;
 
         /// <summary>Заполняется ExpansionConfig.Rebuild() при старте.</summary>
         [HideInInspector] public string ExpansionId;
@@ -23,6 +23,12 @@ namespace Game.Core.Model.Card
         // Cost to play this card (resource type + amount)
         public EnumService.ResourceType PlayCost;
         public int PlayCostAmount;
+
+        /// <summary>
+        /// Токен-карта. Не попадает на кладбище после использования/смерти — просто исчезает.
+        /// При инициализации entity автоматически получает TokenTag.
+        /// </summary>
+        public bool IsToken;
 
         // Ability descriptors attached to this card (populated by factory / design data)
         [SerializeReference] public List<Ability.Ability> Abilities = new List<Ability.Ability>();
@@ -32,9 +38,13 @@ namespace Game.Core.Model.Card
             InitAndGetEntity(world);
         }
 
-        public int InitAndGetEntity(EcsWorld world)
+        public int InitAndGetEntity(EcsWorld world, bool isCommander = false)
         {
             int entity = world.NewEntity();
+
+            // Токен-карта
+            if (IsToken)
+                world.GetPool<TokenTag>().Add(entity);
 
             // Заполняем CardModelComponent данными из модели
             ref var modelComp = ref world.GetPool<CardModelComponent>().Add(entity);
@@ -44,6 +54,17 @@ namespace Game.Core.Model.Card
             modelComp.Rarity      = Rarity;
             modelComp.Element     = Element;
             modelComp.CardType    = GetCardType();
+
+            // Заполняем CardViewDataComponent — визуальный снэпшот для UI
+            ref var viewData = ref world.GetPool<CardViewDataComponent>().Add(entity);
+            viewData.CardName    = Name;
+            viewData.Description = Description;
+            viewData.ArtImage    = ArtImage;
+            viewData.CardType    = modelComp.CardType;
+            viewData.Rarity      = Rarity;
+            viewData.Element     = Element;
+            viewData.CostType    = PlayCost;
+            viewData.CostAmount  = PlayCostAmount;
 
             ref var abiliyContainerComp = ref world.GetPool<AbilityContainerComponent>().Add(entity);
 
@@ -109,20 +130,27 @@ namespace Game.Core.Model.Card
 
             List<int> abilityEntities = new List<int>();
 
+            int abilityIndex = 0;
             foreach (var ability in Abilities)
             {
                 int abilityEntity = ability.Init(world, entity);
+
+                ref var src = ref world.GetPool<AbilitySourceComponent>().Add(abilityEntity);
+                src.CardEntity   = entity;
+                src.AbilityIndex = abilityIndex;
+
                 abilityEntities.Add(abilityEntity);
+                abilityIndex++;
             }
 
             abiliyContainerComp.AbilityEntities = abilityEntities.ToArray();
 
-            OnInit(world, entity);
+            OnInit(world, entity, isCommander);
 
             return entity;
         }
 
-        protected abstract void OnInit(EcsWorld world, int entityCard);
+        protected abstract void OnInit(EcsWorld world, int entityCard, bool isCommander);
 
         /// <summary>Возвращает CardType для MatchTracker. Переопределяется в наследниках.</summary>
         public virtual EnumService.CardType GetCardType() => EnumService.CardType.Spell;

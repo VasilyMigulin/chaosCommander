@@ -1,5 +1,6 @@
-using UnityEngine;
 using Game.Core.Events;
+using UnityEngine;
+using UnityEngine.Experimental.GlobalIllumination;
 
 namespace Game.Core.Mono
 {
@@ -8,6 +9,7 @@ namespace Game.Core.Mono
         [SerializeField] Renderer cellRenderer;
         [SerializeField] Color lightColor = Color.white;
         [SerializeField] Color darkColor = Color.black;
+        [SerializeField] Color avatarColor = Color.blue;
         [SerializeField] Color highlightMoveColor = new Color(0.3f, 0.8f, 0.3f, 1f);
         [SerializeField] Color highlightAttackColor = new Color(0.9f, 0.2f, 0.2f, 1f);
         [SerializeField] Color highlightTargetColor = new Color(0.9f, 0.6f, 0.1f, 1f);
@@ -49,9 +51,22 @@ namespace Game.Core.Mono
             };
         }
 
+        public void SetAvatarPlace()
+        {
+            _baseColor = avatarColor;
+            if (cellRenderer != null)
+                cellRenderer.material.color = _baseColor;
+        }
+
         void OnMouseDown()
         {
+            UnityEngine.Debug.Log($"[CellView] OnMouseDown row={Row} col={Col} ownerId={OwnerId}");
             GameEventBus.Publish(new CellSelectedEvent { Row = Row, Col = Col, OwnerId = OwnerId });
+        }
+
+        void OnMouseEnter()
+        {
+            UnityEngine.Debug.Log($"[CellView] OnMouseEnter row={Row} col={Col} ownerId={OwnerId}");
         }
     }
 

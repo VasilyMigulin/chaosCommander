@@ -1,33 +1,24 @@
+using Game.Core.Ecs.Components;
+using Game.Core.Service;
+using Game.Core.Shared.Interface;
 using Leopotam.EcsLite;
 using Leopotam.EcsLite.Di;
-using Game.Core.Ecs.Components;
 
 namespace Game.Core.Ecs.Systems
 {
     public sealed class RunAbilityTurnEndSystem : IEcsRunSystem
     {
-        readonly EcsWorldInject _world = default;
-        readonly EcsFilterInject<Inc<TurnEndEvent, AbilityContainerComponent, OnTurnEndTrigger>> _filter = default;
-        readonly EcsFilterInject<Inc<AbilityQueueTag, AbilityQueueComponent>> _queueFilter = default;
+        readonly EcsSharedInject<IGameStateContext> _state = default;
+        readonly EcsFilterInject<Inc<TurnEndEvent, OnTurnEndTrigger>> _filter = default; 
         readonly EcsPoolInject<AbilityQueueComponent> _queuePool = default;
-        readonly EcsPoolInject<AbilityContainerComponent> _abilityContainerPool = default;
 
         public void Run(IEcsSystems systems)
         {
-            foreach (var entity in _filter.Value)
+            foreach (var abilityEntity in _filter.Value)
             {
-                ref var container = ref _abilityContainerPool.Value.Get(entity);
-
-                if (container.AbilityEntities == null) continue;
-
-                foreach (var queueEntity in _queueFilter.Value)
+                if (_state.Value.TryGetEntity(EntityService.ABILITY_QUEUE_ENTITY, out int queueEntity))
                 {
-                    ref var queue = ref _queuePool.Value.Get(queueEntity);
-                    foreach (var abilityEntity in container.AbilityEntities)
-                    {
-                        queue.Push(abilityEntity);
-                    }
-                    break;
+                    _queuePool.Value.Get(queueEntity).Push(abilityEntity);
                 }
             }
         }

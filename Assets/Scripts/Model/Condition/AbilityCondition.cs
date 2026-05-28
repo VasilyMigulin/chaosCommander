@@ -3,6 +3,7 @@ using Leopotam.EcsLite;
 
 namespace Game.Core.Model.Condition
 {
+    [System.Serializable]
     public abstract class AbilityCondition : IAbilityCondition
     {
         public abstract void AddCondition(EcsWorld world, int abilityEntity, int cardEntity);

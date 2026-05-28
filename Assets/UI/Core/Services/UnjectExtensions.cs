@@ -27,7 +27,8 @@ namespace AwesomeUI.Service
                     _cachedMethods[type] = method;
                 }
 
-                method?.Invoke(item, null);
+                if(item != null) 
+                    method?.Invoke(item, null);
             }
         }
     }

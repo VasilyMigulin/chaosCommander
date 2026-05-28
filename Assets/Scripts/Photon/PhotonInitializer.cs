@@ -11,8 +11,7 @@ namespace Game.Core.Photon
     {
         public GameMode Mode;
         public string RoomName;
-        public int LobbySceneIndex;
-        public string GameScenePath;
+        public int LobbySceneIndex; 
         public int TargetPlayerCount;
         public bool ProvideInput;
     }
@@ -20,16 +19,13 @@ namespace Game.Core.Photon
 
     public class PhotonInitializer : MonoBehaviour, INetworkRunnerCallbacks
     {
-        public static PhotonInitializer Instance { get; private set; }
-
-        private const int LOBBY_SCENE_INDEX = 2; // Индекса LobbyScene в Build Settings
+        public static PhotonInitializer Instance { get; private set; } 
         private NetworkObject runHandlerPrefab;
 
         [HideInInspector] public NetworkRunner Runner;
 
         // События
         public event Action<int, int> OnPlayersCountChanged;
-        public event Action OnAllPlayersReady;
         public event Action<PlayerRef> OnPlayerJoinedEvent;
         public event Action<PlayerRef> OnPlayerLeftEvent;
         public event Action<List<SessionInfo>> OnSessionListReceived;
@@ -38,11 +34,12 @@ namespace Game.Core.Photon
         private List<PlayerRef> connectedPlayers = new List<PlayerRef>();
         private SessionParams sessionParams;
         private MatchmakingService _matchmakingService;
-        private NetworkRunner _browserRunner;
 
         public MatchmakingService Matchmaking => _matchmakingService;
         public int ConnectedPlayersCount => connectedPlayers.Count;
         public int TargetPlayersCount => sessionParams.TargetPlayerCount;
+
+        public IReadOnlyList<PlayerRef> ConnectedPlayers => connectedPlayers;
 
         /// <summary>
         /// PlayFab UserID локального игрока. Устанавливается перед входом в сессию.
@@ -151,16 +148,22 @@ namespace Game.Core.Photon
         }
 
         /// <summary>
-        /// Запускает браузер сессий для получения списка доступных комнат
+        /// Запускает браузер сессий для получения списка доступных комнат.
+        /// Использует главный Runner в режиме JoinSessionLobby, чтобы не создавать второй WebSocket.
         /// </summary>
         public async Task StartSessionBrowser(string gameVersion)
         {
-            await StopSessionBrowser();
+            if (Runner != null)
+            {
+                Debug.LogWarning("[PhotonInitializer] StartSessionBrowser: Runner already exists, ending previous session.");
+                await EndSession();
+            }
 
-            _browserRunner = gameObject.AddComponent<NetworkRunner>();
-            _browserRunner.AddCallbacks(this);
+            Runner = gameObject.AddComponent<NetworkRunner>();
+            Runner.ProvideInput = false;
+            Runner.AddCallbacks(this);
 
-            var result = await _browserRunner.JoinSessionLobby(SessionLobby.ClientServer);
+            var result = await Runner.JoinSessionLobby(SessionLobby.ClientServer);
 
             if (!result.Ok)
             {
@@ -169,23 +172,13 @@ namespace Game.Core.Photon
         }
 
         /// <summary>
-        /// Останавливает браузер сессий
+        /// No-op: Runner остаётся живым — StartSession вызовет StartGame на том же инстансе.
         /// </summary>
-        public async Task StopSessionBrowser()
+        public Task StopSessionBrowser()
         {
-            if (_browserRunner == null) return;
-
-            await _browserRunner.Shutdown(false);
-            Destroy(_browserRunner);
-            _browserRunner = null;
-
-            // Ждём пока компонент полностью удалится
-            while (gameObject.GetComponents<NetworkRunner>()
-                              .Length > (Runner != null ? 1 : 0))
-            {
-                await Task.Delay(10);
-            }
+            return Task.CompletedTask;
         }
+
         public async Task StartSession(SessionParams session)
         {
             await StopSessionBrowser();
@@ -209,13 +202,9 @@ namespace Game.Core.Photon
             {
                 GameMode = session.Mode,
                 SessionName = session.RoomName,
-                Scene = SceneRef.FromIndex(LOBBY_SCENE_INDEX), // Всегда загружаем LobbyScene 
+                Scene = SceneRef.FromIndex(session.LobbySceneIndex), // Всегда загружаем LobbyScene 
                 PlayerCount = session.TargetPlayerCount,
-                SessionProperties = new Dictionary<string, SessionProperty>
-                {
-                    { "version", session.GameScenePath },
-                    { "maxPlayers", session.TargetPlayerCount }
-                }
+                SceneManager = sceneManager
             };
 
             sessionParams = session;
@@ -224,6 +213,8 @@ namespace Game.Core.Photon
 
             if (!result.Ok)
             {
+                Debug.Log($"StartGame result: {result} / reason: {result.ShutdownReason}");
+
                 if (result.ShutdownReason == ShutdownReason.GameIsFull)
                 {
                     throw new SessionFullException($"Session {session.RoomName} is full");
@@ -234,11 +225,6 @@ namespace Game.Core.Photon
             }
 
             Debug.Log($"[PhotonInitializer] Session '{session.RoomName}' started in Lobby. IsServer: {Runner.IsServer}");
-
-            if (Runner.IsServer && currentHandler == null)
-            {
-                SpawnRunHandler();
-            }
         }
         private void SpawnRunHandler()
         {
@@ -246,17 +232,14 @@ namespace Game.Core.Photon
             runHandlerPrefab,
             Vector3.zero,
             Quaternion.identity,
-            inputAuthority: Runner.LocalPlayer,
             onBeforeSpawned: (runner, networkObject) =>
             {
                 currentHandler = networkObject.GetComponent<PhotonRunHandler>();
                 var data = new NetworkSessionData();
                 data.Seed = UnityEngine.Random.Range(0, 1000);
-                data.ScenePath = new NetworkString<_128>(sessionParams.GameScenePath);
                 data.TargetPlayerCount = sessionParams.TargetPlayerCount;
                 currentHandler.SessionData = data;
-            },
-            flags: NetworkSpawnFlags.DontDestroyOnLoad
+            }
             );
 
             if (obj == null)
@@ -279,8 +262,7 @@ namespace Game.Core.Photon
                 await Runner.Shutdown(false);
                 Destroy(Runner);
 
-                while (gameObject.GetComponents<NetworkRunner>()
-                                  .Length > (_browserRunner != null ? 1 : 0))
+                while (gameObject.GetComponents<NetworkRunner>().Length > 0)
                 {
                     await Task.Delay(10);
                 }
@@ -295,8 +277,7 @@ namespace Game.Core.Photon
 
         public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
         {
-            if (runner == _browserRunner)
-                return;
+            if (runner != Runner) return;
 
             if (!connectedPlayers.Contains(player))
                 connectedPlayers.Add(player);
@@ -306,17 +287,18 @@ namespace Game.Core.Photon
             OnPlayerJoinedEvent?.Invoke(player);
             OnPlayersCountChanged?.Invoke(connectedPlayers.Count, sessionParams.TargetPlayerCount);
 
-            if (connectedPlayers.Count >= sessionParams.TargetPlayerCount)
+            if (connectedPlayers.Count >= sessionParams.TargetPlayerCount && currentHandler == null)
             {
                 Debug.Log("[PhotonInitializer] All players connected!");
-                OnAllPlayersReady?.Invoke();
+
+                if (runner.IsServer)
+                    SpawnRunHandler();
             }
         }
 
         public void OnPlayerLeft(NetworkRunner runner, PlayerRef player)
         {
-            if (runner == _browserRunner)
-                return;
+            if (runner != Runner) return;
 
             if (connectedPlayers.Contains(player))
                 connectedPlayers.Remove(player);
@@ -343,7 +325,7 @@ namespace Game.Core.Photon
         {
             Debug.Log($"[PhotonInitializer] Shutdown: {shutdownReason}");
 
-            if (runner != _browserRunner)
+            if (runner == Runner)
                 connectedPlayers.Clear();
         }
 

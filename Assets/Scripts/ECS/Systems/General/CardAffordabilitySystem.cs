@@ -15,7 +15,7 @@ namespace Game.Core.Ecs.Systems
     ///      AbilityNotReadyEvent) — публикует CardAbilityReadyChangedEvent для
     ///      карты-владельца способности.
     /// </summary>
-    public sealed class CardAffordabilitySystem : IEcsRunSystem, System.IDisposable
+    public sealed class CardAffordabilitySystem : IEcsInitSystem, IEcsRunSystem, IEcsDestroySystem
     {
         readonly EcsWorldInject _world = default;
 
@@ -35,11 +35,26 @@ namespace Game.Core.Ecs.Systems
         public void Init(IEcsSystems systems)
         {
             GameEventBus.Subscribe<ResourceChangedEvent>(OnResourceChanged);
+            GameEventBus.Subscribe<CardDrawnEvent>(OnCardDrawn);
+            GameEventBus.Subscribe<CardPlacedInHandViewEvent>(OnCardPlacedInView);
             GameEventBus.Subscribe<AbilityReadyEvent>(OnAbilityReady);
             GameEventBus.Subscribe<AbilityNotReadyEvent>(OnAbilityNotReady);
         }
 
-        private void OnResourceChanged(ResourceChangedEvent _) => _resourceDirty = true;
+        private void OnResourceChanged(ResourceChangedEvent _)     => _resourceDirty = true;
+        private void OnCardDrawn(CardDrawnEvent _)                  => _resourceDirty = true;
+
+        private void OnCardPlacedInView(CardPlacedInHandViewEvent evt)
+        {
+            int cardEntity = evt.CardEntity;
+            if (!_handTagPool.Value.Has(cardEntity)) return;
+            if (!_ownCardPool.Value.Has(cardEntity)) return;
+            GameEventBus.Publish(new CardAffordableChangedEvent
+            {
+                CardEntity   = cardEntity,
+                IsAffordable = IsAffordable(cardEntity),
+            });
+        }
 
         private void OnAbilityReady(AbilityReadyEvent evt)
         {
@@ -110,9 +125,11 @@ namespace Game.Core.Ecs.Systems
             return -1;
         }
 
-        public void Dispose()
+        public void Destroy(IEcsSystems systems)
         {
             GameEventBus.Unsubscribe<ResourceChangedEvent>(OnResourceChanged);
+            GameEventBus.Unsubscribe<CardDrawnEvent>(OnCardDrawn);
+            GameEventBus.Unsubscribe<CardPlacedInHandViewEvent>(OnCardPlacedInView);
             GameEventBus.Unsubscribe<AbilityReadyEvent>(OnAbilityReady);
             GameEventBus.Unsubscribe<AbilityNotReadyEvent>(OnAbilityNotReady);
         }

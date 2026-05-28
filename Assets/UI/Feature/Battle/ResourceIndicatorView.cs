@@ -18,7 +18,6 @@ namespace AwesomeUI.Feature.Battle
 
         [Header("References")]
         [SerializeField] private TextMeshProUGUI _valueText;
-        [SerializeField] private TextMeshProUGUI _maxValueText;
         [SerializeField] private Slider          _fillSlider;
         [SerializeField] private Image           _icon;
 
@@ -40,21 +39,18 @@ namespace AwesomeUI.Feature.Battle
         // ── Event handler ─────────────────────────────────────────────────────
 
         private void OnResourceChanged(ResourceChangedEvent evt)
-        {
-            if (evt.Type != _resourceType) return;
-
-            bool isLocal = evt.PlayerId == _localPlayerId;
-            if (isLocal != _isLocalPlayer) return;
-
-            UpdateDisplay(evt.NewValue, evt.MaxValue);
+        { 
+            if (evt.isLocalPlayer && evt.Type == _resourceType)
+            {  
+                UpdateDisplay(evt.NewValue, evt.MaxValue);
+            } 
         }
 
         // ── Display ───────────────────────────────────────────────────────────
 
         private void UpdateDisplay(int current, int max)
         {
-            if (_valueText  != null) _valueText.text  = current.ToString();
-            if (_maxValueText != null) _maxValueText.text = max.ToString();
+            if (_valueText != null) _valueText.text = $"{current}/{max}"; 
             if (_fillSlider  != null && max > 0)
                 _fillSlider.value = (float)current / max;
         }

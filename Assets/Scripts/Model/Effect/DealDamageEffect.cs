@@ -1,7 +1,6 @@
 using Game.Core.Shared.Interface;
 using Game.Core.Ecs.Components;
 using Leopotam.EcsLite;
-using UnityEngine;
 
 namespace Game.Core.Model.Effect
 {
@@ -9,14 +8,30 @@ namespace Game.Core.Model.Effect
     {
         public int Value;
 
-        public DealDamageEffect(DealDamageEffect data)
+        public DealDamageEffect() { }
+
+        public DealDamageEffect(int value)
         {
-            data.Value = Value;
+            Value = value;
         }
 
-        public override void AddEffect(EcsWorld world, int entity)
+        private DealDamageEffect(DealDamageEffect source)
         {
-            world.GetPool<DamageComponent>().Add(entity).Value = Value;
+            Value = source.Value;
+        }
+
+        public override void AddEffect(EcsWorld world, int effectEntity)
+        {
+            if (!world.GetPool<TakeDamageEvent>().Has(effectEntity))
+            {
+                ref var dmg = ref world.GetPool<TakeDamageEvent>().Add(effectEntity);
+                dmg.Amount = Value;
+                dmg.Attacker = -1;
+            }
+            else
+            {
+                world.GetPool<TakeDamageEvent>().Get(effectEntity).Amount += Value;
+            }
         }
 
         public override IAbilityEffect Clone()

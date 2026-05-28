@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using AwesomeUI.Core.Attributes;
 using AwesomeUI.Core.Panel;
 using AwesomeUI.Interface;
 using Game.Core.Configs;
@@ -41,7 +42,8 @@ namespace AwesomeUI.Feature.DeckBuilder
     ///   _deckCardPrefab     — DeckCardView
     /// </summary>
     public class DeckBuilderPanel : SourcePanel, IPanel
-    {
+    { 
+        DeckBuilderService _service; 
         /// <summary>Привязка элемент → готовый GameObject с иконкой цвета в префабе.</summary>
         [Serializable]
         public struct ElementColorEntry
@@ -81,8 +83,6 @@ namespace AwesomeUI.Feature.DeckBuilder
 
         // ── Runtime ──────────────────────────────────────────────────────────
 
-        DeckBuilderService _service;
-
         DeckCardView _commanderView;
 
         readonly List<LibraryCardView> _libraryViews = new List<LibraryCardView>();
@@ -95,8 +95,8 @@ namespace AwesomeUI.Feature.DeckBuilder
 
         public override void Init(IPanelController panelController) 
         {
-            base.Init(panelController);
             _service = new DeckBuilderService();
+            base.Init(panelController);
         }
 
         public override void OnInject()
@@ -185,7 +185,7 @@ namespace AwesomeUI.Feature.DeckBuilder
                 var data = new DeckCardViewData
                 {
                     Model      = entry.Model,
-                    Icon       = entry.Model.Icon,
+                    Icon       = entry.Model.ArtImage,
                     CardName   = entry.Model.Name,
                     OwnedCount = entry.OwnedCount,
                     DeckCount  = deckEntry?.DeckCount ?? 0,
@@ -225,7 +225,7 @@ namespace AwesomeUI.Feature.DeckBuilder
                 _commanderView.SetData(new DeckCardViewData
                 {
                     Model       = cmd,
-                    Icon        = cmd.Icon,
+                    Icon        = cmd.ArtImage,
                     CardName    = cmd.Name,
                     OwnedCount  = ownedCmd?.OwnedCount ?? 1,
                     DeckCount   = 1,
@@ -247,7 +247,7 @@ namespace AwesomeUI.Feature.DeckBuilder
                 view.SetData(new DeckCardViewData
                 {
                     Model     = entry.Model,
-                    Icon      = entry.Model.Icon,
+                    Icon      = entry.Model.ArtImage,
                     CardName  = entry.Model.Name,
                     DeckCount = entry.DeckCount,
                     MaxCopies = DeckBuilderService.MaxCopies(entry.Model.Rarity),

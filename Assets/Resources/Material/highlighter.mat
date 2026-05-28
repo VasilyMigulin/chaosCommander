@@ -21,7 +21,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: highlighter
-  m_Shader: {fileID: 4800000, guid: 609ef2751277f4a5d83c51426fca9ef5, type: 3}
+  m_Shader: {fileID: 4800000, guid: a1ba83b9b6ea89e49be963fa5662ee6d, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -104,6 +104,8 @@ Material:
     - _AlphaToMask: 0
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
+    - _BorderFractionX: 0.08
+    - _BorderFractionY: 0.06
     - _BumpScale: 1
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0

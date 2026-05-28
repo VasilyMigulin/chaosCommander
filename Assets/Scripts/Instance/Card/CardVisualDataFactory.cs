@@ -19,7 +19,7 @@ namespace Game.Core.Instance.Card
             {
                 CardName    = model.Name,
                 Description = model.Description,
-                Icon        = model.Icon,
+                Icon        = model.ArtImage,
                 Rarity      = model.Rarity,
                 Element     = model.Element,
                 CardType    = model.GetCardType(),

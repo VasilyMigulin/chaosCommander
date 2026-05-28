@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Game.Core.Ecs.Components
 {
     /// <summary>
@@ -5,7 +7,7 @@ namespace Game.Core.Ecs.Components
     /// Вешается на entity карты которую игрок хочет заменить.
     /// </summary>
     public struct MulliganReplaceRequest
-    {
-        public int PlayerEntity;
+    { 
+        public int[] CardEntities;
     }
 }

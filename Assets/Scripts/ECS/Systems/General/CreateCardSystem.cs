@@ -19,13 +19,14 @@ namespace Game.Core.Ecs.Systems
     /// CardConfig инжектируется через EcsCustomInject — ссылка на ScriptableObject
     /// остаётся в системном слое и никогда не попадает в компоненты.
     /// </summary>
-    public sealed class CreateCardSystem : IEcsRunSystem
+    public sealed class CreateCardSystem : IEcsInitSystem, IEcsRunSystem, IEcsDestroySystem
     {
         readonly EcsWorldInject _world = default;
         readonly EcsCustomInject<CardConfig> _cardConfig = default;
         readonly EcsSharedInject<IGameStateContext> _state = default;
         readonly EcsPoolInject<NetworkEntityComponent> _netKeyPool = default;
         readonly EcsPoolInject<DeckTag> _deckTagPool = default;
+        readonly EcsPoolInject<HandTag> _handTagPool = default;
         readonly EcsPoolInject<OwnerComponent> _ownerPool = default;
         readonly EcsPoolInject<OwnCardTag> _ownTagPool = default;
         readonly EcsPoolInject<EnemyCardTag> _enemyTagPool = default;
@@ -55,9 +56,10 @@ namespace Game.Core.Ecs.Systems
             var instance = _cardConfig.Value.Get(evt.ExpansionId, evt.CardId);
 
             int cardEntity;
+
             if (instance?.CardData != null)
             {
-                cardEntity = instance.CardData.InitAndGetEntity(_world.Value);
+                cardEntity = instance.CardData.InitAndGetEntity(_world.Value, evt.IsCommander);
             }
             else
             {
@@ -65,37 +67,37 @@ namespace Game.Core.Ecs.Systems
                 cardEntity = _world.Value.NewEntity();
             }
 
-            if (!_netKeyPool.Value.Has(cardEntity))
-            {
-                ref var net = ref _netKeyPool.Value.Add(cardEntity);
-                net.NetworkEntityKey = evt.EntityKey;
-            }
+            ref var net = ref _netKeyPool.Value.Add(cardEntity);
+            net.NetworkEntityKey = evt.NetworkEntityKey;
 
-            if (!_deckTagPool.Value.Has(cardEntity))
-                _deckTagPool.Value.Add(cardEntity);
-
-            if (!_ownerPool.Value.Has(cardEntity))
-            {
-                ref var owner = ref _ownerPool.Value.Add(cardEntity);
-                owner.OwnerId   = evt.OwnerId;
-                owner.EntityKey = evt.EntityKey;
-            }
+            ref var owner = ref _ownerPool.Value.Add(cardEntity);
+            owner.OwnerId = evt.OwnerId;
+            owner.EntityKey = evt.NetworkEntityKey;
 
             if (evt.IsEnemy)
+            { 
+                _enemyTagPool.Value.Add(cardEntity);
+            }
+            else
+            { 
+                _ownTagPool.Value.Add(cardEntity);
+            }
+
+            if (evt.InHand)
             {
-                if (!_enemyTagPool.Value.Has(cardEntity))
-                    _enemyTagPool.Value.Add(cardEntity);
+                _handTagPool.Value.Add(cardEntity);
             }
             else
             {
-                if (!_ownTagPool.Value.Has(cardEntity))
-                    _ownTagPool.Value.Add(cardEntity);
+                _deckTagPool.Value.Add(cardEntity);
             }
 
-            _state.Value.AddEntity(cardEntity, networkKey: evt.EntityKey);
+            _state.Value.AddEntity(cardEntity, localKey: cardEntity.ToString(), networkKey: evt.NetworkEntityKey);
 
-            Debug.Log($"[CreateCardSystem] Created card entity={cardEntity} key='{evt.EntityKey}' expansion='{evt.ExpansionId}' cardId={evt.CardId} enemy={evt.IsEnemy}");
+            Debug.Log($"[CreateCardSystem] Created card entity={cardEntity} key='{evt.NetworkEntityKey}' expansion='{evt.ExpansionId}' cardId={evt.CardId} enemy={evt.IsEnemy}");
         }
+
+        public void Destroy(IEcsSystems systems) => Dispose();
 
         public void Dispose()
         {

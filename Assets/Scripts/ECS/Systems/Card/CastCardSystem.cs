@@ -34,7 +34,11 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<CardModelComponent> _modelPool = default;
         readonly EcsPoolInject<RequiresTargetSelectionTag> _reqTargetPool = default;
         readonly EcsPoolInject<RequiresCardPickTag>         _reqPickPool   = default;
+        readonly EcsPoolInject<RequiresRandomTargetTag>     _reqRandPool   = default;
+        readonly EcsPoolInject<PlayerComponent>              _playerPool    = default;
         readonly EcsFilterInject<Inc<CastEvent>> _filter = default;
+        readonly EcsPoolInject<LocalComponent>    _localPool      = default;
+        readonly EcsPoolInject<CommanderTag>       _commanderPool  = default;
 
         public void Run(IEcsSystems systems)
         {
@@ -42,6 +46,10 @@ namespace Game.Core.Ecs.Systems
             {
                 // Ждём пока игрок выберет цель — TargetSelectionSystem заполнит CastEvent
                 if (_reqTargetPool.Value.Has(cardEntity))
+                    continue;
+
+                // Ждём пока RandomTargetSystem найдёт случайную цель
+                if (_reqRandPool.Value.Has(cardEntity))
                     continue;
 
                 // Ждём пока игрок выберет карту из предложенных (раскопка)
@@ -52,13 +60,19 @@ namespace Game.Core.Ecs.Systems
                 int ownerEntity = castEvent.OwnerEntity;
 
                 // --- Списываем ресурс ---
+                int ownerPlayerId = _playerPool.Value.Has(ownerEntity)
+                    ? _playerPool.Value.Get(ownerEntity).PlayerId
+                    : ownerEntity;
+
+                bool isLocalPlayer = _localPool.Value.Has(ownerEntity);
+
                 if (_goldCostPool.Value.Has(cardEntity) && _goldPool.Value.Has(ownerEntity))
                 {
                     ref var gold = ref _goldPool.Value.Get(ownerEntity);
                     gold.Current -= _goldCostPool.Value.Get(cardEntity).Cost;
                     GameEventBus.Publish(new ResourceChangedEvent
                     {
-                        PlayerId = ownerEntity,
+                        isLocalPlayer = isLocalPlayer,
                         Type = Game.Core.Service.EnumService.ResourceType.Gold,
                         NewValue = gold.Current,
                         MaxValue = gold.Max
@@ -70,7 +84,7 @@ namespace Game.Core.Ecs.Systems
                     mana.Current -= _manaCostPool.Value.Get(cardEntity).Cost;
                     GameEventBus.Publish(new ResourceChangedEvent
                     {
-                        PlayerId = ownerEntity,
+                        isLocalPlayer = isLocalPlayer,
                         Type = Game.Core.Service.EnumService.ResourceType.Mana,
                         NewValue = mana.Current,
                         MaxValue = mana.Max
@@ -78,6 +92,10 @@ namespace Game.Core.Ecs.Systems
                 }
 
                 // --- Убираем с руки ---
+                // Командир уходит на поле и тоже снимается с руки (HandTag + HandComponent),
+                // но его персистентный UI-слот (CommanderCardView) не удаляется из ряда руки.
+                bool isCommander = _commanderPool.Value.Has(cardEntity);
+
                 if (_handTagPool.Value.Has(cardEntity))
                     _handTagPool.Value.Del(cardEntity);
 
@@ -86,6 +104,9 @@ namespace Game.Core.Ecs.Systems
                     ref var hand = ref _handPool.Value.Get(ownerEntity);
                     RemoveFromHand(ref hand, cardEntity);
                 }
+
+                if (!isCommander && isLocalPlayer)
+                    GameEventBus.Publish(new CardRemovedFromHandUIEvent { CardEntity = cardEntity });
 
                 // --- Размещаем на доске или в могилу ---
                 if (_creatureTagPool.Value.Has(cardEntity))
@@ -107,8 +128,13 @@ namespace Game.Core.Ecs.Systems
                     _graveTagPool.Value.Add(cardEntity);
                 }
 
-                // --- Запускаем очередь способностей ---
-                if (!_resolvingPool.Value.Has(ownerEntity))
+                // --- Запускаем очередь способностей только если они есть ---
+                var abilityContainerPool = systems.GetWorld().GetPool<AbilityContainerComponent>();
+                bool hasAbilities = abilityContainerPool.Has(cardEntity)
+                    && abilityContainerPool.Get(cardEntity).AbilityEntities != null
+                    && abilityContainerPool.Get(cardEntity).AbilityEntities.Length > 0;
+
+                if (hasAbilities && !_resolvingPool.Value.Has(ownerEntity))
                 {
                     ref var resolving = ref _resolvingPool.Value.Add(ownerEntity);
                     resolving.CardEntity = cardEntity;
@@ -117,9 +143,10 @@ namespace Game.Core.Ecs.Systems
                   
                 GameEventBus.Publish(new CardPlayedEvent
                 {
-                    CardEntity = cardEntity,
-                    PlayerId = ownerEntity,
-                    TargetCell = castEvent.TargetCell
+                    CardEntity   = cardEntity,
+                    PlayerId     = ownerEntity,
+                    TargetCell   = castEvent.TargetCell,
+                    TargetEntity = castEvent.TargetEntity
                 });
 
                 // Уведомляем MatchTracker

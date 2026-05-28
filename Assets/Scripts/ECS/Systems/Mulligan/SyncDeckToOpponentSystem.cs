@@ -1,5 +1,6 @@
 ﻿using Game.Core.Ecs.Components;
 using Game.Core.Events;
+using Game.Core.Photon;
 using Leopotam.EcsLite;
 using Leopotam.EcsLite.Di;
 using System.Collections.Generic;
@@ -11,6 +12,7 @@ namespace Game.Core.Ecs.Systems
     /// После завершения мулигана:
     ///   — собирает снэпшот своей колоды (ExpansionId + CardId + EntityKey)
     ///     и публикует DeckReadyToSyncEvent для отправки оппоненту через Photon RPC.
+    ///   — после отправки снэпшота вызывает RPC_NotifyMulliganReady на хосте.
     ///   — при получении снэпшота оппонента (OpponentDeckSyncComponent) публикует
     ///     CreateCardEvent на каждую карту — CreateCardSystem создаёт entity.
     /// </summary>
@@ -22,9 +24,10 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<HandComponent> _handPool = default;
         readonly EcsPoolInject<NetworkEntityComponent> _netKeyPool = default;
         readonly EcsPoolInject<CardModelComponent> _cardModelPool = default;
-        readonly EcsPoolInject<OpponentDeckSyncComponent> _syncPool = default;
+        readonly EcsPoolInject<OpponentDeckSyncEvent> _syncPool = default;
+        readonly EcsCustomInject<PhotonRunHandler> _photon = default;
         readonly EcsFilterInject<Inc<PlayerComponent, DeckComponent>> _playerFilter = default;
-        readonly EcsFilterInject<Inc<OpponentDeckSyncComponent, PlayerComponent>> _syncFilter = default;
+        readonly EcsFilterInject<Inc<OpponentDeckSyncEvent, PlayerComponent>> _syncFilter = default;
 
         bool _mulliganCompleted;
 
@@ -49,7 +52,7 @@ namespace Game.Core.Ecs.Systems
                     {
                         ExpansionId = sync.DeckExpansionIds[i],
                         CardId      = sync.DeckCardIds[i],
-                        EntityKey   = sync.DeckNetworkKeys[i],
+                        NetworkEntityKey   = sync.DeckNetworkKeys[i],
                         OwnerId     = player.PlayerId,
                         IsEnemy     = true,
                     });
@@ -61,7 +64,7 @@ namespace Game.Core.Ecs.Systems
                     {
                         ExpansionId = sync.HandExpansionIds[i],
                         CardId      = sync.HandCardIds[i],
-                        EntityKey   = sync.HandNetworkKeys[i],
+                        NetworkEntityKey   = sync.HandNetworkKeys[i],
                         OwnerId     = player.PlayerId,
                         IsEnemy     = true,
                     });
@@ -116,6 +119,9 @@ namespace Game.Core.Ecs.Systems
                 HandCardIds      = handCardIds.ToArray(),
                 HandNetworkKeys  = handNetKeys.ToArray(),
             });
+
+            // Уведомляем хост что мулиган завершён и снэпшот отправлен
+            _photon.Value?.RPC_NotifyMulliganReady();
         }
 
         void CollectCardData(int cardEntity, List<string> expansionIds, List<int> cardIds, List<string> netKeys)

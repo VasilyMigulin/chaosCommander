@@ -19,9 +19,6 @@ namespace Game.Core.Ecs.Components
         public List<int> OfferedCards;
 
         /// <summary>Максимум карт которые можно заменить (1 для 1-го, 2 для 2-го).</summary>
-        public int MaxReplacements;
-
-        /// <summary>Сколько замен уже использовано.</summary>
-        public int ReplacementsUsed;
+        public int MaxReplacements; 
     }
 }

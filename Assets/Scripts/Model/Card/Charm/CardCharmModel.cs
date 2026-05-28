@@ -12,7 +12,7 @@ namespace Game.Core.Model.Card.Charm
     {
         public override Game.Core.Service.EnumService.CardType GetCardType() => Game.Core.Service.EnumService.CardType.Charm;
 
-        protected override void OnInit(EcsWorld world, int entityCard)
+        protected override void OnInit(EcsWorld world, int entityCard, bool isCommander)
         {
             world.GetPool<CharmTag>().Add(entityCard);
         }

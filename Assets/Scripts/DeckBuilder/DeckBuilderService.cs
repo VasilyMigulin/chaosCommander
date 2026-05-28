@@ -1,9 +1,10 @@
-using System.Collections.Generic;
-using System.Linq;
 using Game.Core.Model.Card;
 using Game.Core.Model.Card.Creature;
 using Game.Core.Service;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
+using static UnityEngine.EventSystems.EventTrigger;
 
 namespace Game.Core.DeckBuilder
 {
@@ -139,6 +140,7 @@ namespace Game.Core.DeckBuilder
             entry.Increment();
             return AddResult.Ok;
         }
+         
 
         /// <summary>
         /// Убрать одну копию карты из колоды.

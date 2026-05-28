@@ -31,8 +31,8 @@
         "EnableAdaptivePacketFragmentation": false
     },
     "Network": {
-        "ConnectionTimeout": 10.0,
-        "ConnectionShutdownTime": 1.0,
+        "ConnectionTimeout": 60.0,
+        "ConnectionShutdownTime": 10.0,
         "ReliableDataTransferModes": 3
     },
     "HostMigration": {
@@ -67,10 +67,11 @@
         "Assembly-CSharp",
         "Assembly-CSharp-firstpass",
         "Fusion.Addons.Physics",
-        "Fusion.Addons.FSM"
+        "Fusion.Addons.FSM",
+        "Game.Core.Photon"
     ],
     "UseSerializableDictionary": true,
     "NullChecksForNetworkedProperties": true,
-    "CheckRpcAttributeUsage": false,
+    "CheckRpcAttributeUsage": true,
     "CheckNetworkedPropertiesBeingEmpty": false
 }
