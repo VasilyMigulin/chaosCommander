@@ -8,6 +8,11 @@ namespace Game.Core.Mono
         [SerializeField] int width = 5;
         [SerializeField] int height = 2;
         [SerializeField] float cellSize = 1f;
+
+        /// <summary>Колонок на доске одного игрока.</summary>
+        public int Width  => width;
+        /// <summary>Рядов на доске одного игрока.</summary>
+        public int Height => height;
         [SerializeField] CellView cellPrefab;
         [SerializeField] AvatarPlayerView avatarPlayerPrefab;
 
@@ -146,6 +151,13 @@ namespace Game.Core.Mono
                 if (kv.Key.owner == ownerId)
                     kv.Value.SetHighlight(CellHighlight.None);
             }
+        }
+
+        /// <summary>Снять подсветку со ВСЕХ клеток обеих сторон.</summary>
+        public void ClearAllHighlights()
+        {
+            foreach (var kv in _cellMap)
+                kv.Value.SetHighlight(CellHighlight.None);
         }
     }
 }

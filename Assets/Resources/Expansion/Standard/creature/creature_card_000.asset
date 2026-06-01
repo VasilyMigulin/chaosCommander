@@ -21,12 +21,12 @@ MonoBehaviour:
       type: {class: AbilityToTarget, ns: Game.Core.Model.Ability.Target, asm: Game.Core.Model.Ability.Target}
       data:
         Trigger: 32
-        Target: 31
+        Target: 0
+        Shape: 0
         Effects:
         - rid: 8072968772568744023
         Conditions: []
-        PlayRequirements:
-        - rid: 8072968772568744024
+        PlayRequirements: []
         TargetCount: 1
         ProjectilePrefView: {fileID: 0}
         HitPrefView: {fileID: 0}
@@ -34,16 +34,12 @@ MonoBehaviour:
       type: {class: DealDamageEffect, ns: Game.Core.Model.Effect, asm: Game.Core.Model.Effect}
       data:
         Value: 2
-    - rid: 8072968772568744024
-      type: {class: RequireRandomTargetPlayRequirement, ns: Game.Core.Model.Condition, asm: Game.Core.Model.Condition}
-      data:
-        RequiredTarget: 7
     - rid: 8401024898135228492
       type: {class: CardCreatureModel, ns: Game.Core.Model.Card.Creature, asm: Game.Core.Model.Card.Creature}
       data:
         Id: 0
         Name: "\u0427\u0435\u0440\u0442"
-        Description: 
+        Description: 'End turn: deal 2 damage to random target'
         Rarity: 0
         Element: 33
         ArtImage: {fileID: 0}

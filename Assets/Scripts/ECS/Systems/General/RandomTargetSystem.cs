@@ -1,6 +1,7 @@
 using Leopotam.EcsLite;
 using Leopotam.EcsLite.Di;
 using Game.Core.Ecs.Components;
+using Game.Core.Service;
 using System.Collections.Generic;
 
 namespace Game.Core.Ecs.Systems
@@ -47,14 +48,14 @@ namespace Game.Core.Ecs.Systems
             foreach (var cardEntity in _filter.Value)
             {
                 ref var castEvent = ref _castPool.Value.Get(cardEntity);
-                var reqType = _reqPool.Value.Get(cardEntity).RequiredTarget;
+                var mask = _reqPool.Value.Get(cardEntity).RequiredTarget;
 
                 int ownerPlayerId = -1;
                 if (_ownerPool.Value.Has(cardEntity))
                     ownerPlayerId = _ownerPool.Value.Get(cardEntity).OwnerId;
 
                 _candidates.Clear();
-                CollectCandidates(reqType, ownerPlayerId);
+                CollectCandidates(mask, ownerPlayerId);
 
                 if (_candidates.Count == 0)
                     continue; // нет валидных целей — ждём (или карта не сыграется)
@@ -66,22 +67,14 @@ namespace Game.Core.Ecs.Systems
             }
         }
 
-        private void CollectCandidates(TargetRequirementType reqType, int ownerPlayerId)
+        private void CollectCandidates(TargetMask mask, int ownerPlayerId)
         {
             foreach (var ce in _creaturesFilter.Value)
             {
                 ref var owner = ref _ownerPool.Value.Get(ce);
-                bool isEnemy = owner.OwnerId != ownerPlayerId;
+                bool isAlly = owner.OwnerId == ownerPlayerId;
 
-                bool matches = reqType switch
-                {
-                    TargetRequirementType.RandomEnemy       => isEnemy,
-                    TargetRequirementType.RandomAlly        => !isEnemy,
-                    TargetRequirementType.RandomAnyCreature => true,
-                    _                                       => false,
-                };
-
-                if (matches)
+                if (mask.MatchesCreature(isAlly))
                     _candidates.Add(ce);
             }
         }

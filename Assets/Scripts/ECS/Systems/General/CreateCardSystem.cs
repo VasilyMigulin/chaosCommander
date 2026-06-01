@@ -27,6 +27,9 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<NetworkEntityComponent> _netKeyPool = default;
         readonly EcsPoolInject<DeckTag> _deckTagPool = default;
         readonly EcsPoolInject<HandTag> _handTagPool = default;
+        readonly EcsPoolInject<BoardTag> _boardTagPool = default;
+        readonly EcsPoolInject<GraveTag> _graveTagPool = default;
+        readonly EcsPoolInject<BoardPositionComponent> _boardPosPool = default;
         readonly EcsPoolInject<OwnerComponent> _ownerPool = default;
         readonly EcsPoolInject<OwnCardTag> _ownTagPool = default;
         readonly EcsPoolInject<EnemyCardTag> _enemyTagPool = default;
@@ -83,7 +86,20 @@ namespace Game.Core.Ecs.Systems
                 _ownTagPool.Value.Add(cardEntity);
             }
 
-            if (evt.InHand)
+            if (evt.InBoard)
+            {
+                _boardTagPool.Value.Add(cardEntity);
+                ref var pos = ref _boardPosPool.Value.Add(cardEntity);
+                pos.Row = evt.BoardRow;
+                pos.Col = evt.BoardCol;
+                pos.OwnerId = evt.BoardOwnerId;
+                // SpawnCreatureViewSystem подхватит BoardTag + BoardPosition и создаст вид.
+            }
+            else if (evt.InGrave)
+            {
+                _graveTagPool.Value.Add(cardEntity);
+            }
+            else if (evt.InHand)
             {
                 _handTagPool.Value.Add(cardEntity);
             }

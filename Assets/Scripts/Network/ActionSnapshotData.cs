@@ -140,16 +140,36 @@ namespace Game.Core.Network
         public int TurnNumber  { get; set; }
         public int ActionIndex { get; set; }
 
-        /// <summary>NetworkEntityKey источника (карта/существо, чья способность срабатывает).</summary>
+        /// <summary>NetworkEntityKey карты-источника способности.</summary>
         public string SourceEntityKey { get; set; }
 
-        /// <summary>Индекс способности в списке способностей карты (0-based).</summary>
+        /// <summary>Индекс способности в AbilityContainerComponent карты (0-based).</summary>
         public int AbilityIndex { get; set; }
 
-        /// <summary>NetworkEntityKey выбранной цели (null если цель — клетка или цели нет).</summary>
-        public string TargetEntityKey { get; set; }
+        /// <summary>
+        /// Индекс шага цепочки: 0 — основные Effects абилки, 1..N — ChainSteps[i-1].
+        /// Для абилок без цепочки всегда 0. Каждый шаг шлётся отдельным снэпшотом
+        /// (активный клиент дожидается завершения шага N перед резолвом N+1).
+        /// </summary>
+        public int StepIndex { get; set; }
 
-        /// <summary>Номер целевой клетки. -1 если цель — entity или цели нет.</summary>
-        public int TargetCell { get; set; }
+        /// <summary>
+        /// Ключи разрешённых активным игроком целей (после маски + формы).
+        ///   • Карта/существо — NetworkEntityKey сущности.
+        ///   • Игрок — псевдо-ключ "PLAYER:{PlayerId}" (у игроков нет NetworkEntityComponent).
+        /// Пассивный клиент НЕ ре-резолвит — берёт цели отсюда.
+        /// </summary>
+        public string[] TargetEntityKeys { get; set; }
+
+        /// <summary>
+        /// Клетка, захваченная цепочкой на шаге 0 (BoardPosition первой цели).
+        /// Нужна эффектам типа MoveSourceToCell на пассивной стороне, где
+        /// ChainStateComponent отсутствует. HasCapturedCell = false если шаг
+        /// не работал с on-board целями.
+        /// </summary>
+        public bool HasCapturedCell { get; set; }
+        public int CapturedRow { get; set; }
+        public int CapturedCol { get; set; }
+        public int CapturedCellOwnerId { get; set; }
     }
 }

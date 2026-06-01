@@ -9,7 +9,11 @@ namespace Game.Core.Photon
     [Serializable]
     public class MatchmakingConfig
     {
+#if UNITY_EDITOR
+        public int TargetPlayerCount = 1;
+#else
         public int TargetPlayerCount = 2;
+#endif
         public int SceneIndex = 2; 
         public string MatchName = "Ladder";
         public string GameVersion = "1.0";

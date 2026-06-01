@@ -26,7 +26,7 @@ namespace AwesomeUI.Feature.Battle
     /// </summary>
     [RequireComponent(typeof(CanvasGroup))]
     public abstract class PlayCardView : CardBaseView,
-        IPointerDownHandler, IDragHandler, IEndDragHandler
+        IBeginDragHandler, IDragHandler, IEndDragHandler
     {
         [Header("Drag Settings")]
         [SerializeField] private float _returnDuration = 0.25f;
@@ -44,6 +44,7 @@ namespace AwesomeUI.Feature.Battle
         private bool          _isDragging;
         private bool          _pendingPlay;   // карта скрыта, ждёт завершения каста
         private Vector3       _dragStartLocalPos;
+        private int           _dragStartSiblingIndex; // позиция в иерархии до перетаскивания
         private RectTransform _rectTransform;
         private Canvas        _canvas;
         private RectTransform _layoutRect;  // RectTransform родительского CardLayout
@@ -106,6 +107,29 @@ namespace AwesomeUI.Feature.Battle
             GameEventBus.Publish(new CardPlacedInHandViewEvent { CardEntity = CardEntity });
         }
 
+        /// <summary>
+        /// Анимация дискарда: уменьшение + поворот + затухание + сдвиг вниз.
+        /// По завершении вызывает onComplete (CardLayout очищает слот и пересчитывает веер).
+        /// </summary>
+        public void PlayDiscardAnimation(System.Action onComplete, float duration = 0.45f)
+        {
+            _rectTransform.DOKill();
+            if (_canvasGroup != null) _canvasGroup.blocksRaycasts = false;
+
+            var seq = DOTween.Sequence();
+            seq.Append(_rectTransform.DOScale(0.5f, duration).SetEase(Ease.InCubic));
+            seq.Join(_rectTransform.DOLocalRotate(new Vector3(0f, 0f, 35f), duration).SetEase(Ease.OutCubic));
+            seq.Join(_rectTransform.DOLocalMoveY(_rectTransform.localPosition.y - 180f, duration).SetEase(Ease.InCubic));
+            if (_canvasGroup != null) seq.Join(_canvasGroup.DOFade(0f, duration));
+            seq.OnComplete(() =>
+            {
+                if (_canvasGroup != null) _canvasGroup.alpha = 1f;
+                _rectTransform.localScale = Vector3.one;
+                _rectTransform.localRotation = Quaternion.identity;
+                onComplete?.Invoke();
+            });
+        }
+
         /// <summary>Очистить View и деактивировать для повторного использования.</summary>
         public virtual void ClearCard()
         {
@@ -123,13 +147,16 @@ namespace AwesomeUI.Feature.Battle
 
         // ── Drag & Drop ──────────────────────────────────────────────────────
 
-        public void OnPointerDown(PointerEventData eventData)
+        // Старт ТОЛЬКО при реальном перетаскивании. Чистый клик (без движения) сюда
+        // не попадает — поэтому карта не залипает в «выбранном» состоянии и не теряет рейкасты.
+        public void OnBeginDrag(PointerEventData eventData)
         {
-            Debug.Log($"[PlayCardView] OnPointerDown card={CardEntity} occupied={IsOccupied} affordable={_isAffordable}");
+            Debug.Log($"[PlayCardView] OnBeginDrag card={CardEntity} occupied={IsOccupied} affordable={_isAffordable}");
             if (!IsOccupied || !_isAffordable) return;
 
-            _isDragging        = true;
-            _dragStartLocalPos = _rectTransform.localPosition;
+            _isDragging            = true;
+            _dragStartLocalPos     = _rectTransform.localPosition;
+            _dragStartSiblingIndex = _rectTransform.GetSiblingIndex();
 
             _rectTransform.DOKill();
 
@@ -160,6 +187,10 @@ namespace AwesomeUI.Feature.Battle
             if (!_isDragging) return;
             _isDragging = false;
             _canvasGroup.blocksRaycasts = true;
+
+            // Возвращаем исходную позицию в иерархии (после SetAsLastSibling при старте),
+            // иначе карта остаётся поверх соседей при возврате в руку.
+            _rectTransform.SetSiblingIndex(_dragStartSiblingIndex);
 
             bool outside = IsOutsideLayout();
             Debug.Log($"[PlayCardView] IsOutsideLayout={outside} layoutRect={_layoutRect}");

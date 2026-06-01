@@ -22,15 +22,35 @@ MonoBehaviour:
       data:
         Id: 39
         Name: "\u0412\u043E\u0434\u043E\u043D\u043E\u0441"
-        Description: 
+        Description: 'Cast: gain 3 mana for end turn'
         Rarity: 0
         Element: 0
-        Icon: {fileID: 0}
+        ArtImage: {fileID: 0}
         ExpansionId: standard
         PlayCost: 0
         PlayCostAmount: 1
+        IsToken: 0
+        Abilities:
+        - rid: 8072969059334357078
         MaxHealth: 3
         Attack: 1
         Speed: 2
         ViewPrefab: {fileID: 1046069417137952589, guid: f06aa6138ec1c4140ac9af21f0ddde7e, type: 3}
         IsCommander: 0
+    - rid: 8072969059334357078
+      type: {class: AbilityToTarget, ns: Game.Core.Model.Ability.Target, asm: Game.Core.Model.Ability.Target}
+      data:
+        Trigger: 1
+        Target: 8
+        Shape: 0
+        Effects:
+        - rid: 8072969059334357079
+        Conditions: []
+        PlayRequirements: []
+        TargetCount: 0
+        ProjectilePrefView: {fileID: 0}
+        HitPrefView: {fileID: 0}
+    - rid: 8072969059334357079
+      type: {class: GainManaEffect, ns: Game.Core.Model.Effect, asm: Game.Core.Model.Effect}
+      data:
+        Amount: 3

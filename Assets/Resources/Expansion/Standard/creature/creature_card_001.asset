@@ -17,6 +17,23 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
+    - rid: 8072969059334357082
+      type: {class: AbilityToTarget, ns: Game.Core.Model.Ability.Target, asm: Game.Core.Model.Ability.Target}
+      data:
+        Trigger: 48
+        Target: 31
+        Shape: 0
+        Effects:
+        - rid: 8072969059334357084
+        Conditions: []
+        PlayRequirements: []
+        TargetCount: 1
+        ProjectilePrefView: {fileID: 0}
+        HitPrefView: {fileID: 0}
+    - rid: 8072969059334357084
+      type: {class: DealDamageEffect, ns: Game.Core.Model.Effect, asm: Game.Core.Model.Effect}
+      data:
+        Value: 2
     - rid: 8401024898135228492
       type: {class: CardCreatureModel, ns: Game.Core.Model.Card.Creature, asm: Game.Core.Model.Card.Creature}
       data:
@@ -25,10 +42,13 @@ MonoBehaviour:
         Description: 
         Rarity: 1
         Element: 33
-        Icon: {fileID: 0}
+        ArtImage: {fileID: 0}
         ExpansionId: standard
         PlayCost: 0
         PlayCostAmount: 2
+        IsToken: 0
+        Abilities:
+        - rid: 8072969059334357082
         MaxHealth: 3
         Attack: 2
         Speed: 1

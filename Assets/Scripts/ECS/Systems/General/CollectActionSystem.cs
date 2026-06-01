@@ -39,7 +39,7 @@ namespace Game.Core.Ecs.Systems
             GameEventBus.Subscribe<CreatureMovedEvent>(OnCreatureMoved);
             GameEventBus.Subscribe<CreatureAttackedEvent>(OnCreatureAttacked);
             GameEventBus.Subscribe<CardPickResolvedNetEvent>(OnCardPicked);
-            // TODO: подписаться на AbilityActivatedEvent когда будут активные способности
+            GameEventBus.Subscribe<AbilityResolvedNetEvent>(OnAbilityResolved);
         }
 
         public void Dispose()
@@ -49,6 +49,7 @@ namespace Game.Core.Ecs.Systems
             GameEventBus.Unsubscribe<CreatureMovedEvent>(OnCreatureMoved);
             GameEventBus.Unsubscribe<CreatureAttackedEvent>(OnCreatureAttacked);
             GameEventBus.Unsubscribe<CardPickResolvedNetEvent>(OnCardPicked);
+            GameEventBus.Unsubscribe<AbilityResolvedNetEvent>(OnAbilityResolved);
         }
 
         // ── ECS Run ───────────────────────────────────────────────────────────
@@ -127,6 +128,27 @@ namespace Game.Core.Ecs.Systems
                 CreateFromPool    = evt.CreateFromPool,
                 ChosenExpansionId = evt.ChosenExpansionId,
                 ChosenCardId      = evt.ChosenCardId,
+            });
+        }
+
+        private void OnAbilityResolved(AbilityResolvedNetEvent evt)
+        {
+            if (!IsOwnCard(evt.SourceCardEntity)) return;
+
+            Enqueue(new ActionAbilityData
+            {
+                TurnNumber          = _currentTurnNumber,
+                ActionIndex         = _actionIndex++,
+                SourceEntityKey     = !string.IsNullOrEmpty(evt.SourceCardNetworkKey)
+                    ? evt.SourceCardNetworkKey
+                    : GetNetKey(evt.SourceCardEntity),
+                AbilityIndex        = evt.AbilityIndex,
+                StepIndex           = evt.StepIndex,
+                TargetEntityKeys    = evt.TargetKeys ?? System.Array.Empty<string>(),
+                HasCapturedCell     = evt.HasCapturedCell,
+                CapturedRow         = evt.CapturedRow,
+                CapturedCol         = evt.CapturedCol,
+                CapturedCellOwnerId = evt.CapturedCellOwnerId,
             });
         }
 

@@ -18,6 +18,7 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<TargetEntityComponent> _targetPool = default;
         readonly EcsPoolInject<AttackComponent> _attackPool = default;
         readonly EcsPoolInject<HealthComponent> _hpPool = default;
+        readonly EcsPoolInject<SpeedComponent> _speedPool = default;
 
         public void Run(IEcsSystems systems)
         {
@@ -39,6 +40,14 @@ namespace Game.Core.Ecs.Systems
                     hp.BaseMax += buff.HealthBonus;
                     hp.Max     += buff.HealthBonus;
                     hp.Current += buff.HealthBonus;
+                }
+
+                if (buff.SpeedBonus != 0 && _speedPool.Value.Has(targetEntity))
+                {
+                    ref var sp = ref _speedPool.Value.Get(targetEntity);
+                    sp.BaseMax  += buff.SpeedBonus;
+                    sp.Max      += buff.SpeedBonus;
+                    sp.Remaining = System.Math.Max(0, sp.Remaining + buff.SpeedBonus);
                 }
 
                 _world.Value.DelEntity(effectEntity);

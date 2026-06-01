@@ -1,6 +1,7 @@
 using Leopotam.EcsLite;
 using Leopotam.EcsLite.Di;
 using Game.Core.Ecs.Components;
+using Game.Core.Service;
 using Game.Core.Shared.Interface;
 using System.Collections.Generic;
 
@@ -16,12 +17,12 @@ namespace Game.Core.Ecs.Systems
         readonly EcsSharedInject<IGameStateContext> _state = default;
 
         readonly EcsFilterInject<
-            Inc<ResolveAbilityEvent, AbilityEffectContainerComponent, AbilityTargetFlagsComponent, FieldAbilityTag>,
+            Inc<ResolveAbilityEvent, AbilityEffectContainerComponent, TargetMaskComponent, FieldAbilityTag>,
             Exc<ConditionNotMetTag>> _filter = default;
 
         readonly EcsPoolInject<ResolveAbilityEvent> _resolvePool = default;
         readonly EcsPoolInject<AbilityEffectContainerComponent> _effectContainerPool = default;
-        readonly EcsPoolInject<AbilityTargetFlagsComponent> _targetFlagsPool = default;
+        readonly EcsPoolInject<TargetMaskComponent> _targetFlagsPool = default;
         readonly EcsPoolInject<CastEvent> _castPool = default;
 
         readonly EcsFilterInject<Inc<BoardTag, BoardPositionComponent, OwnerComponent>> _boardFilter = default;
@@ -36,7 +37,7 @@ namespace Game.Core.Ecs.Systems
             foreach (var abilityEntity in _filter.Value)
             {
                 ref var effectContainer = ref _effectContainerPool.Value.Get(abilityEntity);
-                var flags = _targetFlagsPool.Value.Get(abilityEntity).Flags;
+                var flags = _targetFlagsPool.Value.Get(abilityEntity).Mask;
                 int ownerPlayerId = GetOwnerPlayerId(abilityEntity);
 
                 List<int> targets = CollectAllTargets(flags, ownerPlayerId, abilityEntity);
@@ -48,15 +49,19 @@ namespace Game.Core.Ecs.Systems
                         effect.AddEffect(_world.Value, targetEntity);
                     }
                 }
+
+                // Field-абилки одношаговые: чистим резолв самостоятельно (DelHere<ResolveAbilityEvent>
+                // больше не работает — лайфтайм управляется AbilityChainAdvanceSystem либо здесь).
+                _resolvePool.Value.Del(abilityEntity);
             }
         }
 
-        List<int> CollectAllTargets(AbilityTargetFlags flags, int ownerPlayerId, int abilityEntity)
+        List<int> CollectAllTargets(TargetMask flags, int ownerPlayerId, int abilityEntity)
         {
             var result = new List<int>();
 
             // Self
-            if ((flags & AbilityTargetFlags.Self) != 0)
+            if (flags.Has(TargetMask.Self))
             {
                 if (_castPool.Value.Has(abilityEntity))
                 {
@@ -66,20 +71,20 @@ namespace Game.Core.Ecs.Systems
             }
 
             // Игроки
-            if ((flags & AbilityTargetFlags.AllyPlayer) != 0)
+            if (flags.Has(TargetMask.AllyPlayer))
             {
                 int p = FindPlayer(ownerPlayerId, ally: true);
                 if (p != -1) result.Add(p);
             }
-            if ((flags & AbilityTargetFlags.EnemyPlayer) != 0)
+            if (flags.Has(TargetMask.EnemyPlayer))
             {
                 int p = FindPlayer(ownerPlayerId, ally: false);
                 if (p != -1) result.Add(p);
             }
 
             // Существа на поле — порядок: row asc, col asc
-            bool wantEnemy = (flags & AbilityTargetFlags.EnemyCreature) != 0;
-            bool wantAlly  = (flags & AbilityTargetFlags.AllyCreature) != 0;
+            bool wantEnemy = flags.Has(TargetMask.EnemyCreature);
+            bool wantAlly  = flags.Has(TargetMask.AllyCreature);
 
             if (wantEnemy || wantAlly)
             {

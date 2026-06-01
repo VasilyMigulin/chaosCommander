@@ -3,6 +3,8 @@ using Leopotam.EcsLite.Di;
 using Game.Core.Ecs.Components;
 using Game.Core.Events;
 using Game.Core.Mono;
+using Game.Core.Service;
+using UnityEngine;
 
 namespace Game.Core.Ecs.Systems
 {
@@ -84,17 +86,21 @@ namespace Game.Core.Ecs.Systems
                 _lastPendingCard = pending.CardEntity;
             }
 
-            // Обрабатываем клик
+            // Правый клик где угодно — отмена выбора цели (возврат карты в руку)
+            if (Input.GetMouseButtonDown(1))
+            {
+                CancelPending(pendingPlayerEntity, player.PlayerId);
+                return;
+            }
+
+            // Обрабатываем клик по клетке/существу (любой стороны)
             foreach (var clickEnt in _clickFilter.Value)
             {
                 ref var click = ref _clickPool.Value.Get(clickEnt);
 
                 UnityEngine.Debug.Log($"[TargetSelectionSystem] CellClick row={click.Row} col={click.Col} ownerId={click.OwnerId}, player.PlayerId={player.PlayerId}");
 
-                // Только клики текущего игрока
-                if (click.OwnerId != player.PlayerId)
-                    continue;
-
+                // Валидная цель → каст; любой другой клик (своя/чужая сторона) → отмена
                 bool resolved = TryResolveTarget(pendingPlayerEntity, ref pending, ref player, ref click);
 
                 if (!resolved)
@@ -117,49 +123,22 @@ namespace Game.Core.Ecs.Systems
             int targetEntity = -1;
             int targetCell   = -1;
 
-            switch (pending.RequiredTarget)
+            TargetMask mask = pending.RequiredTarget;
+
+            if (mask.TargetsCell())
             {
-                case TargetRequirementType.EnemyCreature:
-                    targetEntity = FindCreatureAt(click.Row, click.Col, click.OwnerId,
-                                                  player.PlayerId, isEnemy: true);
-                    if (targetEntity < 0) return false;
-                    break;
-
-                case TargetRequirementType.AllyCreature:
-                    targetEntity = FindCreatureAt(click.Row, click.Col, click.OwnerId,
-                                                  player.PlayerId, isEnemy: false);
-                    if (targetEntity < 0) return false;
-                    break;
-
-                case TargetRequirementType.AnyCreature:
-                    targetEntity = FindCreatureAt(click.Row, click.Col, click.OwnerId,
-                                                  player.PlayerId, isEnemy: false);
-                    if (targetEntity < 0)
-                        targetEntity = FindCreatureAt(click.Row, click.Col, click.OwnerId,
-                                                      player.PlayerId, isEnemy: true);
-                    if (targetEntity < 0) return false;
-                    break;
-
-                case TargetRequirementType.AnyCell:
-                    targetCell = click.Row * 5 + click.Col;
-                    break;
-
-                case TargetRequirementType.OwnFrontCell:
-                    // Только ряд 0 своего игрока, пустая клетка
+                // Размещение: пустая клетка (для OwnFrontRow — только своя фронт-линия row=0)
+                if (mask.Has(TargetMask.OwnFrontRow))
+                {
                     if (click.OwnerId != player.PlayerId || click.Row != 0) return false;
-                    bool cellOccupied = false;
-                    foreach (var ce in _creaturesFilter.Value)
-                    {
-                        ref var cp = ref _posPool.Value.Get(ce);
-                        if (cp.Row == click.Row && cp.Col == click.Col && cp.OwnerId == click.OwnerId)
-                        {
-                            cellOccupied = true;
-                            break;
-                        }
-                    }
-                    if (cellOccupied) return false;
-                    targetCell = click.Row * 5 + click.Col;
-                    break;
+                }
+                if (IsCellOccupied(click.Row, click.Col, click.OwnerId)) return false;
+                targetCell = click.Row * 5 + click.Col;
+            }
+            else
+            {
+                targetEntity = FindCreatureAt(click.Row, click.Col, click.OwnerId, player.PlayerId, mask);
+                if (targetEntity < 0) return false;
             }
 
             // Создаём CastEvent
@@ -174,7 +153,7 @@ namespace Game.Core.Ecs.Systems
 
             // Снимаем pending
             _pendingPool.Value.Del(playerEntity);
-            _boardView.Value.ClearAllHighlights(player.PlayerId);
+            _boardView.Value.ClearAllHighlights();
             _highlightShown  = false;
             _lastPendingCard = -1;
 
@@ -185,7 +164,7 @@ namespace Game.Core.Ecs.Systems
         {
             ref var pending = ref _pendingPool.Value.Get(playerEntity);
             _pendingPool.Value.Del(playerEntity);
-            _boardView.Value.ClearAllHighlights(playerId);
+            _boardView.Value.ClearAllHighlights();
             _highlightShown  = false;
             _lastPendingCard = -1;
 
@@ -194,28 +173,18 @@ namespace Game.Core.Ecs.Systems
 
         void ShowTargetHighlights(in PendingTargetCardComponent pending, int activePlayerId)
         {
-            _boardView.Value.ClearAllHighlights(activePlayerId);
+            _boardView.Value.ClearAllHighlights();
 
-            if (pending.RequiredTarget == TargetRequirementType.OwnFrontCell)
+            TargetMask mask = pending.RequiredTarget;
+
+            if (mask.TargetsCell())
             {
-                // Подсвечиваем пустые клетки фронтального ряда (row=0) активного игрока
+                // Размещение: пустые клетки своей фронт-линии (row=0)
                 for (int col = 0; col < 5; col++)
                 {
-                    bool occupied = false;
-                    foreach (var ce in _creaturesFilter.Value)
-                    {
-                        ref var p = ref _posPool.Value.Get(ce);
-                        if (p.Row == 0 && p.Col == col && p.OwnerId == activePlayerId)
-                        {
-                            occupied = true;
-                            break;
-                        }
-                    }
-                    if (!occupied)
-                    {
-                        var cell = _boardView.Value.GetCell(0, col, activePlayerId);
-                        cell?.SetHighlight(CellHighlight.Target);
-                    }
+                    if (IsCellOccupied(0, col, activePlayerId)) continue;
+                    var cell = _boardView.Value.GetCell(0, col, activePlayerId);
+                    cell?.SetHighlight(CellHighlight.Target);
                 }
                 return;
             }
@@ -225,25 +194,26 @@ namespace Game.Core.Ecs.Systems
                 ref var owner = ref _ownerPool.Value.Get(ce);
                 ref var pos   = ref _posPool.Value.Get(ce);
 
-                bool isEnemy = owner.OwnerId != activePlayerId;
-
-                bool shouldHighlight = pending.RequiredTarget switch
-                {
-                    TargetRequirementType.EnemyCreature => isEnemy,
-                    TargetRequirementType.AllyCreature  => !isEnemy,
-                    TargetRequirementType.AnyCreature   => true,
-                    TargetRequirementType.AnyCell       => true,
-                    _                                   => false,
-                };
-
-                if (!shouldHighlight) continue;
+                bool isAlly = owner.OwnerId == activePlayerId;
+                if (!mask.MatchesCreature(isAlly)) continue;
 
                 var cell = _boardView.Value.GetCell(pos.Row, pos.Col, owner.OwnerId);
                 cell?.SetHighlight(CellHighlight.Target);
             }
         }
 
-        int FindCreatureAt(int row, int col, int clickOwnerId, int activePlayerId, bool isEnemy)
+        bool IsCellOccupied(int row, int col, int ownerId)
+        {
+            foreach (var ce in _creaturesFilter.Value)
+            {
+                ref var p = ref _posPool.Value.Get(ce);
+                if (p.Row == row && p.Col == col && p.OwnerId == ownerId)
+                    return true;
+            }
+            return false;
+        }
+
+        int FindCreatureAt(int row, int col, int clickOwnerId, int activePlayerId, TargetMask mask)
         {
             foreach (var ce in _creaturesFilter.Value)
             {
@@ -253,8 +223,8 @@ namespace Game.Core.Ecs.Systems
                 if (pos.Row != row || pos.Col != col || pos.OwnerId != clickOwnerId)
                     continue;
 
-                bool creatureIsEnemy = owner.OwnerId != activePlayerId;
-                if (creatureIsEnemy == isEnemy) return ce;
+                bool isAlly = owner.OwnerId == activePlayerId;
+                if (mask.MatchesCreature(isAlly)) return ce;
             }
             return -1;
         }

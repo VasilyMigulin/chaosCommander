@@ -31,6 +31,11 @@ namespace AwesomeUI.Feature.Battle
 
         [Header("Deal Animation")]
         [SerializeField] private float _dealInterval     = 0.18f; // задержка между картами
+        [Tooltip("Локальный offset стартовой точки добора (откуда карта прилетает в руку). Обычно — направление колоды.")]
+        [SerializeField] private Vector2 _dealInOffset   = new Vector2(500f, -300f);
+
+        [Header("Discard Animation")]
+        [SerializeField] private float _discardDuration  = 0.45f;
 
         [Header("Card Slots")]
         [SerializeField] private CommanderCardView _commanderSlot;
@@ -40,6 +45,11 @@ namespace AwesomeUI.Feature.Battle
         private PlayCardView _selectedCard;
         private RectTransform _rectTransform;
         private Camera _uiCamera;
+
+        // Порядок карт в руке слева-направо (новые добавляются в конец = к краю).
+        // Веер строится по этому порядку, а не по индексу слота, поэтому при розыгрыше
+        // карты из середины оставшиеся «сдвигаются», а добор всегда ложится с краю.
+        private readonly List<SimpleCardView> _handOrder = new List<SimpleCardView>();
 
         // ── Deal Queue ────────────────────────────────────────────────────────
         private readonly Queue<CardAddedToHandUIEvent> _dealQueue = new Queue<CardAddedToHandUIEvent>();
@@ -75,8 +85,10 @@ namespace AwesomeUI.Feature.Battle
         {
             GameEventBus.Unsubscribe<CardAddedToHandUIEvent>(OnCardAddedToHand);
             GameEventBus.Unsubscribe<CardRemovedFromHandUIEvent>(OnCardRemovedFromHand);
+            GameEventBus.Unsubscribe<CardDiscardFromHandUIEvent>(OnCardDiscard);
             GameEventBus.Subscribe<CardAddedToHandUIEvent>(OnCardAddedToHand);
-            GameEventBus.Subscribe<CardRemovedFromHandUIEvent>(OnCardRemovedFromHand); 
+            GameEventBus.Subscribe<CardRemovedFromHandUIEvent>(OnCardRemovedFromHand);
+            GameEventBus.Subscribe<CardDiscardFromHandUIEvent>(OnCardDiscard);
 
             if (_commanderSlot != null)
                 _commanderSlot.OnInject();
@@ -89,6 +101,7 @@ namespace AwesomeUI.Feature.Battle
         {
             GameEventBus.Unsubscribe<CardAddedToHandUIEvent>(OnCardAddedToHand);
             GameEventBus.Unsubscribe<CardRemovedFromHandUIEvent>(OnCardRemovedFromHand);
+            GameEventBus.Unsubscribe<CardDiscardFromHandUIEvent>(OnCardDiscard);
 
             _commanderSlot?.Unject();
             foreach (var slot in _handSlots)
@@ -166,8 +179,58 @@ namespace AwesomeUI.Feature.Battle
                 return;
             }
 
+            // Pre-position: ставим слот в «точку добора» (откуда летит карта).
+            var rt = freeSlot.GetComponent<RectTransform>();
+            if (rt != null)
+            {
+                rt.DOKill();
+                rt.localPosition = new Vector3(_dealInOffset.x, _dealInOffset.y, 0f);
+                rt.localRotation = Quaternion.identity;
+                rt.localScale    = Vector3.one;
+            }
+
             freeSlot.SetCard(data);
+
+            // ИНВАРИАНТ: новая карта = САМАЯ ПРАВАЯ. Остальные карты сдвигаются влево
+            // (это делает RefreshFan через пересчёт позиций под новый count).
+            // На всякий случай чистим возможный «хвост» от прошлой жизни этого слота.
+            _handOrder.Remove(freeSlot);
+            _handOrder.Add(freeSlot);
+
             RefreshFan();
+
+            Debug.Log($"[CardLayout] Draw → slot '{freeSlot.name}' added to end. _handOrder ({_handOrder.Count}): {DescribeOrder()}");
+        }
+
+        private string DescribeOrder()
+        {
+            if (_handOrder.Count == 0) return "<empty>";
+            var sb = new System.Text.StringBuilder();
+            for (int i = 0; i < _handOrder.Count; i++)
+            {
+                if (i > 0) sb.Append(", ");
+                sb.Append($"[{i}]={_handOrder[i].name}({_handOrder[i].CardEntity})");
+            }
+            return sb.ToString();
+        }
+
+        // ── Discard ──────────────────────────────────────────────────────────
+
+        private void OnCardDiscard(CardDiscardFromHandUIEvent evt)
+        {
+            foreach (var slot in _handSlots)
+            {
+                if (!slot.IsOccupied || slot.CardEntity != evt.CardEntity) continue;
+
+                var capturedSlot = slot;
+                capturedSlot.PlayDiscardAnimation(() =>
+                {
+                    capturedSlot.ClearCard();
+                    _handOrder.Remove(capturedSlot);
+                    RefreshFan();
+                }, _discardDuration);
+                return;
+            }
         }
 
         private void OnCardRemovedFromHand(CardRemovedFromHandUIEvent evt)
@@ -177,6 +240,7 @@ namespace AwesomeUI.Feature.Battle
                 if (slot.IsOccupied && slot.CardEntity == evt.CardEntity)
                 {
                     slot.ClearCard();
+                    _handOrder.Remove(slot); // остальные сдвигаются при RefreshFan
                     RefreshFan();
                     return;
                 }
@@ -289,7 +353,8 @@ namespace AwesomeUI.Feature.Battle
             var result = new List<Component>();
             if (_commanderSlot != null && _commanderSlot.IsOccupied)
                 result.Add(_commanderSlot);
-            foreach (var slot in _handSlots)
+            // Порядок руки — по _handOrder (порядок добора), а не по индексу слота
+            foreach (var slot in _handOrder)
                 if (slot != null && slot.IsOccupied) result.Add(slot);
             return result;
         }

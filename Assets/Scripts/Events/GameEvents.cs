@@ -84,6 +84,26 @@ namespace Game.Core.Events
         public int CardEntity;
     }
      
+    public struct CardDiscardFromHandUIEvent : IGameEvent
+    {
+        public int CardEntity;
+        public string CardName;
+        public UnityEngine.Sprite Icon;
+        public Game.Core.Shared.CardVisualData Visual;
+    }
+
+    /// <summary>
+    /// Карта верхнего слоя колоды локального игрока ушла в кладбище (Mill).
+    /// UI должен на короткое время показать какую карту сожгли.
+    /// </summary>
+    public struct CardMillFromDeckUIEvent : IGameEvent
+    {
+        public int CardEntity;
+        public string CardName;
+        public UnityEngine.Sprite Icon;
+        public Game.Core.Shared.CardVisualData Visual;
+    }
+     
     public struct CommanderOnCooldownUIEvent : IGameEvent
     {
         public int CardEntity;
@@ -254,20 +274,29 @@ namespace Game.Core.Events
     }
      
     public struct CreateCardEvent : IGameEvent
-    { 
+    {
         public string ExpansionId;
-         
+
         public int CardId;
-         
+
         public string NetworkEntityKey;
-         
+
         public int OwnerId;
-         
+
         public bool IsEnemy;
 
         public bool IsCommander;
 
         public bool InHand;
+
+        /// <summary>Если true — сразу разместить на доске (см. BoardRow/BoardCol/BoardOwnerId).</summary>
+        public bool InBoard;
+        public int BoardRow;
+        public int BoardCol;
+        public int BoardOwnerId;
+
+        /// <summary>Если true — сразу отправить на кладбище (для призыва без места).</summary>
+        public bool InGrave;
     }
     // ── Network turn coordination events ────────────────────────────────────
 
@@ -410,6 +439,45 @@ namespace Game.Core.Events
 
         /// <summary>Для CreateFromPool: CardId (ModelId) создаваемой карты.</summary>
         public int ChosenCardId;
+    }
+
+    /// <summary>
+    /// Активный клиент: способность разрешилась (цели выбраны). Публикуется
+    /// RunResolveAbilityEffectSystem после ResolveTargets+Shape для СВОИХ карт.
+    /// CollectActionSystem ловит и шлёт оппоненту ActionAbilityData со списком целей —
+    /// пассивный клиент не ре-резолвит, а применяет эффекты по этим целям.
+    /// </summary>
+    public struct AbilityResolvedNetEvent : IGameEvent
+    {
+        /// <summary>Entity карты-источника (локальное).</summary>
+        public int SourceCardEntity;
+
+        /// <summary>NetworkEntityKey карты-источника.</summary>
+        public string SourceCardNetworkKey;
+
+        /// <summary>Индекс способности в AbilityContainerComponent карты.</summary>
+        public int AbilityIndex;
+
+        /// <summary>
+        /// Индекс шага цепочки: 0 — основные Effects абилки, 1..N — ChainSteps[i-1].
+        /// Для абилок без цепочки всегда 0.
+        /// </summary>
+        public int StepIndex;
+
+        /// <summary>
+        /// Ключи разрешённых целей в порядке применения.
+        /// Сущности — NetworkEntityKey; игроки — "PLAYER:{PlayerId}".
+        /// </summary>
+        public string[] TargetKeys;
+
+        /// <summary>
+        /// Захваченная клетка цепочки (BoardPosition первой цели шага 0).
+        /// Нужна MoveSourceToCellEffect на пассивной стороне.
+        /// </summary>
+        public bool HasCapturedCell;
+        public int CapturedRow;
+        public int CapturedCol;
+        public int CapturedCellOwnerId;
     }
 
     /// <summary>

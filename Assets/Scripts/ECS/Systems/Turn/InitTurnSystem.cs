@@ -12,7 +12,7 @@ namespace Game.Core.Ecs.Systems
     /// </summary>
     public sealed class InitTurnSystem : IEcsInitSystem
     {
-        public const float TurnDuration = 60f;
+        public const float TurnDuration = 20f;
 
         readonly EcsPoolInject<TurnPhaseState> _phasePool = default;
         readonly EcsPoolInject<GlobalTurnState> _globalTurnPool = default;

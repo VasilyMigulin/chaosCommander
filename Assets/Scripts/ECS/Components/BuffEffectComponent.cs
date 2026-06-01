@@ -7,5 +7,6 @@ namespace Game.Core.Ecs.Components
     {
         public int AttackBonus;
         public int HealthBonus;
+        public int SpeedBonus;
     }
 }

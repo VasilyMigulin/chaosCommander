@@ -1,6 +1,7 @@
 ﻿using Leopotam.EcsLite;
 using Leopotam.EcsLite.Di;
 using Game.Core.Ecs.Components;
+using Game.Core.Events;
 
 namespace Game.Core.Ecs.Systems
 {
@@ -19,6 +20,8 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<HandTag> _handTagPool = default;
         readonly EcsPoolInject<GraveTag> _graveTagPool = default;
         readonly EcsPoolInject<TokenTag> _tokenTagPool = default;
+        readonly EcsPoolInject<LocalComponent> _localPool = default;
+        readonly EcsPoolInject<CardViewDataComponent> _viewPool = default;
 
         public void Run(IEcsSystems systems)
         {
@@ -51,6 +54,34 @@ namespace Game.Core.Ecs.Systems
 
                     if (!_graveTagPool.Value.Has(cardEntity))
                         _graveTagPool.Value.Add(cardEntity);
+
+                    if (_localPool.Value.Has(targetEntity))
+                    {
+                        var evt = new CardDiscardFromHandUIEvent { CardEntity = cardEntity };
+                        if (_viewPool.Value.Has(cardEntity))
+                        {
+                            ref var view = ref _viewPool.Value.Get(cardEntity);
+                            evt.CardName = view.CardName;
+                            evt.Icon     = view.ArtImage;
+                            evt.Visual   = new Game.Core.Shared.CardVisualData
+                            {
+                                CardName    = view.CardName,
+                                Description = view.Description,
+                                Icon        = view.ArtImage,
+                                CardType    = view.CardType,
+                                Rarity      = view.Rarity,
+                                Element     = view.Element,
+                                CostType    = view.CostType,
+                                CostAmount  = view.CostAmount,
+                                IsCreature  = view.IsCreature,
+                                Attack      = view.Attack,
+                                MaxHealth   = view.MaxHealth,
+                                Speed       = view.Speed,
+                                IsCommander = view.IsCommander,
+                            };
+                        }
+                        GameEventBus.Publish(evt);
+                    }
                 }
 
                 _world.Value.DelEntity(effectEntity);

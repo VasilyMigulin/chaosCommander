@@ -2,6 +2,7 @@ using Leopotam.EcsLite;
 using Leopotam.EcsLite.Di;
 using Game.Core.Ecs.Components;
 using Game.Core.Events;
+using Game.Core.Service;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -44,6 +45,9 @@ namespace Game.Core.Ecs.Systems
 
         readonly EcsPoolInject<PendingTargetCardComponent> _pendingPool = default;
         readonly EcsPoolInject<CastEvent>                  _castPool    = default;
+
+        readonly EcsPoolInject<RequiresTargetSelectionTag> _reqTargetSelPool = default;
+        readonly EcsPoolInject<TargetRequirementComponent> _targetReqPool    = default;
 
         readonly EcsPoolInject<CommanderTag>               _commanderPool   = default;
         readonly EcsPoolInject<CommanderCooldownComponent> _commanderCdPool = default;
@@ -147,7 +151,7 @@ namespace Game.Core.Ecs.Systems
                 // Существо: ждём выбор свободной клетки фронтального ряда
                 ref var pending = ref _pendingPool.Value.Add(playerEntity);
                 pending.CardEntity     = cardEntity;
-                pending.RequiredTarget = TargetRequirementType.OwnFrontCell;
+                pending.RequiredTarget = TargetMask.OwnFrontCell;
                 Debug.Log($"[CardInputSystem] PendingTarget added for player={playerEntity}, waiting for cell click");
             }
             else
@@ -162,6 +166,17 @@ namespace Game.Core.Ecs.Systems
                 }
 
                 if (_castPool.Value.Has(cardEntity)) { Debug.LogWarning($"[CardInputSystem] STOP: CastEvent already exists on card={cardEntity}"); return; }
+
+                // Интерактивный выбор цели (заклинание/чара) → pending, как у существа.
+                // TargetSelectionSystem подсветит валидные цели и создаст CastEvent по клику.
+                if (_reqTargetSelPool.Value.Has(cardEntity) && _targetReqPool.Value.Has(cardEntity))
+                {
+                    ref var pendingTarget = ref _pendingPool.Value.Add(playerEntity);
+                    pendingTarget.CardEntity     = cardEntity;
+                    pendingTarget.RequiredTarget = _targetReqPool.Value.Get(cardEntity).RequiredTarget;
+                    Debug.Log($"[CardInputSystem] spell/charm needs target selection card={cardEntity}");
+                    return;
+                }
 
                 ref var castEvent = ref _castPool.Value.Add(cardEntity);
                 castEvent.OwnerEntity  = playerEntity;

@@ -59,7 +59,8 @@ namespace Game.Core.Ecs.Systems
                 goldComp.Max = Mathf.Min(goldComp.Max + income, 10);
                 goldComp.Current = goldComp.Max;
 
-                manaComp.Max = goldComp.Max; 
+                // Мана — банк: автоматически НЕ восстанавливается, добывается только эффектами.
+                // mana.Max растёт через ApplyGainManaSystem (high-water) — здесь её не трогаем.
 
                 bool isLocalPlayer = _localPool.Value.Has(entity);
 

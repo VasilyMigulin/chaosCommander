@@ -1,6 +1,7 @@
 using Leopotam.EcsLite;
 using Leopotam.EcsLite.Di;
 using Game.Core.Ecs.Components;
+using Game.Core.Service;
 
 namespace Game.Core.Ecs.Systems
 {
@@ -19,20 +20,15 @@ namespace Game.Core.Ecs.Systems
     /// </summary>
     public sealed class AuraRecalcSystem : IEcsRunSystem
     {
-        readonly EcsFilterInject<
-            Inc<CreatureTag, BoardTag, AttackComponent, HealthComponent, OwnerComponent>,
-            Exc<DeadTag>> _creatures = default;
-
-        readonly EcsFilterInject<
-            Inc<BoardTag, AbilityContainerComponent, OwnerComponent>,
-            Exc<DeadTag>> _sources = default;
-
+        readonly EcsFilterInject<Inc<CreatureTag, BoardTag, AttackComponent, HealthComponent, OwnerComponent>, Exc<DeadTag>> _creatures = default;
+        readonly EcsFilterInject< Inc<BoardTag, AbilityContainerComponent, OwnerComponent>, Exc<DeadTag>> _sources = default;
         readonly EcsPoolInject<AttackComponent> _attackPool = default;
         readonly EcsPoolInject<HealthComponent> _hpPool = default;
+        readonly EcsPoolInject<SpeedComponent> _speedPool = default;
         readonly EcsPoolInject<OwnerComponent> _ownerPool = default;
         readonly EcsPoolInject<AbilityContainerComponent> _containerPool = default;
         readonly EcsPoolInject<AuraSourceComponent> _auraPool = default;
-        readonly EcsPoolInject<AbilityTargetFlagsComponent> _flagsPool = default;
+        readonly EcsPoolInject<TargetMaskComponent> _flagsPool = default;
 
         public void Run(IEcsSystems systems)
         {
@@ -41,6 +37,8 @@ namespace Game.Core.Ecs.Systems
             {
                 _attackPool.Value.Get(c).Value = _attackPool.Value.Get(c).Base;
                 _hpPool.Value.Get(c).Max       = _hpPool.Value.Get(c).BaseMax;
+                if (_speedPool.Value.Has(c))
+                    _speedPool.Value.Get(c).Max = _speedPool.Value.Get(c).BaseMax;
             }
 
             // 2. Прибавляем бонусы аур
@@ -55,21 +53,24 @@ namespace Game.Core.Ecs.Systems
                     if (!_auraPool.Value.Has(abilityEntity)) continue;
 
                     ref var aura = ref _auraPool.Value.Get(abilityEntity);
-                    if (aura.AttackBonus == 0 && aura.HealthBonus == 0) continue;
+                    if (aura.AttackBonus == 0 && aura.HealthBonus == 0 && aura.SpeedBonus == 0) continue;
 
                     var flags = _flagsPool.Value.Has(abilityEntity)
-                        ? _flagsPool.Value.Get(abilityEntity).Flags
-                        : AbilityTargetFlags.AllyCreature;
+                        ? _flagsPool.Value.Get(abilityEntity).Mask
+                        : TargetMask.AllyCreature;
 
                     foreach (var c in _creatures.Value)
                     {
-                        if (!Matches(flags, srcOwnerId, _ownerPool.Value.Get(c).OwnerId, src == c))
+                        bool isAlly = _ownerPool.Value.Get(c).OwnerId == srcOwnerId;
+                        if (!flags.MatchesCreature(isAlly, isSource: src == c))
                             continue;
 
                         if (aura.AttackBonus != 0)
                             _attackPool.Value.Get(c).Value += aura.AttackBonus;
                         if (aura.HealthBonus != 0)
                             _hpPool.Value.Get(c).Max += aura.HealthBonus;
+                        if (aura.SpeedBonus != 0 && _speedPool.Value.Has(c))
+                            _speedPool.Value.Get(c).Max += aura.SpeedBonus;
                     }
                 }
             }
@@ -81,19 +82,6 @@ namespace Game.Core.Ecs.Systems
                 if (hp.Current > hp.Max) hp.Current = hp.Max;
                 if (hp.Current < 0)      hp.Current = 0;
             }
-        }
-
-        private static bool Matches(AbilityTargetFlags flags, int sourceOwnerId, int creatureOwnerId, bool isSource)
-        {
-            if (isSource && (flags & AbilityTargetFlags.ExcludeSelf) != 0)
-                return false;
-
-            bool isAlly = creatureOwnerId == sourceOwnerId;
-
-            if (isAlly  && (flags & AbilityTargetFlags.AllyCreature)  != 0) return true;
-            if (!isAlly && (flags & AbilityTargetFlags.EnemyCreature) != 0) return true;
-
-            return false;
         }
     }
 }

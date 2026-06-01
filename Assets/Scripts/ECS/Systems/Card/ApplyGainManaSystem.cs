@@ -1,12 +1,13 @@
 using Leopotam.EcsLite;
 using Leopotam.EcsLite.Di;
 using Game.Core.Ecs.Components;
+using Game.Core.Events;
 
 namespace Game.Core.Ecs.Systems
 {
     /// <summary>
     /// Обрабатывает GainManaEffectComponent на effect entity.
-    /// Применяет прирост маны к ManaComponent на TargetEntity.
+    /// Применяет прирост маны к ManaComponent на TargetEntity и уведомляет UI.
     /// </summary>
     public sealed class ApplyGainManaSystem : IEcsRunSystem
     {
@@ -15,6 +16,7 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<GainManaEffectComponent> _gainManaPool = default;
         readonly EcsPoolInject<TargetEntityComponent> _targetPool = default;
         readonly EcsPoolInject<ManaComponent> _manaPool = default;
+        readonly EcsPoolInject<LocalComponent> _localPool = default;
 
         public void Run(IEcsSystems systems)
         {
@@ -26,7 +28,18 @@ namespace Game.Core.Ecs.Systems
                 if (_manaPool.Value.Has(targetEntity))
                 {
                     ref var mana = ref _manaPool.Value.Get(targetEntity);
-                    mana.Current = System.Math.Min(mana.Current + effect.Amount, mana.Max);
+                    // Мана — банк: накапливается без верхней границы. Max растёт по high-water,
+                    // чтобы UI «X/Y» оставался осмысленным (Y — максимум когда-либо набранной маны).
+                    mana.Current += effect.Amount;
+                    if (mana.Current > mana.Max) mana.Max = mana.Current;
+
+                    GameEventBus.Publish(new ResourceChangedEvent
+                    {
+                        isLocalPlayer = _localPool.Value.Has(targetEntity),
+                        Type =  Service.EnumService.ResourceType.Mana,
+                        NewValue = mana.Current,
+                        MaxValue = mana.Max
+                    });
                 }
 
                 _world.Value.DelEntity(effectEntity);

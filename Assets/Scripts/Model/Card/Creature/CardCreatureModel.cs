@@ -43,6 +43,7 @@ namespace Game.Core.Model.Card.Creature
             world.GetPool<ViewRefComponent>().Add(entityCard).Prefab = ViewPrefab;
 
             ref var speed = ref world.GetPool<SpeedComponent>().Add(entityCard);
+            speed.BaseMax   = Speed;
             speed.Max       = Speed;
             speed.Remaining = Speed;
 

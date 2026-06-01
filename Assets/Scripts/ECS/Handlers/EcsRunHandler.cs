@@ -58,6 +58,18 @@ namespace Game.Core.Ecs.Handlers
                 .Add(new PhaseReadySystem())
                 // --- Ресурсы и взятие карты когда игрок получил управление ---
                 .Add(new TurnStartResourceSystem())
+                // --- Тик duration-аур (чары на N ходов) ---
+                .Add(new DurationAuraTickSystem())
+                // --- Трекинг сыгранных карт по ModelId на матч ---
+                .Add(new MatchCounterTrackerSystem())
+                // --- Трекинг последнего разыгранного заклинания (Попадос, Гомункул) ---
+                .Add(new LastPlayedSpellTrackerSystem())
+                // --- Тик «существо умрёт через N ходов» (Харизматичный) ---
+                .Add(new CreatureTimerTickSystem())
+                // --- Возврат временной маны в конце хода (Освежающий напиток) ---
+                .Add(new TemporaryManaRefundSystem())
+                // --- Откат временного контроля в конце хода (Еретик) ---
+                .Add(new TempControlRevertSystem())
                 // --- Таймер хода (только в фазе PlayerTurn) ---
                 .Add(new TurnTimerSystem())
                 // --- Передача хода следующему игроку ---
@@ -102,6 +114,32 @@ namespace Game.Core.Ecs.Handlers
                 .Add(new ApplyShuffleCardSystem())
                 .Add(new ApplyGainManaSystem())
                 .Add(new ApplyGainGoldSystem())
+                // --- Эффекты цепочек ---
+                .Add(new ApplyDestroySystem())
+                .Add(new ApplyMoveSourceToCellSystem())
+                .Add(new ApplyCastTargetCardSystem())
+                .Add(new ApplyShuffleTargetEntityToDeckSystem())
+                .Add(new ApplyPickCardSystem())
+                // --- Призыв / перемещение / контроль ---
+                .Add(new ApplySummonSystem())
+                .Add(new ApplyReturnToHandSystem())
+                .Add(new ApplyBanishSystem())
+                .Add(new ApplyTakeControlSystem())
+                .Add(new ApplyDealDamageOwnerSystem())
+                .Add(new ApplyLoseGoldSystem())
+                .Add(new ApplySelfDestructSystem())
+                .Add(new ApplyColorMutationSystem())
+                .Add(new ApplyLoseManaSystem())
+                .Add(new ApplyGiveCardToHandSystem())
+                .Add(new ApplyFillHandSystem())
+                .Add(new ApplyBuffByCounterSystem())
+                .Add(new ApplySummonFromZoneSystem())
+                .Add(new ApplyGiveLastPlayedSpellSystem())
+                .Add(new ApplyBuffDeckCardsSystem())
+                .Add(new ApplyAddCreatureTimerSystem())
+                .Add(new ApplyDamageInZoneSystem())
+                .Add(new ApplyTemporaryManaSystem())
+                .Add(new ApplyTempTakeControlSystem())
                 // --- Утилиты ---
                 .Add(new BurnCardSystem())
                 // --- Конец хода ---
@@ -131,21 +169,27 @@ namespace Game.Core.Ecs.Handlers
                 ;
 
             _resolveSystems
+                // Оркестратор цепочек: ставит NeedsStepResolveTag, продвигает шаг,
+                // чистит ResolveAbilityEvent на завершении. ОБЯЗАН быть первым.
+                .Add(new AbilityChainAdvanceSystem())
                 .Add(new RunResolveAbilityTargetSystem())
-                .Add(new RunResolveAbilityFieldSystem())
+                // RunResolveAbilityFieldSystem удалён из пайплайна:
+                // семантика TargetMask.All теперь живёт в RunResolveAbilityEffectSystem,
+                // поле-абилки идут через общий effect-entity пайплайн (и поддерживают цепочки).
                 .Add(new RunResolveAbilityHitSystem())
                 .Add(new RunResolveAbilityEffectSystem())
                 .Add(new RunResolveAbilityActiveSystem())
                 ;
 
-            _delSystems 
+            _delSystems
                 .DelHere<MatchStartEvent>()
                 .DelHere<TurnStartEvent>()
                 .DelHere<TurnEndEvent>()
                 .DelHere<DieEvent>()
-                .DelHere<CastEvent>() 
-                .DelHere<OnCastTrigger>()
-                .DelHere<ResolveAbilityEvent>()
+                .DelHere<CastEvent>()
+                // ResolveAbilityEvent живёт пока цепочка не пройдена:
+                // его удаляют AbilityChainAdvanceSystem (нефилд) и
+                // RunResolveAbilityFieldSystem (филд) явно.
                 .DelHere<ConditionNotMetTag>()
                 .DelHere<CellClickEvent>()
                 .DelHere<AttackHitEvent>()
