@@ -1,5 +1,7 @@
 fileFormatVersion: 2
 guid: 56f55f59b4f0891429516d29bf85fb21
+labels:
+- Водонос
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000

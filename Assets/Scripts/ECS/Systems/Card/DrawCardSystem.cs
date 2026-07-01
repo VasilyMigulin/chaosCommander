@@ -29,6 +29,9 @@ namespace Game.Core.Ecs.Systems
             {
                 ref var drawEvent = ref _drawPool.Value.Get(playerEntity);
                 int count = drawEvent.Count > 0 ? drawEvent.Count : 1;
+                bool sync = drawEvent.Sync;   // turn-start добор → синкнем оппоненту (см. ниже)
+                int drawn = 0;
+                var drawnEntities = sync ? new System.Collections.Generic.List<int>() : null;
 
                 for (int c = 0; c < count; c++)
                 {
@@ -53,6 +56,8 @@ namespace Game.Core.Ecs.Systems
                         _deckTagPool.Value.Del(cardEntity);
 
                     _handTagPool.Value.Add(cardEntity);
+                    drawn++;
+                    drawnEntities?.Add(cardEntity);
 
                     GameEventBus.Publish(new CardDrawnEvent
                     {
@@ -62,6 +67,16 @@ namespace Game.Core.Ecs.Systems
                 }
 
                 _drawPool.Value.Del(playerEntity);
+
+                // Синк: turn-start добор есть только у активного → сообщаем коллектору, он пошлёт ActionDrawData,
+                // пассив снимет столько же верхних карт у этого игрока. Реплей/эффектные доборы (Sync=false) не шлём.
+                if (sync && drawn > 0)
+                    GameEventBus.Publish(new DeckDrawNetEvent
+                    {
+                        PlayerEntity  = playerEntity,
+                        Count         = drawn,
+                        DrawnEntities = drawnEntities.ToArray(),   // конкретные карты → синк по ключам
+                    });
             }
         }
 

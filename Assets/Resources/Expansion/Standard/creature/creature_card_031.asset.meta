@@ -1,5 +1,9 @@
 fileFormatVersion: 2
 guid: 6df2c96920d661d46a691cf7c4a4592e
+labels:
+- Всадник
+- Всадник_Смерти
+- Смерти
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000

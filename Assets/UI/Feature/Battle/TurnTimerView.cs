@@ -44,13 +44,13 @@ namespace AwesomeUI.Feature.Battle
         public void OnInject()
         {
             GameEventBus.Subscribe<LocalTurnStartedEvent>(OnLocalTurnStarted);
-            GameEventBus.Subscribe<TurnEndedEvent>(OnTurnEnded);
+            GameEventBus.Subscribe<OpponentTurnEndedEvent>(OnOpponentTurn);
         }
 
         public void Unject()
         {
             GameEventBus.Unsubscribe<LocalTurnStartedEvent>(OnLocalTurnStarted);
-            GameEventBus.Unsubscribe<TurnEndedEvent>(OnTurnEnded);
+            GameEventBus.Unsubscribe<OpponentTurnEndedEvent>(OnOpponentTurn);
         }
 
         // ── Unity update ──────────────────────────────────────────────────────
@@ -88,7 +88,8 @@ namespace AwesomeUI.Feature.Battle
             UpdateDisplay();
         }
 
-        private void OnTurnEnded(TurnEndedEvent evt)
+        // Локальный игрок передал ход (стал пассивным) → гасим таймер.
+        private void OnOpponentTurn(OpponentTurnEndedEvent evt)
         {
             StopTimer();
         }

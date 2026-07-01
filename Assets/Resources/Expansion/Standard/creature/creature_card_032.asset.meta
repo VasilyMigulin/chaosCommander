@@ -1,5 +1,9 @@
 fileFormatVersion: 2
 guid: 0511c61ded1d5b045a3ae755bd3b9c68
+labels:
+- Токсичная
+- Токсичная_мать
+- мать
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000

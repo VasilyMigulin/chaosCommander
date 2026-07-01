@@ -1,5 +1,10 @@
 fileFormatVersion: 2
 guid: e15c6222ed318104186e476961a74e6b
+labels:
+- Барабук
+- Верховный
+- Верховный_волшебник_Барабук
+- волшебник
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000

@@ -105,6 +105,10 @@ namespace AwesomeUI.Feature.Battle
             if (_nameText != null)
                 _nameText.text = string.IsNullOrEmpty(evt.CardName) ? "—" : evt.CardName;
 
+            // Подпись «Сожжено» — локализуем при каждом показе (берёт текущий язык).
+            if (_captionText != null)
+                _captionText.text = Game.Core.Shared.CardTextLocalization.GetText("ui.battle.milled", _captionDefault);
+
             gameObject.SetActive(true);
             _rect.DOKill();
             if (_root != null) _root.alpha = 0f;

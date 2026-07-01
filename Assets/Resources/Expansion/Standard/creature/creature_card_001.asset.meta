@@ -1,5 +1,9 @@
 fileFormatVersion: 2
 guid: b466477fc60219b4cbc50bdb233c40e9
+labels:
+- Старший
+- Старший_черт
+- черт
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000

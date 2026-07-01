@@ -195,7 +195,7 @@ namespace AwesomeUI.Feature.Login
 
             if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
             {
-                ShowFeedback("Введите email и пароль");
+                ShowFeedback(Game.Core.Shared.CardTextLocalization.GetText("ui.login.enter_credentials", "Введите email и пароль"));
                 return;
             }
 
@@ -216,12 +216,12 @@ namespace AwesomeUI.Feature.Login
 
             if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
             {
-                ShowFeedback("Введите email и пароль");
+                ShowFeedback(Game.Core.Shared.CardTextLocalization.GetText("ui.login.enter_credentials", "Введите email и пароль"));
                 return;
             }
             if (password.Length < 6)
             {
-                ShowFeedback("Пароль должен быть не менее 6 символов");
+                ShowFeedback(Game.Core.Shared.CardTextLocalization.GetText("ui.login.password_too_short", "Пароль должен быть не менее 6 символов"));
                 return;
             }
 

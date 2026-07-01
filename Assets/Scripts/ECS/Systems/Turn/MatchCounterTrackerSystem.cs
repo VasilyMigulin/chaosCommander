@@ -7,62 +7,128 @@ using Game.Core.Events;
 namespace Game.Core.Ecs.Systems
 {
     /// <summary>
-    /// Подписан на CardPlayedEvent: инкрементит MatchCounterComponent (ModelId → count)
-    /// у entity игрока, разыгравшего карту. Если у игрока нет MatchCounterComponent — создаёт.
-    /// Снапшоты не нужны — обе стороны видят CardPlayedEvent (он публикуется и при реплее каста).
+    /// Инкрементит MatchCounterComponent игрока по событиям матча:
+    ///   CardPlayedEvent     → CountsByModelId    (разыграно; PlayerId = id игрока);
+    ///   CardDrawnEvent      → DrawnByModelId     (взято; PlayerId = СУЩНОСТЬ игрока);
+    ///   CardGeneratedEvent  → GeneratedByModelId (создано генератором; GeneratorPlayerId = id игрока);
+    ///   CreatureInvokedEvent→ InvokedByArchetype (призвано; владелец по OwnerComponent; ключ по тегам).
+    /// События идут на обоих клиентах (в т.ч. при реплее) → счётчики зеркальны, синк не нужен.
     /// </summary>
-    public sealed class MatchCounterTrackerSystem : IEcsInitSystem, IEcsRunSystem, System.IDisposable
+    public sealed class MatchCounterTrackerSystem : IEcsInitSystem, System.IDisposable
     {
         readonly EcsWorldInject _world = default;
         readonly EcsPoolInject<MatchCounterComponent> _counterPool = default;
         readonly EcsPoolInject<PlayerComponent> _playerPool = default;
         readonly EcsPoolInject<CardModelComponent> _modelPool = default;
+        readonly EcsPoolInject<OwnerComponent> _ownerPool = default;
+        readonly EcsPoolInject<ArchetypeComponent> _archPool = default;
         readonly EcsFilterInject<Inc<PlayerComponent>> _playerFilter = default;
 
-        readonly Queue<CardPlayedEvent> _pending = new Queue<CardPlayedEvent>();
         bool _subscribed;
 
         public void Init(IEcsSystems systems) => Subscribe();
         public void Dispose()
         {
             if (!_subscribed) return;
-            GameEventBus.Unsubscribe<CardPlayedEvent>(OnCardPlayed);
+            GameEventBus.Unsubscribe<CardPlayedEvent>(OnPlayed);
+            GameEventBus.Unsubscribe<CardDrawnEvent>(OnDrawn);
+            GameEventBus.Unsubscribe<CardGeneratedEvent>(OnGenerated);
+            GameEventBus.Unsubscribe<CreatureInvokedEvent>(OnInvoked);
+            GameEventBus.Unsubscribe<DamageTrackedEvent>(OnDamage);
             _subscribed = false;
         }
-
         void Subscribe()
         {
             if (_subscribed) return;
             _subscribed = true;
-            GameEventBus.Subscribe<CardPlayedEvent>(OnCardPlayed);
+            GameEventBus.Subscribe<CardPlayedEvent>(OnPlayed);
+            GameEventBus.Subscribe<CardDrawnEvent>(OnDrawn);
+            GameEventBus.Subscribe<CardGeneratedEvent>(OnGenerated);
+            GameEventBus.Subscribe<CreatureInvokedEvent>(OnInvoked);
+            GameEventBus.Subscribe<DamageTrackedEvent>(OnDamage);
         }
 
-        void OnCardPlayed(CardPlayedEvent evt) => _pending.Enqueue(evt);
+        // СИНХРОННО (Publish копирует список → безопасно): счётчик должен быть актуален К МОМЕНТУ резолва
+        // способности в ТОМ ЖЕ кадре. Очередь+Run давала кадровую задержку → резолв читал нулевой счётчик
+        // (Позвать рой n=0, Грыз/Гнидальф с self-count тоже). Теперь инкремент происходит сразу на событии.
+        void OnPlayed(CardPlayedEvent e)      => TrackPlayed(e);
+        void OnDrawn(CardDrawnEvent e)        => TrackDrawn(e);
+        void OnGenerated(CardGeneratedEvent e)=> TrackGenerated(e);
+        void OnInvoked(CreatureInvokedEvent e)=> TrackInvoked(e);
+        void OnDamage(DamageTrackedEvent e)   => TrackDamage(e);
 
-        public void Run(IEcsSystems systems)
+        void TrackDamage(DamageTrackedEvent e)
         {
-            while (_pending.Count > 0)
-                Track(_pending.Dequeue());
-        }
-
-        void Track(CardPlayedEvent evt)
-        {
-            if (evt.CardEntity < 0) return;
-            if (!_modelPool.Value.Has(evt.CardEntity)) return;
-            int modelId = _modelPool.Value.Get(evt.CardEntity).ModelId;
-
-            int playerEntity = FindPlayerEntity(evt.PlayerId);
-            if (playerEntity < 0) return;
-
-            if (!_counterPool.Value.Has(playerEntity))
+            if (e.Amount <= 0 || e.TargetEntity < 0) return;
+            if (_playerPool.Value.Has(e.TargetEntity))           // урон ПЛЕЕРУ
             {
-                ref var c = ref _counterPool.Value.Add(playerEntity);
-                c.CountsByModelId = new Dictionary<int, int>();
+                ref var c = ref Ensure(e.TargetEntity);
+                c.PlayerDamageTaken += e.Amount;
+                if (e.SourcePlayerId == e.TargetPlayerId)        // от себя ≈ на своём ходу (Вуду)
+                    c.PlayerDamageTakenOwnTurn += e.Amount;
             }
-            ref var counter = ref _counterPool.Value.Get(playerEntity);
-            counter.CountsByModelId.TryGetValue(modelId, out int cur);
-            counter.CountsByModelId[modelId] = cur + 1;
+            else                                                  // урон СУЩЕСТВУ → копим владельцу
+            {
+                int pe = FindPlayerEntity(e.TargetPlayerId);
+                if (pe < 0) return;
+                ref var c = ref Ensure(pe);
+                c.CreaturesDamageTaken += e.Amount;
+            }
         }
+
+        void TrackPlayed(CardPlayedEvent e)
+        {
+            if (e.CardEntity < 0 || !_modelPool.Value.Has(e.CardEntity)) return;
+            int pe = FindPlayerEntity(e.PlayerId);
+            if (pe < 0) return;
+            ref var c = ref Ensure(pe);
+            Inc(c.CountsByModelId, _modelPool.Value.Get(e.CardEntity).ModelId);
+        }
+
+        void TrackDrawn(CardDrawnEvent e)
+        {
+            if (e.CardEntity < 0 || !_modelPool.Value.Has(e.CardEntity)) return;
+            int pe = e.PlayerId;   // у CardDrawnEvent PlayerId = СУЩНОСТЬ игрока
+            if (!_playerPool.Value.Has(pe)) return;
+            ref var c = ref Ensure(pe);
+            Inc(c.DrawnByModelId, _modelPool.Value.Get(e.CardEntity).ModelId);
+        }
+
+        void TrackGenerated(CardGeneratedEvent e)
+        {
+            int pe = FindPlayerEntity(e.GeneratorPlayerId);
+            if (pe < 0) return;
+            ref var c = ref Ensure(pe);
+            Inc(c.GeneratedByModelId, e.ModelId);
+        }
+
+        void TrackInvoked(CreatureInvokedEvent invokedEvent)
+        {
+            if (invokedEvent.CardEntity < 0 || !_ownerPool.Value.Has(invokedEvent.CardEntity)) return;
+            int pe = FindPlayerEntity(_ownerPool.Value.Get(invokedEvent.CardEntity).OwnerId);
+            if (pe < 0) return;
+            ref var c = ref Ensure(pe);
+            // ключи архетипов берём прямо из ArchetypeComponent (общий список) — без switch/новых тегов
+            if (_archPool.Value.Has(invokedEvent.CardEntity))
+            {
+                var keys = _archPool.Value.Get(invokedEvent.CardEntity).Keys;
+                if (keys != null) foreach (var k in keys) IncStr(c.InvokedByArchetype, k);
+            }
+        }
+
+        ref MatchCounterComponent Ensure(int playerEntity)
+        {
+            if (!_counterPool.Value.Has(playerEntity)) _counterPool.Value.Add(playerEntity);
+            ref var c = ref _counterPool.Value.Get(playerEntity);
+            c.CountsByModelId    ??= new Dictionary<int, int>();
+            c.DrawnByModelId     ??= new Dictionary<int, int>();
+            c.GeneratedByModelId ??= new Dictionary<int, int>();
+            c.InvokedByArchetype ??= new Dictionary<string, int>();
+            return ref c;
+        }
+
+        static void Inc(Dictionary<int, int> d, int key)    { d.TryGetValue(key, out int v); d[key] = v + 1; }
+        static void IncStr(Dictionary<string, int> d, string key) { d.TryGetValue(key, out int v); d[key] = v + 1; }
 
         int FindPlayerEntity(int playerId)
         {

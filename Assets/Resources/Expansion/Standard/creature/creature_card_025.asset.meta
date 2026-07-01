@@ -1,5 +1,10 @@
 fileFormatVersion: 2
 guid: db831ae0fb7c3cd4c9e9c29e1679ebcd
+labels:
+- Библиотекарь
+- Библиотекарь_на_смене
+- на
+- смене
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000

@@ -33,12 +33,47 @@ namespace Game.Core.Events
         public int PlayerId;
     }
 
+    /// <summary>Локальный (turn-start) добор Count карт игроком-сущностью PlayerEntity. Шлёт DrawCardSystem
+    /// только для Sync-доборов → CollectActionSystem отправляет ActionDrawData оппоненту (синк зеркала колоды/руки).</summary>
+    public struct DeckDrawNetEvent : IGameEvent
+    {
+        public int PlayerEntity;
+        public int Count;
+        /// <summary>Конкретные добранные сущности (локальные). Коллектор шлёт их ключи в ActionDrawData,
+        /// пассив переносит в руку ИМЕННО эти карты по ключу (а не «верхние N» — иначе дрейф зеркала руки).</summary>
+        public int[] DrawnEntities;
+    }
+
     public struct CardDiedEvent : IGameEvent
     {
         public int CardEntity;
         public int PlayerId;
     }
 
+    /// <summary>Тех-кнопка: выдать локальному игроку максимум маны и золота. Обрабатывает DebugCheatSystem.</summary>
+    public struct DebugFillResourcesEvent : IGameEvent { }
+
+    /// <summary>
+    /// Замена добора (Адовый червь) разрешена активным игроком: выбрана карта из предложенных.
+    /// CollectActionSystem шлёт это пассиву как ActionDrawReplacementData (offered/chosen — по ключам),
+    /// пассив повторяет результат у оппонента. Публикует RunDrawReplacementSystem при резолве.
+    /// </summary>
+    public struct DrawReplacementResolvedNetEvent : IGameEvent
+    {
+        public int PlayerEntity;
+        public int[] Offered;
+        public int Chosen;
+        public bool DestroyChosen;
+    }
+
+    /// <summary>ЛИПКИЙ хинт выбора цели для UI: Show=true при входе в режим выбора цели по доске (висит,
+    /// пока выбираешь), Show=false при выборе/отмене. Публикует RunAbilityTargetSelectionSystem; показывает
+    /// TargetHintView. Text — что показать («Выберите цель»).</summary>
+    public struct TargetSelectionHintEvent : IGameEvent
+    {
+        public bool Show;
+        public string Text;
+    }
     // в”Ђв”Ђ Hand UI events в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
     /// <summary>
@@ -56,6 +91,18 @@ namespace Game.Core.Events
         public int  CardEntity;
         public bool IsReady;
     }
+
+    /// <summary>UI: эффективная стоимость карты изменилась (модификатор стоимости — Гиперинфляция).
+    /// Шлёт CardAffordabilitySystem; ловит PlayCardView → обновляет число стоимости.</summary>
+    public struct CardCostChangedEvent : IGameEvent
+    {
+        public int CardEntity;
+        public int EffectiveCost;
+    }
+
+    /// <summary>Глобальный модификатор стоимости карт изменился (AddCostModifierEffect). Сигнал для
+    /// CardAffordabilitySystem пересчитать affordability + эффективную стоимость карт руки.</summary>
+    public struct CostModifierChangedEvent : IGameEvent { }
 
     /// <summary>
     /// Публикуется PlayCardView когда карта физически отображена в руке (SetCard вызван).
@@ -90,6 +137,15 @@ namespace Game.Core.Events
         public string CardName;
         public UnityEngine.Sprite Icon;
         public Game.Core.Shared.CardVisualData Visual;
+    }
+
+    /// <summary>Токен с OnDraw-форс-кастом (Вонючее облако) авто-разыгран сразу при доборе. Чистая косметика
+    /// у владельца: CardLayout показывает пришедшую карту и проигрывает анимацию сброса («пришла → ушла»).
+    /// Сама симуляция розыгрыша идёт отдельно (PlayCardUtil.Play). CardLayout берёт на себя удаление слота,
+    /// поэтому штатное CardRemovedFromHandUIEvent для этой карты игнорируется.</summary>
+    public struct CardForcePlayedFromDrawUIEvent : IGameEvent
+    {
+        public int CardEntity;
     }
 
     /// <summary>
@@ -137,11 +193,6 @@ namespace Game.Core.Events
         public int Amount;
     }
 
-    public struct CreatureDiedEvent : IGameEvent
-    {
-        public int CreatureEntity;
-        public int PlayerId;
-    }
     public struct AbilityActivatedEvent : IGameEvent
     {
         public int SourceEntity;
@@ -230,6 +281,9 @@ namespace Game.Core.Events
     {
         public string CardName;
         public UnityEngine.Sprite Icon;
+        /// <summary>Полные визуальные данные карты — выкат рендерит её как настоящую карту (арт/имя/стоимость/
+        /// статы/описание) через CardBaseView. CardName/Icon оставлены как fallback.</summary>
+        public Game.Core.Shared.CardVisualData Visual;
     }
     public struct PlayerAssignedEvent : IGameEvent
     {
@@ -237,6 +291,31 @@ namespace Game.Core.Events
         public int Side;         // 1 РёР»Рё 2
         public bool IsLocalPlayer;
     }
+
+    /// <summary>Активный игрок завершил ход — коллектор шлёт ActionEndTurnData оппоненту.</summary>
+    public struct EndTurnNetEvent : IGameEvent { }
+
+    /// <summary>Итог матча с точки зрения локального игрока.</summary>
+    public enum MatchResult { Win, Lose, Draw }
+
+    /// <summary>
+    /// Матч завершён: у одного/нескольких игроков HP ≤ 0 после оседания каскада действий.
+    /// Публикует GameOverCheckSystem. UI показывает поп-ап результата; турн-системы встают.
+    /// </summary>
+    public struct MatchEndedEvent : IGameEvent
+    {
+        public MatchResult LocalResult;
+        public bool        IsDraw;
+        public int[]       WinnerPlayerIds;
+        public int[]       LoserPlayerIds;
+    }
+
+    /// <summary>Игрок нажал «выход в меню» в поп-апе результата. Хук для навигации/teardown боя
+    /// (корректный дисконнект Photon + смена состояния) — обрабатывается на уровне States.</summary>
+    public struct ExitToMenuRequestedEvent : IGameEvent { }
+
+    /// <summary>UI/дев-запрос «завершить ход» — система навесит EndTurnRequestEvent на локального активного.</summary>
+    public struct RequestEndTurnUIEvent : IGameEvent { }
 
     public struct DeckSyncedEvent : IGameEvent
     {
@@ -281,6 +360,8 @@ namespace Game.Core.Events
 
         public string NetworkEntityKey;
 
+        public int PlayerOwnerEntity;
+
         public int OwnerId;
 
         public bool IsEnemy;
@@ -297,6 +378,17 @@ namespace Game.Core.Events
 
         /// <summary>Если true — сразу отправить на кладбище (для призыва без места).</summary>
         public bool InGrave;
+
+        /// <summary>Если true — после создания добавить сущность в HandComponent/DeckComponent владельца
+        /// (PlayerOwnerEntity) и для InHand опубликовать CardDrawnEvent (для локального владельца).
+        /// Нужно эффектам-генераторам: обычный CreateCardEvent ставит только зональный тег, но списки
+        /// зон не правит. Старые вызовы (мулиган-синк/деки) флаг не ставят → поведение не меняется.</summary>
+        public bool RegisterInZoneList;
+
+        /// <summary>Если true — созданную карту разыграть автоматически (Фокус-покус): CreateCardSystem вешает
+        /// AutoCastComponent + ForceRandomTargetingComponent, AutoCastSystem форс-кастит её (Free) у активного,
+        /// а её таргетинг авто-выбирает цели (Random, как Йогг-Сарон) → без перехвата выбора у игрока.</summary>
+        public bool AutoCast;
     }
     // ── Network turn coordination events ────────────────────────────────────
 
@@ -452,32 +544,45 @@ namespace Game.Core.Events
         /// <summary>Entity карты-источника (локальное).</summary>
         public int SourceCardEntity;
 
-        /// <summary>NetworkEntityKey карты-источника.</summary>
-        public string SourceCardNetworkKey;
-
         /// <summary>Индекс способности в AbilityContainerComponent карты.</summary>
         public int AbilityIndex;
 
-        /// <summary>
-        /// Индекс шага цепочки: 0 — основные Effects абилки, 1..N — ChainSteps[i-1].
-        /// Для абилок без цепочки всегда 0.
-        /// </summary>
+        /// <summary>Сущности целей (локальные). CollectActionSystem конвертит в NetworkEntityKey/"PLAYER:{id}".</summary>
+        public int[] TargetEntities;
+
+        /// <summary>Сущности, ПРИЗВАННЫЕ этим резолвом (локальные) — чтобы пассив применил к ним
+        /// модификаторы призыва (бафф/таймер). CollectActionSystem конвертит в NetworkEntityKey.</summary>
+        public int[] SummonedEntities;
+
+        // ── Цепочки (составные способности): шаг + контекст для пассив-реплея стадии ──
+        /// <summary>Индекс стадии цепочки (0 для обычных способностей).</summary>
         public int StepIndex;
+        /// <summary>Накопленный KilledCount к моменту стадии (контекст для CountSource=ChainKilled).</summary>
+        public int KilledCount;
+        /// <summary>Идентичности случайно-сгенерированных карт стадии (GainRandomCardEffect) — пассив
+        /// воспроизводит ИХ вместо своего ролла. Параллельные массивы exp/cardId.</summary>
+        public string[] GeneratedExpansionIds;
+        public int[] GeneratedCardIds;
+    }
 
-        /// <summary>
-        /// Ключи разрешённых целей в порядке применения.
-        /// Сущности — NetworkEntityKey; игроки — "PLAYER:{PlayerId}".
-        /// </summary>
-        public string[] TargetKeys;
+    /// <summary>
+    /// Существо погибло от СИСТЕМНОГО таймера («умрёт через N ходов») на активе. Не воспроизводится
+    /// детерминированно у пассива (он не тикает чужой таймер в чужой ход) → CollectActionSystem
+    /// шлёт это как ActionDeathData, пассив вешает DeadTag. Публикует CreatureTimerTickSystem.
+    /// </summary>
+    public struct TimerDeathNetEvent : IGameEvent
+    {
+        public int CreatureEntity;
+    }
 
-        /// <summary>
-        /// Захваченная клетка цепочки (BoardPosition первой цели шага 0).
-        /// Нужна MoveSourceToCellEffect на пассивной стороне.
-        /// </summary>
-        public bool HasCapturedCell;
-        public int CapturedRow;
-        public int CapturedCol;
-        public int CapturedCellOwnerId;
+    /// <summary>
+    /// Временный контроль над существом истёк на активе (контролёр дотикал TurnsRemaining в конце своего хода).
+    /// Актив откатил владельца локально → CollectActionSystem шлёт ActionControlRevertData, пассив повторяет
+    /// откат по ключу. Публикует TempControlRevertSystem. (Аналог TimerDeathNetEvent: считает только актив.)
+    /// </summary>
+    public struct ControlRevertedNetEvent : IGameEvent
+    {
+        public int CreatureEntity;
     }
 
     /// <summary>

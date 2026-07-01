@@ -1,5 +1,7 @@
 fileFormatVersion: 2
 guid: 1dbd2a8101d4e3943b1402b202e21921
+labels:
+- Грыз
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000

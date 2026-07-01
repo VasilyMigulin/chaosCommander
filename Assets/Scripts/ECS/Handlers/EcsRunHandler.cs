@@ -5,6 +5,7 @@ using Game.Core.Ecs.Systems;
 using System.Collections.Generic;
 using Leopotam.EcsLite.ExtendedSystems;
 using Game.Core.Ecs.Components;
+using NUnit.Framework.Constraints;
 
 namespace Game.Core.Ecs.Handlers
 {
@@ -15,10 +16,13 @@ namespace Game.Core.Ecs.Handlers
         protected EcsSystems _initSystems;
         protected EcsSystems _mulliganSystems;
         protected EcsSystems _generalSystems;
+        protected EcsSystems _creatureSystems;
         protected EcsSystems _cardSystems;
-        protected EcsSystems _abilitySystems;
-        protected EcsSystems _resolveSystems;
+        protected EcsSystems _castSystems;
         protected EcsSystems _turnSystems;
+        protected EcsSystems _triggerSystems;
+        protected EcsSystems _ruleSystems;
+        protected EcsSystems _abilitySystems;
         protected EcsSystems _delSystems;
 
 
@@ -29,156 +33,118 @@ namespace Game.Core.Ecs.Handlers
             World = new EcsWorld();
             _data = new EcsData();
             _allSystems = new List<EcsSystems>();
-            _initSystems = new EcsSystems(World, state);
+            _initSystems     = new EcsSystems(World, state);
             _mulliganSystems = new EcsSystems(World, state);
-            _generalSystems = new EcsSystems(World, state);
-            _cardSystems = new EcsSystems(World, state);
-            _abilitySystems = new EcsSystems(World, state);
-            _resolveSystems = new EcsSystems(World, state);
-            _turnSystems = new EcsSystems(World, state);
-            _delSystems = new EcsSystems(World, state);
+            _generalSystems  = new EcsSystems(World, state);
+            _creatureSystems = new EcsSystems(World, state);
+            _cardSystems     = new EcsSystems(World, state);
+            _castSystems     = new EcsSystems(World, state);
+            _turnSystems     = new EcsSystems(World, state);
+            _triggerSystems  = new EcsSystems(World, state);
+            _ruleSystems     = new EcsSystems(World, state);
+            _abilitySystems  = new EcsSystems(World, state);
+            _delSystems      = new EcsSystems(World, state);
 
-            _mulliganSystems 
+            _mulliganSystems
                 .Add(new RunMulliganReplaceSystem())
                 .Add(new RunMulliganReadySystem())
-                .Add(new RunMulliganSyncSystem()) 
+                .Add(new RunMulliganSyncSystem())
                 ;
 
             _initSystems
-                .Add(new InitPlayerSystem()) 
+                .Add(new InitPlayerSystem())
                 .Add(new InitDeckSystem())
                 .Add(new InitTurnSystem())
-                .Add(new InitAbilityQueueSystem())
                 .Add(new InitMulliganSystem())
                 ;
 
             _turnSystems
                 .Add(new RunFirstTurnStartSystem())
-                // --- Ожидание завершения способностей (MatchStart / TurnStart / TurnEnd) ---
-                .Add(new PhaseReadySystem())
-                // --- Ресурсы и взятие карты когда игрок получил управление ---
-                .Add(new TurnStartResourceSystem())
-                // --- Тик duration-аур (чары на N ходов) ---
+                .Add(new HandDesyncCanarySystem())      // ВРЕМЕННО: лог руки/колоды по ключам на старте хода (диагностика дрейфа)
+                .Add(new RunTurnStartSystem())          // каскад начала хода: ресурсы/добор/OnTurnStart (по StartTurnState)
                 .Add(new DurationAuraTickSystem())
-                // --- Трекинг сыгранных карт по ModelId на матч ---
+                .Add(new CardPlayedBridgeSystem())   // CardCastEvent → CardPlayedEvent (оживляет счётчики/Попадос)
                 .Add(new MatchCounterTrackerSystem())
-                // --- Трекинг последнего разыгранного заклинания (Попадос, Гомункул) ---
                 .Add(new LastPlayedSpellTrackerSystem())
-                // --- Тик «существо умрёт через N ходов» (Харизматичный) ---
                 .Add(new CreatureTimerTickSystem())
-                // --- Возврат временной маны в конце хода (Освежающий напиток) ---
+                .Add(new CharmTimerTickSystem())   // таймер жизни чар (тик в конце хода → DeadTag)
                 .Add(new TemporaryManaRefundSystem())
-                // --- Откат временного контроля в конце хода (Еретик) ---
                 .Add(new TempControlRevertSystem())
-                // --- Таймер хода (только в фазе PlayerTurn) ---
                 .Add(new TurnTimerSystem())
-                // --- Передача хода следующему игроку ---
-                .Add(new TurnTransferSystem())
+                .Add(new RunRequestEndTurnSystem())   // ручной конец хода (UI/дев) → EndTurnRequestEvent
                 ;
 
             _generalSystems
-                // --- Создание сущностей карт по CreateCardEvent (оппонент, токены, раскопка из пула) ---
+                // --- Создание сущностей карт по CreateCardEvent ---
                 .Add(new CreateCardSystem())
-                // --- Доступность карт для розыгрыша (UI) ---
+                // --- Синхронизация: сбор действий (актив) + воспроизведение снапшотов (пассив) ---
+                .Add(new CollectActionSystem())
+                .Add(new ReplayActionSystem())
+                // --- Доступность карт для UI ---
                 .Add(new CardAffordabilitySystem())
-                .Add(new CheckPlayRequirementSystem())
-                // --- Ввод ---
-                .Add(new CardInputSystem())
-                .Add(new RunSelectCellSystem())
+                // --- Замена добора (Адовый червь): перехват ПЕРЕД обычным добором ---
+                .Add(new RunDrawReplacementSystem())
+                // --- Раскопка-эффект (DiscoverEffect): окно выбора → карта в руку, синк через ActionCardPicked ---
+                .Add(new RunDiscoverSystem())
+                // --- Добор + UI-трансляция ---
                 .Add(new DrawCardSystem())
-                // --- UI-трансляция взятия карты в руку ---
                 .Add(new HandUISystem())
-                // --- Выбор карты (раскопка) перед кастом ---
-                .Add(new CardPickSelectionSystem())
-                // --- Ожидание выбора клетки / цели ---
-                .Add(new TargetSelectionSystem())
-                // --- Розыгрыш карт ---
-                .Add(new RandomTargetSystem())
-                .Add(new CastCardSystem())
                 // --- Спаун визуала существа на доске ---
                 .Add(new SpawnCreatureViewSystem())
-                // --- Пересчёт аур (постоянные эффекты чар) до боя ---
-                .Add(new AuraRecalcSystem())
+                // AuraRecalcSystem УДАЛЁН: ауры теперь реактивные (модификатор-стек AddModifier/RemoveModifier),
+                // а его покадровый Value=Base затирал бы модификаторы. Легаси AuraSource/TargetMask не используются.
+                // --- Выбор/движение/атака существ на борде (input → MoveRequestEvent/AttackRequestEvent) ---
+                .Add(new RunSelectCellSystem())
                 // --- Движение существ ---
                 .Add(new MoveSystem())
                 // --- Бой ---
                 .Add(new AttackSystem())
+                .Add(new ReflectDamageSystem())   // Вуду-будду: БЛОК урона владельцу на его ходу (до TakeDamage)
                 .Add(new TakeDamageSystem())
                 .Add(new DieSystem())
-                // --- Применение эффектов способностей ---
-                .Add(new ApplyHealSystem())
-                .Add(new ApplyDrawSystem())
-                .Add(new ApplyMillSystem())
-                .Add(new ApplyDiscardSystem())
-                .Add(new ApplyBuffSystem())
-                .Add(new ApplyShuffleCardSystem())
-                .Add(new ApplyGainManaSystem())
-                .Add(new ApplyGainGoldSystem())
-                // --- Эффекты цепочек ---
-                .Add(new ApplyDestroySystem())
-                .Add(new ApplyMoveSourceToCellSystem())
-                .Add(new ApplyCastTargetCardSystem())
-                .Add(new ApplyShuffleTargetEntityToDeckSystem())
-                .Add(new ApplyPickCardSystem())
-                // --- Призыв / перемещение / контроль ---
-                .Add(new ApplySummonSystem())
-                .Add(new ApplyReturnToHandSystem())
-                .Add(new ApplyBanishSystem())
-                .Add(new ApplyTakeControlSystem())
-                .Add(new ApplyDealDamageOwnerSystem())
-                .Add(new ApplyLoseGoldSystem())
-                .Add(new ApplySelfDestructSystem())
-                .Add(new ApplyColorMutationSystem())
-                .Add(new ApplyLoseManaSystem())
-                .Add(new ApplyGiveCardToHandSystem())
-                .Add(new ApplyFillHandSystem())
-                .Add(new ApplyBuffByCounterSystem())
-                .Add(new ApplySummonFromZoneSystem())
-                .Add(new ApplyGiveLastPlayedSpellSystem())
-                .Add(new ApplyBuffDeckCardsSystem())
-                .Add(new ApplyAddCreatureTimerSystem())
-                .Add(new ApplyDamageInZoneSystem())
-                .Add(new ApplyTemporaryManaSystem())
-                .Add(new ApplyTempTakeControlSystem())
+                .Add(new CharmDieSystem())   // уничтожение чар с DeadTag (таймер истёк) → грав/лимбо + CreatureDiedEvent
+                .Add(new RunLeaveBoardSystem())   // баунс/баниш/замешивание (LeaveBoardEvent) → рука/колода/грав/лимбо
+                // --- Конец матча: HP игрока ≤ 0 после оседания каскада → победа/поражение/ничья ---
+                .Add(new GameOverCheckSystem())
+                // --- Отображение статов существ (HP/атака/скорость) в их CreatureView ---
+                .Add(new CreatureStatsViewSystem())
+                // --- Отображение HP/ресурсов игроков (аватар врага + панель локального) ---
+                .Add(new PlayerStatsViewSystem())
                 // --- Утилиты ---
                 .Add(new BurnCardSystem())
-                // --- Конец хода ---
-                .Add(new EndTurnRequestSystem())
-                // --- Сбор действий активного игрока и отправка оппоненту ---
-                .Add(new CollectActionSystem())
-                // --- Воспроизведение действий оппонента из очереди снапшотов ---
-                .Add(new ReplayActionSystem())
+                // --- Тех-читы (выдать ресурсы по дев-кнопке) ---
+                .Add(new DebugCheatSystem())
                 ;
 
-            _cardSystems
-                .Add(new RunCastCardSystem())
-                .Add(new RunStartMatchCardSystem())
-                .Add(new RunTurnStartCardSystem())
-                .Add(new RunTurnEndCardSystem())
-                .Add(new RunDieCardSystem())
+            // ── TODO (новый card-cast роутер): CardCastEvent → подсистемы существо/заклинание/чары
+            //    → finish-cast → событие для триггеров. Реализуем отдельным шагом. ──
+
+            _creatureSystems
+                .Add(new RunSelectCellBoardSystem())
+                .Add(new RunMoveCardToBoardSystem())
+                .Add(new RunMoveCardToGraveSystem())
+                .Add(new RunInvokeCreatureSystem())
+                .Add(new RepositionViewSystem())   // визуальный «переезд» по ViewRepositionRequest (Бешеная бабка)
                 ;
 
+            // ── Event-driven пайплайн способностей ──
+            // CardCast → триггеры вешают AbilityCastEvent → проверка правил → AbilityQueue → резолв по одной.
             _abilitySystems
-                .Add(new UnlockAbilityQueueSystem())
-                .Add(new AbilityQueueSystem())
-                .Add(new RunAbilityMatchStartSystem())
-                .Add(new RunAbilityCastSystem())
-                .Add(new RunAbilityTurnStartSystem())
-                .Add(new RunAbilityTurnEndSystem())
-                .Add(new RunAbilityDieSystem())
+                .Add(new AutoCastSystem())            // авто-розыгрыш созданных карт (Фокус-покус) → RequestCardCast
+                .Add(new RunCastRouterSystem())
+                .Add(new RunCheckAbilityRulesSystem())
+                .Add(new RunAbilityTargetingSystem())
+                .Add(new RunAbilityTargetSelectionSystem())   // Selected по доске (клики)
+                .Add(new RunAbilityPickSelectionSystem())     // Selected из колоды/руки/кладбища (окно выбора)
+                .Add(new RunResolveAbilityQueueSystem())
+                .Add(new RunChainSystem())                 // составные (цепочечные) способности
                 ;
 
-            _resolveSystems
-                // Оркестратор цепочек: ставит NeedsStepResolveTag, продвигает шаг,
-                // чистит ResolveAbilityEvent на завершении. ОБЯЗАН быть первым.
-                .Add(new AbilityChainAdvanceSystem())
-                .Add(new RunResolveAbilityTargetSystem())
-                // RunResolveAbilityFieldSystem удалён из пайплайна:
-                // семантика TargetMask.All теперь живёт в RunResolveAbilityEffectSystem,
-                // поле-абилки идут через общий effect-entity пайплайн (и поддерживают цепочки).
-                .Add(new RunResolveAbilityHitSystem())
-                .Add(new RunResolveAbilityEffectSystem())
-                .Add(new RunResolveAbilityActiveSystem())
+            // Завершение хода и активация — ПОСЛЕ ability/creature-систем, чтобы видеть реальное
+            // состояние пайплайна (очередь способностей/анимации) при гейте «осело ли».
+            _castSystems
+                .Add(new RunActivateSystem())      // навешивает ActiveState, когда каскад начала хода осел
+                .Add(new EndTurnRequestSystem())   // конец хода: лок → OnTurnEnd → снапшот EndTurn + снять ActiveState
                 ;
 
             _delSystems
@@ -187,23 +153,29 @@ namespace Game.Core.Ecs.Handlers
                 .DelHere<TurnEndEvent>()
                 .DelHere<DieEvent>()
                 .DelHere<CastEvent>()
-                // ResolveAbilityEvent живёт пока цепочка не пройдена:
-                // его удаляют AbilityChainAdvanceSystem (нефилд) и
-                // RunResolveAbilityFieldSystem (филд) явно.
-                .DelHere<ConditionNotMetTag>()
+                .DelHere<InvokeEvent>()
                 .DelHere<CellClickEvent>()
                 .DelHere<AttackHitEvent>()
                 .DelHere<CardPickResultComponent>()
-                .DelHere<AbilityChosenTargetComponent>()
+                // --- Новые события каст-пайплайна ---
+                .DelHere<RequestCardCastEvent>()
+                .DelHere<DeclineCardCastEvent>()
+                .DelHere<MoveCardToGraveEvent>()
+                .DelHere<MoveCardToBoardEvent>()
+                // AbilityCastEvent НЕ авто-удаляем: его потребляет RunCheckAbilityRulesSystem
+                // (может быть поставлен в _creatureSystems после _abilitySystems — доживёт до след. кадра).
                 ;
 
             _allSystems.Add(_initSystems);
             _allSystems.Add(_mulliganSystems);
             _allSystems.Add(_turnSystems);
+            _allSystems.Add(_ruleSystems);
             _allSystems.Add(_generalSystems);
             _allSystems.Add(_cardSystems);
             _allSystems.Add(_abilitySystems);
-            _allSystems.Add(_resolveSystems);
+            _allSystems.Add(_creatureSystems);
+            _allSystems.Add(_castSystems);
+            _allSystems.Add(_triggerSystems);
             _allSystems.Add(_delSystems);
 
 #if UNITY_EDITOR
@@ -229,7 +201,16 @@ namespace Game.Core.Ecs.Handlers
         {
             for (int i = 0; i < _systemsCount; i++)
             {
-                _allSystems[i].Run();
+                try
+                {
+                    _allSystems[i].Run();
+                }
+                catch (System.Exception e)
+                {
+                    // Изоляция: исключение в одной группе систем не должно прерывать остальные группы
+                    // кадра (иначе один сбой ломает весь пайплайн — «всё ссыпается»).
+                    UnityEngine.Debug.LogError($"[EcsRunHandler] system group {i} threw: {e}");
+                }
             }
         }
         public virtual void LateRun()
@@ -243,7 +224,13 @@ namespace Game.Core.Ecs.Handlers
 
         public virtual void Dispose()
         {
-            _allSystems.ForEach(_x => _x.Destroy()); 
+            _allSystems.ForEach(_x => _x.Destroy());
+            // Конец сессии: снимаем все подписки шины (триггеры/условия способностей).
+            // Карта в игре не удаляется (сжигание = кладбище), поэтому пер-карта отписка не нужна.
+            Game.Core.Events.GameEventBus.Clear();
+            Game.Core.Ecs.Components.CastMultiplierService.Clear();   // матч-множители частоты (Временная петля)
+            Game.Core.Ecs.Components.MatchState.Clear();              // статус конца матча
+
             World.Destroy();
             World = null;
         }
@@ -257,5 +244,5 @@ namespace Game.Core.Ecs.Handlers
     public class EcsData
     {
 
-    }  
+    }
 }

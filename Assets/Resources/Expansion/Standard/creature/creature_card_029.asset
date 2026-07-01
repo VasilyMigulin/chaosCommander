@@ -17,18 +17,76 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 1051486567619100950
+      type: {class: AbilityToSelf, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 1051486567619100951
+        Rules: []
+        Effects:
+        - rid: 1051486567619100952
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 0}
+          ProjectileSpeed: 12
+          MergeArea: 0
+    - rid: 1051486567619100951
+      type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 1051486567619100952
+      type: {class: SelfDestructEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+    - rid: 1051486567619100953
+      type: {class: AbilityNonTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 1051486567619100954
+        Rules: []
+        Effects:
+        - rid: 1051486567619100957
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 0}
+          ProjectileSpeed: 12
+          MergeArea: 0
+    - rid: 1051486567619100954
+      type: {class: OnDieTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 1051486567619100957
+      type: {class: FillRowWithCardEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        MaxCount: 2
+        Source: {fileID: 11400000, guid: 4e2d6c7afcf22f84db49429f4f5a2490, type: 2}
     - rid: 8072968609180155936
       type: {class: CardCreatureModel, ns: Game.Core.Model.Card.Creature, asm: Game.Core.Model.Card.Creature}
       data:
         Id: 29
         Name: "\u0412\u0441\u0430\u0434\u043D\u0438\u043A \u0412\u043E\u0439\u043D\u044B"
-        Description: 
+        Description: "\u041F\u0440\u0438 \u0440\u0430\u0437\u044B\u0433\u0440\u044B\u0432\u0430\u043D\u0438\u0438:
+          \u043F\u043E\u0433\u0438\u0431\u0430\u0435\u0442 \u041F\u0440\u0438 \u0441\u043C\u0435\u0440\u0442\u0438:
+          \u043F\u0440\u0438\u0437\u044B\u0432\u0430\u0435\u0442 2 \u0412\u043E\u0438\u043D\u0430
+          3/2/2"
         Rarity: 3
         Element: 37
-        Icon: {fileID: 0}
+        ArtImage: {fileID: 0}
         ExpansionId: standard
         PlayCost: 0
-        PlayCostAmount: 2
+        PlayCostAmount: 3
+        IsToken: 0
+        MulliganStartingHand: 0
+        MulliganUnlimitedReplace: 0
+        RuntimeAbilities:
+        - rid: 1051486567619100950
+        - rid: 1051486567619100953
+        Archetypes: []
         MaxHealth: 2
         Attack: 4
         Speed: 1

@@ -70,11 +70,16 @@ namespace Game.Core.Ecs.Systems
                 CreatureView view = GetView(entity);
                 if (view != null)
                 {
+                    // Поворачиваемся лицом к цели перед ударом.
+                    var targetView = GetView(targetEntity);
+                    if (targetView != null)
+                        view.FaceTowards(targetView.transform.position, instant: true);
+
                     view.PlayAttack(
                         onHit: () =>
                         {
-                            // Момент удара: фиксируем урон
-                            if (_deadPool.Value.Has(attackerEntity) && _deadPool.Value.Has(targetEntity))
+                            // Момент удара: фиксируем урон, если оба ещё ЖИВЫ.
+                            if (!_deadPool.Value.Has(attackerEntity) && !_deadPool.Value.Has(targetEntity))
                             {
                                 if (!hitPool.Has(attackerEntity))
                                 {
@@ -86,8 +91,8 @@ namespace Game.Core.Ecs.Systems
                         },
                         onFinished: () =>
                         {
-                            // Анимация завершена: снимаем блок
-                            if (_deadPool.Value.Has(attackerEntity) && animPool.Has(attackerEntity))
+                            // Анимация завершена: снимаем блок (всегда, иначе ввод залипнет).
+                            if (animPool.Has(attackerEntity))
                                 animPool.Del(attackerEntity);
 
                             GameEventBus.Publish(new InputRestoredEvent());

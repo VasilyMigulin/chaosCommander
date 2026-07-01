@@ -48,7 +48,12 @@ namespace Game.Core.Ecs.Systems
                 ref var t = ref _timerPool.Value.Get(entity);
                 t.TurnsRemaining--;
                 if (t.TurnsRemaining <= 0 && !_deadPool.Value.Has(entity))
+                {
                     _deadPool.Value.Add(entity);
+                    // Синк: смерть от таймера у пассива сама не наступит (он не тикает чужой таймер
+                    // в чужой ход) → сообщаем коллектору, он пошлёт ActionDeathData.
+                    GameEventBus.Publish(new TimerDeathNetEvent { CreatureEntity = entity });
+                }
             }
         }
     }

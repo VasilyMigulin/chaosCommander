@@ -84,7 +84,7 @@ namespace AwesomeUI.Feature.Battle
             _btnClick.interactable = true;
         }
 
-        public override void OnActive()
+        public override void OnUse()
         {
         }
     }

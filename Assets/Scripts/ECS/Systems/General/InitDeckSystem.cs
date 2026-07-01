@@ -2,6 +2,7 @@ using Game.Core.Configs;
 using Game.Core.DeckBuilder;
 using Game.Core.Ecs.Components;
 using Game.Core.Events;
+using Game.Core.Network;
 using Game.Core.Service;
 using Game.Core.Shared.Interface;
 using Leopotam.EcsLite;
@@ -104,9 +105,9 @@ namespace Game.Core.Ecs.Systems
             }
 
             var world = _world.Value;
-            int cardEntity = instance.CardData.InitAndGetEntity(world, isCommander);
+            int cardEntity = instance.CardData.Init(world, playerEntity, isCommander);
 
-            string netKey = Guid.NewGuid().ToString();
+            string netKey = NetKey.Next();   // короткий "{playerId}-{N}" вместо 36-симв. Guid (лимит RPC)
 
             if (!_netKeyPool.Value.Has(cardEntity))
             {

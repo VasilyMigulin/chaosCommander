@@ -36,6 +36,8 @@ namespace AwesomeUI.Feature.Battle
 
         [Header("Discard Animation")]
         [SerializeField] private float _discardDuration  = 0.45f;
+        [Tooltip("Сколько держать авто-разыгранную с добора карту (Вонючее облако) в руке перед сбросом-анимацией.")]
+        [SerializeField] private float _autoPlayHoldDuration = 0.6f;
 
         [Header("Card Slots")]
         [SerializeField] private CommanderCardView _commanderSlot;
@@ -54,6 +56,10 @@ namespace AwesomeUI.Feature.Battle
         // ── Deal Queue ────────────────────────────────────────────────────────
         private readonly Queue<CardAddedToHandUIEvent> _dealQueue = new Queue<CardAddedToHandUIEvent>();
         private bool _isDealCoroutineRunning = false;
+
+        // Карты, которые авто-разыгрываются сразу с добора (Вонючее облако): их удаление из руки ведёт
+        // косметическая корутина (показ + анимация сброса), а штатные события удаления игнорируются.
+        private readonly HashSet<int> _autoPlayFromDraw = new HashSet<int>();
 
         // ── Init ─────────────────────────────────────────────────────────────
 
@@ -89,6 +95,8 @@ namespace AwesomeUI.Feature.Battle
             GameEventBus.Subscribe<CardAddedToHandUIEvent>(OnCardAddedToHand);
             GameEventBus.Subscribe<CardRemovedFromHandUIEvent>(OnCardRemovedFromHand);
             GameEventBus.Subscribe<CardDiscardFromHandUIEvent>(OnCardDiscard);
+            GameEventBus.Unsubscribe<CardForcePlayedFromDrawUIEvent>(OnCardForcePlayedFromDraw);
+            GameEventBus.Subscribe<CardForcePlayedFromDrawUIEvent>(OnCardForcePlayedFromDraw);
 
             if (_commanderSlot != null)
                 _commanderSlot.OnInject();
@@ -102,6 +110,7 @@ namespace AwesomeUI.Feature.Battle
             GameEventBus.Unsubscribe<CardAddedToHandUIEvent>(OnCardAddedToHand);
             GameEventBus.Unsubscribe<CardRemovedFromHandUIEvent>(OnCardRemovedFromHand);
             GameEventBus.Unsubscribe<CardDiscardFromHandUIEvent>(OnCardDiscard);
+            GameEventBus.Unsubscribe<CardForcePlayedFromDrawUIEvent>(OnCardForcePlayedFromDraw);
 
             _commanderSlot?.Unject();
             foreach (var slot in _handSlots)
@@ -164,8 +173,6 @@ namespace AwesomeUI.Feature.Battle
                 Visual      = evt.Visual,
             };
 
-            Debug.Log($"[CardLayout] Place card entity {data.CardEntity}");
-
             if (evt.IsCommander)
             {
                 _commanderSlot?.SetCard(data);
@@ -198,8 +205,6 @@ namespace AwesomeUI.Feature.Battle
             _handOrder.Add(freeSlot);
 
             RefreshFan();
-
-            Debug.Log($"[CardLayout] Draw → slot '{freeSlot.name}' added to end. _handOrder ({_handOrder.Count}): {DescribeOrder()}");
         }
 
         private string DescribeOrder()
@@ -218,6 +223,7 @@ namespace AwesomeUI.Feature.Battle
 
         private void OnCardDiscard(CardDiscardFromHandUIEvent evt)
         {
+            if (_autoPlayFromDraw.Contains(evt.CardEntity)) return; // авто-каст с добора сам ведёт анимацию/удаление
             foreach (var slot in _handSlots)
             {
                 if (!slot.IsOccupied || slot.CardEntity != evt.CardEntity) continue;
@@ -231,10 +237,14 @@ namespace AwesomeUI.Feature.Battle
                 }, _discardDuration);
                 return;
             }
+            // Карта ещё не разложена по слотам (раздача идёт корутиной с задержкой, напр. сброс сразу после
+            // мулигана) → иначе осталась бы «призраком» (в стейте сброшена, но корутина доразложит её позже).
+            RemoveFromDealQueue(evt.CardEntity);
         }
 
         private void OnCardRemovedFromHand(CardRemovedFromHandUIEvent evt)
         {
+            if (_autoPlayFromDraw.Contains(evt.CardEntity)) return; // авто-каст с добора сам ведёт анимацию/удаление
             foreach (var slot in _handSlots)
             {
                 if (slot.IsOccupied && slot.CardEntity == evt.CardEntity)
@@ -245,6 +255,75 @@ namespace AwesomeUI.Feature.Battle
                     return;
                 }
             }
+            // Та же гонка: карта могла покинуть руку до того, как корутина успела её разложить.
+            RemoveFromDealQueue(evt.CardEntity);
+        }
+
+        // ── Авто-каст с добора (Вонючее облако) ────────────────────────────────
+
+        private void OnCardForcePlayedFromDraw(CardForcePlayedFromDrawUIEvent evt)
+        {
+            _autoPlayFromDraw.Add(evt.CardEntity);
+            StartCoroutine(AutoPlayDiscardRoutine(evt.CardEntity));
+        }
+
+        // Косметика авто-каста: ждём, пока карта разложится в слот (раздача идёт корутиной с задержкой),
+        // даём её увидеть, затем играем анимацию сброса и чистим слот. Штатное удаление этой карты подавлено
+        // (см. OnCardRemovedFromHand/OnCardDiscard), иначе слот очистился бы мгновенно мимо анимации.
+        private IEnumerator AutoPlayDiscardRoutine(int cardEntity)
+        {
+            float timeout = 3f;
+            SimpleCardView slot = null;
+            while (timeout > 0f)
+            {
+                slot = FindHandSlot(cardEntity);
+                if (slot != null) break;
+                timeout -= Time.deltaTime;
+                yield return null;
+            }
+
+            if (slot == null)
+            {
+                // Не разложилась (рука переполнена и т.п.) — перестаём отслеживать, на всякий чистим очередь.
+                RemoveFromDealQueue(cardEntity);
+                _autoPlayFromDraw.Remove(cardEntity);
+                yield break;
+            }
+
+            yield return new WaitForSeconds(_autoPlayHoldDuration);   // дать игроку увидеть пришедшую карту
+
+            var captured = slot;
+            captured.PlayDiscardAnimation(() =>
+            {
+                captured.ClearCard();
+                _handOrder.Remove(captured);
+                RefreshFan();
+                _autoPlayFromDraw.Remove(cardEntity);
+            }, _discardDuration);
+        }
+
+        private SimpleCardView FindHandSlot(int cardEntity)
+        {
+            foreach (var slot in _handSlots)
+                if (slot != null && slot.IsOccupied && slot.CardEntity == cardEntity)
+                    return slot;
+            return null;
+        }
+
+        // Убрать ещё не разложенную карту из очереди раздачи (покинула руку раньше, чем корутина дошла до
+        // неё). Без этого она появилась бы «призраком». Поворачиваем очередь, выбрасывая совпавшую.
+        private bool RemoveFromDealQueue(int cardEntity)
+        {
+            if (_dealQueue.Count == 0) return false;
+            bool removed = false;
+            int count = _dealQueue.Count;
+            for (int i = 0; i < count; i++)
+            {
+                var e = _dealQueue.Dequeue();
+                if (!removed && e.CardEntity == cardEntity) { removed = true; continue; }
+                _dealQueue.Enqueue(e);
+            }
+            return removed;
         }
 
         // ── Selection ────────────────────────────────────────────────────────
@@ -323,6 +402,11 @@ namespace AwesomeUI.Feature.Battle
 
                 var rt = (activeSlots[i] as MonoBehaviour)?.GetComponent<RectTransform>();
                 if (rt == null) continue;
+
+                // Порядок отрисовки (UGUI = порядок в иерархии): идём слева направо и каждую
+                // делаем последней, поэтому каждая следующая карта рисуется ПОВЕРХ предыдущей →
+                // самая правая (новейшая) оказывается сверху.
+                rt.SetAsLastSibling();
 
                 rt.DOLocalMove(new Vector3(xOffset, yOffset, 0f), _animDuration)
                   .SetEase(_isExpanded ? Ease.OutCubic : Ease.InCubic);

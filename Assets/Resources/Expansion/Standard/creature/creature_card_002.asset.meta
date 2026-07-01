@@ -1,5 +1,9 @@
 fileFormatVersion: 2
 guid: 55a2511e85e0ce74e850b012a420a51e
+labels:
+- Главарь
+- Главарь_чертов
+- чертов
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000

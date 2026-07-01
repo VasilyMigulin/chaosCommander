@@ -1,0 +1,353 @@
+using System;
+using System.Collections.Generic;
+using Game.Core.Ecs.Components;
+using Game.Core.Events;
+using Game.Core.Shared.Interface;
+using Leopotam.EcsLite;
+using UnityEngine;
+
+namespace Game.Core.Ability
+{
+    // ─────────────────────────────────────────────────────────────────────────
+    // ГЕНЕРАЦИЯ НОВЫХ КАРТ (токены/копии) — семейство B. Создаёт НОВУЮ сущность через
+    // CreateCardEvent (по идентичности ExpansionId+CardId → CardConfig), в отличие от
+    // SummonEffect (двигает СУЩЕСТВУЮЩУЮ). Владелец генерируемой карты = владелец источника.
+    //
+    // СИНК (без отдельного RPC): пассив РЕ-РАНИТ резолв способности (ReplayActionSystem
+    // впрыскивает очередь из ActionAbilityData → RunResolveAbilityQueueSystem применяет
+    // эффекты), поэтому Apply выполняется на ОБОИХ клиентах. Единственное требование —
+    // одинаковый NetworkEntityKey у порождённой карты: берём ДЕТЕРМИНИРОВАННЫЙ ключ
+    // (casterKey + seq из GeneratedCardCounterComponent), а не Guid.NewGuid(). Тогда
+    // будущие ссылки на карту резолвятся у обоих. IsEnemy считается от лица КАЖДОГО клиента
+    // (по LocalComponent владельца) — у активного это своя карта, у пассива — вражеская.
+    //
+    // НЕдетерминированная генерация (случайный спелл из пула, discover с выбором) этот путь
+    // НЕ покрывает — там активный обязан передать выбранную идентичность+ключ снапшотом
+    // (как ActionCardPickedData.CreateFromPool). Сделаем при реализации Окропить/Discover.
+    // ─────────────────────────────────────────────────────────────────────────
+    public abstract class GenerateCardEffect : EffectBase
+    {
+        public int Count = 1;   // сколько карт создать (<=0 трактуем как 1 — старые ассеты без поля)
+        protected enum Zone { Hand, Deck }
+
+        /// <summary>Куда кладём порождённую карту.</summary>
+        protected abstract Zone TargetZone { get; }
+
+        /// <summary>Идентичность создаваемой карты (из ассета-ICreatable или из самого источника).</summary>
+        protected abstract bool TryGetCardIdentity(EcsWorld world, int cardEntity, out string expansionId, out int cardId);
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            int n = Count <= 0 ? 1 : Count;   // старый ассет без поля Count сериализуется как 0 → создаём 1
+            for (int i = 0; i < n; i++)
+            {
+                if (!TryGetCardIdentity(world, cardEntity, out string exp, out int cardId)) return;
+                Spawn(world, cardEntity, exp, cardId, TargetZone == Zone.Hand);
+            }
+        }
+
+        // === helpers ===
+
+        /// <summary>
+        /// Порождает карту (exp+cardId) у владельца sourceCard: в руку (toHand) или в колоду. Детерм. ключ
+        /// + RegisterInZoneList. Переиспользуют под-эффекты семейства И GainRandomCardEffect (internal).
+        /// </summary>
+        internal static void Spawn(EcsWorld world, int sourceCard, string exp, int cardId, bool toHand, bool autoCast = false)
+        {
+            if (string.IsNullOrEmpty(exp) || cardId < 0) return;
+
+            var ownerPool = world.GetPool<OwnerComponent>();
+            if (!ownerPool.Has(sourceCard)) return;
+            int ownerId = ownerPool.Get(sourceCard).OwnerId;
+
+            if (!TryFindOwnerPlayer(world, ownerId, out int ownerPlayer, out bool ownerIsLocal)) return;
+
+            string genKey = NextKey(world, sourceCard);
+            Debug.Log($"[Generate] создаю exp={exp} cardId={cardId} -> owner={ownerId} (local={ownerIsLocal}) zone={(toHand ? "Hand" : "Deck")} key={genKey} autoCast={autoCast}");
+            GameEventBus.Publish(new CreateCardEvent
+            {
+                ExpansionId        = exp,
+                CardId             = cardId,
+                NetworkEntityKey   = genKey,
+                PlayerOwnerEntity  = ownerPlayer,
+                OwnerId            = ownerId,
+                IsEnemy            = !ownerIsLocal,
+                InHand             = toHand,
+                // !InHand && !InBoard && !InGrave → колода (else-ветка CreateCardSystem)
+                RegisterInZoneList = !autoCast,   // авто-каст: без UI-зоны (карта тут же разыграется)
+                AutoCast           = autoCast,
+            });
+            GameEventBus.Publish(new CardGeneratedEvent { ModelId = cardId, GeneratorPlayerId = Attribution(ownerId) });
+        }
+
+        /// <summary>
+        /// Порождает карту (exp+cardId) у владельца sourceCard СРАЗУ на клетке борда (row/col). Детерм. ключ
+        /// (как Spawn). Для заполнения ряда токенами/копиями (FillRowEffect). NB: InBoard-создание НЕ
+        /// публикует CardCastEvent → собственное «при разыгрывании» токена не срабатывает (для токенов ок).
+        /// </summary>
+        internal static void SpawnToBoard(EcsWorld world, int sourceCard, string exp, int cardId, int row, int col)
+        {
+            if (string.IsNullOrEmpty(exp) || cardId < 0) return;
+
+            var ownerPool = world.GetPool<OwnerComponent>();
+            if (!ownerPool.Has(sourceCard)) return;
+            int ownerId = ownerPool.Get(sourceCard).OwnerId;
+
+            if (!TryFindOwnerPlayer(world, ownerId, out int ownerPlayer, out bool ownerIsLocal)) return;
+
+            GameEventBus.Publish(new CreateCardEvent
+            {
+                ExpansionId        = exp,
+                CardId             = cardId,
+                NetworkEntityKey   = NextKey(world, sourceCard),
+                PlayerOwnerEntity  = ownerPlayer,
+                OwnerId            = ownerId,
+                IsEnemy            = !ownerIsLocal,
+                InBoard            = true,
+                BoardRow           = row,
+                BoardCol           = col,
+                BoardOwnerId       = ownerId,
+                RegisterInZoneList = false,   // на борде — не в списках руки/колоды
+            });
+            GameEventBus.Publish(new CardGeneratedEvent { ModelId = cardId, GeneratorPlayerId = Attribution(ownerId) });
+        }
+
+        /// <summary>
+        /// Порождает карту (exp+cardId) в КОЛОДУ ОППОНЕНТА владельца sourceCard (Старый колдун → вонючие
+        /// облака). Детерм. ключ (как Spawn). Владелец/IsEnemy считаются от оппонента (на каждом клиенте
+        /// корректно: у того, чей это игрок локально, IsEnemy=false). Для замешивания «вреда» в чужую колоду.
+        /// </summary>
+        internal static void SpawnToOpponentDeck(EcsWorld world, int sourceCard, string exp, int cardId)
+        {
+            if (string.IsNullOrEmpty(exp) || cardId < 0) return;
+
+            var ownerPool = world.GetPool<OwnerComponent>();
+            if (!ownerPool.Has(sourceCard)) return;
+            int sourceOwnerId = ownerPool.Get(sourceCard).OwnerId;
+
+            var pp = world.GetPool<PlayerComponent>();
+            foreach (var pe in world.Filter<PlayerComponent>().End())
+            {
+                ref var p = ref pp.Get(pe);
+                if (p.PlayerId == sourceOwnerId) continue;   // ищем оппонента
+                GameEventBus.Publish(new CreateCardEvent
+                {
+                    ExpansionId        = exp,
+                    CardId             = cardId,
+                    NetworkEntityKey   = NextKey(world, sourceCard),
+                    PlayerOwnerEntity  = pe,
+                    OwnerId            = p.PlayerId,
+                    IsEnemy            = !p.IsLocalPlayer,
+                    InHand             = false,            // → колода
+                    RegisterInZoneList = true,
+                });
+                GameEventBus.Publish(new CardGeneratedEvent { ModelId = cardId, GeneratorPlayerId = Attribution(sourceOwnerId) });
+                return;
+            }
+        }
+
+        /// <summary>Идентичность из ассета CardInstanceData (через ICreatable). Используют под-эффекты с полем Source.</summary>
+        protected static bool IdentityFromAsset(ScriptableObject source, out string expansionId, out int cardId)
+        {
+            if (source is ICreatable c) { expansionId = c.ExpansionId; cardId = c.CardId; return true; }
+            expansionId = null; cardId = -1; return false;
+        }
+
+        /// <summary>Кому атрибутировать генерацию для счётчиков «замешано»: инициатору резолва (гранёная
+        /// способность — Газовое вздутие → ты), иначе владельцу карты-источника (нативная генерация).
+        /// Назначение/владелец СОЗДАВАЕМОЙ карты этим НЕ меняется — только учёт «кем замешано».</summary>
+        static int Attribution(int fallbackOwnerId)
+            => AbilityResolveContext.OriginOwnerId >= 0 ? AbilityResolveContext.OriginOwnerId : fallbackOwnerId;
+
+        static bool TryFindOwnerPlayer(EcsWorld world, int ownerId, out int playerEntity, out bool isLocal)
+        {
+            var pp = world.GetPool<PlayerComponent>();
+            foreach (var pe in world.Filter<PlayerComponent>().End())
+            {
+                ref var p = ref pp.Get(pe);
+                if (p.PlayerId != ownerId) continue;
+                playerEntity = pe; isLocal = p.IsLocalPlayer; return true;
+            }
+            playerEntity = -1; isLocal = false; return false;
+        }
+
+        // Детерминированный ключ: casterKey + порядковый seq (одинаков у обоих клиентов, см. шапку).
+        static string NextKey(EcsWorld world, int caster)
+        {
+            var netPool = world.GetPool<NetworkEntityComponent>();
+            string casterKey = netPool.Has(caster) ? netPool.Get(caster).NetworkEntityKey : ("E" + caster);
+
+            var counterPool = world.GetPool<GeneratedCardCounterComponent>();
+            if (!counterPool.Has(caster)) counterPool.Add(caster);
+            ref var c = ref counterPool.Get(caster);
+            int seq = c.Next++;
+
+            return $"{casterKey}~gen{seq}";
+        }
+    }
+
+    // === class (OOP) === Создать карту из ассета в РУКУ владельца (Водонос → «Освежающий напиток»).
+    [Serializable]
+    public sealed class CreateCardToHandEffect : GenerateCardEffect
+    {
+        [Tooltip("Ассет CardInstanceData создаваемой карты (перетащить).")]
+        public ScriptableObject Source;
+
+        protected override Zone TargetZone => Zone.Hand;
+
+        protected override bool TryGetCardIdentity(EcsWorld world, int cardEntity, out string exp, out int id)
+            => IdentityFromAsset(Source, out exp, out id);
+    }
+
+    // === class (OOP) === Замешать карту из ассета в КОЛОДУ владельца (Биба → Боба в начале матча).
+    [Serializable]
+    public sealed class ShuffleCardIntoDeckEffect : GenerateCardEffect
+    {
+        [Tooltip("Ассет CardInstanceData замешиваемой карты (перетащить).")]
+        public ScriptableObject Source;
+
+        protected override Zone TargetZone => Zone.Deck;
+
+        protected override bool TryGetCardIdentity(EcsWorld world, int cardEntity, out string exp, out int id)
+            => IdentityFromAsset(Source, out exp, out id);
+    }
+
+    // === class (OOP) === Замешать в КОЛОДУ владельца КОПИЮ самого источника (Гомункул, при смерти).
+    // Идентичность берётся из CardModelComponent источника — ассет указывать не нужно.
+    [Serializable]
+    public sealed class ShuffleCopyOfSelfEffect : GenerateCardEffect
+    {
+        protected override Zone TargetZone => Zone.Deck;
+
+        protected override bool TryGetCardIdentity(EcsWorld world, int cardEntity, out string exp, out int id)
+        {
+            var pool = world.GetPool<CardModelComponent>();
+            if (!pool.Has(cardEntity)) { exp = null; id = -1; return false; }
+            ref var m = ref pool.Get(cardEntity);
+            exp = m.ExpansionId; id = m.ModelId;
+            return true;
+        }
+    }
+
+    // === class (OOP) === Дать Count случайных карт из ПУЛА в руку владельца. Пул — ассеты
+    // CardInstanceData (ICreatable), напр. все жёлтые спеллы. «Сколько раз» в зависимости от контекста
+    // (число убитых и т.п.) — НЕ здесь: оборачивай в RepeatEffect (универсально для любого эффекта).
+    // СИНК: случайный выбор недетерминирован → актив роллит+пишет в GeneratedCardChannel.Sent (→ снапшот),
+    // пассив воспроизводит из него (внутри цепочки; см. RunChainSystem/ApplyChainStage).
+    [Serializable]
+    public sealed class GainRandomCardEffect : EffectBase
+    {
+        public int Count = 1;
+
+        [Tooltip("Куда положить: false = в руку (по умолч.), true = ВТАСОВАТЬ В КОЛОДУ (Латентный работяга: случайного работягу в колоду).")]
+        public bool ToDeck = false;
+
+        [Tooltip("Ассет CardPool (по критериям). Если задан — берём из него, иначе из ручного Pool ниже.")]
+        public ScriptableObject PoolAsset;
+        [Tooltip("Ручной пул ассетов CardInstanceData (если PoolAsset не задан).")]
+        public List<ScriptableObject> Pool = new();
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            for (int i = 0; i < Count; i++)
+            {
+                string exp;
+                int cardId;
+
+                // Пассив: берём переданный активом выбор (детерминизм синка). Актив: ролл из пула + запись.
+                if (GeneratedCardChannel.TryReplay(out exp, out cardId))
+                {
+                    // используем присланную идентичность
+                }
+                else
+                {
+                    var pick = PoolUtil.Pick(PoolAsset, Pool);
+                    if (pick == null) continue;
+                    exp = pick.ExpansionId; cardId = pick.CardId;
+                    GeneratedCardChannel.Record(exp, cardId);
+                }
+
+                // toHand:false → колода (втасовка по детерм. ключу, DeckShuffleUtil — синхронно на обоих).
+                GenerateCardEffect.Spawn(world, cardEntity, exp, cardId, toHand: !ToDeck);
+            }
+        }
+    }
+
+    // === helper === выбор случайной ICreatable из пула: приоритет CardPool-ассета (ICardPool), иначе ручной список.
+    internal static class PoolUtil
+    {
+        public static ICreatable Pick(ScriptableObject poolAsset, List<ScriptableObject> manual)
+        {
+            if (poolAsset is ICardPool cp && cp.Cards != null && cp.Cards.Count > 0)
+                return cp.Cards[UnityEngine.Random.Range(0, cp.Cards.Count)];
+            if (manual != null && manual.Count > 0)
+                return manual[UnityEngine.Random.Range(0, manual.Count)] as ICreatable;
+            return null;
+        }
+    }
+
+    // === class (OOP) === РАЗЫГРАТЬ одну случайную карту из ПУЛА (Фокус-покус). Создаёт карту с AutoCast →
+    // AutoCastSystem форс-кастит её (Free) у активного, а её таргетинг авто-выбирает цели (ForceRandomTargeting,
+    // как Йогг-Сарон) → НЕ перехватывает выбор у игрока. «N штук» = обернуть в RepeatEffect (Фокус-покус → Fixed=2).
+    // СИНК: ролл идёт в GeneratedCardChannel (→ снапшот Generated*), пассив TryReplay создаёт ту же карту (детерм.
+    // ключ); каст синкается обычными ActionCastData/ActionAbilityData (его таргетинг-выбор едет в ключах целей).
+    [Serializable]
+    public sealed class PlayRandomFromPoolEffect : EffectBase
+    {
+        [Tooltip("Ассет CardPool (по критериям). Если задан — берём из него, иначе из ручного Pool ниже.")]
+        public ScriptableObject PoolAsset;
+        [Tooltip("Ручной пул ассетов CardInstanceData (если PoolAsset не задан).")]
+        public List<ScriptableObject> Pool = new();
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            string exp; int cardId;
+            if (GeneratedCardChannel.TryReplay(out exp, out cardId))
+            {
+                // пассив: присланная активом идентичность
+            }
+            else
+            {
+                var pick = PoolUtil.Pick(PoolAsset, Pool);
+                if (pick == null) return;
+                exp = pick.ExpansionId; cardId = pick.CardId;
+                GeneratedCardChannel.Record(exp, cardId);
+            }
+            GenerateCardEffect.Spawn(world, cardEntity, exp, cardId, toHand: true, autoCast: true);
+        }
+    }
+
+    // === class (OOP) === Спелл создаёт ЧАРУ-ТОКЕН на борд (Вуду-будду → постоянная чара-редирект). Charm на
+    // борде без клетки (Row=-1). Generate (детерм. ключ, оба клиента ре-ранят). Поведение токена — в его
+    // CardCharmModel (TurnsAlive/ReflectDamage), срабатывает на ините → надёжно на обоих.
+    [Serializable]
+    public sealed class SpawnCharmTokenEffect : EffectBase
+    {
+        [Tooltip("Ассет CardInstanceData чары-токена (перетащить).")]
+        public ScriptableObject Source;
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            if (Source is ICreatable c)
+                GenerateCardEffect.SpawnToBoard(world, cardEntity, c.ExpansionId, c.CardId, -1, -1);   // чара без клетки
+        }
+    }
+
+    // === class (OOP) === Замешать Count карт из ассета в КОЛОДУ ОППОНЕНТА (Старый колдун → 2 вонючих
+    // облака; Дать газу — внутри цепочки за каждого погибшего; Гнидальф — обернуть в RepeatEffect{MatchCounter}).
+    [Serializable]
+    public sealed class GenerateToOpponentDeckEffect : EffectBase
+    {
+        [Tooltip("Ассет CardInstanceData замешиваемой карты (перетащить).")]
+        public ScriptableObject Source;
+        public int Count = 1;
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            if (!(Source is ICreatable c)) return;
+            int n = Count <= 0 ? 1 : Count;
+            for (int i = 0; i < n; i++)
+                GenerateCardEffect.SpawnToOpponentDeck(world, cardEntity, c.ExpansionId, c.CardId);
+        }
+    }
+}

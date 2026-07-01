@@ -1,74 +1,102 @@
+using System.Collections.Generic;
+using AwesomeUI.Core.Card;
 using DG.Tweening;
-using TMPro;
+using Game.Core.Shared;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace AwesomeUI.Feature.Battle
 {
     /// <summary>
-    /// Всплывающий показ карты, которую разыграл оппонент.
-    /// Карточка плавно появляется, зависает, затем плавно исчезает.
-    /// Вызывается через Show(cardName, icon).
+    /// Карта, которую разыграл оппонент — ПОЛНОЦЕННАЯ карта (наследник CardBaseView со всеми полями:
+    /// банер/рарность-фон/арт/имя/тип/стоимость/статы/описание) + анимация выката слева → зависание → уход.
+    /// Префаб строится как обычная карта (как CardPickupView), только с этим компонентом + CanvasGroup.
+    /// ОЧЕРЕДЬ: оппонент может разыгрывать быстро — карты копятся и показываются по одной; при наполненной
+    /// очереди зависание укорачивается. Вызывается через Show(visual) из BattlePanel по событию.
     /// </summary>
-    public class OpponentCardPlayView : MonoBehaviour
+    public class OpponentCardPlayView : CardBaseView
     {
-        [Header("References")]
-        [SerializeField] private CanvasGroup     _canvasGroup;
-        [SerializeField] private Image           _cardIcon;
-        [SerializeField] private TextMeshProUGUI _cardNameText;
+        [Header("Opponent Play — Animation")]
+        [SerializeField] private CanvasGroup _canvasGroup;
+        [SerializeField] private float _fadeInDuration  = 0.3f;
+        [SerializeField] private float _holdDuration    = 1.4f;
+        [SerializeField] private float _fadeOutDuration = 0.3f;
+        [SerializeField] private float _slideDistance   = 220f;   // выкат слева (по X, в anchored-единицах)
 
-        [Header("Animation")]
-        [SerializeField] private float _fadeInDuration  = 0.35f;
-        [SerializeField] private float _holdDuration    = 1.8f;
-        [SerializeField] private float _fadeOutDuration = 0.35f;
-        [SerializeField] private float _riseDistance    = 40f;
-
+        private RectTransform _rt;
+        private Vector2 _restPos;
+        private bool _restCaptured;
         private Sequence _sequence;
 
-        // ── Init ─────────────────────────────────────────────────────────────
+        private readonly Queue<CardVisualData> _queue = new Queue<CardVisualData>();
+        private bool _playing;
+
+        // ── SourceSlot: обязательные абстрактные методы (карта дисплейная, без взаимодействия) ──
+        public override void Unject()     { }
+        public override void OnUse()      { }
+        public override void OnClick()    { }
+        public override void UpdateView() { }
 
         private void Awake()
         {
+            _rt = (RectTransform)transform;
+            CaptureRest();
             if (_canvasGroup == null) _canvasGroup = GetComponent<CanvasGroup>();
             gameObject.SetActive(false);
         }
 
-        // ── Public API ────────────────────────────────────────────────────────
-
-        /// <summary>Показать карту оппонента с анимацией появления, зависания и исчезания.</summary>
-        public void Show(string cardName, Sprite icon)
+        // Запоминаем «домашнюю» позицию ОДИН раз (до первого сдвига), чтобы повторные показы не дрейфовали.
+        private void CaptureRest()
         {
-            _sequence?.Kill();
+            if (_restCaptured) return;
+            if (_rt == null) _rt = (RectTransform)transform;
+            _restPos = _rt.anchoredPosition;
+            _restCaptured = true;
+        }
 
-            if (_cardNameText != null) _cardNameText.text = cardName;
-            if (_cardIcon     != null && icon != null) _cardIcon.sprite = icon;
+        /// <summary>Поставить карту оппонента в очередь показа.</summary>
+        public void Show(in CardVisualData visual)
+        {
+            _queue.Enqueue(visual);
+            if (!_playing) PlayNext();
+        }
+
+        private void PlayNext()
+        {
+            if (_queue.Count == 0)
+            {
+                _playing = false;
+                gameObject.SetActive(false);
+                return;
+            }
+
+            _playing = true;
+            CaptureRest();
+            var visual = _queue.Dequeue();
+
+            ApplyVisualData(visual);   // полный рендер карты (поля CardBaseView)
 
             gameObject.SetActive(true);
+            if (_canvasGroup != null) _canvasGroup.alpha = 0f;
+            Vector2 offLeft = _restPos - new Vector2(_slideDistance, 0f);
+            _rt.anchoredPosition = offLeft;
 
-            var rt = (RectTransform)transform;
-            var startAnchoredY = rt.anchoredPosition.y - _riseDistance;
-            var endAnchoredY   = rt.anchoredPosition.y;
+            // Очередь ждёт → держим карту меньше, чтобы хвост быстрее разгрёбся.
+            float hold = _queue.Count > 0 ? _holdDuration * 0.4f : _holdDuration;
 
-            _canvasGroup.alpha = 0f;
-            rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, startAnchoredY);
-
-            _sequence = DOTween.Sequence();
-
-            // fade in + rise
-            _sequence.Append(_canvasGroup.DOFade(1f, _fadeInDuration).SetEase(Ease.OutQuad));
-            _sequence.Join(rt.DOAnchorPosY(endAnchoredY, _fadeInDuration).SetEase(Ease.OutQuad));
-
-            // hold
-            _sequence.AppendInterval(_holdDuration);
-
-            // fade out
-            _sequence.Append(_canvasGroup.DOFade(0f, _fadeOutDuration).SetEase(Ease.InQuad));
-            _sequence.OnComplete(() => gameObject.SetActive(false));
-        }
-
-        private void OnDestroy()
-        {
             _sequence?.Kill();
+            _sequence = DOTween.Sequence();
+            // выкат слева + появление
+            _sequence.Append(_rt.DOAnchorPos(_restPos, _fadeInDuration).SetEase(Ease.OutCubic));
+            if (_canvasGroup != null) _sequence.Join(_canvasGroup.DOFade(1f, _fadeInDuration).SetEase(Ease.OutQuad));
+            // зависание
+            _sequence.AppendInterval(hold);
+            // уход обратно влево + исчезание
+            _sequence.Append(_rt.DOAnchorPos(offLeft, _fadeOutDuration).SetEase(Ease.InCubic));
+            if (_canvasGroup != null) _sequence.Join(_canvasGroup.DOFade(0f, _fadeOutDuration).SetEase(Ease.InQuad));
+            // следующая карта из очереди
+            _sequence.OnComplete(PlayNext);
         }
+
+        private void OnDestroy() => _sequence?.Kill();
     }
 }

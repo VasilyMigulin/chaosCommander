@@ -30,6 +30,7 @@ namespace Game.Core.Ecs.Systems
                         ExpansionId = sync.DeckExpansionIds[i],
                         CardId = sync.DeckCardIds[i],
                         NetworkEntityKey = sync.DeckNetworkKeys[i],
+                        PlayerOwnerEntity = entity,   // сущность игрока-оппонента → способности с верным владельцем
                         OwnerId = player.PlayerId,
                         IsEnemy = true,
                         InHand = false
@@ -43,6 +44,7 @@ namespace Game.Core.Ecs.Systems
                         ExpansionId = sync.HandExpansionIds[i],
                         CardId = sync.HandCardIds[i],
                         NetworkEntityKey = sync.HandNetworkKeys[i],
+                        PlayerOwnerEntity = entity,
                         OwnerId = player.PlayerId,
                         IsEnemy = true,
                         InHand = true
@@ -54,6 +56,7 @@ namespace Game.Core.Ecs.Systems
                     ExpansionId = sync.CommanderExpansionID,
                     CardId = sync.CommanderID,
                     NetworkEntityKey = sync.CommanderNetKey,
+                    PlayerOwnerEntity = entity,
                     OwnerId = player.PlayerId,
                     IsEnemy = true,
                     InHand= true,

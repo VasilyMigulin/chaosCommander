@@ -1,5 +1,9 @@
 fileFormatVersion: 2
 guid: ea8add9e652383c4eb968943b0632d87
+labels:
+- Начальник
+- Начальник_смены
+- смены
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000

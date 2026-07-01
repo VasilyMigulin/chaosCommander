@@ -1,5 +1,9 @@
 fileFormatVersion: 2
 guid: 7c2f526840e72554a8d172634a197b23
+labels:
+- Сатанинский
+- Сатанинский_круг
+- круг
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000

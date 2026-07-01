@@ -1,0 +1,1013 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
+  m_Name: CardText_en
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.StringTable
+  m_LocaleId:
+    m_Code: en
+  m_SharedData: {fileID: 11400000, guid: a81c45251b9a8aa4aa377be8dba2284e, type: 2}
+  m_Metadata:
+    m_Items: []
+  m_TableData:
+  - m_Id: 247227998208
+    m_Localized: Get to Work!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247286718464
+    m_Localized: 'At the start of turn: creatures you control gain +*1* Speed'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247286718465
+    m_Localized: Prayer for Health
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247286718466
+    m_Localized: Creatures you control gain +*2* Health
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247286718467
+    m_Localized: Looming Crisis
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247286718468
+    m_Localized: At the start of turn, both players gain no gold
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247286718469
+    m_Localized: Recruitment
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247286718470
+    m_Localized: At the start of turn, summons 2 Arena Fighters
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247286718471
+    m_Localized: Long Ritual
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247286718472
+    m_Localized: 'At the start of turn: take *3* damage and gain *2* mana'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912768
+    m_Localized: Call Dad
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912769
+    m_Localized: 'When it expires: summons Dad 10/10'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912770
+    m_Localized: Conflagration
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912771
+    m_Localized: At the start of turn, everyone takes *2* damage
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912772
+    m_Localized: Bad Weather
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912773
+    m_Localized: Creatures your opponent controls gain -*1* Speed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912774
+    m_Localized: Great Excommunication
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912775
+    m_Localized: Creatures your opponent controls gain -*3* Attack
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912776
+    m_Localized: Great Conversion
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912777
+    m_Localized: All creatures you control gain the yellow color
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912778
+    m_Localized: Reverent Arrival
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912779
+    m_Localized: At the start of your turn, creatures you control gain +*1*/+*2*
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912780
+    m_Localized: Imp
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912781
+    m_Localized: 'At the end of turn: deals *1* damage to a random character'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912782
+    m_Localized: Elder Imp
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912783
+    m_Localized: 'At the end of turn: deals *2* damage to a random character'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912784
+    m_Localized: Imp Boss
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912785
+    m_Localized: 'At the end of turn: destroys a random creature'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912786
+    m_Localized: Underworld Boss
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912787
+    m_Localized: 'When played: fills the row with imps'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912788
+    m_Localized: Gnaw
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912789
+    m_Localized: 'When played: gains +*1*/+*1* for each imp you summoned this match'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912790
+    m_Localized: Blue Wizard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912791
+    m_Localized: 'When played: gives *3* mana'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912792
+    m_Localized: Hapless Sorcerer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912793
+    m_Localized: 'When played: spends 2 mana to deal *3* damage to the opponent''s
+      creatures'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912794
+    m_Localized: Old Warlock
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912795
+    m_Localized: Gnidalf the Unwashed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912796
+    m_Localized: 'When played: shuffles a Stink Cloud into the opponent''s deck for
+      each Stink Cloud you shuffled this match'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912797
+    m_Localized: Laborer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912798
+    m_Localized: 'When played: summons another Laborer from your deck'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912799
+    m_Localized: Shift Foreman
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912800
+    m_Localized: 'While you control: Laborers you control gain +*1*/+*2*'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912801
+    m_Localized: Foreman
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912802
+    m_Localized: 'When played: shuffles 2 Laborers into your deck'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912803
+    m_Localized: Arena Fighter
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912804
+    m_Localized: 'At the start of turn: gains +*1* Speed'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912805
+    m_Localized: Pyromancer Mage
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912806
+    m_Localized: 'When played: fills your hand with Arson'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912807
+    m_Localized: Cult Leader
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912808
+    m_Localized: 'On death: fills the row with Satanists'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912809
+    m_Localized: Satanist
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912810
+    m_Localized: 'On death: deals *2* damage to both players'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912811
+    m_Localized: Well-Read Wizard Popados
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912812
+    m_Localized: 'When played: adds a copy of the last spell you played to your hand'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912813
+    m_Localized: Skeleton
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912814
+    m_Localized: 'On death: returns to your hand'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912815
+    m_Localized: Skinless Skeleton Sorcerer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912816
+    m_Localized: 'When played: shuffles 2 Skeletons into your deck'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912817
+    m_Localized: Fresh Zombie
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912818
+    m_Localized: 'When played: the opponent discards a random card'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912819
+    m_Localized: Brazen Tomb Raider
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912820
+    m_Localized: 'When you draw a card: the opponent discards a random card'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912821
+    m_Localized: Bounty Hunter
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912822
+    m_Localized: 'When played: deals *1* damage to all creatures in the opponent''s
+      deck'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912823
+    m_Localized: Archmage Barabook
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912824
+    m_Localized: 'When played: casts a random spell costing 3 or less from your deck'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912825
+    m_Localized: Holy Dushnila
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912826
+    m_Localized: 'When played: destroys creatures your opponent controls that don''t
+      have the yellow color'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912827
+    m_Localized: Forsaken Heretic
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912828
+    m_Localized: 'At the start of turn: takes control of a random enemy creature
+      until end of turn'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912829
+    m_Localized: Librarian on Duty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912830
+    m_Localized: 'When played: draws a random spell from your deck'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912831
+    m_Localized: Snitch
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912832
+    m_Localized: 'At the end of turn: draw a card'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912833
+    m_Localized: Brood
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912834
+    m_Localized: 'At the start of turn: summons 2 Bugs 1/1/3'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912835
+    m_Localized: Rider of Decay
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912836
+    m_Localized: 'When played: dies. On death: the opponent discards a random card'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912837
+    m_Localized: Rider of War
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912838
+    m_Localized: 'When played: dies. On death: summons 2 Warriors 3/2/2'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912839
+    m_Localized: Rider of Famine
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912840
+    m_Localized: 'When played: dies. On death: steals *2* health from a random enemy'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912841
+    m_Localized: Rider of Death
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912842
+    m_Localized: 'When played: dies. On death: destroys the strongest creature your
+      opponent controls'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912843
+    m_Localized: Toxic Mother
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912844
+    m_Localized: 'When played: deals *3* damage to its owner, summons 4 Spiders 1/1/3'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912845
+    m_Localized: Hive Daddy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912846
+    m_Localized: 'At the start of the match: take *3* damage, summons 4 Spiders 1/1/3'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912847
+    m_Localized: Gym Preacher
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912848
+    m_Localized: 'At the start of the match: if all cards in your deck are yellow,
+      doubles your health'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912849
+    m_Localized: Purifier
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912850
+    m_Localized: 'At the end of turn: add a random spell of a different color to
+      your hand'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912851
+    m_Localized: Charismatic Priest
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912852
+    m_Localized: 'When played: summon the most expensive creature from your deck;
+      it dies in *3* turns'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912853
+    m_Localized: Patriarch
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912854
+    m_Localized: 'When played: creatures in your deck gain +*1*/+*1*'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912855
+    m_Localized: Secret Admirer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912856
+    m_Localized: 'At the end of turn: all creatures you control gain +*1*/+*1*'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912857
+    m_Localized: Water Carrier
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912858
+    m_Localized: 'On death: gives Water'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912859
+    m_Localized: Magic Homunculus
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912860
+    m_Localized: 'When played: summons a creature with the same name. On death: shuffle
+      a copy into your deck'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912861
+    m_Localized: Hell Worm
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912862
+    m_Localized: 'When played: until the end of the match, when you draw at the start
+      of turn, look at the top 3, choose one to destroy and draw the other two'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912863
+    m_Localized: Gym Boss Billy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912864
+    m_Localized: 'At the start of the match: you always mulligan 4 cards with unlimited
+      replacements'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912865
+    m_Localized: Mad Granny
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912866
+    m_Localized: 'When played: destroys a creature and takes its place'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912867
+    m_Localized: Biba
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912868
+    m_Localized: 'At the start of the match: shuffle Boba into your deck. At the
+      end of turn: if you control Boba, deal *3* damage to the opponent'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912869
+    m_Localized: Imp Overseer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912870
+    m_Localized: 'At the start of turn: you take *2* damage, summons a random Imp'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912871
+    m_Localized: Satanic Circle
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912872
+    m_Localized: Take *3* damage, summons 2 Imps
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912873
+    m_Localized: Sprinkle Holy Water
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912874
+    m_Localized: Deals *2* damage to creatures without the yellow color; gain a random
+      yellow spell for each creature that died
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912875
+    m_Localized: Devilry
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912876
+    m_Localized: Turns a creature into an Imp under your control
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912877
+    m_Localized: Cleanse the Filth
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912878
+    m_Localized: Add 2 cards with the black, red, or blue color to your hand
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912879
+    m_Localized: Destroy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912880
+    m_Localized: Destroys a creature your opponent controls
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912881
+    m_Localized: Workplace Fine
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912882
+    m_Localized: Both players lose *3* gold each
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912883
+    m_Localized: Call the Swarm
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912884
+    m_Localized: Summons a Spider 1/1/3; repeats for each card with this name played
+      this match
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912885
+    m_Localized: Voodoo-Boodoo
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912886
+    m_Localized: If you took 15 damage on your turn, then until the end of the match,
+      damage you take on your turn is redirected to the opponent
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912887
+    m_Localized: Gas It Up!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912888
+    m_Localized: Deal *2* damage to all creatures on the battlefield; shuffle a Stink
+      Cloud for each creature that died
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912889
+    m_Localized: Arson
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912890
+    m_Localized: Deal *2* damage to an enemy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912891
+    m_Localized: Devil's Rite
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912892
+    m_Localized: Take *3* damage, gain *5* mana
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912893
+    m_Localized: Gas Bloat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912894
+    m_Localized: 'Applies to creatures your opponent controls: "On death: shuffle
+      1 Stink Cloud into the owner''s deck"'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912895
+    m_Localized: Rob the House
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912896
+    m_Localized: Steals a random card from the opponent's deck; it costs 1 less
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912897
+    m_Localized: Robbery!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912898
+    m_Localized: Gain *3* gold
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912899
+    m_Localized: Graveyard Raid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912900
+    m_Localized: Summons 2 creatures costing 3 or less from the graveyard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912901
+    m_Localized: Bury Alive
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912902
+    m_Localized: Shuffles a creature into its owner's deck
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912903
+    m_Localized: Mass Burial
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912904
+    m_Localized: Shuffles all creatures into their owners' decks
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912905
+    m_Localized: Summon a Hurricane
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912906
+    m_Localized: Returns creatures to their owners' hands
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912907
+    m_Localized: Hocus-Pocus
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912908
+    m_Localized: Casts 2 spells costing 3 or less
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912909
+    m_Localized: That Chain Lightning
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912910
+    m_Localized: Deals *3* damage to 3 random enemies
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912911
+    m_Localized: Divine Punishment
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912912
+    m_Localized: Deals *5* damage to all black creatures
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912913
+    m_Localized: Excommunication
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912914
+    m_Localized: Removes the yellow color from a creature and gives it black
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912915
+    m_Localized: Repent
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912916
+    m_Localized: The chosen creature gains -*2* Attack
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912917
+    m_Localized: Conversion
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912918
+    m_Localized: Gives the chosen creature the yellow color and takes control of
+      it
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912919
+    m_Localized: Hoodwink
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912920
+    m_Localized: Takes control of a creature your opponent controls; it dies in *3*
+      turns
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912921
+    m_Localized: Time Loop
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912922
+    m_Localized: Until the end of the match, your start- and end-of-turn effects
+      trigger twice
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912923
+    m_Localized: Dead Man's Hand
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912924
+    m_Localized: Take *3* damage, look at 3 cards in the opponent's hand and discard
+      one
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912925
+    m_Localized: Propaganda Machine
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912926
+    m_Localized: Take control of ALL creatures your opponent controls for 3 turns
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912927
+    m_Localized: Coming Storm
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912928
+    m_Localized: Deal *5* damage to the opponent; if you have a card with the same
+      name in hand, play it
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912929
+    m_Localized: Surge of Power
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912930
+    m_Localized: Gain *5* mana until end of turn
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912931
+    m_Localized: Blow It Up!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912932
+    m_Localized: Deals *5* damage to a creature your opponent controls and *2* damage
+      to nearby creatures your opponent controls
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912933
+    m_Localized: Lighter
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912934
+    m_Localized: Deals *1* damage to a creature; if it dies, deals *5* damage to
+      its neighbors
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912935
+    m_Localized: Hyperinflation
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912936
+    m_Localized: Until the end of the match, all cards cost 1 more
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912937
+    m_Localized: Setup
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912938
+    m_Localized: Shuffle 3 Setup cards into the opponent's deck
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912939
+    m_Localized: Voodoo-Boodoo
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912940
+    m_Localized: Boba
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912941
+    m_Localized: 'At the end of turn: if you control Biba, deal *3* damage to the
+      opponent'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912942
+    m_Localized: Brood Bug
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912943
+    m_Localized: Spider
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912944
+    m_Localized: Warrior
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912945
+    m_Localized: Dad
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912946
+    m_Localized: Water
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912947
+    m_Localized: Gives *3* mana until end of turn
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912948
+    m_Localized: Stink Cloud
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912949
+    m_Localized: 'When drawn: take *1* damage for each Stink Cloud you''ve drawn'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912950
+    m_Localized: Setup
+    m_Metadata:
+      m_Items: []
+  - m_Id: 247290912951
+    m_Localized: 'When drawn: discard a random card'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12461271932928
+    m_Localized: Creature
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12461313875968
+    m_Localized: Spell
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12461313875969
+    m_Localized: Charm
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12461313875970
+    m_Localized: Start
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12461313875971
+    m_Localized: Collection
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12461313875972
+    m_Localized: Settings
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12461313875973
+    m_Localized: Exit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12461313875974
+    m_Localized: Settings
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12461313875975
+    m_Localized: Language
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12461313875976
+    m_Localized: Back
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12461313875977
+    m_Localized: Choose a commander first
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12461313875978
+    m_Localized: Card color doesn't match the commander
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12461313875979
+    m_Localized: The deck already has an exotic card
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12461313875980
+    m_Localized: Copy limit reached for this card
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12461313875981
+    m_Localized: You don't have enough copies of this card
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12461313875982
+    m_Localized: 'Commander: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12461313875983
+    m_Localized: Deck is full (20 cards + commander)
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12461313875984
+    m_Localized: Commander removed from the deck
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12461313875985
+    m_Localized: Deck
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12461322264576
+    m_Localized: "Deck \xAB{0}\xBB saved"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12461322264577
+    m_Localized: 'Save error: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12461322264578
+    m_Localized: Deck cleared
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12461322264579
+    m_Localized: Enter email and password
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12461322264580
+    m_Localized: Password must be at least 6 characters
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14865694449664
+    m_Localized: Your turn!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14865698643968
+    m_Localized: Opponent's turn
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14865698643969
+    m_Localized: Milled
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14865698643970
+    m_Localized: Victory
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14865698643971
+    m_Localized: Defeat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14865698643972
+    m_Localized: Draw
+    m_Metadata:
+      m_Items: []
+  - m_Id: 25429099405312
+    m_Localized: Next
+    m_Metadata:
+      m_Items: []
+  - m_Id: 26358376816640
+    m_Localized: Confirm
+    m_Metadata:
+      m_Items: []
+  - m_Id: 26358376816641
+    m_Localized: Skip
+    m_Metadata:
+      m_Items: []
+  - m_Id: 28487875289088
+    m_Localized: No commander set yet
+    m_Metadata:
+      m_Items: []
+  - m_Id: 28487917232128
+    m_Localized: Show commanders
+    m_Metadata:
+      m_Items: []
+  - m_Id: 219011542409216
+    m_Localized: 'When played: shuffle 1 Stink Cloud into the opponent''s deck'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 402261606916096
+    m_Localized: Failed Mockery
+    m_Metadata:
+      m_Items: []
+  - m_Id: 402261606916097
+    m_Localized: Both players discard 1 card each
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1728205890248704
+    m_Localized: Shop
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1728205995106304
+    m_Localized: Black Market
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1728205995106305
+    m_Localized: Auction
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1728205995106306
+    m_Localized: Boosters
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1728205995106307
+    m_Localized: Coming soon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1728205995106308
+    m_Localized: Shop
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1728205995106309
+    m_Localized: Black Market
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1728205995106310
+    m_Localized: Auction
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1728205999300608
+    m_Localized: Booster Opening
+    m_Metadata:
+      m_Items: []
+  references:
+    version: 2
+    RefIds: []

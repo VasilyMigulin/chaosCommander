@@ -10,7 +10,7 @@ namespace Game.Core.Photon
     public class MatchmakingConfig
     {
 #if UNITY_EDITOR
-        public int TargetPlayerCount = 1;
+        public int TargetPlayerCount = 2;
 #else
         public int TargetPlayerCount = 2;
 #endif
@@ -97,7 +97,11 @@ namespace Game.Core.Photon
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[Matchmaking] Error: {ex.Message}");
+                Debug.LogError($"[Matchmaking] Error: {ex.Message}\n{ex.StackTrace}");
+
+                // Чистим возможный недо-инициализированный раннер, иначе следующий поиск снова упадёт.
+                await SafeEndSession();
+
                 SetState(MatchmakingState.Failed);
                 OnMatchmakingFailed?.Invoke(ex.Message);
                 SetState(MatchmakingState.Idle);
@@ -106,6 +110,20 @@ namespace Game.Core.Photon
                     Success = false,
                     ErrorMessage = ex.Message
                 };
+            }
+        }
+
+        /// <summary>Гарантированно завершает сессию, не пробрасывая исключений.</summary>
+        private async Task SafeEndSession()
+        {
+            try
+            {
+                if (_photonInitializer != null)
+                    await _photonInitializer.EndSession();
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[Matchmaking] SafeEndSession failed: {e.Message}");
             }
         }
 
@@ -152,7 +170,7 @@ namespace Game.Core.Photon
             int roomNumber = 0;
 
             // Ищем комнату с свободными местами
-            foreach (var session in sessions)
+            foreach (var session in sessions ?? new List<SessionInfo>())
             {
                 if (!session.Name.StartsWith(baseSessionName))
                     continue;
@@ -230,8 +248,10 @@ namespace Game.Core.Photon
                 }
                 catch (SessionFullException)
                 {
-                    // Комната заполнилась пока мы подключались — ищем другую
+                    // Комната заполнилась пока мы подключались — чистим раннер и ищем другую
                     Debug.Log($"[Matchmaking] Session {sessionName} is full, searching for another...");
+
+                    await SafeEndSession();
 
                     var sessions = await FetchAvailableSessionsAsync();
                     sessionName = FindOrCreateSessionName(sessions);
@@ -241,6 +261,9 @@ namespace Game.Core.Photon
                 {
                     Debug.LogWarning($"[Matchmaking] Join attempt {retryCount + 1} failed: {ex.Message}");
                     retryCount++;
+
+                    // Сносим «сломанный» раннер, чтобы следующая попытка стартовала с чистого состояния.
+                    await SafeEndSession();
 
                     if (retryCount < _config.MaxRetries)
                     {

@@ -1,3 +1,8 @@
+using Game.Core.Service;
+using Game.Core.Shared.Interface;
+using Leopotam.EcsLite;
+using System.Collections.Generic;
+
 namespace Game.Core.Ecs.Components
 {
     /// <summary>
@@ -7,24 +12,37 @@ namespace Game.Core.Ecs.Components
     /// чары/заклинание). При отсутствии места обычные карты идут в кладбище,
     /// токены — исчезают.
     /// </summary>
-    public struct SummonEffectComponent
+    public struct SummonEffectComponent : INonTargetEffect
     {
-        public string ExpansionId;
-        public int CardId;
-
+        public ISummonable TargetSummon;
         /// <summary>Фиксированное количество призывов (игнорируется при FillRow=true).</summary>
-        public int Count;
-
+        public int Count; 
         /// <summary>Призывать пока есть свободные клетки в ряду источника/аватара.</summary>
-        public bool FillRow;
+        public bool FillRow; 
+        private int abilityEntity;
+        public int AbilityEntity => abilityEntity; 
+        public void AddComponent(EcsWorld world, Dictionary<string, int> entities)
+        {
+            if (entities.TryGetValue(EntityService.ABILITY_ENTITY, out int ability))
+            {
+                world.GetPool<SummonEffectComponent>().Add(ability) = new SummonEffectComponent
+                {
+                    abilityEntity = ability,
+                    Count = Count,
+                    FillRow = FillRow,
+                    TargetSummon = TargetSummon
+                };
+            }
+        } 
 
-        /// <summary>true — призывается токен (исчезает при нехватке места); false — обычная карта (уходит в кладбище).</summary>
-        public bool IsToken;
+        public void ApplyEffect(EcsWorld world, int effectEntity)
+        {
+            world.GetPool<SummonEffectComponent>().Add(effectEntity) = this;
+        }
 
-        /// <summary>
-        /// Если ≥ 0 — Count заменяется на счётчик MatchCounterComponent у владельца способности
-        /// для указанной модели (Позвать рой: counter("Позвать рой")).
-        /// </summary>
-        public int CountFromCounterModelId;
+        public void Resolve(EcsWorld world, int effectEntity)
+        {
+
+        }
     }
 }

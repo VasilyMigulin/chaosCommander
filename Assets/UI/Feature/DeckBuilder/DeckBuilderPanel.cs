@@ -291,14 +291,14 @@ namespace AwesomeUI.Feature.DeckBuilder
                 _service.TrySetCommander(view.Model);
                 if (_commanderFilterToggle != null) _commanderFilterToggle.isOn = false;
                 RefreshAll();
-                ShowFeedback($"Командир: {view.Model.Name}");
+                ShowFeedback(string.Format(Loc("ui.deck.commander_set", "Командир: {0}"), view.Model.Name));
                 return;
             }
 
             // Проверка лимита обычных карт (20 без командира)
             if (_service.TotalCards >= MaxDeckSize - 1)
             {
-                ShowFeedback("Колода заполнена (20 карт + командир)");
+                ShowFeedback(Loc("ui.deck.full", "Колода заполнена (20 карт + командир)"));
                 return;
             }
 
@@ -318,7 +318,7 @@ namespace AwesomeUI.Feature.DeckBuilder
         {
             _service.ClearAll();
             RefreshAll();
-            ShowFeedback("Командир убран из колоды");
+            ShowFeedback(Loc("ui.deck.commander_removed", "Командир убран из колоды"));
         }
 
         void OnDeckCardRemove(DeckCardView view)
@@ -344,22 +344,22 @@ namespace AwesomeUI.Feature.DeckBuilder
         {
             if (_service.Commander == null)
             {
-                ShowFeedback("Сначала выберите командира");
+                ShowFeedback(Loc("ui.deck.no_commander", "Сначала выберите командира"));
                 return;
             }
 
             string name = _deckNameInput != null && !string.IsNullOrEmpty(_deckNameInput.text)
                 ? _deckNameInput.text
-                : "Колода";
+                : Loc("ui.deck.default_name", "Колода");
 
             var data = _service.Export(name);
             DeckStorage.SaveOrReplace(data,
                 onSuccess: () =>
                 {
-                    ShowFeedback($"Колода «{name}» сохранена");
+                    ShowFeedback(string.Format(Loc("ui.deck.saved", "Колода «{0}» сохранена"), name));
                     NavigateToMainMenu();
                 },
-                onError: err => ShowFeedback($"Ошибка сохранения: {err}"));
+                onError: err => ShowFeedback(string.Format(Loc("ui.deck.save_error", "Ошибка сохранения: {0}"), err)));
         }
 
         void OnExitClicked()
@@ -376,7 +376,7 @@ namespace AwesomeUI.Feature.DeckBuilder
         {
             _service.ClearAll();
             RefreshAll();
-            ShowFeedback("Колода очищена");
+            ShowFeedback(Loc("ui.deck.cleared", "Колода очищена"));
         }
 
         void ShowFeedback(string message)
@@ -386,15 +386,18 @@ namespace AwesomeUI.Feature.DeckBuilder
 
         // ── Helpers ──────────────────────────────────────────────────────────
 
+        // Локализация UI-строк: ключ + русский фоллбэк (русский показывается, пока нет перевода).
+        static string Loc(string key, string ru) => Game.Core.Shared.CardTextLocalization.GetText(key, ru);
+
         static string ResultMessage(DeckBuilderService.AddResult result)
         {
             switch (result)
             {
-                case DeckBuilderService.AddResult.NoCommander:        return "Сначала выберите командира";
-                case DeckBuilderService.AddResult.WrongColor:         return "Карта не совпадает по цвету с командиром";
-                case DeckBuilderService.AddResult.ExoticLimitReached: return "В колоде уже есть экзотическая карта";
-                case DeckBuilderService.AddResult.CopyLimitReached:   return "Достигнут лимит копий для этой карты";
-                case DeckBuilderService.AddResult.NotEnoughCopies:    return "У вас нет достаточно копий этой карты";
+                case DeckBuilderService.AddResult.NoCommander:        return Loc("ui.deck.no_commander", "Сначала выберите командира");
+                case DeckBuilderService.AddResult.WrongColor:         return Loc("ui.deck.wrong_color", "Карта не совпадает по цвету с командиром");
+                case DeckBuilderService.AddResult.ExoticLimitReached: return Loc("ui.deck.exotic_limit", "В колоде уже есть экзотическая карта");
+                case DeckBuilderService.AddResult.CopyLimitReached:   return Loc("ui.deck.copy_limit", "Достигнут лимит копий для этой карты");
+                case DeckBuilderService.AddResult.NotEnoughCopies:    return Loc("ui.deck.not_enough_copies", "У вас нет достаточно копий этой карты");
                 default:                                               return "";
             }
         }

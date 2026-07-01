@@ -1,5 +1,9 @@
 fileFormatVersion: 2
 guid: 6c8a8cb7192199446940a6304622a09f
+labels:
+- Батя
+- Батя_улья
+- улья
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000

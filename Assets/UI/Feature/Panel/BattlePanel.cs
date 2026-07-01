@@ -127,7 +127,7 @@ namespace AwesomeUI.Feature.Battle
 
         private void OnOpponentCardPlayed(OpponentCardPlayedUIEvent evt)
         {
-            _opponentCardPlayView?.Show(evt.CardName, evt.Icon);
+            _opponentCardPlayView?.Show(evt.Visual);
         }
     }
 }

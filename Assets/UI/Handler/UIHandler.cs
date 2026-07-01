@@ -138,8 +138,13 @@ namespace AwesomeUI.Core.Handler
         {
             foreach (var target in targets)
             {
-                var fields = target.GetType()
-                                   .GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                // Обходим всю иерархию (DeclaredOnly на каждом уровне). Иначе приватные поля
+                // базовых классов не видны через тип наследника (как было с PlayCardView._state
+                // у слота SimpleCardView) — модификатор доступа поля больше не важен.
+                var fields = new List<FieldInfo>();
+                for (var t = target.GetType(); t != null && t != typeof(object); t = t.BaseType)
+                    fields.AddRange(t.GetFields(BindingFlags.Public | BindingFlags.NonPublic
+                                                | BindingFlags.Instance | BindingFlags.DeclaredOnly));
 
                 foreach (var field in fields)
                 {

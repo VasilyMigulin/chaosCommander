@@ -1,5 +1,10 @@
 fileFormatVersion: 2
 guid: ec289e444816b0047892eedb08b58bbd
+labels:
+- Дерзкий
+- Дерзкий_расхититель_гробниц
+- гробниц
+- расхититель
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000

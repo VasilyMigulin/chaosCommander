@@ -95,6 +95,10 @@ namespace AwesomeUI.Core.Card
 
         // ── API ───────────────────────────────────────────────────────────────
 
+        /// <summary>Публичный рендер полной карты из CardVisualData (для дисплейных вьюшек вне слот-контекста,
+        /// напр. выкат «оппонент разыграл карту»). Внутри — тот же ApplyVisualData.</summary>
+        public void SetVisual(in CardVisualData data) => ApplyVisualData(data);
+
         protected void ApplyVisualData(in CardVisualData data)
         {
             ApplyRarity(data.Rarity);
@@ -117,6 +121,13 @@ namespace AwesomeUI.Core.Card
             if (_highlight != null)
                 _highlight.ResetAll();
         }
+
+        /// <summary>
+        /// Перестроить локализованный текст карты при смене языка (CardLocalizationRefresher зовёт это
+        /// на LocaleService.Changed). База — no-op; модель-driven вьюшки переопределяют и пересобирают
+        /// CardVisualData из своей Model.
+        /// </summary>
+        public virtual void RefreshLocalization() { }
 
         // ── Art ──────────────────────────────────────────────────────────────
 
@@ -168,6 +179,13 @@ namespace AwesomeUI.Core.Card
 
         // ── Cost ─────────────────────────────────────────────────────────────
 
+        /// <summary>Обновить ТОЛЬКО число стоимости (эффективная цена с модификатором — Гиперинфляция).
+        /// Тип/иконку не трогаем. Зовёт PlayCardView по CardCostChangedEvent.</summary>
+        public void SetCostAmount(int amount)
+        {
+            if (_costText != null) _costText.text = amount.ToString();
+        }
+
         void ApplyCost(EnumService.ResourceType costType, int amount)
         {
             if (_costText != null) _costText.text = amount.ToString();
@@ -209,14 +227,6 @@ namespace AwesomeUI.Core.Card
 
         // ── Helpers ─────────────────────────────────────────────────────────── 
         static string CardTypeLabel(EnumService.CardType type)
-        {
-            switch (type)
-            {
-                case EnumService.CardType.Creature: return "Существо";
-                case EnumService.CardType.Spell:    return "Заклинание";
-                case EnumService.CardType.Charm:    return "Чары";
-                default:                            return "";
-            }
-        }
+            => Game.Core.Shared.CardTextLocalization.TypeLabel(type);
     }
 }

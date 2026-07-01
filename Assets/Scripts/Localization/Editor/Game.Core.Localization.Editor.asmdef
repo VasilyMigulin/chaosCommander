@@ -1,0 +1,33 @@
+{
+    "name": "Game.Core.Localization.Editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:ab46f0384b91e604cab2878e7c49e9f1",
+        "GUID:de6984b0ce795dd4687ca55928451e48",
+        "GUID:40c9061943587d8468b12e839093bc31",
+        "Game.Core.Model",
+        "Game.Core.Model.Card",
+        "Game.Core.Instance",
+        "Unity.Localization",
+        "Unity.Localization.Editor"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "UNITY_LOCALIZATION_PRESENT"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.unity.localization",
+            "expression": "",
+            "define": "UNITY_LOCALIZATION_PRESENT"
+        }
+    ],
+    "noEngineReferences": false
+}

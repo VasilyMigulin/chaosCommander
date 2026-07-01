@@ -96,27 +96,27 @@ namespace Game.Core.DeckBuilder
             if (instances == null) return;
             foreach (var instance in instances)
             {
-                switch (instance.CardData.Rarity)
+                // ВАЖНО: null-проверка ДО доступа к CardData.Rarity. CardData может быть null, если у
+                // карты слетели SerializeReference-данные (компайл-ошибка в Ability/Model.Card или
+                // несохранённые правки перед входом в Play) — тогда просто пропускаем, а не падаем NRE.
+                if (instance == null || instance.CardData == null)
                 {
-                    case Service.EnumService.Rarity.Common:
-                        countEach = 4;
-                        break;
-                    case Service.EnumService.Rarity.Rare:
-                        countEach = 3;
-                        break;
-                    case Service.EnumService.Rarity.Epic:
-                        countEach = 2;
-                        break;
-                    case Service.EnumService.Rarity.Legendary:
-                        countEach = 1;
-                        break;
-                    case Service.EnumService.Rarity.Exotic:
-                        countEach = 1;
-                        break;
+                    Debug.LogWarning("[PlayerLibrary] AddInstanceCards: пустой instance/CardData — пропуск " +
+                                     "(вероятно слетели SerializeReference-данные карты; см. консоль на компайл-ошибки и сохрани проект перед Play).");
+                    continue;
                 }
 
-                if (instance != null && instance.CardData != null)
-                    AddCard(instance.CardData, countEach); // Clone выполняется внутри AddCard
+                int count = instance.CardData.Rarity switch
+                {
+                    Service.EnumService.Rarity.Common    => 4,
+                    Service.EnumService.Rarity.Rare      => 3,
+                    Service.EnumService.Rarity.Epic      => 2,
+                    Service.EnumService.Rarity.Legendary => 1,
+                    Service.EnumService.Rarity.Exotic    => 1,
+                    _ => countEach,
+                };
+
+                AddCard(instance.CardData, count); // Clone выполняется внутри AddCard
             }
         }
 

@@ -23,6 +23,7 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<DeckTag> _deckTagPool = default;
         readonly EcsPoolInject<CardModelComponent> _cardModelPool = default;
         readonly EcsPoolInject<CommanderTag> _commanderTagPool = default;
+        readonly EcsPoolInject<MulliganModifierComponent> _mulliganModPool = default;
         readonly EcsCustomInject<CardConfig> _cardConfig = default;
 
         public void Init(IEcsSystems systems)
@@ -36,6 +37,17 @@ namespace Game.Core.Ecs.Systems
                 ref var deck = ref _deckPool.Value.Get(playerEntity);
                 ref var hand = ref _handPool.Value.Get(playerEntity);
                 ref var player = ref _playerPool.Value.Get(playerEntity);
+
+                // Модификатор мулигана (Били): сканируем колоду на маркер ДО раздачи.
+                // «начинаете с N карт» (абсолют) + «замена любого числа».
+                bool unlimitedReplace = false;
+                for (int i = 0; i < deck.CardEntities.Count; i++)
+                {
+                    if (!_mulliganModPool.Value.Has(deck.CardEntities[i])) continue;
+                    var muliganModifierComp = _mulliganModPool.Value.Get(deck.CardEntities[i]);
+                    if (muliganModifierComp.StartingHand > offerCount) offerCount = muliganModifierComp.StartingHand;
+                    if (muliganModifierComp.UnlimitedReplace) unlimitedReplace = true;
+                }
 
                 // Считаем доступные карты (командир не участвует в маллигане)
                 int availableCount = 0;
@@ -82,6 +94,8 @@ namespace Game.Core.Ecs.Systems
 
                 hand.Count += taken;
                 offerCount = taken;
+
+                if (unlimitedReplace) maxReplacements = offerCount;   // «любое число» = можно заменить все предложенные
 
                 ref var mulligan = ref _mulliganPool.Value.Add(playerEntity);
                 mulligan.Phase = MulliganPhase.Offering;

@@ -1,5 +1,9 @@
 fileFormatVersion: 2
 guid: 4ec6293f01cc8184cb74542922e45a40
+labels:
+- Магический
+- Магический_гомункул
+- гомункул
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000

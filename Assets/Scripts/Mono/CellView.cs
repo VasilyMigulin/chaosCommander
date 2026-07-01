@@ -1,6 +1,5 @@
 using Game.Core.Events;
-using UnityEngine;
-using UnityEngine.Experimental.GlobalIllumination;
+using UnityEngine; 
 
 namespace Game.Core.Mono
 {
@@ -60,13 +59,13 @@ namespace Game.Core.Mono
 
         void OnMouseDown()
         {
-            UnityEngine.Debug.Log($"[CellView] OnMouseDown row={Row} col={Col} ownerId={OwnerId}");
+            //UnityEngine.Debug.Log($"[CellView] OnMouseDown row={Row} col={Col} ownerId={OwnerId}");
             GameEventBus.Publish(new CellSelectedEvent { Row = Row, Col = Col, OwnerId = OwnerId });
         }
 
         void OnMouseEnter()
         {
-            UnityEngine.Debug.Log($"[CellView] OnMouseEnter row={Row} col={Col} ownerId={OwnerId}");
+            //UnityEngine.Debug.Log($"[CellView] OnMouseEnter row={Row} col={Col} ownerId={OwnerId}");
         }
     }
 

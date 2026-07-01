@@ -1,0 +1,78 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: creature_card_043
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  CardData:
+    rid: 1051486567619100672
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 1051486567619100672
+      type: {class: CardCreatureModel, ns: Game.Core.Model.Card.Creature, asm: Game.Core.Model.Card.Creature}
+      data:
+        Id: 56
+        Name: "\u0411\u0435\u0448\u0435\u043D\u0430\u044F \u0431\u0430\u0431\u043A\u0430"
+        Description: "\u041F\u0440\u0438 \u0440\u0430\u0437\u044B\u0433\u0440\u044B\u0432\u0430\u043D\u0438\u0438:
+          \u0443\u043D\u0438\u0447\u0442\u043E\u0436\u0430\u0435\u0442 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u043E
+          \u0438 \u0437\u0430\u043D\u0438\u043C\u0430\u0435\u0442 \u0435\u0433\u043E
+          \u043C\u0435\u0441\u0442\u043E"
+        Rarity: 2
+        Element: 36
+        ArtImage: {fileID: 0}
+        ExpansionId: 
+        PlayCost: 0
+        PlayCostAmount: 3
+        IsToken: 0
+        MulliganStartingHand: 0
+        MulliganUnlimitedReplace: 0
+        RuntimeAbilities:
+        - rid: 1051486567619100674
+        Archetypes: []
+        MaxHealth: 4
+        Attack: 4
+        Speed: 2
+        ViewPrefab: {fileID: 1046069417137952589, guid: f06aa6138ec1c4140ac9af21f0ddde7e, type: 3}
+        IsCommander: 0
+    - rid: 1051486567619100674
+      type: {class: AbilityToTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 1051486567619100675
+        Rules: []
+        Effects:
+        - rid: 1051486567619100677
+        - rid: 1051486567619100679
+        Selection: 1
+        Count: 1
+        Zone: 0
+        OfferCount: 1
+        Filters:
+        - rid: 1051486567619100678
+    - rid: 1051486567619100675
+      type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 1051486567619100677
+      type: {class: DestroyEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+    - rid: 1051486567619100678
+      type: {class: EnemyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 1051486567619100679
+      type: {class: MoveSelfToTargetCellEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2

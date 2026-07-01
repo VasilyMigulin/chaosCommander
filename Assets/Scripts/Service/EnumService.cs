@@ -72,5 +72,27 @@ namespace Game.Core.Service
 
         /// <summary>Тип карты для трекинга.</summary>
         public enum CardType { Creature, Spell, Charm }
+
+        /// <summary>Зона нахождения карты/существа. Используется правилами и фильтрами.
+        /// Flags чтобы можно было искать в нескольких зонах одним правилом.</summary>
+        [System.Flags]
+        public enum Zone
+        {
+            None      = 0,
+            Hand      = 1 << 0,
+            Deck      = 1 << 1,
+            Board     = 1 << 2,
+            Graveyard = 1 << 3,
+            Banish    = 1 << 4,
+            Any       = Hand | Deck | Board | Graveyard | Banish,
+        }
+
+        /// <summary>Принадлежность сущности относительно владельца способности.</summary>
+        public enum Ownership
+        {
+            Any,
+            Self,
+            Enemy,
+        }
     }
 }

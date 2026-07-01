@@ -9,11 +9,11 @@ namespace Game.Core.Ecs.Systems
 {
     /// <summary>
     /// Обрабатывает существ с DeadTag:
-    ///   1. Добавляет DieEvent (→ RunAbilityDieSystem запускает предсмертные способности).
+    ///   1. Добавляет DieEvent (→ OnDie-триггеры запустят предсмертные способности).
     ///   2. Обычные существа: снимает BoardTag, добавляет GraveTag, играет анимацию смерти.
     ///   3. Командир: НЕ уходит на кладбище — возвращается в руку с кулдауном 1 ход
     ///      (визуал деспавнится, чтобы корректно развернуться повторно).
-    ///   4. Публикует CreatureDiedEvent и DeathTrackedEvent.
+    ///   4. Публикует DeathTrackedEvent (трекинг матча).
     /// </summary>
     public sealed class DieSystem : IEcsRunSystem
     {
@@ -34,10 +34,13 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<HandComponent> _handPool = default;
         readonly EcsPoolInject<PlayerComponent> _playerPool = default;
         readonly EcsPoolInject<DeadTag> _deadPool = default;
+        readonly EcsPoolInject<TokenTag> _tokenPool = default;
+        readonly EcsPoolInject<LimboTag> _limboPool = default;
         readonly EcsPoolInject<BoardPositionComponent> _posPool = default;
         readonly EcsPoolInject<ViewSpawnedTag> _spawnedPool = default;
         readonly EcsPoolInject<HealthComponent> _hpPool = default;
         readonly EcsPoolInject<SpeedComponent> _speedPool = default;
+        readonly EcsPoolInject<AttackComponent> _atkPool = default;
 
         readonly EcsFilterInject<Inc<PlayerComponent, HandComponent>> _playerFilter = default;
 
@@ -56,16 +59,25 @@ namespace Game.Core.Ecs.Systems
                 if (!_diePool.Value.Has(entity))
                     _diePool.Value.Add(entity);
 
+                // Шина: OnDie/OnAllyDied-триггеры и авто-ревёрт аур слушают CreatureDiedEvent. Публикуем на
+                // обоих клиентах (смерть синкается) — триггеры гейтятся AbilityFire (актив), ревёрт ауры
+                // зеркальный. KillerEntity=-1 (атрибуция убийцы — отдельный TODO, нужно для OnKill).
+                GameEventBus.Publish(new CreatureDiedEvent { CardEntity = entity, KillerEntity = -1 });
+
+                // При смерти чистим МЯГКИЕ стат-модификаторы (ауры/«мягкий перм»); перманентные остаются.
+                ClearStatModifiers(entity);
+
                 bool isCommander = _commanderPool.Value.Has(entity);
+                bool isToken = _tokenPool.Value.Has(entity);
 
                 int ownerId = _ownerPool.Value.Has(entity) ? _ownerPool.Value.Get(entity).OwnerId : -1;
 
                 if (isCommander)
                     ReturnCommanderToHand(entity, ownerId);
+                else if (isToken)
+                    SendToLimbo(entity);
                 else
                     SendToGrave(entity);
-
-                GameEventBus.Publish(new CreatureDiedEvent { CreatureEntity = entity, PlayerId = ownerId });
 
                 // Уведомляем MatchTracker
                 string cardName = string.Empty;
@@ -100,6 +112,22 @@ namespace Game.Core.Ecs.Systems
             }
         }
 
+        // Токен не идёт на кладбище — уходит в Limbo (вне геймплея). Визуал убираем сразу.
+        private void SendToLimbo(int entity)
+        {
+            if (_viewPool.Value.Has(entity))
+            {
+                ref var vr = ref _viewPool.Value.Get(entity);
+                if (vr.View != null)
+                    Object.Destroy(vr.View);
+                vr.View = null;
+            }
+            if (_spawnedPool.Value.Has(entity))
+                _spawnedPool.Value.Del(entity);
+
+            _limboPool.Value.Add(entity);
+        }
+
         private void ReturnCommanderToHand(int entity, int ownerId)
         {
             // Деспавним визуал, чтобы повторное развёртывание создало новый инстанс
@@ -120,12 +148,12 @@ namespace Game.Core.Ecs.Systems
             if (_deadPool.Value.Has(entity))
                 _deadPool.Value.Del(entity);
 
-            // Восстанавливаем статы к базовым
+            // Статы уже сброшены (ClearStatModifiers снял мягкие модификаторы → Max пересчитан на
+            // Base+перманентные). Лечим до полного и восстанавливаем бюджет действий.
             if (_hpPool.Value.Has(entity))
             {
                 ref var hp = ref _hpPool.Value.Get(entity);
-                hp.Max     = hp.BaseMax;
-                hp.Current = hp.BaseMax;
+                hp.Current = hp.Max;
             }
             if (_speedPool.Value.Has(entity))
             {
@@ -146,6 +174,15 @@ namespace Game.Core.Ecs.Systems
                     hand.CardEntities.Insert(0, entity);
                     hand.Count = hand.CardEntities.Count;
                 }
+
+                // Вернуть карту командира в руку-UI: HandUISystem ловит CardDrawnEvent (только для локального
+                // игрока) → CardAddedToHandUIEvent → CardLayout снова покажет карту. Без этого карта в руке
+                // логически есть, но визуально не появляется.
+                // ВАЖНО: публикуем ВСЕГДА (вне Contains-проверки выше). У командира выделенный слот
+                // (_commanderSlot), «места» для него хватает всегда. Если на повторной смерти он логически
+                // уже числился в hand.CardEntities (re-cast не снял из списка) — раньше событие не слалось и
+                // командир переставал визуально возвращаться (баг 2-й смерти).
+                GameEventBus.Publish(new CardDrawnEvent { CardEntity = entity, PlayerId = playerEntity });
             }
 
             if (!_commanderCdPool.Value.Has(entity))
@@ -157,6 +194,14 @@ namespace Game.Core.Ecs.Systems
                 CardEntity    = entity,
                 CooldownTurns = CommanderDeathCooldown,
             });
+        }
+
+        // Чистка МЯГКИХ стат-модификаторов при смерти (перманентные остаются). Пересчёт внутри ClearModifiers.
+        private void ClearStatModifiers(int entity)
+        {
+            if (_atkPool.Value.Has(entity))   { ref var a = ref _atkPool.Value.Get(entity);   a.ClearModifiers(); }
+            if (_hpPool.Value.Has(entity))    { ref var h = ref _hpPool.Value.Get(entity);     h.ClearModifiers(); }
+            if (_speedPool.Value.Has(entity)) { ref var s = ref _speedPool.Value.Get(entity);  s.ClearModifiers(); }
         }
 
         private int FindPlayerEntity(int playerId)

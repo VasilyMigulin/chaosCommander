@@ -1,6 +1,7 @@
 using AwesomeUI.Core.Slot;
 using AwesomeUI.Core.Card;
 using Game.Core.DeckBuilder;
+using Game.Core.Instance.Card;
 using Game.Core.Model.Card;
 using TMPro;
 using UnityEngine;
@@ -58,7 +59,15 @@ namespace AwesomeUI.Feature.DeckBuilder
                 _counterText.text = $"x{_data.DeckCount}";
         }
 
-        public override void OnActive() { }
+        // Смена языка: пересобираем визуал (имя/описание) из модели и перерисовываем.
+        public override void RefreshLocalization()
+        {
+            if (Model == null) return;
+            _data.Visual = CardVisualDataFactory.From(Model, _data.IsCommander);
+            UpdateView();
+        }
+
+        public override void OnUse() { }
         public override void Unject()   { }
 
         public override void OnClick()

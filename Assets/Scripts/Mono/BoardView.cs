@@ -13,6 +13,8 @@ namespace Game.Core.Mono
         public int Width  => width;
         /// <summary>Рядов на доске одного игрока.</summary>
         public int Height => height;
+        /// <summary>Мировой размер клетки.</summary>
+        public float CellSize => cellSize;
         [SerializeField] CellView cellPrefab;
         [SerializeField] AvatarPlayerView avatarPlayerPrefab;
 
@@ -124,6 +126,18 @@ namespace Game.Core.Mono
             var avatar = Instantiate(avatarPlayerPrefab, cellPosition, Quaternion.identity, transform);
             avatar.Init(owner);
             _avatarViews[owner] = avatar;
+        }
+
+        /// <summary>Мировой центр игрового поля (усреднение позиций всех клеток, без аватар-клеток).</summary>
+        public Vector3 BoardCenter
+        {
+            get
+            {
+                if (_cellMap.Count == 0) return transform.position;
+                Vector3 sum = Vector3.zero;
+                foreach (var kv in _cellMap) sum += kv.Value.transform.position;
+                return sum / _cellMap.Count;
+            }
         }
 
         public CellView GetCell(int row, int col, int ownerId)

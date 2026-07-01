@@ -1,5 +1,9 @@
 fileFormatVersion: 2
 guid: cbdb354f9f41b2944a988776ad00a967
+labels:
+- Голубой
+- Голубой_волшебник
+- волшебник
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000

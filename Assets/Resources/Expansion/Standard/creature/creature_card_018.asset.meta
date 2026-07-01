@@ -1,5 +1,11 @@
 fileFormatVersion: 2
 guid: 7abddde84c3a88b4fbef806974871595
+labels:
+- Скелетон
+- Скелетон-чародей,_без_кожи
+- без
+- кожи
+- чародей
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000

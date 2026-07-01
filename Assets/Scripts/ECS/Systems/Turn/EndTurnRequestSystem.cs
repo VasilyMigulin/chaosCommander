@@ -2,39 +2,118 @@ using Leopotam.EcsLite;
 using Leopotam.EcsLite.Di;
 using Game.Core.Ecs.Components;
 using Game.Core.Events;
-using Game.Core.Photon;
 
 namespace Game.Core.Ecs.Systems
 {
     /// <summary>
-    /// Обрабатывает EndTurnRequestEvent от активного игрока.
-    /// Блокирует ввод и вызывает RPC на хосте.
-    /// Фазу НЕ меняет — это делает хост через RPC_TurnEndPhaseBegin.
+    /// Конец хода активного (локального) игрока — детерминированно, без таймеров.
+    ///   Шаг A (по запросу, СРАЗУ): снять ActiveState (ввод off мгновенно), поднять OnTurnEnd-способности,
+    ///       войти в EndTurnState. «Симулятор» (TurnGate.IsLocalActive) держится через EndTurnState,
+    ///       поэтому OnTurnEnd срабатывают и реплей не включается раньше времени.
+    ///   Шаг B: когда ОСЯДЕТ ability-пайплайн (cast/targeting/queued) — отправить снапшот EndTurn и снять
+    ///       EndTurnState (→ игрок становится пассивным, включается реплей).
+    /// Анимации НЕ ждём: снапшоты действий шлются в момент НАЧАЛА действия, а не по концу анимации,
+    /// поэтому порядок снапшотов уже корректен; ability-пайплайн дренируется детерминированно → таймаут не нужен.
+    /// ВАЖНО: регистрировать ПОСЛЕ ability-систем, чтобы видеть актуальное состояние пайплайна.
     /// </summary>
     public sealed class EndTurnRequestSystem : IEcsRunSystem
     {
-        readonly EcsPoolInject<EndTurnRequestEvent> _endTurnPool = default;
-        readonly EcsPoolInject<TurnPhaseState> _phasePool = default;
-        readonly EcsFilterInject<Inc<EndTurnRequestEvent, TurnState, TurnPhaseState, PlayerComponent>> _requestFilter = default;
-        readonly EcsCustomInject<PhotonRunHandler> _photon = default;
+        readonly EcsPoolInject<EndTurnRequestEvent> _reqPool   = default;
+        readonly EcsPoolInject<EndTurnState>        _endPool   = default;
+        readonly EcsPoolInject<ActiveState>         _activePool = default;
+        readonly EcsPoolInject<OwnerComponent>      _ownerPool = default;
+        readonly EcsPoolInject<PlayerComponent>     _playerPool = default;
+        readonly EcsPoolInject<TurnEndEvent>        _turnEndEventPool = default;
+
+        readonly EcsFilterInject<Inc<EndTurnRequestEvent, ActiveState, PlayerComponent>> _reqFilter = default;
+        readonly EcsFilterInject<Inc<EndTurnState, PlayerComponent>>                     _endFilter = default;
+        // Соло: нет сетевого оппонента (RemoteComponent) → передавать ход некому, возвращаем его себе.
+        readonly EcsFilterInject<Inc<PlayerComponent, RemoteComponent>> _remotePlayers = default;
+        readonly EcsPoolInject<TurnCounterComponent> _counterPool = default;
+        readonly EcsFilterInject<Inc<AbilityContainerComponent, BoardTag, OwnerComponent>, Exc<HandTag, DeckTag>> _boardCards = default;
+
+        // Ждём только авто-стадии ability-пайплайна (без AbilityTargetPendingState — это ожидание игрока,
+        // которого после снятия ActiveState уже не будет; и без анимаций).
+        readonly EcsFilterInject<Inc<AbilityCastEvent>>      _abilityCast   = default;
+        readonly EcsFilterInject<Inc<AbilityTargetingState>> _abilityTarget = default;
+        readonly EcsFilterInject<Inc<AbilityQueuedState>>    _abilityQueued = default;
+        // ВАЖНО: ждём и НЕЗАВЕРШЁННЫЙ каст (форс-плей токена с добора: RequestCardCastEvent добавлен, но роутер
+        // ещё не сделал из него AbilityCastEvent). Иначе ранний End Turn хендофит ход до сбора ActionCastData
+        // авто-каста → у пассива зеркало руки держит фантом разыгранного токена.
+        readonly EcsFilterInject<Inc<RequestCardCastEvent>>  _castRequest   = default;
+        readonly EcsFilterInject<Inc<CastEvent>>             _castInProgress = default;
 
         public void Run(IEcsSystems systems)
         {
-            foreach (var entity in _requestFilter.Value)
+            if (MatchState.IsOver) return;   // матч окончен — конец хода не обрабатываем
+
+            // Шаг A: запрос → СРАЗУ снять ActiveState, поднять OnTurnEnd, войти в EndTurnState.
+            foreach (var entity in _reqFilter.Value)
             {
-                ref var phase = ref _phasePool.Value.Get(entity);
+                if (!_playerPool.Value.Get(entity).IsLocalPlayer) continue;
 
-                if (phase.Phase != TurnPhase.PlayerTurn)
-                    continue;
+                _reqPool.Value.Del(entity);
+                if (_endPool.Value.Has(entity)) continue;   // уже завершаем — игнор повторного запроса
 
-                _endTurnPool.Value.Del(entity);
+                int playerId = _playerPool.Value.Get(entity).PlayerId;
 
-                // Блокируем ввод локально
+                foreach (var ce in _boardCards.Value)
+                {
+                    if (_ownerPool.Value.Get(ce).OwnerId != playerId) continue;
+                    if (!_turnEndEventPool.Value.Has(ce)) _turnEndEventPool.Value.Add(ce);
+                }
+
+                _endPool.Value.Add(entity).AbilitiesFired = true;
+                _activePool.Value.Del(entity);          // ввод off СРАЗУ; «симулятор» держится через EndTurnState
                 GameEventBus.Publish(new InputBlockedEvent());
 
-                // Просим хоста начать TurnEnd-фазу
-                _photon.Value.RPC_RequestEndTurn();
+                // OnTurnEnd-триггеры способностей (bus): ловит OnTurnEndTrigger, вешает AbilityCastEvent.
+                // Публикуем ПОКА держится EndTurnState (TurnGate.IsLocalActive=true) → AbilityFire.Mark
+                // пропустит, и поднятый ability-пайплайн осядет до передачи хода (Шаг B ждёт его).
+                GameEventBus.Publish(new TurnEndedEvent { ActivePlayerId = playerId });
+                UnityEngine.Debug.Log($"[EndTurn] player {playerId}: ActiveState removed, OnTurnEnd raised, settling abilities…");
+                return;
+            }
+
+            // Шаг B: дождаться оседания ability-пайплайна → отправить EndTurn-снапшот, снять EndTurnState.
+            if (_endFilter.Value.GetEntitiesCount() == 0) return;
+            if (AbilitiesPending()) return;
+
+            var world = systems.GetWorld();
+            bool solo = _remotePlayers.Value.GetEntitiesCount() == 0;   // нет сетевого оппонента
+
+            foreach (var entity in _endFilter.Value)
+            {
+                if (!_playerPool.Value.Get(entity).IsLocalPlayer) continue;
+
+                _endPool.Value.Del(entity);
+
+                // Откат временных множителей частоты владельца (его ход кончился, end-триггеры уже осели).
+                // Зеркально на пассиве — ReplayEndTurn. См. SetTriggerMultiplierEffect{Temporary}.
+                CastMultiplierService.TickOwnerTurnEnd(_playerPool.Value.Get(entity).PlayerId);
+
+                if (solo)
+                {
+                    // Оппонента нет → не уходим в пассив, сразу возвращаем ход локальному игроку
+                    // (новый каскад начала хода: ресурсы/добор/OnTurnStart → ActiveState).
+                    int next = _counterPool.Value.Has(entity) ? _counterPool.Value.Get(entity).Personal + 1 : 1;
+                    TurnFlow.GrantTurn(world, entity, next);
+                    UnityEngine.Debug.Log("[EndTurn] solo: оппонента нет → ход возвращён локальному игроку");
+                    return;
+                }
+
+                GameEventBus.Publish(new EndTurnNetEvent());         // коллектор пошлёт ActionEndTurnData
+                GameEventBus.Publish(new OpponentTurnEndedEvent());  // UI: «ход оппонента»
+                UnityEngine.Debug.Log("[EndTurn] handed off (EndTurn snapshot sent)");
+                return;
             }
         }
+
+        bool AbilitiesPending()
+            => _abilityCast.Value.GetEntitiesCount()    > 0
+            || _abilityTarget.Value.GetEntitiesCount()  > 0
+            || _abilityQueued.Value.GetEntitiesCount()  > 0
+            || _castRequest.Value.GetEntitiesCount()    > 0   // форс-плей: каст запрошен, ещё не разрезолвлен
+            || _castInProgress.Value.GetEntitiesCount() > 0;  // каст в процессе (до OnCast-способностей)
     }
 }

@@ -24,7 +24,7 @@ namespace AwesomeUI.Feature.Battle
         }
 
         public override void Unject() { }
-        public override void OnActive() { }
+        public override void OnUse() { }
         public override void UpdateView() { }
 
         public void Setup(int cardEntity, CardVisualData? visualData, System.Action<CardPickupView> onPick)

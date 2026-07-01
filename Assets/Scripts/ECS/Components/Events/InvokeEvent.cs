@@ -2,6 +2,6 @@ namespace Game.Core.Ecs.Components
 {
     public struct InvokeEvent 
     {
-        // add your data here.
+        public bool NotCast;    // для исключения публикации CardCastEvent при резолве способностей, которые вызывают призыв существ (SummonEffect.InvokeSummon)
     }
 }

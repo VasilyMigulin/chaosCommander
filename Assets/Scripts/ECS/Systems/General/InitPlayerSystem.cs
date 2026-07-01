@@ -52,13 +52,17 @@ namespace Game.Core.Ecs.Systems
 
             bool isLocalPlayer = false;
 
+            // Какие стороны реально заняты игроками — остальные аватары (напр. оппонент в соло) прячем.
+            var sidePresent = new bool[3];   // индекс = сторона 1/2
+
             for (int i = 0; i < players.Length; i++)
-            {  
+            {
                 int actorNumber = players[i].PlayerId; 
 
                 isLocalPlayer = actorNumber == localPlayerID;
 
                 int side = actorNumber == minActorNumber ? 1 : 2;
+                if (side >= 1 && side <= 2) sidePresent[side] = true;
 
                 int entity = _world.Value.NewEntity();
 
@@ -103,6 +107,9 @@ namespace Game.Core.Ecs.Systems
                 {
                     _state.Value.AddEntity(entity, Service.EntityService.PLAYER_ENTITY);
                     _localPool.Value.Add(entity);
+                    // Префикс коротких NetworkEntityKey = id локального клиента (разводит ключи двух клиентов
+                    // → ноль коллизий). Ставится до генерации колоды (InitDeckSystem идёт после).
+                    Network.NetKey.SetClientPrefix(actorNumber);
                 }
                 else
                 {
@@ -118,6 +125,17 @@ namespace Game.Core.Ecs.Systems
                 });
 
                 Debug.Log($"[InitLocalPlayerSystem] Player entity={entity} playerId={actorNumber} side={side} isLocal={isLocalPlayer}");
+            }
+
+            // Прячем аватар + аватар-клетку для незанятых сторон (напр. оппонент в соло-режиме без 2-го игрока).
+            if (_boardView.Value != null)
+            {
+                for (int side = 1; side <= 2; side++)
+                {
+                    if (sidePresent[side]) continue;
+                    _boardView.Value.GetAvatarView(side)?.gameObject.SetActive(false);
+                    _boardView.Value.GetAvatarCell(side)?.gameObject.SetActive(false);
+                }
             }
         }
 

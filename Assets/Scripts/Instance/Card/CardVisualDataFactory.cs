@@ -1,5 +1,6 @@
 using Game.Core.Model.Card;
 using Game.Core.Model.Card.Creature;
+using Game.Core.Model.Card.Charm;
 using Game.Core.Shared;
 using Game.Core.Service;
 
@@ -15,14 +16,22 @@ namespace Game.Core.Instance.Card
         {
             if (model == null) return default;
 
+            var cardType   = model.GetCardType();
+            int charmTurns = model is CardCharmModel charm ? charm.TurnsAlive : 0;
+
+            // Имя/описание прогоняем через форматтер: локализация + подстановка *N* (вне боя —
+            // числа из текста) + авто-болд ключевых фраз + суффикс длительности для чар.
+            string nameKey = CardTextLocalization.NameKey(model.ExpansionId, model.Id);
+            string descKey = CardTextLocalization.DescKey(model.ExpansionId, model.Id);
+
             var data = new CardVisualData
             {
-                CardName    = model.Name,
-                Description = model.Description,
+                CardName    = CardDescriptionFormatter.FormatName(nameKey, model.Name),
+                Description = CardDescriptionFormatter.Format(descKey, model.Description, cardType, charmTurns, null),
                 Icon        = model.ArtImage,
                 Rarity      = model.Rarity,
                 Element     = model.Element,
-                CardType    = model.GetCardType(),
+                CardType    = cardType,
                 CostType    = model.PlayCost,
                 CostAmount  = model.PlayCostAmount,
                 IsCommander = isCommander,

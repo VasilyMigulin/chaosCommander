@@ -1,5 +1,9 @@
 fileFormatVersion: 2
 guid: 3daeecd3e7695a345bbaf9878344a1b4
+labels:
+- Всадник
+- Всадник_Разложения
+- Разложения
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000

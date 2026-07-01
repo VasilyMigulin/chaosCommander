@@ -1,5 +1,9 @@
 fileFormatVersion: 2
 guid: a2322082829c6af4598ad322634d1c1b
+labels:
+- Войны
+- Всадник
+- Всадник_Войны
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000

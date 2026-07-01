@@ -1,5 +1,9 @@
 fileFormatVersion: 2
 guid: 0fffe5116d1b85c488b7548d0833023b
+labels:
+- Свежий
+- Свежий_зомби
+- зомби
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000

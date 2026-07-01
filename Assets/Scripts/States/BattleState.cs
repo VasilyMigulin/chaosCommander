@@ -28,7 +28,7 @@ namespace Game.Core.States
             }
         }
 
-        public BoardView BoardView 
+        public BoardView BoardView
         {
             get
             {
@@ -45,13 +45,17 @@ namespace Game.Core.States
 
         [HideInInspector] public EcsRunHandler EcsHandler;
         [HideInInspector] public PhotonRunHandler PhotonRunHandler;
-         
+
         protected Dictionary<string, EcsPackedEntity> _localKeyMap = new();
         protected Dictionary<string, EcsPackedEntity> _netKeyMap = new();
         protected Dictionary<int, string> _netLocalMap = new();
         protected Dictionary<int, (PlayerRef playerRef, NetworkPlayerData playerData)> dictionaryPlayers = new Dictionary<int, (PlayerRef, NetworkPlayerData)>();
         public bool IsServer => PhotonRunHandler.IsServer;
         public EcsWorld World => EcsHandler.World;
+
+        // Идёт выход в меню: гасим сессию и грузим MenuScene. Пока true — ECS не гоняем (раннер
+        // завершается асинхронно, чужие RPC/системы в этот момент бессмысленны).
+        private bool _exiting;
 
         public void AddEntity(int entity, string localKey = null, string networkKey = null)
         {
@@ -137,6 +141,7 @@ namespace Game.Core.States
             // Подписываемся на ECS-init триггер от сервера.
             GameEventBus.Subscribe<TriggerStateInitEvent>(OnTriggerStateInit);
             GameEventBus.Subscribe<CellSelectedEvent>(OnCellSelected);
+            GameEventBus.Subscribe<ExitToMenuRequestedEvent>(OnExitToMenuRequested);
 
             Debug.Log($"[BattleState][{(PhotonRunHandler.IsServer ? "HOST" : "CLIENT")}] Start(): subscribed to TriggerStateInitEvent. Calling RPC_NotifySceneLoaded.");
 
@@ -169,12 +174,11 @@ namespace Game.Core.States
 
         private void OnCellSelected(CellSelectedEvent evt)
         {
-            Debug.Log($"[BattleState] OnCellSelected row={evt.Row} col={evt.Col} ownerId={evt.OwnerId}");
             if (EcsHandler?.World == null) return;
             int e = EcsHandler.World.NewEntity();
             ref var click = ref EcsHandler.World.GetPool<CellClickEvent>().Add(e);
-            click.Row     = evt.Row;
-            click.Col     = evt.Col;
+            click.Row = evt.Row;
+            click.Col = evt.Col;
             click.OwnerId = evt.OwnerId;
         }
 
@@ -182,10 +186,41 @@ namespace Game.Core.States
         {
             GameEventBus.Unsubscribe<TriggerStateInitEvent>(OnTriggerStateInit);
             GameEventBus.Unsubscribe<CellSelectedEvent>(OnCellSelected);
+            GameEventBus.Unsubscribe<ExitToMenuRequestedEvent>(OnExitToMenuRequested);
             EcsHandler?.Dispose();
-            MatchTracker.Shutdown(); 
+            MatchTracker.Shutdown();
         }
-        public override void Update() => EcsHandler.Run();
+
+        /// <summary>
+        /// Выход в меню из поп-апа результата: чисто гасим Photon-сессию (EndSession ждёт штатного
+        /// Runner.Shutdown), затем грузим MenuScene (build index 1). Загрузка сцены выгрузит боевую
+        /// сцену → OnDestroy → EcsHandler.Dispose. PhotonInitializer (DontDestroyOnLoad) переживает
+        /// переход; повторный matchmaking стартует с чистого состояния.
+        /// </summary>
+        private async void OnExitToMenuRequested(ExitToMenuRequestedEvent _)
+        {
+            if (_exiting) return;
+            _exiting = true;
+            GameEventBus.Unsubscribe<ExitToMenuRequestedEvent>(OnExitToMenuRequested);
+
+            try
+            {
+                if (PhotonInitializer.Instance != null)
+                    await PhotonInitializer.Instance.EndSession();
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[BattleState] EndSession on exit failed: {e.Message}");
+            }
+
+            RequestLoadingScene(1);   // MenuScene
+        }
+
+        public override void Update()
+        {
+            if (_exiting) return;   // сессия гаснет — пайплайн больше не гоняем
+            EcsHandler.Run();
+        }
         public void FixedUpdate() => EcsHandler.FixedRun();
         public void LateUpdate() => EcsHandler.LateRun();
 
@@ -207,6 +242,11 @@ namespace Game.Core.States
             }
 
             return false;
+        }
+
+        public void CastEvent<TEvent>(TEvent evt) where TEvent : struct
+        {
+            EcsHandler.World.GetPool<TEvent>().Add(EcsHandler.World.NewEntity()) = evt;
         }
     }
 }

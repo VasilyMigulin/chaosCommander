@@ -24,6 +24,11 @@ namespace Game.Core.Photon
 
         [HideInInspector] public NetworkRunner Runner;
 
+        // Каждый Runner живёт на ОТДЕЛЬНОМ корневом GameObject (DontDestroyOnLoad). Это убирает гонку
+        // «несколько NetworkRunner на одном объекте», переживает загрузку сцены и позволяет завершать
+        // сессию чисто: await Runner.Shutdown() + Destroy(объект), без поллинга компонентов.
+        private GameObject _runnerObject;
+
         // События
         public event Action<int, int> OnPlayersCountChanged;
         public event Action<PlayerRef> OnPlayerJoinedEvent;
@@ -139,12 +144,13 @@ namespace Game.Core.Photon
             Instance = this;
             DontDestroyOnLoad(gameObject);
 
-            _matchmakingService = new MatchmakingService(this);
+            // Не отваливаться по Photon-таймауту, когда окно теряет фокус (тест эдитор+эмулятор на одной
+            // машине; и вообще для сетевой игры неактивное окно должно продолжать обслуживать сеть).
+            Application.runInBackground = true;
 
-            if (runHandlerPrefab == null)
-            {
-                Debug.LogError("[PhotonInitializer] RunHandler prefab is not assigned!");
-            }
+            _matchmakingService = new MatchmakingService(this);
+            // Префаб грузится в SetPrefabPhotonHandler() сразу после AddComponent в Initialize()
+            // (т.е. ПОСЛЕ этого Awake) — там же логируется результат. Здесь проверять рано.
         }
 
         /// <summary>
@@ -159,9 +165,8 @@ namespace Game.Core.Photon
                 await EndSession();
             }
 
-            Runner = gameObject.AddComponent<NetworkRunner>();
+            Runner = CreateRunner();
             Runner.ProvideInput = false;
-            Runner.AddCallbacks(this);
 
             var result = await Runner.JoinSessionLobby(SessionLobby.ClientServer);
 
@@ -192,11 +197,10 @@ namespace Game.Core.Photon
 
             connectedPlayers.Clear();
 
-            Runner = gameObject.AddComponent<NetworkRunner>();
+            Runner = CreateRunner();
             Runner.ProvideInput = session.ProvideInput;
-            Runner.AddCallbacks(this);
 
-            var sceneManager = Runner.gameObject.AddComponent<NetworkSceneManagerDefault>();
+            var sceneManager = _runnerObject.AddComponent<NetworkSceneManagerDefault>();
 
             var args = new StartGameArgs
             {
@@ -226,6 +230,22 @@ namespace Game.Core.Photon
 
             Debug.Log($"[PhotonInitializer] Session '{session.RoomName}' started in Lobby. IsServer: {Runner.IsServer}");
         }
+        /// <summary>
+        /// Создаёт NetworkRunner на ОТДЕЛЬНОМ корневом GameObject с DontDestroyOnLoad и подписывает
+        /// колбэки. Отдельный объект убирает гонку нескольких раннеров; DontDestroyOnLoad гарантирует,
+        /// что раннер переживёт загрузку боевой сцены (Fusion выгружает прежнюю сцену). NetworkSceneManager
+        /// добавляется на этот же объект, а в EndSession объект уничтожается целиком.
+        /// </summary>
+        private NetworkRunner CreateRunner()
+        {
+            _runnerObject = new GameObject("NetworkRunner");
+            DontDestroyOnLoad(_runnerObject);
+
+            var runner = _runnerObject.AddComponent<NetworkRunner>();
+            runner.AddCallbacks(this);
+            return runner;
+        }
+
         private void SpawnRunHandler()
         {
             var obj = Runner.Spawn(
@@ -247,30 +267,46 @@ namespace Game.Core.Photon
                 Debug.LogError("[PhotonInitializer] Failed to spawn RunHandler.");
             }
         }
+        /// <summary>
+        /// Завершает текущую сессию. Ждёт штатного завершения через awaitable Runner.Shutdown()
+        /// (Fusion сам сигналит о завершении — поллинг не нужен), затем уничтожает GameObject раннера.
+        /// Ссылки обнуляются СРАЗУ, чтобы параллельные колбэки/повторный вход видели чистое состояние;
+        /// исключения внутри shutdown не пробрасываются (иначе ретрай/повторный поиск не восстановятся).
+        /// </summary>
         public async Task EndSession()
         {
-            if (currentHandler != null)
-            {
-                if (currentHandler.Object != null && currentHandler.Object.IsValid && Runner != null && Runner.IsServer)
-                    Runner.Despawn(currentHandler.Object);
-
-                currentHandler = null;
-            }
-
-            if (Runner != null)
-            {
-                await Runner.Shutdown(false);
-                Destroy(Runner);
-
-                while (gameObject.GetComponents<NetworkRunner>().Length > 0)
-                {
-                    await Task.Delay(10);
-                }
-
-                Runner = null;
-            }
-
+            // Снимаем ссылки заранее: дальнейшие колбэки (OnShutdown и т.п.) увидят, что сессии уже нет.
+            var runner = Runner;
+            var runnerObject = _runnerObject;
+            var handler = currentHandler;
+            Runner = null;
+            _runnerObject = null;
+            currentHandler = null;
             connectedPlayers.Clear();
+
+            try
+            {
+                if (handler != null && handler.Object != null && handler.Object.IsValid
+                    && runner != null && runner.IsServer)
+                    runner.Despawn(handler.Object);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[PhotonInitializer] EndSession despawn handler failed: {e.Message}");
+            }
+
+            if (runner != null)
+            {
+                try { await runner.Shutdown(false); }   // awaitable — ждём фактического завершения
+                catch (Exception e)
+                {
+                    Debug.LogWarning($"[PhotonInitializer] EndSession Runner.Shutdown failed: {e.Message}");
+                }
+            }
+
+            // Отдельный GameObject на раннер → просто уничтожаем его целиком (вместе со SceneManager).
+            if (runnerObject != null)
+                Destroy(runnerObject);
         }
 
         #region INetworkRunnerCallbacks

@@ -1,0 +1,26 @@
+{
+    "name": "Game.Core.Localization",
+    "rootNamespace": "",
+    "references": [
+        "GUID:ab46f0384b91e604cab2878e7c49e9f1",
+        "Unity.Localization",
+        "Unity.ResourceManager"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "UNITY_LOCALIZATION_PRESENT"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.unity.localization",
+            "expression": "",
+            "define": "UNITY_LOCALIZATION_PRESENT"
+        }
+    ],
+    "noEngineReferences": false
+}

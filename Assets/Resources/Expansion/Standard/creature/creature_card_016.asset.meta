@@ -1,5 +1,10 @@
 fileFormatVersion: 2
 guid: b190edb6d23559749abd59eb969c6427
+labels:
+- Начитанный
+- Начитанный_волшебник_Попадос
+- Попадос
+- волшебник
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000

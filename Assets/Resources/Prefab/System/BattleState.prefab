@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5832578747947616320}
   - component: {fileID: 3950527706335384032}
+  - component: {fileID: 7198164270660894532}
   m_Layer: 0
   m_Name: BattleState
   m_TagString: Untagged
@@ -47,3 +48,17 @@ MonoBehaviour:
   _boardView: {fileID: 0}
   _cardConfig: {fileID: 11400000, guid: 29818ebb13c82be4ab11bb3076e3d547, type: 2}
   PhotonRunHandler: {fileID: 0}
+--- !u!114 &7198164270660894532
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1042141512602201218}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b52561ef772cbeb44bfd923f090ef0a3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Core.Mono::Game.Core.Mono.BattleCameraSelector
+  side1Camera: {fileID: 0}
+  side2Camera: {fileID: 0}

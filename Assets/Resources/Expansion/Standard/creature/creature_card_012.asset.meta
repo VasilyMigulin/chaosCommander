@@ -1,5 +1,10 @@
 fileFormatVersion: 2
 guid: 78e7564369b04154b910edc21d709a60
+labels:
+- Боец
+- Боец_на_арене
+- арене
+- на
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000

@@ -1,48 +1,19 @@
-using System.Collections.Generic;
-
 namespace Game.Core.Ecs.Components
 {
+    // === struct (State, рантайм-прогресс цепочки) ===
     /// <summary>
-    /// Состояние цепочки на entity способности во время её разрешения.
-    /// Создаётся AbilityChainAdvanceSystem при первом резолве, обновляется
-    /// между шагами; удаляется когда цепочка пройдена (или абилка не имеет шагов).
+    /// Прогресс выполнения составной способности. Ставит RunCheckAbilityRulesSystem при старте цепочки,
+    /// ведёт RunChainSystem, снимает по завершении всех стадий.
     /// </summary>
     public struct ChainStateComponent
     {
-        /// <summary>
-        /// Текущий шаг. 0 = основные Effects абилки; 1..N = ChainSteps[i-1].
-        /// </summary>
-        public int CurrentStepIndex;
-
-        /// <summary>Сколько ВСЕГО шагов в цепочке (включая шаг 0). Если ChainSteps пуст — равен 1.</summary>
-        public int TotalSteps;
-
-        /// <summary>
-        /// Цели текущего шага. Заполняются RunResolveAbilityEffectSystem при создании
-        /// effect-entity и читаются AbilityChainAdvanceSystem для пропагирования в
-        /// следующий шаг (если TargetSource == PreviousTarget).
-        /// </summary>
-        public List<int> CurrentTargets;
-
-        /// <summary>
-        /// «Продукт» текущего шага — entity, на которую укажет следующий шаг
-        /// при TargetSource = PreviousProduced. Для DealDamage/Heal/etc. — первая цель.
-        /// Для PickCard — выбранная карта (выставляется ApplyPickCardSystem).
-        /// </summary>
-        public int ProducedEntity;
-
-        /// <summary>true если CapturedRow/Col/OwnerId валидны (предыдущая цель была на доске).</summary>
-        public bool HasCapturedCell;
-        public int CapturedRow;
-        public int CapturedCol;
-        public int CapturedCellOwnerId;
-
-        /// <summary>
-        /// Карта, выбранная раскопкой при касте (если у источника был
-        /// RequireCardPickPlayRequirement). Зеркалится ChainAdvanceSystem при входе,
-        /// сохраняется на всю цепочку. Читается ChainTargetSource.PickedCard.
-        /// -1 если раскопки не было.
-        /// </summary>
-        public int PickedCardEntity;
+        /// <summary>Текущая стадия (индекс в AbilityChainComponent.Stages).</summary>
+        public int Current;
+        /// <summary>Стадия уже применена и мы ждём оседания мира (урон/смерти) перед шагом дальше.</summary>
+        public bool Applied;
+        /// <summary>Накоплено погибших среди целей пройденных стадий (контекст для CountSource).</summary>
+        public int Killed;
+        /// <summary>Цели текущей применённой стадии — по ним считаем смерти после оседания.</summary>
+        public int[] LastTargets;
     }
 }

@@ -389,9 +389,6 @@ namespace Game.Core.Photon
 
         // -- Turn coordination ------------------------------------------------
 
-        // ������� ������������� �� �������� ��� ������� ����
-        private int _turnPhaseReadyCount = 0;
-        private int _matchStartReadyCount = 0;
         private int _currentTurnNumber = 0;
         private int _activePlayerId = -1;
 
@@ -431,19 +428,12 @@ namespace Game.Core.Photon
 
             _currentTurnNumber = 1;
             _activePlayerId = firstPlayerId;
-            _turnPhaseReadyCount = 0;
-            _matchStartReadyCount = 0;
-             
-            RPC_PreStartPhaseBegin();
-        }
-         
-        public void RegisterGlobalTurnEntity(int entity)
-        {
-            _state?.AddEntity(entity, "global_turn");
+
+            RPC_PreStartPhaseBegin(firstPlayerId);
         }
 
         [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-        public void RPC_PreStartPhaseBegin()
+        public void RPC_PreStartPhaseBegin(int firstPlayerId)
         {
             if (_state != null)
             {
@@ -471,17 +461,26 @@ namespace Game.Core.Photon
                 if(playerEntityFirst != -1) world.GetPool<MatchStartEvent>().Add(playerEntityFirst);
                 if(playerEntitySecond != -1) world.GetPool<MatchStartEvent>().Add(playerEntitySecond);
 
-                // ��������� ���� ������� � ���� ��������� OnMatchStart-������������
-                var phasePool = world.GetPool<TurnPhaseState>();
-                var allPlayersFilter = world.Filter<PlayerComponent>().Inc<TurnPhaseState>().End();
-                foreach (var pe in allPlayersFilter)
-                {
-                    ref var phase = ref phasePool.Get(pe);
-                    phase.Phase = TurnPhase.MatchStartAbilities;
-                }
-
-                // ��������� UI-������� � ������� ��������� ���� ���������� ������
+                // UI начальной руки
                 PublishPreStartHandUI(world);
+
+                // Первый ход: на клиенте, где первый игрок ЛОКАЛЬНЫЙ, запускаем каскад начала хода
+                // (StartTurnState → ресурсы/добор/OnTurnStart → ActiveState). Никаких фаз/handshake.
+                var playerPool = world.GetPool<PlayerComponent>();
+                foreach (var pe in world.Filter<PlayerComponent>().Inc<LocalComponent>().End())
+                {
+                    if (playerPool.Get(pe).PlayerId == firstPlayerId)
+                    {
+                        Game.Core.Ecs.Components.TurnFlow.GrantTurn(world, pe, 1);
+                        Debug.Log($"[PhotonRunHandler] First turn granted to local player {firstPlayerId}");
+                    }
+                    else
+                    {
+                        // Локальный игрок не первый → у него ход оппонента: показываем попап.
+                        GameEventBus.Publish(new Game.Core.Events.OpponentTurnEndedEvent());
+                        Debug.Log("[PhotonRunHandler] First turn: local is passive → opponent-turn popup");
+                    }
+                }
             }
         }
 
@@ -564,210 +563,6 @@ namespace Game.Core.Photon
             }
         }
 
-        [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-        public void RPC_NotifyMatchStartReady(RpcInfo info = default)
-        {
-            if (!IsServer) return;
-
-            _matchStartReadyCount++;
-            Debug.Log($"[PhotonRunHandler] MatchStartReady {_matchStartReadyCount}/{_playerProgress.Count}");
-
-            if (_matchStartReadyCount >= _playerProgress.Count)
-            {
-                _matchStartReadyCount = 0;
-                int personal = GetPersonalTurnNumber(_activePlayerId);
-                RPC_TurnStartPhaseBegin(_activePlayerId, _currentTurnNumber, personal);
-            }
-        }
-
-        [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-        public void RPC_RequestEndTurn(RpcInfo info = default)
-        {
-            if (!IsServer) return;
-
-            _turnPhaseReadyCount = 0;
-            RPC_TurnEndPhaseBegin(_activePlayerId, _currentTurnNumber, GetPersonalTurnNumber(_activePlayerId));
-        }
-
-        /// <summary>���� > ��� �������: ������ ��������� OnTurnEnd ������������.</summary>
-        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-        private void RPC_TurnEndPhaseBegin(int activePlayerId, int turnNumber, int personalTurnNumber)
-        {
-            if (_state == null) return;
-            var world = _state.World;
-            var playerPool = world.GetPool<PlayerComponent>();
-            var phasePool = world.GetPool<TurnPhaseState>();
-            var turnEndPool = world.GetPool<TurnEndEvent>();
-            var ownerPool = world.GetPool<OwnerComponent>();
-            var filter = world.Filter<PlayerComponent>()
-                              .Inc<TurnPhaseState>().End();
-
-            foreach (var e in filter)
-            {
-                ref var phase = ref phasePool.Get(e);
-                phase.Phase = TurnPhase.TurnEndAbilities;
-            }
-
-            // TurnEndEvent �� ����� ��������� ������
-            var boardFilter = world.Filter<AbilityContainerComponent>()
-                                   .Inc<BoardTag>()
-                                   .Inc<OwnerComponent>().End();
-
-            foreach (var cardEntity in boardFilter)
-            {
-                if (ownerPool.Get(cardEntity).OwnerId != activePlayerId) continue;
-                if (!turnEndPool.Has(cardEntity))
-                    turnEndPool.Add(cardEntity);
-            }
-
-            GameEventBus.Publish(new TurnEndedEvent { ActivePlayerId = activePlayerId });
-            GameEventBus.Publish(new InputBlockedEvent());
-            Debug.Log($"[PhotonRunHandler] TurnEndPhase begun for player {activePlayerId}, turn {turnNumber}");
-        }
-
-        /// <summary>������ > ����: TurnEnd-����������� �� ���� ������� ���������.</summary>
-        [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-        public void RPC_NotifyTurnEndReady(RpcInfo info = default)
-        {
-            if (!IsServer) return;
-            _turnPhaseReadyCount++;
-            Debug.Log($"[PhotonRunHandler] TurnEndReady {_turnPhaseReadyCount}/{_playerProgress.Count}");
-
-            if (_turnPhaseReadyCount >= _playerProgress.Count)
-            {
-                _turnPhaseReadyCount = 0;
-                int nextPlayerId = GetNextPlayerId(_activePlayerId);
-                _activePlayerId = nextPlayerId;
-                _currentTurnNumber++;
-                int personal = GetPersonalTurnNumber(nextPlayerId);
-                RPC_TurnStartPhaseBegin(nextPlayerId, _currentTurnNumber, personal);
-            }
-        }
-
-        /// <summary>���� > ��� �������: ������ ��������� OnTurnStart ������������ ���������� ������.</summary>
-        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-        private void RPC_TurnStartPhaseBegin(int nextPlayerId, int turnNumber, int personalTurnNumber)
-        {
-            if (_state == null) return;
-            var world = _state.World;
-            var transferPool = world.GetPool<Game.Core.Ecs.Components.TurnTransferEvent>();
-            var playerPool = world.GetPool<Game.Core.Ecs.Components.PlayerComponent>();
-            var filter = world.Filter<Game.Core.Ecs.Components.PlayerComponent>().End();
-
-            foreach (var e in filter)
-            {
-                if (playerPool.Get(e).PlayerId != nextPlayerId) continue;
-                if (!transferPool.Has(e))
-                {
-                    ref var t = ref transferPool.Add(e);
-                    t.FromPlayerId = GetNextPlayerId(nextPlayerId); // ����������
-                    t.ToPlayerId = nextPlayerId;
-                    t.TurnNumber = turnNumber;
-                    t.PersonalTurnNumber = personalTurnNumber;
-                }
-                break;
-            }
-
-            Debug.Log($"[PhotonRunHandler] TurnStartPhase begun for player {nextPlayerId}, turn {turnNumber}");
-        }
-
-        /// <summary>������ > ����: TurnStart-����������� �� ���� ������� ���������.</summary>
-        [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-        public void RPC_NotifyTurnStartReady(RpcInfo info = default)
-        {
-            if (!IsServer) return;
-            _turnPhaseReadyCount++;
-            Debug.Log($"[PhotonRunHandler] TurnStartReady {_turnPhaseReadyCount}/{_playerProgress.Count}");
-
-            if (_turnPhaseReadyCount >= _playerProgress.Count)
-            {
-                _turnPhaseReadyCount = 0;
-                RPC_PlayerTurnBegin(_activePlayerId);
-            }
-        }
-
-        /// <summary>���� > ��� �������: �������� ����� �������� ���� ���.</summary>
-        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-        private void RPC_PlayerTurnBegin(int activePlayerId)
-        {
-            if (_state == null) return;
-            var world = _state.World;
-            var phasePool = world.GetPool<Game.Core.Ecs.Components.TurnPhaseState>();
-            var playerPool = world.GetPool<Game.Core.Ecs.Components.PlayerComponent>();
-            var filter = world.Filter<Game.Core.Ecs.Components.PlayerComponent>()
-                              .Inc<Game.Core.Ecs.Components.TurnPhaseState>().End();
-
-            foreach (var e in filter)
-            {
-                ref var phase = ref phasePool.Get(e);
-                phase.Phase = Game.Core.Ecs.Components.TurnPhase.PlayerTurn;
-
-                // ��������������� ���� ������ ��������� ������
-                ref var playerComp = ref playerPool.Get(e);
-                bool isActivePlayer = playerComp.PlayerId == activePlayerId;
-
-                if (playerComp.IsLocalPlayer)
-                {
-                    if (isActivePlayer)
-                    {
-                        float turnDuration = 0f;
-                        int turnNumber = 0;
-                        var turnStatePool = world.GetPool<Game.Core.Ecs.Components.TurnState>();
-                        if (turnStatePool.Has(e))
-                        {
-                            ref var ts = ref turnStatePool.Get(e);
-                            turnDuration = ts.TimeRemaining;
-                            turnNumber = ts.TurnNumber;
-                        }
-
-                        GameEventBus.Publish(new Game.Core.Events.InputRestoredEvent());
-                        GameEventBus.Publish(new Game.Core.Events.LocalTurnStartedEvent
-                        {
-                            TurnNumber = turnNumber,
-                            TurnDurationSeconds = turnDuration
-                        });
-                    }
-                    else
-                    {
-                        GameEventBus.Publish(new Game.Core.Events.OpponentTurnEndedEvent());
-                    }
-                }
-            }
-
-            Debug.Log($"[PhotonRunHandler] PlayerTurn begun for player {activePlayerId}");
-        }
-
-        private int GetNextPlayerId(int currentPlayerId)
-        {
-            if (_state == null) return currentPlayerId;
-            var world = _state.World;
-            var playerPool = world.GetPool<Game.Core.Ecs.Components.PlayerComponent>();
-            var filter = world.Filter<Game.Core.Ecs.Components.PlayerComponent>().End();
-
-            int minId = int.MaxValue;
-            int nextId = int.MaxValue;
-
-            foreach (var e in filter)
-            {
-                int pid = playerPool.Get(e).PlayerId;
-                if (pid < minId) minId = pid;
-                if (pid > currentPlayerId && pid < nextId) nextId = pid;
-            }
-
-            return nextId == int.MaxValue ? minId : nextId;
-        }
-
-        // ������� ������� ��� ���� ����� ��� ����� (��������� ����� ���������� �������)
-        private readonly System.Collections.Generic.Dictionary<int, int> _personalTurnCounters
-            = new System.Collections.Generic.Dictionary<int, int>();
-
-        private int GetPersonalTurnNumber(int playerId)
-        {
-            if (!_personalTurnCounters.ContainsKey(playerId))
-                _personalTurnCounters[playerId] = 0;
-            _personalTurnCounters[playerId]++;
-            return _personalTurnCounters[playerId];
-        }
 
         /// <summary>
         /// ��������� ������ �������� �� ����� � ���������� �� ����� RPC.
@@ -792,11 +587,15 @@ namespace Game.Core.Photon
         [Rpc(RpcSources.All, RpcTargets.All)]
         public void RPC_SyncDeckSnapshotChunk(byte[] chunk, int chunkIndex, int totalChunks, int fromPlayerId, RpcInfo info = default)
         {
-            var runner = Runner;
-            if (runner != null && info.Source == runner.LocalPlayer)
+            if (_state == null)
                 return;
 
-            if (_state == null)
+            // СВОЙ снапшот игнорируем. RPC идёт RpcTargets.All (включая отправителя), а на ХОСТЕ info.Source
+            // собственного RPC приходит None (см. тот же эффект в RPC_NotifySceneLoaded) → сравнение
+            // info.Source == LocalPlayer НЕ ловит свой снапшот, и хост строил зеркало оппонента из СВОИХ карт
+            // (owner=оппонент, но СВОИ ключи "1-*") → коллизия netKey → дискард/таргет по руке оппонента бил по
+            // фантомной копии своей руки и промахивался на клиенте. Сверяем ЯВНЫЙ fromPlayerId с локальным id.
+            if (fromPlayerId == LocalPlayerId())
                 return;
 
             if (_snapshotChunks == null || _snapshotChunks.Length != totalChunks)
@@ -837,8 +636,24 @@ namespace Game.Core.Photon
         int _snapshotChunksReceived;
         int _snapshotFromPlayerId;
 
+        // PlayerId локального игрока из ECS (PlayerComponent+LocalComponent). Надёжнее info.Source/Runner.LocalPlayer
+        // для отсева СВОИХ RpcTargets.All-сообщений (на хосте info.Source своего RPC = None).
+        int LocalPlayerId()
+        {
+            var world = _state?.World;
+            if (world == null) return -1;
+            var playerPool = world.GetPool<Game.Core.Ecs.Components.PlayerComponent>();
+            foreach (var pe in world.Filter<Game.Core.Ecs.Components.PlayerComponent>().Inc<Game.Core.Ecs.Components.LocalComponent>().End())
+                return playerPool.Get(pe).PlayerId;
+            return -1;
+        }
+
         void ApplyDeckSnapshot(byte[] data, int fromPlayerId)
         {
+            // Защита в глубину: не строим зеркало оппонента из СВОЕГО снапшота (см. guard в чанк-хендлере).
+            if (_state == null || fromPlayerId == LocalPlayerId())
+                return;
+
             NetworkDeckSnapshotData snapshot = MemoryPackSerializer.Deserialize<NetworkDeckSnapshotData>(data);
 
             if (_state.TryGetOpponentEntity(out int opponentEntity))
@@ -938,13 +753,13 @@ namespace Game.Core.Photon
         /// Отправляет снапшот одного действия активного игрока оппоненту.
         /// Получатель кладёт снапшот в ActionQueue для воспроизведения через ReplayActionSystem.
         /// </summary>
-        [Rpc(RpcSources.All, RpcTargets.All)]
+        // InvokeLocal = false: RPC НЕ выполняется у отправителя — он уже совершил действие локально,
+        // реплеить своё нельзя (иначе резолв→коллектор→отправка зацикливаются). Это надёжнее фильтра
+        // по info.Source, т.к. у хоста (StateAuthority) Source == None и на отправителе, и на получателе
+        // — фильтром их не различить.
+        [Rpc(RpcSources.All, RpcTargets.All, InvokeLocal = false)]
         public void RPC_SendActionSnapshot(byte[] data, RpcInfo info = default)
         {
-            var runner = Runner;
-            if (runner != null && info.Source == runner.LocalPlayer)
-                return;
-
             if (_state == null)
                 return;
 

@@ -1,5 +1,7 @@
 fileFormatVersion: 2
 guid: cee73970357369e4a8bf3125b4e42bef
+labels:
+- Очиститель
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000

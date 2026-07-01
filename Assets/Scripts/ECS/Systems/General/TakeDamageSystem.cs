@@ -2,6 +2,7 @@ using Leopotam.EcsLite;
 using Leopotam.EcsLite.Di;
 using Game.Core.Ecs.Components;
 using Game.Core.Events;
+using Game.Core.Service;
 
 namespace Game.Core.Ecs.Systems
 {
@@ -10,6 +11,10 @@ namespace Game.Core.Ecs.Systems
     ///   - AttackHitEvent (на атакующем): урон цели, после — взаимный урон цели атакующему.
     ///   - TakeDamageEvent (на цели): прямой урон из способностей.
     /// Если hp <= 0 → добавляет DeadTag.
+    /// БАЗОВЫЙ ДОХОД МАНЫ: убийство ВРАЖЕСКОГО существа даёт ману убийце (мана стартует 0/0 и доходом хода
+    /// не растёт — единственный пассивный источник). Начисляем здесь: система гоняется на ОБОИХ клиентах
+    /// (бой реплеится через RemoteCreatureAttackEvent→AttackSystem→AttackHitEvent), атрибуция убийцы
+    /// (sourcePlayerId) идентична → мана сходится без отдельного синка.
     /// </summary>
     public sealed class TakeDamageSystem : IEcsRunSystem
     {
@@ -24,9 +29,18 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<TakeDamageEvent> _dmgPool = default;
 
         readonly EcsPoolInject<HealthComponent> _hpPool = default;
-        readonly EcsPoolInject<AttackComponent> _atkPool = default;
         readonly EcsPoolInject<DeadTag> _deadPool = default;
         readonly EcsPoolInject<OwnerComponent> _ownerPool = default;
+        readonly EcsPoolInject<PlayerComponent> _playerPool = default;
+        readonly EcsPoolInject<LastDamageTakenComponent> _lastDmgPool = default;
+
+        // Мана-доход за килл
+        readonly EcsPoolInject<CreatureTag> _creaturePool = default;
+        readonly EcsPoolInject<ManaComponent> _manaPool = default;
+        readonly EcsFilterInject<Inc<PlayerComponent, ManaComponent>> _playerManaFilter = default;
+
+        const int ManaPerKill = 1;   // сколько маны за убитое вражеское существо (баланс-кнопка)
+        const int ManaCap     = 10;  // потолок маны (как у золота)
 
         public void Run(IEcsSystems systems)
         {
@@ -43,15 +57,8 @@ namespace Game.Core.Ecs.Systems
                 int attackerOwner = _ownerPool.Value.Has(attackerEntity) ? _ownerPool.Value.Get(attackerEntity).OwnerId : -1;
                 int targetOwner   = _ownerPool.Value.Has(targetEntity)   ? _ownerPool.Value.Get(targetEntity).OwnerId   : -1;
 
-                // Урон цели
+                // Односторонний бой: урон наносит ТОЛЬКО атакующий, цель НЕ отвечает.
                 ApplyDamage(targetEntity, amount, attackerEntity, attackerOwner, targetOwner);
-
-                // Ответный урон атакующему от цели (если жива)
-                if (!_deadPool.Value.Has(targetEntity) && _atkPool.Value.Has(targetEntity))
-                {
-                    int counterDmg = _atkPool.Value.Get(targetEntity).Value;
-                    ApplyDamage(attackerEntity, counterDmg, targetEntity, targetOwner, attackerOwner);
-                }
             }
 
             // ── TakeDamageEvent (от способностей) ──────────────────────────
@@ -75,6 +82,14 @@ namespace Game.Core.Ecs.Systems
 
             GameEventBus.Publish(new CreatureDamagedEvent { CreatureEntity = entity, Amount = amount });
 
+            // Урон ИГРОКУ (а не существу) — для условий (OwnerHealthBelow) и редиректа (Вуду-будду).
+            if (_playerPool.Value.Has(entity))
+            {
+                if (!_lastDmgPool.Value.Has(entity)) _lastDmgPool.Value.Add(entity);
+                _lastDmgPool.Value.Get(entity).Amount = amount;   // величина для эффекта-редиректа
+                GameEventBus.Publish(new PlayerDamagedEvent { PlayerEntity = entity, Amount = amount });
+            }
+
             GameEventBus.Publish(new DamageTrackedEvent
             {
                 SourceEntity   = sourceEntity,
@@ -87,7 +102,41 @@ namespace Game.Core.Ecs.Systems
             if (hp.Current <= 0)
             {
                 hp.Current = 0;
-                _deadPool.Value.Add(entity);
+                // Игрок НЕ получает DeadTag: это маркер существ (DieSystem игрока не обрабатывает),
+                // а его наличие мешало бы лечению в каскаде отменить поражение. Конец матча по HP≤0
+                // определяет GameOverCheckSystem после оседания каскада.
+                if (!_playerPool.Value.Has(entity))
+                {
+                    _deadPool.Value.Add(entity);
+
+                    // Доход маны: убил ВРАЖЕСКОЕ существо (не своё) → +мана убийце.
+                    if (_creaturePool.Value.Has(entity) && sourcePlayerId >= 0 && sourcePlayerId != targetPlayerId)
+                        AwardManaForKill(sourcePlayerId);
+                }
+            }
+        }
+
+        // Начисляет ману игроку-убийце (поднимает Max и Current, кап ManaCap — как у золота). Публикует
+        // ResourceChangedEvent для UI. Гоняется на обоих клиентах → значения сходятся без отдельного синка.
+        void AwardManaForKill(int playerId)
+        {
+            foreach (var pe in _playerManaFilter.Value)
+            {
+                ref var p = ref _playerPool.Value.Get(pe);
+                if (p.PlayerId != playerId) continue;
+
+                ref var mana = ref _manaPool.Value.Get(pe);
+                mana.Max     = System.Math.Min(mana.Max + ManaPerKill, ManaCap);
+                mana.Current = System.Math.Min(mana.Current + ManaPerKill, mana.Max);
+
+                GameEventBus.Publish(new ResourceChangedEvent
+                {
+                    isLocalPlayer = p.IsLocalPlayer,
+                    Type          = EnumService.ResourceType.Mana,
+                    NewValue      = mana.Current,
+                    MaxValue      = mana.Max,
+                });
+                return;
             }
         }
     }

@@ -66,7 +66,7 @@ namespace AwesomeUI.Feature.Battle
             _background.sprite = _yourTurnBackground;
             _icon.sprite = _yourTurnIcon;
 
-            ShowHint(_yourTurnText);
+            ShowHint(Game.Core.Shared.CardTextLocalization.GetText("ui.battle.your_turn", _yourTurnText));
         }
 
         private void OnOpponentTurnEnded(OpponentTurnEndedEvent evt)
@@ -74,7 +74,7 @@ namespace AwesomeUI.Feature.Battle
             _background.sprite = _opponentTurnBackground;
             _icon.sprite = _opponentTurnIcon;
 
-            ShowHint(_opponentTurnText);
+            ShowHint(Game.Core.Shared.CardTextLocalization.GetText("ui.battle.opponent_turn", _opponentTurnText));
         }
 
         // ── Animation ─────────────────────────────────────────────────────────

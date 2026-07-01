@@ -1,5 +1,9 @@
 fileFormatVersion: 2
 guid: 3766eba27d801184c859089dfb6279ba
+labels:
+- Маг
+- Маг-пиромант
+- пиромант
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000

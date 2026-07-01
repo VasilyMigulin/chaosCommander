@@ -15,9 +15,12 @@ namespace Game.Core.Ecs.Systems
         readonly EcsFilterInject<Inc<CellClickEvent>> _clickFilter = default;
         readonly EcsPoolInject<CellClickEvent> _clickPool = default;
 
-        readonly EcsFilterInject<Inc<PlayerComponent, TurnState, TurnPhaseState>> _activePlayerFilter = default;
+        readonly EcsFilterInject<Inc<PlayerComponent, ActiveState>> _activePlayerFilter = default;
         readonly EcsPoolInject<PlayerComponent> _playerPool = default;
-        readonly EcsPoolInject<TurnPhaseState> _phasePool = default;
+
+        // Поиск сущности игрока по стороне (для атаки по аватару).
+        readonly EcsFilterInject<Inc<PlayerComponent, PlayerSideComponent>> _playersFilter = default;
+        readonly EcsPoolInject<PlayerSideComponent> _sidePool = default;
 
         readonly EcsFilterInject<Inc<CreatureTag, BoardTag, BoardPositionComponent, SpeedComponent, OwnerComponent>, Exc<DeadTag>> _creaturesFilter = default;
         readonly EcsPoolInject<BoardPositionComponent> _posPool = default;
@@ -34,23 +37,27 @@ namespace Game.Core.Ecs.Systems
         readonly EcsFilterInject<Inc<MovingTag>> _movingFilter = default;
 
         readonly EcsFilterInject<Inc<PendingTargetCardComponent>> _pendingTargetFilter = default;
+        readonly EcsFilterInject<Inc<PendingSelectCellState>> _pendingCellFilter = default;
+        readonly EcsFilterInject<Inc<AbilityTargetPendingState>> _pendingAbilityTargetFilter = default;
 
         public void Run(IEcsSystems systems)
         {
-            if (_animPendingFilter.Value.GetEntitiesCount() > 0) return;
-            if (_movingFilter.Value.GetEntitiesCount() > 0) return;
-            if (_pendingTargetFilter.Value.GetEntitiesCount() > 0) return;
+            bool hasClick = _clickFilter.Value.GetEntitiesCount() > 0;
+
+            if (_animPendingFilter.Value.GetEntitiesCount() > 0) { if (hasClick) UnityEngine.Debug.Log("[Select] blocked: AttackAnimPending"); return; }
+            if (_movingFilter.Value.GetEntitiesCount() > 0)      { if (hasClick) UnityEngine.Debug.Log("[Select] blocked: Moving"); return; }
+            if (_pendingTargetFilter.Value.GetEntitiesCount() > 0) { if (hasClick) UnityEngine.Debug.Log("[Select] blocked: PendingTargetCard"); return; }
+            if (_pendingCellFilter.Value.GetEntitiesCount() > 0) { if (hasClick) UnityEngine.Debug.Log("[Select] blocked: PendingSelectCell"); return; }             // размещение существа
+            if (_pendingAbilityTargetFilter.Value.GetEntitiesCount() > 0) { if (hasClick) UnityEngine.Debug.Log("[Select] blocked: AbilityTargetPending"); return; }    // выбор цели способности
 
             int activePlayerId = -1;
             foreach (var pe in _activePlayerFilter.Value)
             {
                 if (!_playerPool.Value.Get(pe).IsLocalPlayer) continue;
-                ref var phase = ref _phasePool.Value.Get(pe);
-                if (phase.Phase != TurnPhase.PlayerTurn) return;
                 activePlayerId = _playerPool.Value.Get(pe).PlayerId;
                 break;
             }
-            if (activePlayerId < 0) return;
+            if (activePlayerId < 0) { if (hasClick) UnityEngine.Debug.Log("[Select] blocked: local player not active (no ActiveState)"); return; }
 
             foreach (var clickEntity in _clickFilter.Value)
             {
@@ -70,6 +77,23 @@ namespace Game.Core.Ecs.Systems
                 {
                     ref var selPos   = ref _posPool.Value.Get(selectedEntity);
                     ref var selSpeed = ref _speedPool.Value.Get(selectedEntity);
+
+                    // Клик по аватар-клетке (-1,-1,side): атака по аватару вражеского игрока.
+                    // Бить можно с ЛЮБОЙ клетки, занятой на территории этой стороны (фронт-линия врага
+                    // или глубже) — т.е. как только существо прорвалось на половину оппонента.
+                    if (row == -1 && col == -1)
+                    {
+                        int avatarPlayer = FindPlayerBySide(ownerId);
+                        bool isEnemyAvatar = avatarPlayer >= 0
+                            && _playerPool.Value.Get(avatarPlayer).PlayerId != activePlayerId;
+                        if (isEnemyAvatar && selSpeed.Remaining > 0 && selPos.OwnerId == ownerId)
+                        {
+                            ref var attackReq = ref _attackPool.Value.Add(selectedEntity);
+                            attackReq.TargetEntity = avatarPlayer;
+                        }
+                        Deselect(selectedEntity);
+                        continue;
+                    }
 
                     if (selPos.Row == row && selPos.Col == col && selPos.OwnerId == ownerId)
                     {
@@ -117,14 +141,23 @@ namespace Game.Core.Ecs.Systems
             void TrySelectCreature(int row, int col, int ownerId, int playerId)
             {
                 int found = FindCreatureAt(row, col, ownerId, playerId, isEnemy: false);
-                if (found < 0) return;
+                if (found < 0)
+                {
+                    UnityEngine.Debug.Log($"[Select] no OWN creature at ({row},{col},owner{ownerId}) for player {playerId}");
+                    return;
+                }
 
                 ref var speed = ref _speedPool.Value.Get(found);
-                if (speed.Remaining <= 0) return;
+                if (speed.Remaining <= 0)
+                {
+                    UnityEngine.Debug.Log($"[Select] creature {found} not selectable: speed.Remaining=0 (Max={speed.Max})");
+                    return;
+                }
 
                 _selectPool.Value.Add(found);
                 GameEventBus.Publish(new CreatureSelectedEvent { CreatureEntity = found });
                 HighlightOptions(found, playerId);
+                UnityEngine.Debug.Log($"[Select] selected creature {found} at ({row},{col},owner{ownerId}) speed={speed.Remaining}");
             }
 
             void Deselect(int entity)
@@ -136,7 +169,16 @@ namespace Game.Core.Ecs.Systems
                 {
                     _boardView.Value.ClearAllHighlights(1);
                     _boardView.Value.ClearAllHighlights(2);
+                    _boardView.Value.GetAvatarCell(1)?.SetHighlight(CellHighlight.None);
+                    _boardView.Value.GetAvatarCell(2)?.SetHighlight(CellHighlight.None);
                 }
+            }
+
+            int FindPlayerBySide(int side)
+            {
+                foreach (var pe in _playersFilter.Value)
+                    if (_sidePool.Value.Get(pe).Side == side) return pe;
+                return -1;
             }
 
             void HighlightOptions(int creatureEntity, int playerId)
@@ -145,6 +187,8 @@ namespace Game.Core.Ecs.Systems
 
                 _boardView.Value.ClearAllHighlights(1);
                 _boardView.Value.ClearAllHighlights(2);
+                _boardView.Value.GetAvatarCell(1)?.SetHighlight(CellHighlight.None);
+                _boardView.Value.GetAvatarCell(2)?.SetHighlight(CellHighlight.None);
 
                 ref var pos   = ref _posPool.Value.Get(creatureEntity);
                 ref var speed = ref _speedPool.Value.Get(creatureEntity);
@@ -152,6 +196,13 @@ namespace Game.Core.Ecs.Systems
                 _boardView.Value.GetCell(pos.Row, pos.Col, pos.OwnerId)?.SetHighlight(CellHighlight.Select);
 
                 if (speed.Remaining <= 0) return;
+
+                // Аватар врага атакуем, если существо стоит на территории вражеской стороны
+                // (прорвалось на половину оппонента) — подсветить аватар-клетку как цель атаки.
+                int standSide = pos.OwnerId;
+                int standSidePlayer = FindPlayerBySide(standSide);
+                if (standSidePlayer >= 0 && _playerPool.Value.Get(standSidePlayer).PlayerId != playerId)
+                    _boardView.Value.GetAvatarCell(standSide)?.SetHighlight(CellHighlight.Attack);
 
                 foreach (var (nr, nc, no) in GetNeighbours(pos.Row, pos.Col, pos.OwnerId))
                 {

@@ -50,7 +50,7 @@ namespace Game.Core.States
 
             for (int i = 1; i < TestingDeck.Length; i++)
             {
-                deckService.TryAdd(TestingDeck[i].CardData);
+                deckService.TryAdd(TestingDeck[i].CardData, false);
             }
 
             var saved = deckService.Export("TestDeck");

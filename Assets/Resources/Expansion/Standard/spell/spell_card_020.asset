@@ -1,0 +1,78 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: spell_card_020
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  CardData:
+    rid: 1051486589887447053
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 1051486589887447053
+      type: {class: CardSpellModel, ns: Game.Core.Model.Card.Spell, asm: Game.Core.Model.Card.Spell}
+      data:
+        Id: 79
+        Name: "\u0422\u0430 \u0441\u0430\u043C\u0430\u044F \u0446\u0435\u043F\u043D\u0430\u044F
+          \u043C\u043E\u043B\u043D\u0438\u044F"
+        Description: "\u041D\u0430\u043D\u043E\u0441\u0438\u0442 3 \u0435\u0434 \u0443\u0440\u043E\u043D\u0430
+          3 \u0441\u043B\u0443\u0447\u0430\u0439\u043D\u044B\u043C \u0432\u0440\u0430\u0433\u0430\u043C"
+        Rarity: 1
+        Element: 2
+        ArtImage: {fileID: 0}
+        ExpansionId: 
+        PlayCost: 1
+        PlayCostAmount: 2
+        IsToken: 0
+        MulliganStartingHand: 0
+        MulliganUnlimitedReplace: 0
+        RuntimeAbilities:
+        - rid: 1051486589887447054
+        Archetypes: []
+        RequiresTarget: 0
+    - rid: 1051486589887447054
+      type: {class: AbilityToTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 1051486589887447055
+        Rules: []
+        Effects:
+        - rid: 1051486589887447056
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 0}
+          ProjectileSpeed: 12
+          MergeArea: 0
+        Selection: 0
+        Count: 3
+        Zone: 0
+        OfferCount: 3
+        Filters:
+        - rid: 1051486589887447057
+        - rid: 1051486589887447058
+    - rid: 1051486589887447055
+      type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 1051486589887447056
+      type: {class: DealDamageEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Amount: 3
+        ConditionRoot:
+          rid: -2
+    - rid: 1051486589887447057
+      type: {class: EnemyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 1051486589887447058
+      type: {class: OpponentTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 

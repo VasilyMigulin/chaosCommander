@@ -52,12 +52,15 @@ namespace Game.Core.Ecs.Systems
                 {
                     ref var mana = ref _manaPool.Value.Get(pe);
                     mana.Current = System.Math.Max(0, mana.Current - t.RefundAmount);
+
+                    int maxValue = mana.Max > 0 ? mana.Max : mana.Current; 
+
                     GameEventBus.Publish(new ResourceChangedEvent
                     {
                         isLocalPlayer = _localPool.Value.Has(pe),
                         Type = EnumService.ResourceType.Mana,
                         NewValue = mana.Current,
-                        MaxValue = mana.Max,
+                        MaxValue = maxValue,
                     });
                 }
                 _tempPool.Value.Del(pe);

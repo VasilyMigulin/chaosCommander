@@ -1,0 +1,164 @@
+using System;
+using System.Collections.Generic;
+using Game.Core.Ecs.Components;
+using Game.Core.Shared.Interface;
+using Leopotam.EcsLite;
+using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
+
+namespace Game.Core.Ability
+{
+    // ─────────────────────────────────────────────────────────────────────────
+    // СОЗДАНИЕ существ НА БОРД — семейство GENERATE (CreateCardEvent{InBoard}; оба клиента ре-ранят Apply
+    // с ДЕТЕРМИНИРОВАННЫМИ ключами и одинаково считают свободные клетки на зеркальной доске → синк без
+    // спец-канала). Клетку каждый спавн БЕРЁТ через BoardFrontRow.ClaimFreeCell (резерв на резолв) — поэтому
+    // одиночные эффекты КОРРЕКТНО работают под RepeatEffect (не садятся на одну клетку). «Сколько раз» —
+    // ВСЕГДА через RepeatEffect (универсально); отдельных count-эффектов нет. FillRow — отдельный смысл
+    // «весь ряд» (MaxCount<=0), его RepeatEffect не выражает.
+    // NB: InBoard-создание не вызывает «при разыгрывании» токена (см. GenerateCardEffect.SpawnToBoard).
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // === class (OOP) === Создать ОДИН токен из ассета на свободной клетке фронта. «N токенов» = обернуть в
+    // RepeatEffect (Кладка/Токсичная мать → Fixed; Позвать рой → MatchPlayedSelf; Грыз-стиль → архетип).
+    [Serializable]
+    [MovedFrom(true, sourceClassName: "SummonTokenEffect")]   // нейминг: создаёт КАРТУ (токенность = IsToken ассета)
+    public sealed class SpawnCardOnBoardEffect : EffectBase
+    {
+        [Tooltip("Ассет CardInstanceData карты (любой; токен = флаг IsToken ассета).")]
+        public ScriptableObject Source;
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            if (!(Source is ICreatable c)) return;
+            var ownerPool = world.GetPool<OwnerComponent>();
+            if (!ownerPool.Has(cardEntity)) return;
+            int ownerId = ownerPool.Get(cardEntity).OwnerId;
+
+            int col = BoardFrontRow.ClaimFreeCell(world, ownerId);
+            if (col < 0) return;   // фронт полон
+            GenerateCardEffect.SpawnToBoard(world, cardEntity, c.ExpansionId, c.CardId, BoardFrontRow.FrontRow, col);
+        }
+    }
+
+    // === class (OOP) === Создать ОДИН СЛУЧАЙНЫЙ токен из пула на свободной клетке фронта (Фокус-покус через
+    // RepeatEffect{Fixed=2}). Как GainRandomCardEffect, но на борд: АКТИВ роллит UnityEngine.Random + Record
+    // в GeneratedCardChannel (едет в снапшоте способности), ПАССИВ берёт присланное (TryReplay) → та же карта.
+    // Клетку резервируем ДО ролла — если фронт полон, не роллим (иначе канал бы рассинхронился). Пул КУРИРУЕТ
+    // автор (напр. «существа ≤3») — рантайм-фильтра по цене нет (ICreatable не несёт стоимость).
+    [Serializable]
+    [MovedFrom(true, sourceClassName: "SummonRandomTokenEffect")]
+    public sealed class SpawnRandomCardOnBoardEffect : EffectBase
+    {
+        [Tooltip("Ассет CardPool (по критериям). Если задан — берём из него, иначе из ручного Pool ниже.")]
+        public ScriptableObject PoolAsset;
+        [Tooltip("Ручной пул ассетов CardInstanceData (если PoolAsset не задан).")]
+        public List<ScriptableObject> Pool = new();
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            var ownerPool = world.GetPool<OwnerComponent>();
+            if (!ownerPool.Has(cardEntity)) return;
+            int ownerId = ownerPool.Get(cardEntity).OwnerId;
+
+            int col = BoardFrontRow.ClaimFreeCell(world, ownerId);
+            if (col < 0) return;   // фронт полон — не роллим (синхронно на обоих → канал не съезжает)
+
+            string exp; int cardId;
+            if (GeneratedCardChannel.TryReplay(out exp, out cardId))
+            {
+                // пассив: используем присланную активом идентичность
+            }
+            else
+            {
+                var pick = PoolUtil.Pick(PoolAsset, Pool);
+                if (pick == null) return;
+                exp = pick.ExpansionId; cardId = pick.CardId;
+                GeneratedCardChannel.Record(exp, cardId);
+            }
+            GenerateCardEffect.SpawnToBoard(world, cardEntity, exp, cardId, BoardFrontRow.FrontRow, col);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ЗАПОЛНЕНИЕ ВСЕГО ряда (Главарь преисподней/Глава сатанистов/Огненная стена) — отдельный смысл «весь
+    // фронт» (MaxCount<=0 → все свободные). Это НЕ «N раз» (RepeatEffect), поэтому остаётся отдельным.
+    // ─────────────────────────────────────────────────────────────────────────
+    public abstract class FillRowEffect : EffectBase
+    {
+        [Tooltip("Максимум существ (<=0 → весь свободный фронт-ряд).")]
+        public int MaxCount = 0;
+
+        /// <summary>Идентичность создаваемых существ (токен из ассета / копия себя).</summary>
+        protected abstract bool TryGetIdentity(EcsWorld world, int cardEntity, out string exp, out int cardId);
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            if (!TryGetIdentity(world, cardEntity, out string exp, out int id)) return;
+
+            var ownerPool = world.GetPool<OwnerComponent>();
+            if (!ownerPool.Has(cardEntity)) return;
+            int ownerId = ownerPool.Get(cardEntity).OwnerId;
+
+            int placed = 0;
+            while (MaxCount <= 0 || placed < MaxCount)
+            {
+                int col = BoardFrontRow.ClaimFreeCell(world, ownerId);
+                if (col < 0) break;
+                GenerateCardEffect.SpawnToBoard(world, cardEntity, exp, id, BoardFrontRow.FrontRow, col);
+                placed++;
+            }
+        }
+    }
+
+    // === class (OOP) === Заполнить фронт-ряд ТОКЕНАМИ из ассета.
+    [Serializable]
+    [MovedFrom(true, sourceClassName: "FillRowWithTokenEffect")]
+    public sealed class FillRowWithCardEffect : FillRowEffect
+    {
+        [Tooltip("Ассет CardInstanceData карты (любой; токен = флаг IsToken ассета).")]
+        public ScriptableObject Source;
+
+        protected override bool TryGetIdentity(EcsWorld world, int cardEntity, out string exp, out int cardId)
+        {
+            if (Source is ICreatable c) { exp = c.ExpansionId; cardId = c.CardId; return true; }
+            exp = null; cardId = -1; return false;
+        }
+    }
+
+    // === class (OOP) === Заполнить фронт-ряд КОПИЯМИ самого источника (идентичность из CardModelComponent).
+    [Serializable]
+    public sealed class FillRowWithCopyOfSelfEffect : FillRowEffect
+    {
+        protected override bool TryGetIdentity(EcsWorld world, int cardEntity, out string exp, out int cardId)
+        {
+            var pool = world.GetPool<CardModelComponent>();
+            if (pool.Has(cardEntity))
+            {
+                ref var m = ref pool.Get(cardEntity);
+                exp = m.ExpansionId; cardId = m.ModelId; return true;
+            }
+            exp = null; cardId = -1; return false;
+        }
+    }
+
+    // === class (OOP) === Заполнить РУКУ владельца токенами из ассета (Пиромант → Поджоги). Создаёт столько,
+    // сколько свободно до MaxHand. Generate-семейство (CreateCardEvent в руку, детерм. ключ, оба ре-ранят).
+    [Serializable]
+    [MovedFrom(true, sourceClassName: "FillHandWithTokenEffect")]
+    public sealed class FillHandWithCardEffect : EffectBase
+    {
+        public ScriptableObject Source;                              // ассет токена (ICreatable)
+        public int MaxHand = HandComponent.MaxNonCommanderCards;     // обычно 5
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            if (!(Source is ICreatable c)) return;
+
+            var handPool = world.GetPool<HandComponent>();
+            int current = handPool.Has(PlayerEntity) ? handPool.Get(PlayerEntity).Count : 0;
+            int slots = MaxHand - current;
+            for (int i = 0; i < slots; i++)
+                GenerateCardEffect.Spawn(world, cardEntity, c.ExpansionId, c.CardId, toHand: true);
+        }
+    }
+}

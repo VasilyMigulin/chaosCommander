@@ -60,6 +60,21 @@ namespace Game.Core.EditorTools
                 AssetDatabase.SaveAssets();
         }
 
+        /// <summary>
+        /// Публичная точка входа: гарантированно обрабатывает карту (уникальный Id + регистрация в
+        /// ExpansionConfig) НЕ дожидаясь импорта. Нужна, когда модель в CardData назначают уже ПОСЛЕ
+        /// создания ассета — тогда постпроцессор её пропустил (CardData был null). Зовётся из инспектора.
+        /// </summary>
+        public static void EnsureProcessed(CardInstanceData card)
+        {
+            if (card == null) return;
+            string path = AssetDatabase.GetAssetPath(card);
+            if (string.IsNullOrEmpty(path) || !IsExpansionCardPath(path)) return;
+
+            if (ProcessCard(path))
+                AssetDatabase.SaveAssets();
+        }
+
         static bool ProcessCard(string cardPath)
         {
             var card = AssetDatabase.LoadAssetAtPath<CardInstanceData>(cardPath);
@@ -88,7 +103,8 @@ namespace Game.Core.EditorTools
             if (!used.Contains(card.CardData.Id)) return false; // уже уникален
 
             int newId = NextFreeId(used);
-            Undo.RecordObject(card, "Assign Card Id");
+            // НЕ используем Undo.RecordObject: на ассете с [SerializeReference] (CardData + способности)
+            // он в ряде версий Unity обнуляет managed-ссылки. Просто меняем Id и помечаем dirty.
             card.CardData.Id = newId;
             EditorUtility.SetDirty(card);
             Debug.Log($"[CardIdAssigner] {cardPath} → Id {newId} (расширение {expFolder})", card);
@@ -199,8 +215,7 @@ namespace Game.Core.EditorTools
                     if (used.Contains(card.CardData.Id))
                     {
                         int newId = NextFreeId(used);
-                        Undo.RecordObject(card, "Fix Card Id");
-                        card.CardData.Id = newId;
+                        card.CardData.Id = newId;   // без Undo (см. AssignUniqueId): защита SerializeReference
                         EditorUtility.SetDirty(card);
                         Debug.Log($"[CardIdAssigner] {path} → Id {newId} (расширение {expFolder})", card);
                         fixedCount++;
@@ -212,6 +227,52 @@ namespace Game.Core.EditorTools
 
             if (fixedCount > 0) AssetDatabase.SaveAssets();
             Debug.Log($"[CardIdAssigner] Готово. Исправлено дубликатов: {fixedCount}.");
+        }
+
+        /// <summary>
+        /// Чистит «осиротевшие» managed-ссылки на УДАЛЁННЫЕ/переименованные [SerializeReference]-типы
+        /// (напр. снесённые PlayerTargetFilter/CreatureTargetFilter). Такие ссылки ломают десериализацию
+        /// всего графа карты → CardData грузится как null («different serialization layout / missing type»).
+        /// Используем официальный UnityEditor.SerializationUtility, без ручной правки YAML.
+        /// </summary>
+        [MenuItem("Tools/Cards/Clear Missing Ability Refs")]
+        static void ClearMissingAbilityRefs()
+        {
+            string root = ExpansionRoot.TrimEnd('/');
+            if (!AssetDatabase.IsValidFolder(root))
+            {
+                Debug.LogWarning($"[CardIdAssigner] Папка не найдена: {root}");
+                return;
+            }
+
+            var paths = new List<string>();
+            foreach (var guid in AssetDatabase.FindAssets("t:CardInstanceData", new[] { root }))
+                paths.Add(AssetDatabase.GUIDToAssetPath(guid));
+
+            // КЛЮЧЕВОЕ: принудительный реимпорт. Unity грузит ассеты из library-кэша, собранного
+            // КОГДА удалённые типы ещё существовали → метаданные «missing types» не записаны, и
+            // HasManagedReferencesWithMissingTypes возвращает false. Реимпорт переоценивает YAML
+            // против ТЕКУЩИХ типов и регистрирует отсутствующие.
+            foreach (var path in paths)
+                AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+
+            int cleaned = 0;
+            foreach (var path in paths)
+            {
+                var card = AssetDatabase.LoadAssetAtPath<CardInstanceData>(path);
+                if (card == null) continue;
+
+                if (SerializationUtility.HasManagedReferencesWithMissingTypes(card))
+                {
+                    SerializationUtility.ClearAllManagedReferencesWithMissingTypes(card);
+                    EditorUtility.SetDirty(card);
+                    cleaned++;
+                    Debug.Log($"[CardIdAssigner] Очищены битые ссылки на удалённые типы: {path}", card);
+                }
+            }
+
+            if (cleaned > 0) AssetDatabase.SaveAssets();
+            Debug.Log($"[CardIdAssigner] Готово. Карт с очищенными битыми ссылками: {cleaned} (реимпортировано: {paths.Count}).");
         }
 
         [MenuItem("Tools/Cards/Sync Expansion Card Lists")]

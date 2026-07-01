@@ -13,6 +13,7 @@ namespace Game.Core.Configs
     [CreateAssetMenu(fileName = "NewExpansion", menuName = "Data/ExpansionConfig")]
     public sealed class ExpansionConfig : ScriptableObject
     {
+        [KeyDropdown(KeyRegistry.SectionExpansion)]
         public string ExpansionId;
 
         public List<CardInstanceData> Cards = new List<CardInstanceData>();

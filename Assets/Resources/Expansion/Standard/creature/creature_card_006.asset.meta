@@ -1,5 +1,9 @@
 fileFormatVersion: 2
 guid: 3c36123fa46b4a84ab6b211a2b903592
+labels:
+- Неудачливый
+- Неудачливый_чародей
+- чародей
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000

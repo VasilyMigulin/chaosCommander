@@ -1,0 +1,70 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: creature_card_047
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  CardData:
+    rid: 1051486747143962720
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 1051486747143962720
+      type: {class: CardCreatureModel, ns: Game.Core.Model.Card.Creature, asm: Game.Core.Model.Card.Creature}
+      data:
+        Id: 103
+        Name: "\u041A\u0440\u044B\u0441\u0438\u043D\u044B\u0439 \u043A\u043E\u0440\u043E\u043B\u044C"
+        Description: "\u041F\u0440\u0438 \u0441\u043C\u0435\u0440\u0442\u0438: \u0437\u0430\u043F\u043E\u043B\u043D\u044F\u0435\u0442
+          \u0441\u0442\u043E\u0440\u043E\u043D\u0443 \u041A\u0430\u043D\u0430\u043B\u0438\u0437\u0430\u0446\u0438\u043E\u043D\u043D\u044B\u043C\u0438
+          \u043A\u0440\u044B\u0441\u0430\u043C\u0438"
+        Rarity: 3
+        Element: 52
+        ArtImage: {fileID: 0}
+        ExpansionId: 
+        PlayCost: 0
+        PlayCostAmount: 3
+        IsToken: 0
+        MulliganStartingHand: 0
+        MulliganUnlimitedReplace: 0
+        RuntimeAbilities:
+        - rid: 1051486747143962721
+        Archetypes: []
+        MaxHealth: 4
+        Attack: 2
+        Speed: 3
+        ViewPrefab: {fileID: 1046069417137952589, guid: f06aa6138ec1c4140ac9af21f0ddde7e, type: 3}
+        IsCommander: 0
+    - rid: 1051486747143962721
+      type: {class: AbilityNonTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 1051486747143962722
+        Rules: []
+        Effects:
+        - rid: 1051486747143962723
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 0}
+          ProjectileSpeed: 12
+          MergeArea: 0
+    - rid: 1051486747143962722
+      type: {class: OnDieTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 1051486747143962723
+      type: {class: FillRowWithCardEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        MaxCount: 0
+        Source: {fileID: 11400000, guid: 1a7467fa85e8e0d4c8f7eb91d0b91443, type: 2}

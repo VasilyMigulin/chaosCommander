@@ -53,7 +53,7 @@ namespace AwesomeUI.Core.Slot
         {
 
         }
-        public abstract void OnActive();
+        public abstract void OnUse();
         public abstract void OnClick();
         public abstract void UpdateView();
         public virtual void Dispose()

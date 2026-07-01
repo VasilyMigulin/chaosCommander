@@ -1,0 +1,73 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: charm_card_005
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  CardData:
+    rid: 1051486567619101079
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 1051486567619101079
+      type: {class: CardCharmModel, ns: Game.Core.Model.Card.Charm, asm: Game.Core.Model.Card.Charm}
+      data:
+        Id: 70
+        Name: "\u0414\u043E\u043B\u0433\u0438\u0439 \u043E\u0431\u0440\u044F\u0434"
+        Description: "\u0412 \u0442\u0435\u0447\u0435\u043D\u0438\u0435 3 \u0445\u043E\u0434\u043E\u0432.
+          \u0412 \u043D\u0430\u0447\u0430\u043B\u0435 \u0445\u043E\u0434\u0430 \u043F\u043E\u043B\u0443\u0447\u0438\u0442\u0435
+          3 \u0443\u0440\u043E\u043D\u0430 \u0438 \u043F\u043E\u043B\u0443\u0447\u0438\u0442\u0435
+          2 \u0435\u0434 \u043C\u0430\u043D\u044B"
+        Rarity: 2
+        Element: 33
+        ArtImage: {fileID: 0}
+        ExpansionId: 
+        PlayCost: 1
+        PlayCostAmount: 2
+        IsToken: 0
+        MulliganStartingHand: 0
+        MulliganUnlimitedReplace: 0
+        RuntimeAbilities:
+        - rid: 1051486567619101080
+        Archetypes: []
+        TurnsAlive: 3
+    - rid: 1051486567619101080
+      type: {class: AbilityNonTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 1051486567619101081
+        Rules: []
+        Effects:
+        - rid: 1051486567619101082
+        - rid: 1051486567619101083
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 0}
+          ProjectileSpeed: 12
+          MergeArea: 0
+    - rid: 1051486567619101081
+      type: {class: OnTurnStartTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 1051486567619101082
+      type: {class: DealDamageEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Amount: 3
+        ConditionRoot:
+          rid: -2
+    - rid: 1051486567619101083
+      type: {class: GainManaEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Amount: 2
+        ConditionRoot:
+          rid: -2

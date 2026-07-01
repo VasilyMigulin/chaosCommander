@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: spell_card_004
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  CardData:
+    rid: 1051486497689043019
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 1051486497689043019
+      type: {class: CardSpellModel, ns: Game.Core.Model.Card.Spell, asm: Game.Core.Model.Card.Spell}
+      data:
+        Id: 46
+        Name: "\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u044C \u043E\u0442 \u0441\u043A\u0432\u0435\u0440\u043D\u044B"
+        Description: "\u041F\u043E\u043B\u043E\u0436\u0438\u0442\u0435 2 \u043A\u0430\u0440\u0442s
+          \u0441 \u0447\u0435\u0440\u043D\u044B\u043C, \u043A\u0440\u0430\u0441\u043D\u044B\u043C
+          \u0438\u043B\u0438 \u0441\u0438\u043D\u0438\u043C \u0446\u0432\u0435\u0442\u043E\u043C
+          \u0432 \u0440\u0443\u043A\u0443"
+        Rarity: 1
+        Element: 8
+        ArtImage: {fileID: 0}
+        ExpansionId: standard
+        PlayCost: 1
+        PlayCostAmount: 2
+        IsToken: 0
+        MulliganStartingHand: 0
+        MulliganUnlimitedReplace: 0
+        RuntimeAbilities:
+        - rid: 1051486611725615292
+        Archetypes: []
+        RequiresTarget: 0
+    - rid: 1051486611725615292
+      type: {class: AbilityNonTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 1051486611725615293
+        Rules: []
+        Effects:
+        - rid: 1051486611725615295
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 0}
+          ProjectileSpeed: 12
+          MergeArea: 0
+    - rid: 1051486611725615293
+      type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 1051486611725615295
+      type: {class: GainRandomCardEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        Count: 2
+        PoolAsset: {fileID: 11400000, guid: 3f6ccbf8dbbaf494ea1982f1b2472b1f, type: 2}
+        Pool: []

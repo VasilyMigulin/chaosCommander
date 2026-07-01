@@ -1,10 +1,14 @@
 using Game.Core.Shared.Interface;
-using System.Collections.Generic;
 
 namespace Game.Core.Ecs.Components
 {
-    public struct AbilityEffectContainerComponent 
+    // === struct (Component) ===
+    /// <summary>
+    /// Контейнер эффектов на ability-сущности. RunResolveAbilityQueueSystem применяет каждый
+    /// готовый (IsReady) эффект к каждой цели. Заполняется в Ability.Init.
+    /// </summary>
+    public struct AbilityEffectContainerComponent
     {
-        public List<IAbilityEffect> AbilityEffects;
+        public IEffect[] Effects;
     }
 }

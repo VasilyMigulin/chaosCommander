@@ -25,11 +25,10 @@ namespace Game.Core.Ecs.Systems
 
         // Активный игрок с pending-картой
         readonly EcsFilterInject<
-            Inc<PendingTargetCardComponent, PlayerComponent, TurnState, TurnPhaseState>>
+            Inc<PendingTargetCardComponent, PlayerComponent, ActiveState>>
             _pendingFilter = default;
         readonly EcsPoolInject<PendingTargetCardComponent> _pendingPool = default;
         readonly EcsPoolInject<PlayerComponent>            _playerPool  = default;
-        readonly EcsPoolInject<TurnPhaseState>             _phasePool   = default;
 
         // Клик
         readonly EcsFilterInject<Inc<CellClickEvent>> _clickFilter = default;
@@ -57,12 +56,8 @@ namespace Game.Core.Ecs.Systems
             int pendingPlayerEntity = -1;
             foreach (var pe in _pendingFilter.Value)
             {
-                ref var phase = ref _phasePool.Value.Get(pe);
-                if (phase.Phase == TurnPhase.PlayerTurn)
-                {
-                    pendingPlayerEntity = pe;
-                    break;
-                }
+                pendingPlayerEntity = pe;
+                break;
             }
 
             if (pendingPlayerEntity < 0)
@@ -143,7 +138,7 @@ namespace Game.Core.Ecs.Systems
 
             // Создаём CastEvent
             ref var castEvent = ref _castPool.Value.Add(pending.CardEntity);
-            castEvent.OwnerEntity  = playerEntity;
+            castEvent.PlayerOwnerEntity  = playerEntity;
             castEvent.TargetEntity = targetEntity;
             castEvent.TargetCell   = targetCell;
 

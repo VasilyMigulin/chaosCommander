@@ -1,8 +1,10 @@
 using AwesomeUI.Core.Card;
 using AwesomeUI.Core.Slot;
 using DG.Tweening;
+using Game.Core.Ecs.Components;
 using Game.Core.Events;
 using Game.Core.Shared;
+using Game.Core.Shared.Interface;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -28,6 +30,8 @@ namespace AwesomeUI.Feature.Battle
     public abstract class PlayCardView : CardBaseView,
         IBeginDragHandler, IDragHandler, IEndDragHandler
     {
+        [Core.Attributes.UIInject] protected IGameStateContext _state;
+
         [Header("Drag Settings")]
         [SerializeField] private float _returnDuration = 0.25f;
 
@@ -67,6 +71,7 @@ namespace AwesomeUI.Feature.Battle
         {
             GameEventBus.Subscribe<CardAffordableChangedEvent>(OnAffordableChanged);
             GameEventBus.Subscribe<CardAbilityReadyChangedEvent>(OnAbilityReadyChanged);
+            GameEventBus.Subscribe<CardCostChangedEvent>(OnCostChanged);
             GameEventBus.Subscribe<TargetSelectionCancelledEvent>(OnTargetSelectionCancelled);
         }
 
@@ -74,6 +79,7 @@ namespace AwesomeUI.Feature.Battle
         {
             GameEventBus.Unsubscribe<CardAffordableChangedEvent>(OnAffordableChanged);
             GameEventBus.Unsubscribe<CardAbilityReadyChangedEvent>(OnAbilityReadyChanged);
+            GameEventBus.Unsubscribe<CardCostChangedEvent>(OnCostChanged);
             GameEventBus.Unsubscribe<TargetSelectionCancelledEvent>(OnTargetSelectionCancelled);
         }
 
@@ -200,7 +206,7 @@ namespace AwesomeUI.Feature.Battle
                 IsSelected    = false;
                 _pendingPlay  = true;
                 gameObject.SetActive(false);
-                OnActive();
+                OnUse();
             }
             else
             {
@@ -226,10 +232,15 @@ namespace AwesomeUI.Feature.Battle
 
         // ── Highlights ───────────────────────────────────────────────────────
 
-        public override void OnActive()
+        public override void OnUse()
         {
             Debug.Log($"[PlayCardView] OnActive publishing CardPlayRequestedEvent card={CardEntity}");
-            GameEventBus.Publish(new CardPlayRequestedEvent { CardEntity = CardEntity });
+
+            _state.CastEvent(new RequestCardCastEvent
+                { 
+                    CardEntity = CardEntity 
+                }
+            ); 
         }
 
         public void Deselect()
@@ -251,7 +262,6 @@ namespace AwesomeUI.Feature.Battle
         private void OnAffordableChanged(CardAffordableChangedEvent evt)
         {
             if (evt.CardEntity != CardEntity) return;
-            Debug.Log($"[PlayCardView] OnAffordableChanged card={CardEntity} affordable={evt.IsAffordable}");
             _isAffordable = evt.IsAffordable;
             SetHighlight(CardHighlightEffect.HighlightType.Affordable, _isAffordable);
         }
@@ -261,6 +271,12 @@ namespace AwesomeUI.Feature.Battle
             if (evt.CardEntity != CardEntity) return;
             _isAbilityReady = evt.IsReady;
             SetHighlight(CardHighlightEffect.HighlightType.AbilityReady, _isAbilityReady);
+        }
+
+        private void OnCostChanged(CardCostChangedEvent evt)
+        {
+            if (evt.CardEntity != CardEntity) return;
+            SetCostAmount(evt.EffectiveCost);   // эффективная цена (с модификатором — Гиперинфляция)
         }
 
         // ── UpdateView ───────────────────────────────────────────────────────

@@ -35,6 +35,8 @@ namespace Game.Core.Ecs.Systems
 
                 if (vr.Prefab == null)
                 {
+                    Debug.LogWarning($"[SpawnCreatureViewSystem] entity={entity} (row={pos.Row} col={pos.Col} owner={pos.OwnerId}) " +
+                                     "БЕЗ ViewRefComponent.Prefab → вид не создан. Проверь ViewPrefab у CardCreatureModel токена.");
                     _spawnedPool.Value.Add(entity);
                     continue;
                 }
@@ -51,14 +53,13 @@ namespace Game.Core.Ecs.Systems
 
                 var creatureView = instance.GetComponent<CreatureView>();
                 creatureView?.SetCell(pos.Row, pos.Col, pos.OwnerId);
+                creatureView?.SetOwnerFacing(pos.OwnerId);   // владелец 2 смотрит на оппонента
 
                 // Заменяем prefab-ссылку ссылкой на инстанс
                 vr.View = instance;
 
                 // Помечаем что view уже создан
                 _spawnedPool.Value.Add(entity);
-
-                Debug.Log($"[SpawnCreatureViewSystem] Spawned creature view for entity={entity} at row={pos.Row} col={pos.Col} ownerId={pos.OwnerId}");
             }
         }
     }

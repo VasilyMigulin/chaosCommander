@@ -1,5 +1,11 @@
 fileFormatVersion: 2
 guid: b95570dec0b9bd54a80407943ca6f365
+labels:
+- Охотник
+- Охотник_за_твоей_головой
+- головой
+- за
+- твоей
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000

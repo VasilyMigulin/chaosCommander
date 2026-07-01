@@ -17,18 +17,62 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 1051486567619100870
+      type: {class: AbilityToField, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 1051486567619100874
+        Rules: []
+        Effects:
+        - rid: 1051486567619100873
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 0}
+          ProjectileSpeed: 12
+          MergeArea: 0
+        Area: 0
+        Zone: 0
+        Filters:
+        - rid: 1051486567619100871
+        - rid: 1051486567619100872
+    - rid: 1051486567619100871
+      type: {class: OpponentTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 1051486567619100872
+      type: {class: OwnPlayerTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 1051486567619100873
+      type: {class: DealDamageEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Amount: 2
+        ConditionRoot:
+          rid: -2
+    - rid: 1051486567619100874
+      type: {class: OnDieTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
     - rid: 8072968609180155922
       type: {class: CardCreatureModel, ns: Game.Core.Model.Card.Creature, asm: Game.Core.Model.Card.Creature}
       data:
         Id: 15
         Name: "\u0421\u0430\u0442\u0430\u043D\u0438\u0441\u0442"
-        Description: 
+        Description: "\u041F\u0440\u0438 \u0441\u043C\u0435\u0440\u0442\u0438: \u043D\u0430\u043D\u043E\u0441\u0438\u0442
+          2 \u0435\u0434 \u0443\u0440\u043E\u043D\u0430 \u043E\u0431\u043E\u0438\u043C
+          \u0438\u0433\u0440\u043E\u043A\u0430\u043C"
         Rarity: 0
         Element: 3
-        Icon: {fileID: 0}
+        ArtImage: {fileID: 0}
         ExpansionId: standard
         PlayCost: 0
         PlayCostAmount: 1
+        IsToken: 0
+        MulliganStartingHand: 0
+        MulliganUnlimitedReplace: 0
+        RuntimeAbilities:
+        - rid: 1051486567619100870
+        Archetypes: []
         MaxHealth: 1
         Attack: 2
         Speed: 2

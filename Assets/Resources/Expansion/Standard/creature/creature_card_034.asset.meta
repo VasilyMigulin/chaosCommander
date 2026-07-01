@@ -1,5 +1,10 @@
 fileFormatVersion: 2
 guid: 9e40b6770cf57a546bbc3482cd5b466b
+labels:
+- Проповедник
+- Проповедник_из_качалки
+- из
+- качалки
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000

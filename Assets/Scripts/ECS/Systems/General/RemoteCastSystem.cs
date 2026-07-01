@@ -71,7 +71,7 @@ namespace Game.Core.Ecs.Systems
             int ownerEntity = FindOwnerOf(cardEntity);
 
             ref var cast = ref _castPool.Value.Add(cardEntity);
-            cast.OwnerEntity  = ownerEntity;
+            cast.PlayerOwnerEntity  = ownerEntity;
             cast.TargetCell   = evt.TargetCell;
             cast.TargetEntity = -1;
 

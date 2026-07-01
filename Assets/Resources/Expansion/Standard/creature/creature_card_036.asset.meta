@@ -1,5 +1,9 @@
 fileFormatVersion: 2
 guid: 6108cc3037380964c9fec97e593d7935
+labels:
+- Харизматичный
+- Харизматичный_священник
+- священник
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000

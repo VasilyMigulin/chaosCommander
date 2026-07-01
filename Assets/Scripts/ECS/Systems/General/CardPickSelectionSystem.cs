@@ -43,7 +43,7 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<PendingCardPickComponent>      _pendingPool     = default;
 
         readonly EcsPoolInject<PlayerComponent>               _playerPool      = default;
-        readonly EcsPoolInject<TurnPhaseState>                _phasePool       = default;
+        readonly EcsPoolInject<ActiveState>                   _activePool      = default;
         readonly EcsPoolInject<OwnCardTag>                    _ownCardPool     = default;
         readonly EcsPoolInject<NetworkEntityComponent>        _netKeyPool      = default;
 
@@ -99,12 +99,11 @@ namespace Game.Core.Ecs.Systems
 
         void TryOfferOwn(int cardEntity)
         {
-            int playerEntity = _castPool.Value.Get(cardEntity).OwnerEntity;
+            int playerEntity = _castPool.Value.Get(cardEntity).PlayerOwnerEntity;
 
             if (_pendingPool.Value.Has(playerEntity)) return; // уже предложено
 
-            if (!_phasePool.Value.Has(playerEntity)) return;
-            if (_phasePool.Value.Get(playerEntity).Phase != TurnPhase.PlayerTurn) return;
+            if (!_activePool.Value.Has(playerEntity)) return; // только в свой ход
 
             ref var req     = ref _reqCompPool.Value.Get(cardEntity);
             int[]   offered = CollectOfferedCards(ref req, playerEntity);
@@ -192,7 +191,7 @@ namespace Game.Core.Ecs.Systems
         {
             int cardEntity = e.CastingCardEntity;
             if (!_castPool.Value.Has(cardEntity)) return;
-            int playerEntity = _castPool.Value.Get(cardEntity).OwnerEntity;
+            int playerEntity = _castPool.Value.Get(cardEntity).PlayerOwnerEntity;
 
             int chosen  = e.ChosenCardEntity;
             int modelId = (chosen >= 0 && _modelPool.Value.Has(chosen))
@@ -210,7 +209,9 @@ namespace Game.Core.Ecs.Systems
             if (isPool)
             {
                 // Пул: общий ключ для создаваемой на обоих клиентах сущности
-                chosenKey = System.Guid.NewGuid().ToString();
+                // ПУЛ: сущность создаётся заново на обоих клиентах → генерируем новый короткий ключ
+                // (не геттер NetKey(entity)!). Полное имя — локальный метод NetKey(int) перекрывает класс.
+                chosenKey = Game.Core.Network.NetKey.Next();
                 if (chosen >= 0 && _modelPool.Value.Has(chosen))
                 {
                     ref var m = ref _modelPool.Value.Get(chosen);
@@ -244,7 +245,7 @@ namespace Game.Core.Ecs.Systems
         {
             int cardEntity = e.CastingCardEntity;
             if (!_castPool.Value.Has(cardEntity)) return;
-            int playerEntity = _castPool.Value.Get(cardEntity).OwnerEntity;
+            int playerEntity = _castPool.Value.Get(cardEntity).PlayerOwnerEntity;
 
             _castPool.Value.Del(cardEntity); // каст не происходит, карта остаётся в руке
 

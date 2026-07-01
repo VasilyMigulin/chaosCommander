@@ -110,13 +110,18 @@ namespace Game.Core.DeckBuilder
         /// Добавить одну копию карты в колоду.
         /// Возвращает <see cref="AddResult"/> с причиной отказа при ошибке.
         /// </summary>
-        public AddResult TryAdd(CardModel card)
+        public AddResult TryAdd(CardModel card, bool checkColor = true)
         {
             if (Commander == null)
                 return AddResult.NoCommander;
 
-            if (!IsColorAllowed(card))
-                return AddResult.WrongColor;
+            if (checkColor)
+            {
+                if (!IsColorAllowed(card))
+                {
+                    return AddResult.WrongColor; 
+                }
+            }
 
             if (card.Rarity == EnumService.Rarity.Exotic && HasExotic)
                 return AddResult.ExoticLimitReached;
@@ -160,6 +165,7 @@ namespace Game.Core.DeckBuilder
         // ── Validation ─────────────────────────────────────────────────────── 
         public bool IsColorAllowed(CardModel card)
         {
+            if (DebugFlags.IgnoreDeckColorRule) return true;   // тех-режим: собираем без правила цвета
             if (Commander == null) return false;
 
             // Если у карты есть хотя бы один флаг,
