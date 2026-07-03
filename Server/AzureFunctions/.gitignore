@@ -1,0 +1,6 @@
+# Секреты и артефакты сборки Azure Functions — НЕ коммитить.
+local.settings.json
+bin/
+obj/
+.vs/
+*.user

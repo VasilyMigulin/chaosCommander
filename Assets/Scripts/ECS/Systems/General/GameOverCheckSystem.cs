@@ -31,6 +31,7 @@ namespace Game.Core.Ecs.Systems
         readonly EcsFilterInject<Inc<MovingTag>>             _moving        = default;
         readonly EcsFilterInject<Inc<TakeDamageEvent>>       _takeDamage    = default;
         readonly EcsFilterInject<Inc<AttackHitEvent>>        _attackHit     = default;
+        readonly EcsFilterInject<Inc<PendingOnCastComponent>> _pendingOnCast = default;   // #2: призыв → OnCast (деатрэттл может добить)
 
         public void Run(IEcsSystems systems)
         {
@@ -93,6 +94,7 @@ namespace Game.Core.Ecs.Systems
             || _attackAnim.Value.GetEntitiesCount()    > 0
             || _moving.Value.GetEntitiesCount()        > 0
             || _takeDamage.Value.GetEntitiesCount()    > 0
-            || _attackHit.Value.GetEntitiesCount()     > 0;
+            || _attackHit.Value.GetEntitiesCount()     > 0
+            || _pendingOnCast.Value.GetEntitiesCount() > 0;   // #2: отложенный OnCast может изменить исход
     }
 }

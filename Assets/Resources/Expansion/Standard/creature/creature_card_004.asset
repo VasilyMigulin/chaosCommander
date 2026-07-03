@@ -41,7 +41,7 @@ MonoBehaviour:
       data:
         ConditionRoot:
           rid: -2
-        Source: 7
+        Source: 8
         FixedCount: 1
         CountCard: {fileID: 11400000, guid: f782c13faf86c3047a41cf53cfd79dda, type: 2}
         Archetype:

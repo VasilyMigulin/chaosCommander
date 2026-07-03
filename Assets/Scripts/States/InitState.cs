@@ -1,5 +1,6 @@
 using AwesomeUI.Core;
 using AwesomeUI.Feature.Login;
+using Game.Core.Backend;
 using Game.Core.Configs;
 using Game.Core.DeckBuilder;
 using Game.Core.Instance;
@@ -15,6 +16,14 @@ namespace Game.Core.States
     {
         [Header("Testing")]
         public CardInstanceData[] TestingLibrary;
+
+        [Tooltip("Пресеты тест-колод (Create → Game → Deck Preset): собери несколько и переключай индексом ниже. " +
+                 "Библиотека автоматически пополняется картами активного пресета.")]
+        public DeckPreset[] DeckPresets;
+        [Tooltip("Какой пресет из DeckPresets использовать.")]
+        public int ActiveDeckPreset = 0;
+
+        [Tooltip("ЛЕГАСИ: старый формат (элемент = копия, [0] = командир). Используется, только если пресет не задан.")]
         public CardInstanceData[] TestingDeck;
 
         [Header("Config")]
@@ -38,14 +47,48 @@ namespace Game.Core.States
         /// </summary>
         public void OnLoginSuccess()
         {
-            if (TestingLibrary != null && TestingLibrary.Length > 0)
+            // Тест-режим: задан пресет колоды ИЛИ тест-библиотека (пресета достаточно —
+            // библиотека автоматически пополнится его картами).
+            if (ActivePreset() != null || (TestingLibrary != null && TestingLibrary.Length > 0))
                 LoadTestingLibrary();
             else
                 LoadFromCloud();
         }
 
+        DeckPreset ActivePreset()
+        {
+            if (DeckPresets == null || DeckPresets.Length == 0) return null;
+            int i = Mathf.Clamp(ActiveDeckPreset, 0, DeckPresets.Length - 1);
+            return DeckPresets[i];
+        }
+
         void LoadTestingDeck()
         {
+            var preset = ActivePreset();
+            if (preset != null)
+            {
+                // Пресет-ассет: командир + карты с количеством (без дублей-элементов).
+                if (preset.Commander != null)
+                    deckService.TrySetCommander(preset.Commander.CardData);
+                foreach (var entry in preset.Cards)
+                {
+                    if (entry.Card == null) continue;
+                    int copies = Mathf.Max(1, entry.Count);
+                    for (int c = 0; c < copies; c++)
+                    {
+                        var result = deckService.TryAdd(entry.Card.CardData, false);
+                        if (result != DeckBuilderService.AddResult.Ok)
+                            Debug.LogWarning($"[InitState] пресет '{preset.name}': '{entry.Card.name}' " +
+                                             $"(копия {c + 1}/{copies}) отклонена: {result}");
+                    }
+                }
+                var savedPreset = deckService.Export(string.IsNullOrEmpty(preset.DeckName) ? preset.name : preset.DeckName);
+                DeckStorage.SetTesting(savedPreset);
+                Debug.Log($"[InitState] тест-колода из пресета '{preset.name}' ({preset.DeckName})");
+                return;
+            }
+
+            // ЛЕГАСИ-путь: массив, [0] = командир, каждая копия отдельным элементом.
             deckService.TrySetCommander(TestingDeck[0].CardData);
 
             for (int i = 1; i < TestingDeck.Length; i++)
@@ -60,10 +103,16 @@ namespace Game.Core.States
         // ── Private ──────────────────────────────────────────────────────────
 
         void LoadTestingLibrary()
-        { 
-            PlayerLibrary.AddInstanceCards(TestingLibrary);
+        {
+            if (TestingLibrary != null && TestingLibrary.Length > 0)
+                PlayerLibrary.AddInstanceCards(TestingLibrary);
 
-            if (TestingDeck != null && TestingDeck.Length > 0)
+            // Карты активного пресета — тоже в библиотеку (пресета достаточно без TestingLibrary).
+            var preset = ActivePreset();
+            if (preset != null)
+                PlayerLibrary.AddInstanceCards(System.Linq.Enumerable.ToArray(preset.AllCards()));
+
+            if (preset != null || (TestingDeck != null && TestingDeck.Length > 0))
                 LoadTestingDeck();
 
             GoToMenu();
@@ -78,23 +127,18 @@ namespace Game.Core.States
                 return;
             }
 
-            PlayerLibrary.LoadFromCloud(
-                config: CardConfig,
-                onSuccess: () =>
-                {
-                    DeckStorage.LoadAll(
-                        onSuccess: _ => GoToMenu(),
-                        onError:   err =>
-                        {
-                            Debug.LogWarning($"[InitState] DeckStorage load failed: {err}");
-                            GoToMenu();
-                        });
-                },
-                onError: err =>
-                {
-                    Debug.LogError($"[InitState] PlayerLibrary load failed: {err}");
-                    GoToMenu();
-                });
+            // Бэкенд-инициализация: серверное время → миграция → инвентарь (PlayerLibrary + PlayerWallet).
+            // Затем грузим колоды. Любой сбой не блокирует вход в меню (см. BackendSession).
+            BackendSession.Initialize(CardConfig, onDone: () =>
+            {
+                DeckStorage.LoadAll(
+                    onSuccess: _ => GoToMenu(),
+                    onError:   err =>
+                    {
+                        Debug.LogWarning($"[InitState] DeckStorage load failed: {err}");
+                        GoToMenu();
+                    });
+            });
         }
 
         static void GoToMenu() => SceneManager.LoadScene(1);

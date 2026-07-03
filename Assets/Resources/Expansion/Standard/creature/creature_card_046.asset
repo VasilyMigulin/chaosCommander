@@ -122,7 +122,7 @@ MonoBehaviour:
         Zone: 2
         OfferCount: 3
         Filters:
-        - rid: 1051486747143962719
+        - rid: 2419359952424665265
     - rid: 1051486747143962716
       type: {class: OnDieTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
@@ -131,6 +131,6 @@ MonoBehaviour:
       data:
         ConditionRoot:
           rid: -2
-    - rid: 1051486747143962719
-      type: {class: OwnPlayerTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+    - rid: 2419359952424665265
+      type: {class: CasterOwnedTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 

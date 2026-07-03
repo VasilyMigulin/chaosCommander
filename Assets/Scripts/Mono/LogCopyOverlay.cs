@@ -163,12 +163,22 @@ namespace Game.Core.Mono
                 Game.Core.Service.DebugFlags.IgnoreDeckColorRule = !ignoreColor;
                 Toast($"Deck color rule {(!ignoreColor ? "ignored" : "enforced")}");
             }
-
-            // Второй ряд: фильтр-подстрока + копирование только совпавших строк.
+            // Второй ряд: фильтр-подстрока + копирование только совпавших строк + PvE.
+            // NB: первый ряд занимает ~99% ширины экрана (масштаб = width/1000) — восьмая кнопка
+            // уезжала за правый край и была невидима. Поэтому PvE живёт во ВТОРОМ ряду.
             float y2 = y + h + pad;
             _filter = GUI.TextField(new Rect(pad, y2, 260 * _scale, h), _filter ?? "", _field);
             if (GUI.Button(new Rect(pad + 260 * _scale + pad, y2, 150 * _scale, h), "Copy Filt", _btn))
                 CopyToClipboard(false, _filter);
+            // PvE: бой против ИИ без сети (энкаунтер из Resources/{PveMode.EncounterPath}).
+            // Через шину → MenuState.StartPveBattle: тот сперва ЧИСТО гасит активный матчмейкинг
+            // (LoadScene посреди джоина оставлял оверлей поиска поверх боя). В бою события никто
+            // не слушает → кнопка там безвредна.
+            if (GUI.Button(new Rect(pad + 260 * _scale + pad + 150 * _scale + pad, y2, 110 * _scale, h), "PvE", _btn))
+            {
+                Toast($"PvE: запрошен бой (энкаунтер '{Game.Core.Service.PveMode.EncounterPath}')");
+                Game.Core.Events.GameEventBus.Publish(new Game.Core.Events.PveStartRequestedEvent());
+            }
 
             // Тост-подтверждение.
             if (_toast != null && Time.realtimeSinceStartup < _toastUntil)

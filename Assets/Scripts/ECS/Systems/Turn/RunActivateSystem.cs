@@ -25,6 +25,7 @@ namespace Game.Core.Ecs.Systems
         readonly EcsFilterInject<Inc<AbilityQueuedState>>     _abilityQueued  = default;
         readonly EcsFilterInject<Inc<MovingTag>>              _moving         = default;
         readonly EcsFilterInject<Inc<AttackAnimPendingTag>>   _attackAnim     = default;
+        readonly EcsFilterInject<Inc<PendingOnCastComponent>> _pendingOnCast  = default;   // #2: призыв → OnCast
 
         public void Run(IEcsSystems systems)
         {
@@ -35,7 +36,8 @@ namespace Game.Core.Ecs.Systems
                      || _abilityTarget.Value.GetEntitiesCount() > 0
                      || _abilityQueued.Value.GetEntitiesCount() > 0
                      || _moving.Value.GetEntitiesCount()        > 0
-                     || _attackAnim.Value.GetEntitiesCount()    > 0;
+                     || _attackAnim.Value.GetEntitiesCount()    > 0
+                     || _pendingOnCast.Value.GetEntitiesCount() > 0;   // #2: ждём призыв → OnCast
 
             if (busy)
             {

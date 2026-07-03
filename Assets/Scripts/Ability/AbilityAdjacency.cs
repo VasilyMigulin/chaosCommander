@@ -39,6 +39,7 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class DealDamageToNeighborsEffect : EffectBase
     {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Damage;
         public int Amount = 1;
 
         public override void Apply(EcsWorld world, int cardEntity, int target)
@@ -51,6 +52,7 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class DealDamageWithLethalSplashEffect : EffectBase
     {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Damage;
         public int Amount = 1;        // урон цели
         public int SplashAmount = 5;  // урон соседям, если цель погибнет
 

@@ -50,12 +50,20 @@ namespace Game.Core.States
         protected Dictionary<string, EcsPackedEntity> _netKeyMap = new();
         protected Dictionary<int, string> _netLocalMap = new();
         protected Dictionary<int, (PlayerRef playerRef, NetworkPlayerData playerData)> dictionaryPlayers = new Dictionary<int, (PlayerRef, NetworkPlayerData)>();
-        public bool IsServer => PhotonRunHandler.IsServer;
+        // PvE: Photon отсутствует — локальная симуляция считается «сервером».
+        public bool IsServer => PhotonRunHandler == null || PhotonRunHandler.IsServer;
         public EcsWorld World => EcsHandler.World;
+
+        /// <summary>Бой против ИИ без сети (см. Service.PveMode). Фиксируется на входе в бой.</summary>
+        private bool _pve;
 
         // Идёт выход в меню: гасим сессию и грузим MenuScene. Пока true — ECS не гоняем (раннер
         // завершается асинхронно, чужие RPC/системы в этот момент бессмысленны).
         private bool _exiting;
+
+        // RPC, отправленные из ОБРАБОТЧИКА другого RPC (OnTriggerStateInit вызывается синхронно из
+        // RPC_TriggerStateInit), Fusion теряет при доставке на хост. Откладываем на следующий кадр (Update).
+        private bool _pendingStateReadyRpc;
 
         public void AddEntity(int entity, string localKey = null, string networkKey = null)
         {
@@ -104,7 +112,9 @@ namespace Game.Core.States
         }
         public override void Awake()
         {
-            if (PhotonRunHandler == null)
+            _pve = Game.Core.Service.PveMode.Enabled;
+
+            if (!_pve && PhotonRunHandler == null)
             {
                 PhotonRunHandler = FindFirstObjectByType<PhotonRunHandler>();
 
@@ -117,12 +127,39 @@ namespace Game.Core.States
 
             MatchTracker.Initialize();
             // PhotonRunHandler — сетевой объект, может ещё не существовать в Awake.
-            // Пробуем найти сразу, иначе будем искать в Start. 
+            // Пробуем найти сразу, иначе будем искать в Start.
             EcsHandler = EcsRunHandler.Create(this);
         }
 
         public override void Start()
         {
+            // ── PvE: сети нет — инициализируем ECS сразу, без Photon-пайплайна/RPC. ──
+            if (_pve)
+            {
+                UIModule.Open<BattleCanvas>();
+                UIModule.Inject(this, this, EcsHandler.World, _cardConfig);
+
+                GameEventBus.Subscribe<CellSelectedEvent>(OnCellSelected);
+                GameEventBus.Subscribe<ExitToMenuRequestedEvent>(OnExitToMenuRequested);
+                GameEventBus.Subscribe<MatchEndedEvent>(OnPveMatchEnded);   // победа → отметка «уровень пройден»
+
+                try
+                {
+                    // Без PhotonRunHandler в инжектах: EcsCustomInject<PhotonRunHandler> останется null —
+                    // системы либо проверяют null (Collect), либо имеют PvE-ветки (InitPlayer/MulliganReady).
+                    EcsHandler.Init(BoardView, _cardConfig);
+                    Debug.Log("[BattleState][PVE] EcsHandler.Init completed (бой против ИИ).");
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"[BattleState][PVE] EcsHandler.Init FAILED: {e}");
+                }
+
+                StartPveIntro();   // VS-экран → мулиган (в MP это делает Photon-пайплайн; без этого
+                                   // BattleLoadingOverlay и мулиган-окно ждут события вечно → «бой не начинается»)
+                return;
+            }
+
             // Повторный поиск на случай если в Awake handler ещё не заспавнился
             if (PhotonRunHandler == null)
             {
@@ -167,9 +204,63 @@ namespace Game.Core.States
                 Debug.LogError($"[BattleState][{(PhotonRunHandler.IsServer ? "HOST" : "CLIENT")}] OnTriggerStateInit: EcsHandler.Init FAILED: {e}");
             }
 
-            Debug.Log($"[BattleState][{(PhotonRunHandler.IsServer ? "HOST" : "CLIENT")}] OnTriggerStateInit: calling RPC_NotifyStateReady.");
-            PhotonRunHandler.RPC_NotifyStateReady();
-            Debug.Log($"[BattleState][{(PhotonRunHandler.IsServer ? "HOST" : "CLIENT")}] OnTriggerStateInit: RPC_NotifyStateReady called.");
+            // ВАЖНО: RPC_NotifyStateReady и SubmitLocalCommander НЕ шлём отсюда — мы внутри обработчика
+            // RPC_TriggerStateInit, а Fusion теряет RPC, отправленные из обработчика RPC (пассив: эти RPC
+            // не доходили до хоста → пайплайн вис на Step 3, VS-раскрытие не запускалось). Откладываем на
+            // следующий кадр (Update, вне RPC-контекста).
+            _pendingStateReadyRpc = true;
+        }
+
+        // PvE: победа → локальная отметка прохождения уровня (StoryModePanel покажет «✓»).
+        // MVP-хранилище — PlayerPrefs; серверный прогресс заменит его внутри PveMode.DoneKey-слоя.
+        // PvE-интро: в MP VS-экран (CommandersRevealedUIEvent) и старт мулигана (MulliganPhaseBeginUIEvent)
+        // публикует PhotonRunHandler (RPC_RevealCommanders → задержка → PhaseBegin). Его в PvE нет — повторяем
+        // каскад локально: свой командир из активной колоды (DeckStorage), вражеский — из энкаунтера.
+        // MulliganPhaseBeginUIEvent заодно гасит BattleLoadingOverlay и открывает мулиган-окно.
+        private async void StartPveIntro()
+        {
+            const int RevealMs = 3000;   // как CommanderRevealMs в PhotonRunHandler
+
+            string localExp = null, oppExp = null;
+            int localId = -1, oppId = -1;
+
+            var decks = Game.Core.DeckBuilder.DeckStorage.GetCached();
+            if (decks != null && decks.Count > 0 && decks[0].Commander.CardId != 0)
+            {
+                localExp = decks[0].Commander.ExpansionId;
+                localId  = decks[0].Commander.CardId;
+            }
+
+            var encounter = Resources.Load<PveEncounterConfig>(Game.Core.Service.PveMode.EncounterPath);
+            if (encounter != null && encounter.Commander != null)
+            {
+                oppExp = encounter.Commander.ExpansionId;
+                oppId  = encounter.Commander.CardId;
+            }
+
+            if (localId > 0 && oppId > 0)
+            {
+                GameEventBus.Publish(new CommandersRevealedUIEvent
+                {
+                    LocalExpansionId    = localExp,
+                    LocalCardId         = localId,
+                    OpponentExpansionId = oppExp,
+                    OpponentCardId      = oppId,
+                });
+                await System.Threading.Tasks.Task.Delay(RevealMs);
+                if (_exiting || this == null) return;   // вышли из боя, пока крутился VS-экран
+            }
+
+            GameEventBus.Publish(new MulliganPhaseBeginUIEvent());
+            Debug.Log("[BattleState][PVE] интро завершено → мулиган");
+        }
+
+        private void OnPveMatchEnded(MatchEndedEvent evt)
+        {
+            if (evt.LocalResult != MatchResult.Win) return;
+            PlayerPrefs.SetInt(Game.Core.Service.PveMode.DoneKey(Game.Core.Service.PveMode.EncounterPath), 1);
+            PlayerPrefs.Save();
+            Debug.Log($"[BattleState][PVE] уровень '{Game.Core.Service.PveMode.EncounterPath}' пройден ✓");
         }
 
         private void OnCellSelected(CellSelectedEvent evt)
@@ -187,8 +278,10 @@ namespace Game.Core.States
             GameEventBus.Unsubscribe<TriggerStateInitEvent>(OnTriggerStateInit);
             GameEventBus.Unsubscribe<CellSelectedEvent>(OnCellSelected);
             GameEventBus.Unsubscribe<ExitToMenuRequestedEvent>(OnExitToMenuRequested);
+            GameEventBus.Unsubscribe<MatchEndedEvent>(OnPveMatchEnded);
             EcsHandler?.Dispose();
             MatchTracker.Shutdown();
+            Game.Core.Service.PveMode.Reset();   // не тащим PvE-флаг в следующий (возможно MP) матч
         }
 
         /// <summary>
@@ -205,7 +298,8 @@ namespace Game.Core.States
 
             try
             {
-                if (PhotonInitializer.Instance != null)
+                // PvE: сессии нет — гасить нечего.
+                if (!_pve && PhotonInitializer.Instance != null)
                     await PhotonInitializer.Instance.EndSession();
             }
             catch (Exception e)
@@ -219,6 +313,17 @@ namespace Game.Core.States
         public override void Update()
         {
             if (_exiting) return;   // сессия гаснет — пайплайн больше не гоняем
+
+            // Отложенная отправка RPC вне RPC-контекста (см. OnTriggerStateInit): на пассиве только так
+            // они реально доходят до хоста.
+            if (_pendingStateReadyRpc)
+            {
+                _pendingStateReadyRpc = false;
+                Debug.Log($"[BattleState][{(PhotonRunHandler.IsServer ? "HOST" : "CLIENT")}] Deferred: SubmitLocalCommander + RPC_NotifyStateReady (вне RPC-контекста).");
+                PhotonRunHandler.SubmitLocalCommander();
+                PhotonRunHandler.RPC_NotifyStateReady();
+            }
+
             EcsHandler.Run();
         }
         public void FixedUpdate() => EcsHandler.FixedRun();

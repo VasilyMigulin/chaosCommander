@@ -24,6 +24,8 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<ManaComponent>     _manaPool      = default;
         readonly EcsPoolInject<PlayerComponent>   _playerPool    = default;
         readonly EcsPoolInject<ActiveState>       _activePool    = default;
+        readonly EcsPoolInject<CommanderTag>      _commanderTagPool = default;
+        readonly EcsPoolInject<CommanderCooldownComponent> _commanderCdPool = default;
 
         readonly EcsFilterInject<Inc<HandTag, OwnCardTag>> _handFilter = default;
 
@@ -41,6 +43,9 @@ namespace Game.Core.Ecs.Systems
             GameEventBus.Subscribe<LocalTurnStartedEvent>(OnLocalTurnStarted);
             GameEventBus.Subscribe<OpponentTurnEndedEvent>(OnOpponentTurnEnded);
             GameEventBus.Subscribe<CostModifierChangedEvent>(OnCostModifierChanged);
+            // Кулдаун командира влияет на доступность — пересчитываем на его установке/снятии.
+            GameEventBus.Subscribe<CommanderOnCooldownUIEvent>(OnCommanderCooldownChanged);
+            GameEventBus.Subscribe<CommanderCooldownExpiredUIEvent>(OnCommanderCooldownExpired);
         }
 
         private void OnResourceChanged(ResourceChangedEvent _)     => _resourceDirty = true;
@@ -48,6 +53,8 @@ namespace Game.Core.Ecs.Systems
         private void OnLocalTurnStarted(LocalTurnStartedEvent _)    => _resourceDirty = true;
         private void OnOpponentTurnEnded(OpponentTurnEndedEvent _)  => _resourceDirty = true;
         private void OnCostModifierChanged(CostModifierChangedEvent _) => _resourceDirty = true;
+        private void OnCommanderCooldownChanged(CommanderOnCooldownUIEvent _) => _resourceDirty = true;
+        private void OnCommanderCooldownExpired(CommanderCooldownExpiredUIEvent _) => _resourceDirty = true;
 
         private void OnCardPlacedInView(CardPlacedInHandViewEvent evt)
         {
@@ -128,6 +135,10 @@ namespace Game.Core.Ecs.Systems
             // в RunCastRouterSystem — defense-in-depth).
             if (!_activePool.Value.Has(ownerEntity)) return false;
 
+            // Командир на кулдауне (после гибели) — недоступен к розыгрышу (не перетаскивается, серый).
+            // Компонент снимает RunTurnStartSystem на ходу доступности; здесь перечёт дёргают cooldown-события.
+            if (_commanderTagPool.Value.Has(cardEntity) && _commanderCdPool.Value.Has(cardEntity)) return false;
+
             if (_goldCostPool.Value.Has(cardEntity) && _goldPool.Value.Has(ownerEntity))
             {
                 ref var gold = ref _goldPool.Value.Get(ownerEntity);
@@ -165,6 +176,8 @@ namespace Game.Core.Ecs.Systems
             GameEventBus.Unsubscribe<LocalTurnStartedEvent>(OnLocalTurnStarted);
             GameEventBus.Unsubscribe<OpponentTurnEndedEvent>(OnOpponentTurnEnded);
             GameEventBus.Unsubscribe<CostModifierChangedEvent>(OnCostModifierChanged);
+            GameEventBus.Unsubscribe<CommanderOnCooldownUIEvent>(OnCommanderCooldownChanged);
+            GameEventBus.Unsubscribe<CommanderCooldownExpiredUIEvent>(OnCommanderCooldownExpired);
         }
     }
 }

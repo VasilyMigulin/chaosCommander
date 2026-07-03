@@ -1,0 +1,25 @@
+{
+  "_comment": "Title Data key = 'taskConfig'. Ежедневные/еженедельные задачи + входные награды. Читают Azure Functions (GetDailyState/Claim*/ReportTaskProgress). reward: currencies[{code,amount}] / cards[{itemId,amount}] / boosters[itemId] / avatars[itemId].",
+  "resets": { "dailyHourUtc": 0, "weeklyDayUtc": 3, "weeklyHourUtc": 0 },
+
+  "loginRewards": [
+    { "day": 1, "reward": { "currencies": [ { "code": "GD", "amount": 100 } ] } },
+    { "day": 2, "reward": { "currencies": [ { "code": "GD", "amount": 150 } ] } },
+    { "day": 3, "reward": { "currencies": [ { "code": "GD", "amount": 200 } ] } },
+    { "day": 4, "reward": { "currencies": [ { "code": "GD", "amount": 250 } ] } },
+    { "day": 5, "reward": { "currencies": [ { "code": "GD", "amount": 300 } ] } },
+    { "day": 6, "reward": { "currencies": [ { "code": "GD", "amount": 400 } ] } },
+    { "day": 7, "reward": { "boosters": [ "booster_standard" ], "currencies": [ { "code": "GM", "amount": 50 } ] } }
+  ],
+
+  "daily": [
+    { "id": "d_play_games",  "type": "play_games",  "target": 3, "reward": { "currencies": [ { "code": "GD", "amount": 100 } ] } },
+    { "id": "d_win_games",   "type": "win_games",   "target": 1, "reward": { "currencies": [ { "code": "GD", "amount": 150 } ] } },
+    { "id": "d_play_cards",  "type": "play_cards",  "target": 20, "reward": { "currencies": [ { "code": "GD", "amount": 80 } ] } }
+  ],
+
+  "weekly": [
+    { "id": "w_win_games",     "type": "win_games",     "target": 10, "reward": { "boosters": [ "booster_standard" ] } },
+    { "id": "w_open_boosters", "type": "open_boosters", "target": 3,  "reward": { "currencies": [ { "code": "GM", "amount": 100 } ] } }
+  ]
+}

@@ -29,6 +29,7 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<SpeedComponent>         _speedPool    = default;
         readonly EcsPoolInject<ViewRefComponent>       _viewPool     = default;
         readonly EcsPoolInject<ViewSpawnedTag>         _spawnedPool  = default;
+        readonly EcsPoolInject<AttacksUsedComponent>   _attacksUsedPool = default;
         readonly EcsFilterInject<Inc<PlayerComponent, HandComponent>> _playerFilter = default;
 
         public void Run(IEcsSystems systems)
@@ -57,6 +58,8 @@ namespace Game.Core.Ecs.Systems
                     _deadTagPool.Value.Del(card);
                     if (_hpPool.Value.Has(card))    { ref var h = ref _hpPool.Value.Get(card);    h.Current   = h.Max; }
                     if (_speedPool.Value.Has(card)) { ref var s = ref _speedPool.Value.Get(card); s.Remaining = s.Max; }
+                    // Счётчик атак с прошлой жизни — иначе воскрешённый не атакует в ход призыва.
+                    if (_attacksUsedPool.Value.Has(card)) _attacksUsedPool.Value.Get(card).Value = 0;
 
                     // СБРОС ВИЗУАЛА для воскрешения (призыв с кладбища): старый GameObject уничтожен анимацией
                     // смерти (DieSystem.SendToGrave → PlayDeath), но ViewSpawnedTag остался → SpawnCreatureViewSystem

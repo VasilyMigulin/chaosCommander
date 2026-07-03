@@ -34,6 +34,7 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<SpeedComponent> _speedPool = default;
         readonly EcsPoolInject<DeadTag> _deadPool = default;
         readonly EcsPoolInject<CommanderTag> _commanderPool = default;
+        readonly EcsPoolInject<AttacksUsedComponent> _attacksUsedPool = default;
 
         readonly EcsFilterInject<Inc<PlayerComponent>> _players = default;
 
@@ -96,6 +97,9 @@ namespace Game.Core.Ecs.Systems
             if (_atkPool.Value.Has(entity))   { ref var a = ref _atkPool.Value.Get(entity);   a.ClearModifiers(); }
             if (_hpPool.Value.Has(entity))    { ref var h = ref _hpPool.Value.Get(entity);     h.ClearModifiers(); h.Current = h.Max; }
             if (_speedPool.Value.Has(entity)) { ref var s = ref _speedPool.Value.Get(entity);  s.ClearModifiers(); s.Remaining = s.Max; }
+            // Счётчик атак за ход — иначе вернувшееся существо не сможет атаковать в ход повторного розыгрыша
+            // (сброс на старте хода касается только существ НА борде).
+            if (_attacksUsedPool.Value.Has(entity)) _attacksUsedPool.Value.Get(entity).Value = 0;
         }
 
         void AddToZoneList(int entity, bool toHand)

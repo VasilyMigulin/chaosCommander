@@ -40,6 +40,7 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class DoubleHealthEffect : EffectBase
     {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Heal;
         public EnumService.Element RequireDeckColor = 0;   // 0 = без условия
 
         public override void Apply(EcsWorld world, int cardEntity, int target)
@@ -76,6 +77,7 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class DrainHealthEffect : EffectBase
     {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Damage;
         /// <summary>Кому идёт похищенное здоровье. Owner — игрок-владелец карты (Всадник Голода → твой герой).
         /// Self — само существо-источник (вампир, что растёт само; НЕ годится для OnDie — оно уже мёртвое).</summary>
         public enum DrainBeneficiary { Owner, Self }
@@ -126,6 +128,7 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class DealLastDamageEffect : EffectBase
     {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Damage;
         public override void Apply(EcsWorld world, int cardEntity, int target)
         {
             if (target < 0) return;
@@ -176,6 +179,7 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class LoseGoldEffect : EffectBase
     {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Curse;
         public int Amount = 1;
 
         public override void Apply(EcsWorld world, int cardEntity, int target)

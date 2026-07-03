@@ -36,4 +36,5 @@ namespace Game.Core.Ability
 
     [Serializable] public sealed class WorkerArchetype : ArchetypeTag { public override string Key => "Worker"; }
     [Serializable] public sealed class ImpArchetype    : ArchetypeTag { public override string Key => "Imp"; }
+    [Serializable] public sealed class FloraArchetype  : ArchetypeTag { public override string Key => "Flora"; }  // зелёный трайб (Побег/Мать-Древо/Плющ)
 }

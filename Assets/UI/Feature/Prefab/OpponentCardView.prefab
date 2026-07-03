@@ -166,7 +166,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 0}
-  m_RaycastTarget: 1
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
@@ -264,11 +264,13 @@ MonoBehaviour:
   _attackText: {fileID: 6614252022287907109}
   _healthText: {fileID: 211998503917613914}
   _speedText: {fileID: 3745225428481301180}
+  _holdInspectEnabled: 1
+  _holdThreshold: 0.45
   _canvasGroup: {fileID: 5156365625387082281}
   _fadeInDuration: 0.35
-  _holdDuration: 1.8
+  _holdDuration: 3
   _fadeOutDuration: 0.35
-  _slideDistance: 220
+  _slideDistance: 100
 --- !u!1 &1369026709950322324
 GameObject:
   m_ObjectHideFlags: 0

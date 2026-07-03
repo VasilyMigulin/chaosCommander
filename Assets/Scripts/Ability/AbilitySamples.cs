@@ -160,6 +160,7 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class DealDamageEffect : IEffect, IDynamicValue
     {
+        public Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Damage;
         public int Amount = 1;
         [SerializeReference] public Condition ConditionRoot;
 
@@ -189,8 +190,9 @@ namespace Game.Core.Ability
 
     // === class (OOP) === NonTarget-эффект: +мана игроку (target = сущность игрока-владельца).
     [Serializable]
-    public sealed class GainManaEffect : IEffect, IDynamicValue
+    public sealed class GainManaEffect : ICasterScopedEffect, IDynamicValue
     {
+        public Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Resource;
         public int Amount = 1;
         [SerializeReference] public Condition ConditionRoot;
 

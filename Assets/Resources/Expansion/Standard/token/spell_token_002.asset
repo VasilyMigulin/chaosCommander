@@ -39,6 +39,7 @@ MonoBehaviour:
         MulliganUnlimitedReplace: 0
         RuntimeAbilities:
         - rid: 1051486567619100829
+        - rid: 2419359952424665266
         Archetypes: []
         RequiresTarget: 0
     - rid: 1051486567619100829
@@ -76,3 +77,26 @@ MonoBehaviour:
     - rid: 1051486639125954883
       type: {class: OnDrawForcePlayTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
+    - rid: 2419359952424665266
+      type: {class: AbilityNonTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 2419359952424665267
+        Rules: []
+        Effects:
+        - rid: 2419359952424665268
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 0}
+          ProjectileSpeed: 12
+          MergeArea: 0
+    - rid: 2419359952424665267
+      type: {class: OnDrawForcePlayTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2419359952424665268
+      type: {class: DrawCardEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Count: 1
+        ConditionRoot:
+          rid: -2

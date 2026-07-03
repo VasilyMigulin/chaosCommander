@@ -75,7 +75,13 @@ namespace AwesomeUI.Feature.DeckBuilder
 
         public override void OnClick()
         {
+            if (ConsumeHoldClick()) return;   // это было удержание-предпросмотр, не добавляем
             OnAddRequested?.Invoke(this);
+        }
+
+        protected override void OnHoldTriggered()
+        {
+            if (Model != null) CardInspectBus.Request(Model);
         }
     }
 }

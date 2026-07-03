@@ -979,6 +979,138 @@ MonoBehaviour:
     m_Key: ui.boosters.title
     m_Metadata:
       m_Items: []
+  - m_Id: 2812476503613440
+    m_Key: ui.inspect.creates
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499520
+    m_Key: ui.matchmaking.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499521
+    m_Key: ui.matchmaking.searching
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499522
+    m_Key: ui.matchmaking.found
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499523
+    m_Key: ui.matchmaking.loading
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499524
+    m_Key: ui.matchmaking.failed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499525
+    m_Key: ui.matchmaking.cancelled
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499526
+    m_Key: ui.battle.loading
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499527
+    m_Key: card.standard.101.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499528
+    m_Key: card.standard.101.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499529
+    m_Key: card.standard.102.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499530
+    m_Key: card.standard.102.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499531
+    m_Key: card.standard.103.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499532
+    m_Key: card.standard.103.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499533
+    m_Key: card.standard.104.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499534
+    m_Key: card.standard.104.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499535
+    m_Key: card.standard.105.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499536
+    m_Key: card.standard.105.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499537
+    m_Key: card.standard.106.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499538
+    m_Key: card.standard.106.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499539
+    m_Key: card.standard.107.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499540
+    m_Key: card.standard.107.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499541
+    m_Key: card.standard.108.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499542
+    m_Key: card.standard.108.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499543
+    m_Key: card.standard.109.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499544
+    m_Key: card.standard.109.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499545
+    m_Key: card.standard.110.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499546
+    m_Key: card.standard.110.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499547
+    m_Key: card.standard.111.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499548
+    m_Key: card.standard.111.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499549
+    m_Key: ui.menu.story
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499550
+    m_Key: ui.story.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499551
+    m_Key: ui.story.level
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

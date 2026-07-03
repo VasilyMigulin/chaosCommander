@@ -29,7 +29,6 @@ namespace Game.Core.Ecs.Systems
 
         // Командир
         readonly EcsPoolInject<CommanderTag> _commanderPool = default;
-        readonly EcsPoolInject<CommanderCooldownComponent> _commanderCdPool = default;
         readonly EcsPoolInject<HandTag> _handTagPool = default;
         readonly EcsPoolInject<HandComponent> _handPool = default;
         readonly EcsPoolInject<PlayerComponent> _playerPool = default;
@@ -41,10 +40,9 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<HealthComponent> _hpPool = default;
         readonly EcsPoolInject<SpeedComponent> _speedPool = default;
         readonly EcsPoolInject<AttackComponent> _atkPool = default;
+        readonly EcsPoolInject<AttacksUsedComponent> _attacksUsedPool = default;
 
         readonly EcsFilterInject<Inc<PlayerComponent, HandComponent>> _playerFilter = default;
-
-        const int CommanderDeathCooldown = 1;
 
         public void Run(IEcsSystems systems)
         {
@@ -112,18 +110,16 @@ namespace Game.Core.Ecs.Systems
             }
         }
 
-        // Токен не идёт на кладбище — уходит в Limbo (вне геймплея). Визуал убираем сразу.
+        // Токен не идёт на кладбище — уходит в Limbo (вне геймплея). Визуал — как смерть (анимация/ужатие),
+        // а НЕ мгновенное уничтожение (баг #1: токены-«всадники» просто исчезали). Вьюшку не уничтожаем —
+        // PlayDeath сам её выключит после анимации.
         private void SendToLimbo(int entity)
         {
             if (_viewPool.Value.Has(entity))
             {
                 ref var vr = ref _viewPool.Value.Get(entity);
-                if (vr.View != null)
-                    Object.Destroy(vr.View);
-                vr.View = null;
+                vr.View?.GetComponent<CreatureView>()?.PlayDeath();
             }
-            if (_spawnedPool.Value.Has(entity))
-                _spawnedPool.Value.Del(entity);
 
             _limboPool.Value.Add(entity);
         }
@@ -160,6 +156,10 @@ namespace Game.Core.Ecs.Systems
                 ref var sp = ref _speedPool.Value.Get(entity);
                 sp.Remaining = sp.Max;
             }
+            // Счётчик атак за ход: сбрасывается на СТАРТЕ хода только у существ НА БОРДЕ — командир в этот
+            // момент в руке, и залипшее значение с прошлой жизни блокировало атаку в ход повторного розыгрыша.
+            if (_attacksUsedPool.Value.Has(entity))
+                _attacksUsedPool.Value.Get(entity).Value = 0;
 
             // Возвращаем в руку (для повторного розыгрыша) и ставим кулдаун
             if (!_handTagPool.Value.Has(entity))
@@ -185,15 +185,9 @@ namespace Game.Core.Ecs.Systems
                 GameEventBus.Publish(new CardDrawnEvent { CardEntity = entity, PlayerId = playerEntity });
             }
 
-            if (!_commanderCdPool.Value.Has(entity))
-                _commanderCdPool.Value.Add(entity);
-            _commanderCdPool.Value.Get(entity).TurnsRemaining = CommanderDeathCooldown;
-
-            GameEventBus.Publish(new CommanderOnCooldownUIEvent
-            {
-                CardEntity    = entity,
-                CooldownTurns = CommanderDeathCooldown,
-            });
+            // Кулдаун НЕ ставим здесь: его вешает RunCommanderCooldownSystem на сам факт возврата в руку
+            // (переход по HandTag) — так кулдаун срабатывает на ЛЮБОЙ возврат (смерть/баунс/«вернуть в руку»),
+            // а не только на смерть.
         }
 
         // Чистка МЯГКИХ стат-модификаторов при смерти (перманентные остаются). Пересчёт внутри ClearModifiers.

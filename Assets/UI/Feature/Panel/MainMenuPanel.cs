@@ -12,6 +12,7 @@ namespace AwesomeUI.Feature
     {
         [UIInject] private IMenuStateContext _state;
         [SerializeField] private Button _matchmakingBtn;
+        [SerializeField] private Button _storyBtn;      // Стори (PvE): открывает выбор уровня
         [SerializeField] private Button _deckBtn;
         [SerializeField] private Button _settingsBtn;
         [SerializeField] private Button _exitBtn;
@@ -32,7 +33,14 @@ namespace AwesomeUI.Feature
         {
             base.OnInject();
 
-            _matchmakingBtn.onClick.AddListener(() => _state.StartMatchMaking());
+            _matchmakingBtn.onClick.AddListener(() =>
+            {
+                _panelController.OpenPanel<FindOpponentPanel>();   // показать поиск соперника
+                _state.StartMatchMaking();
+            });
+            // Стори (PvE) — отдельной кнопкой рядом с матчмейкингом (плоское меню, без подменю «Играть»).
+            if (_storyBtn != null)
+                _storyBtn.onClick.AddListener(() => _panelController.OpenPanel<StoryModePanel>());
             _deckBtn.onClick.AddListener(() => _panelController.OpenPanel<DeckBuilder.DeckBuilderPanel>());
             if (_settingsBtn != null)
                 _settingsBtn.onClick.AddListener(() => _panelController.OpenPanel<SettingsPanel>());
@@ -54,6 +62,7 @@ namespace AwesomeUI.Feature
         void ClearListeners()
         {
             _matchmakingBtn.onClick.RemoveAllListeners();
+            if (_storyBtn != null) _storyBtn.onClick.RemoveAllListeners();
             if (_settingsBtn != null) _settingsBtn.onClick.RemoveAllListeners();
             _exitBtn.onClick.RemoveAllListeners();
             if (_shopBtn != null) _shopBtn.onClick.RemoveAllListeners();

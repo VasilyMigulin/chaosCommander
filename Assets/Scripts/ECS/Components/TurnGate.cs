@@ -26,11 +26,14 @@ namespace Game.Core.Ecs.Components
             var endPool    = world.GetPool<EndTurnState>();
             foreach (var e in world.Filter<PlayerComponent>().End())
             {
-                if (!playerPool.Get(e).IsLocalPlayer) continue;
+                // PvE: сети нет — локальный клиент СИМУЛЯТОР ОБОИХ игроков (и человека, и ИИ).
+                // «Активен» = ход у ЛЮБОГО игрока → триггеры/резолв работают и на ходу ИИ.
+                if (!Service.PveMode.Enabled && !playerPool.Get(e).IsLocalPlayer) continue;
                 // Симулятор хода = активен, ИЛИ идёт каскад начала (StartTurnState), ИЛИ завершение
                 // (EndTurnState): на завершении ActiveState уже снят (инпут off), но OnTurnEnd-способности
                 // ещё должны сработать и реплей не должен включиться.
-                return activePool.Has(e) || startPool.Has(e) || endPool.Has(e);
+                if (activePool.Has(e) || startPool.Has(e) || endPool.Has(e)) return true;
+                if (!Service.PveMode.Enabled) return false;   // MP: локальный игрок один — дальше некого смотреть
             }
             return false;
         }

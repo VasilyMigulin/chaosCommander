@@ -1,0 +1,79 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: creature_card_051
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  CardData:
+    rid: 2419359952424665201
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 2419359952424665201
+      type: {class: CardCreatureModel, ns: Game.Core.Model.Card.Creature, asm: Game.Core.Model.Card.Creature}
+      data:
+        Id: 110
+        Name: "\u041D\u0430\u0434\u043E\u0435\u0434\u043B\u0438\u0432\u044B\u0439
+          \u0441\u043E\u0440\u043D\u044F\u043A"
+        Description: "\u0412 \u043D\u0430\u0447\u0430\u043B\u0435 \u0445\u043E\u0434\u0430:
+          \u043F\u043E\u043B\u0443\u0447\u0430\u0435\u0442 +1\\+1"
+        Rarity: 0
+        Element: 4
+        ArtImage: {fileID: 0}
+        ExpansionId: standard
+        PlayCost: 0
+        PlayCostAmount: 1
+        IsToken: 0
+        MulliganStartingHand: 0
+        MulliganUnlimitedReplace: 0
+        RuntimeAbilities:
+        - rid: 2419359952424665202
+        Archetypes: []
+        MaxHealth: 3
+        Attack: 0
+        Speed: 1
+        ViewPrefab: {fileID: 1046069417137952589, guid: f06aa6138ec1c4140ac9af21f0ddde7e, type: 3}
+        IsCommander: 0
+    - rid: 2419359952424665202
+      type: {class: AbilityToSelf, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 2419359952424665203
+        Rules: []
+        Effects:
+        - rid: 2419359952424665204
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 0}
+          ProjectileSpeed: 12
+          MergeArea: 0
+    - rid: 2419359952424665203
+      type: {class: OnTurnStartTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2419359952424665204
+      type: {class: AddBuffEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        Buff:
+          rid: 2419359952424665205
+        Tracked: 0
+        RevertOnSourceDeath: 0
+    - rid: 2419359952424665205
+      type: {class: BuffStat, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Attack: 1
+        Health: 1
+        Speed: 0
+        Permanent: 1

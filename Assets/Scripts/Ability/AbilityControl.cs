@@ -22,6 +22,7 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class BounceToHandEffect : EffectBase
     {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Removal;
         public override void Apply(EcsWorld world, int cardEntity, int target)
         {
             // ВРЕМЕННО: Скелетон (OnDie+AbilityToSelf) не возвращался. Видим, дошёл ли эффект и валиден ли target.
@@ -35,6 +36,7 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class BounceToDeckEffect : EffectBase
     {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Removal;
         public override void Apply(EcsWorld world, int cardEntity, int target)
             => LeaveBoardUtil.Request(world, target, LeaveDestination.Deck);
     }
@@ -43,6 +45,7 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class BanishEffect : EffectBase
     {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Removal;
         public override void Apply(EcsWorld world, int cardEntity, int target)
             => LeaveBoardUtil.Request(world, target, LeaveDestination.Limbo);
     }
@@ -100,6 +103,7 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class TakeControlEffect : EffectBase
     {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Removal;
         public bool Temporary = false;
         public int Turns = 1;   // для Temporary: сколько ходов КОНТРОЛЁРА держится контроль (1 = до конца этого хода)
 
@@ -154,6 +158,7 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class TransformEffect : EffectBase
     {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Removal;
         [Tooltip("Ассет CardInstanceData существа, в которое превращаем (перетащить).")]
         public ScriptableObject Source;
 

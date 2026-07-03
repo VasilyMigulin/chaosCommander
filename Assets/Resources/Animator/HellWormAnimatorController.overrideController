@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!221 &22100000
+AnimatorOverrideController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: HellWormAnimatorController
+  m_Controller: {fileID: 9100000, guid: 50adb1bf5b78359448dd1b585836cb6a, type: 2}
+  m_Clips:
+  - m_OriginalClip: {fileID: 1827226128182048838, guid: b83a3eef81ebb3d49957c6db8246c6bc, type: 3}
+    m_OverrideClip: {fileID: 1827226128182048838, guid: 72c5d9feb115dd44ebfd196900c911e8, type: 3}
+  - m_OriginalClip: {fileID: 1827226128182048838, guid: 03059b39c5a4ce9429c5b8a8159bf5f3, type: 3}
+    m_OverrideClip: {fileID: 1827226128182048838, guid: b46f4b3b10fa6f14289aa17bf028c8d3, type: 3}
+  - m_OriginalClip: {fileID: 1827226128182048838, guid: 8833d96c40913ae4195ea073c2e2b689, type: 3}
+    m_OverrideClip: {fileID: 1827226128182048838, guid: 6e170723f5934cd4baa8e0d9ff5dbd8e, type: 3}
+  - m_OriginalClip: {fileID: 1827226128182048838, guid: 8401525b31f09924988c7f67298a820b, type: 3}
+    m_OverrideClip: {fileID: 1827226128182048838, guid: 002804334ab1c994cad7f0895e7267b7, type: 3}
+  - m_OriginalClip: {fileID: 1827226128182048838, guid: a62c5371b23e7344192e16444c26f083, type: 3}
+    m_OverrideClip: {fileID: 1827226128182048838, guid: d36d2fce0d206f24ca8ac3e30f780c16, type: 3}
+  - m_OriginalClip: {fileID: 1827226128182048838, guid: fda285752cbfbdb4db22474f2495175a, type: 3}
+    m_OverrideClip: {fileID: 1827226128182048838, guid: d9bafa089379a2e489bbe86674ad966f, type: 3}
+  - m_OriginalClip: {fileID: 1827226128182048838, guid: 970f088a40d247541b4814197ee91cb7, type: 3}
+    m_OverrideClip: {fileID: 1827226128182048838, guid: fa891ffc37fce2a4697901320550a428, type: 3}

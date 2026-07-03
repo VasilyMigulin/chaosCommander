@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using Game.Core.Backend;
 using Game.Core.Configs;
 using Game.Core.Model.Card;
+using PlayFab.ClientModels;
 using UnityEngine;
 
 namespace Game.Core.DeckBuilder
@@ -54,9 +56,56 @@ namespace Game.Core.DeckBuilder
             }
         }
 
-        // ── Save ─────────────────────────────────────────────────────────────
+        // ── Load из Economy v2 инвентаря (актуальный путь) ─────────────────────
 
-        /// <summary>Сохранить текущую библиотеку в PlayFab.</summary>
+        /// <summary>
+        /// Загрузить библиотеку из инвентаря Economy v2. Это АВТОРИТЕТНЫЙ источник владения картами
+        /// (заменяет client-authoritative UserData JSON). Владение меняет только сервер.
+        /// </summary>
+        public static void LoadFromInventory(CardConfig config,
+            Action onSuccess = null, Action<string> onError = null)
+        {
+            EconomyService.GetInventory(inv =>
+            {
+                BuildFromInventory(inv.Cards, config);
+                PlayerWallet.SetAll(inv.Currencies);
+                onSuccess?.Invoke();
+            }, onError);
+        }
+
+        /// <summary>
+        /// Построить рантайм-библиотеку из карт инвентаря v1. Копии карты = отдельные ItemInstance
+        /// с одинаковым ItemId, поэтому считаем количество как число инстансов на ItemId.
+        /// </summary>
+        public static void BuildFromInventory(IEnumerable<ItemInstance> cardItems, CardConfig config)
+        {
+            _entries.Clear();
+            if (cardItems == null) return;
+
+            foreach (var item in cardItems)
+            {
+                if (item?.ItemId == null) continue;
+                if (!CardItemId.TryParse(item.ItemId, out var expansionId, out var cardId)) continue;
+
+                var instance = config.Get(expansionId, cardId);
+                if (instance == null || instance.CardData == null)
+                {
+                    Debug.LogWarning($"[PlayerLibrary] Inventory card not found in CardConfig: {item.ItemId}");
+                    continue;
+                }
+
+                string key = MakeKey(expansionId, cardId);
+                if (_entries.TryGetValue(key, out var existing))
+                    existing.AddCopies(1);
+                else
+                    _entries[key] = new CardEntry(instance.CardData.Clone(), 1);
+            }
+        }
+
+        // ── Save (ЛЕГАСИ — только до полного перехода на Economy) ──────────────
+
+        /// <summary>Сохранить текущую библиотеку в PlayFab UserData.
+        /// ЛЕГАСИ: после миграции на Economy v2 владение меняет сервер, этот путь не использовать.</summary>
         public static void SaveToCloud(Action onSuccess = null, Action<string> onError = null)
         {
             PlayFabService.SaveLibrary(ToOwnedList(), onSuccess, onError);

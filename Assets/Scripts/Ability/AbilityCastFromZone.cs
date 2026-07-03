@@ -17,6 +17,7 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class CopyLastSpellToHandEffect : EffectBase
     {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Draw;
         public override void Apply(EcsWorld world, int cardEntity, int target)
         {
             var pool = world.GetPool<LastPlayedSpellComponent>();
@@ -33,6 +34,7 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class MoveToHandEffect : EffectBase
     {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Draw;
         public override void Apply(EcsWorld world, int cardEntity, int target)
         {
             if (target < 0) return;

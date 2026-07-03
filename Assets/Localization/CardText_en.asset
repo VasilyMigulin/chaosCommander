@@ -1008,6 +1008,141 @@ MonoBehaviour:
     m_Localized: Booster Opening
     m_Metadata:
       m_Items: []
+  - m_Id: 2812476503613440
+    m_Localized: Creates
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499520
+    m_Localized: Finding opponent
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499521
+    m_Localized: "Searching for opponent\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499522
+    m_Localized: Opponent found!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499523
+    m_Localized: "Loading battle\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499524
+    m_Localized: Couldn't find an opponent
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499525
+    m_Localized: Search cancelled
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499526
+    m_Localized: "Loading battle\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499527
+    m_Localized: Pesky Bite
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499528
+    m_Localized: Deals *1* damage to the enemy for each card with the same name you
+      played this match
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499529
+    m_Localized: Sewer Rat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499530
+    m_Localized: 'When played: draw a card. On death: both players discard *1* card'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499531
+    m_Localized: Rat King
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499532
+    m_Localized: 'On death: fills the row with Sewer Rats'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499533
+    m_Localized: Stinky Fog
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499534
+    m_Localized: 'At the start of turn: shuffles *1* Stinky Cloud into your opponent''s
+      deck'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499535
+    m_Localized: Latent Worker
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499536
+    m_Localized: 'On death: shuffles a random Worker into your deck'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499537
+    m_Localized: Grove Keeper
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499538
+    m_Localized: 'When played: fills the row with creatures from your deck costing
+      *2* or less'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499539
+    m_Localized: Obscurantism
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499540
+    m_Localized: 'At the start of turn: you take *3* damage, summons a random imp'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499541
+    m_Localized: Ritual Bonfire
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499542
+    m_Localized: 'At the start of turn: both players take *1* damage'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499543
+    m_Localized: Imp Bully
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499544
+    m_Localized: 'When played: deals *1* damage to a random character'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499545
+    m_Localized: Pesky Weed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499546
+    m_Localized: 'At the start of turn: gains +*1*/+*1*'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499547
+    m_Localized: Humus
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499548
+    m_Localized: Gives a friendly creature +*2*/+*2*
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499549
+    m_Localized: Story
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499550
+    m_Localized: Story Mode
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2812476587499551
+    m_Localized: Level
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

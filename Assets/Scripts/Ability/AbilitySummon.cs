@@ -66,6 +66,7 @@ namespace Game.Core.Ability
     // ─────────────────────────────────────────────────────────────────────────
     public abstract class SummonEffect : EffectBase, ISummonModifierProvider
     {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Summon;
         /// <summary>
         /// Модификаторы призыва: применяются к КАЖДОМУ призванному существу сверху обычного призыва
         /// (target = призванная сущность, cardEntity = карта-источник). Пусто → просто призыв.
@@ -204,6 +205,9 @@ namespace Game.Core.Ability
         [Tooltip("Только для Pick=Specific: ассет CardInstanceData призываемой карты (перетащить).")]
         public ScriptableObject Card;
 
+        [Tooltip("Призывать только существ стоимостью ≤ MaxCost («всех дешевле X» = LeastExpensive+FillRow+MaxCost). 0 — без ограничения (default: старые ассеты не меняются).")]
+        public int MaxCost = 0;
+
         protected override IEnumerable<int> SelectSummonEntities(EcsWorld world, int cardEntity)
         {
             int limit = FillRow ? int.MaxValue : Count;   // FillRow → Apply обрежет по свободным клеткам
@@ -211,7 +215,7 @@ namespace Game.Core.Ability
             if (!ownerPool.Has(cardEntity)) yield break;
             int ownerId = ownerPool.Get(cardEntity).OwnerId;
 
-            foreach (var e in SummonPickUtil.SelectFrom(world, cardEntity, FindDeck(world, ownerId), Pick, limit, Card))
+            foreach (var e in SummonPickUtil.SelectFrom(world, cardEntity, FindDeck(world, ownerId), Pick, limit, Card, MaxCost))
                 yield return e;
         }
 
@@ -231,6 +235,9 @@ namespace Game.Core.Ability
     // === helper === ВЫБОР существующих существ из списка-зоны (колода/рука) по правилу Pick. Общий для
     // SummonFromDeck/SummonFromHand: по идентичности (SameAsSelf/Specific, исключая источник, в порядке зоны)
     // или по стоимости (MostExpensive/LeastExpensive, тай-брейк по индексу). Детерминировано → выбор на активе.
+    // maxCost > 0 — отсечь кандидатов дороже (действует в обеих ветках); 0 — без ограничения
+    // (0-сентинел, а не -1: [SerializeReference]-десериализация не гоняет инициализаторы полей,
+    // у старых ассетов новое поле = 0 → должно означать «поведение как раньше»).
     internal static class SummonPickUtil
     {
         public static int CostOf(EcsWorld world, int e)
@@ -242,7 +249,8 @@ namespace Game.Core.Ability
         }
 
         public static IEnumerable<int> SelectFrom(EcsWorld world, int cardEntity, List<int> zone,
-                                                  DeckSummonPick pick, int limit, UnityEngine.ScriptableObject specificCard)
+                                                  DeckSummonPick pick, int limit, UnityEngine.ScriptableObject specificCard,
+                                                  int maxCost = 0)
         {
             if (zone == null) yield break;
             var creaturePool = world.GetPool<CreatureTag>();
@@ -259,6 +267,7 @@ namespace Game.Core.Ability
                     if (!creaturePool.Has(e) || !modelPool.Has(e)) continue;
                     var m = modelPool.Get(e);
                     if (m.ModelId != wantId || m.ExpansionId != wantExp) continue;
+                    if (maxCost > 0 && CostOf(world, e) > maxCost) continue;
                     yield return e;
                     if (++found >= limit) yield break;
                 }
@@ -270,7 +279,9 @@ namespace Game.Core.Ability
             {
                 int e = zone[i];
                 if (!creaturePool.Has(e)) continue;
-                candidates.Add((e, CostOf(world, e), i));
+                int cost = CostOf(world, e);
+                if (maxCost > 0 && cost > maxCost) continue;
+                candidates.Add((e, cost, i));
             }
             if (candidates.Count == 0) yield break;
 
@@ -342,6 +353,9 @@ namespace Game.Core.Ability
         [Tooltip("Только для Pick=Specific: ассет CardInstanceData призываемой карты (перетащить).")]
         public ScriptableObject Card;
 
+        [Tooltip("Призывать только существ стоимостью ≤ MaxCost. 0 — без ограничения (default: старые ассеты не меняются).")]
+        public int MaxCost = 0;
+
         protected override IEnumerable<int> SelectSummonEntities(EcsWorld world, int cardEntity)
         {
             int limit = FillRow ? int.MaxValue : Count;
@@ -349,7 +363,7 @@ namespace Game.Core.Ability
             if (!ownerPool.Has(cardEntity)) yield break;
             int ownerId = ownerPool.Get(cardEntity).OwnerId;
 
-            foreach (var e in SummonPickUtil.SelectFrom(world, cardEntity, FindHand(world, ownerId), Pick, limit, Card))
+            foreach (var e in SummonPickUtil.SelectFrom(world, cardEntity, FindHand(world, ownerId), Pick, limit, Card, MaxCost))
                 yield return e;
         }
 

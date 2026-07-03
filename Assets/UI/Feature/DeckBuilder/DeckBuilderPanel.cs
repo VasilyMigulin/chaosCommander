@@ -163,8 +163,8 @@ namespace AwesomeUI.Feature.DeckBuilder
             {
                 bool visible = true;
 
-                if (!string.IsNullOrEmpty(filter))
-                    visible = entry.Model.Name.ToLower().Contains(filter.ToLower());
+                if (!string.IsNullOrEmpty(filter) && !MatchesSearch(entry.Model, filter))
+                    visible = false;
 
                 // Скрываем командира из библиотеки
                 if (hasCommander && visible && entry.Model == _service.Commander)
@@ -388,6 +388,28 @@ namespace AwesomeUI.Feature.DeckBuilder
 
         // Локализация UI-строк: ключ + русский фоллбэк (русский показывается, пока нет перевода).
         static string Loc(string key, string ru) => Game.Core.Shared.CardTextLocalization.GetText(key, ru);
+
+        /// <summary>
+        /// Поиск по названию: матчим и авторское RU-имя (Model.Name), и локализованное имя текущего языка
+        /// (в англ. UI — английское). Так поиск работает и по русским, и по английским названиям.
+        /// (Кросс-язык — искать EN, пока UI на RU — здесь НЕ покрыт: шлюз локализации отдаёт только
+        /// текущий язык. Если нужно — заведём отдельный доступ к таблице по коду локали.)
+        /// </summary>
+        static bool MatchesSearch(CardModel model, string filter)
+        {
+            filter = filter.Trim().ToLowerInvariant();
+            if (filter.Length == 0) return true;
+            if (model == null) return false;
+
+            if (ContainsCI(model.Name, filter)) return true;
+
+            string nameKey   = CardTextLocalization.NameKey(model.ExpansionId, model.Id);
+            string localized = CardTextLocalization.GetText(nameKey, model.Name);
+            return ContainsCI(localized, filter);
+        }
+
+        static bool ContainsCI(string source, string filterLower)
+            => !string.IsNullOrEmpty(source) && source.ToLowerInvariant().Contains(filterLower);
 
         static string ResultMessage(DeckBuilderService.AddResult result)
         {

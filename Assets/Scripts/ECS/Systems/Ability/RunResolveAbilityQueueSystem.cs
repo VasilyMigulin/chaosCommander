@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Game.Core.Ecs.Components;
 using Game.Core.Events;
 using Game.Core.Mono;
+using Game.Core.Shared.Interface;
 using Leopotam.EcsLite;
 using Leopotam.EcsLite.Di;
 using UnityEngine;
@@ -134,6 +135,7 @@ namespace Game.Core.Ecs.Systems
             ref var owner = ref ownerPool.Get(first);
             int caster = owner.CardEntity;
             int abilityIndex = owner.AbilityIndex;
+            int playerEntity = owner.PlayerEntity;   // владелец способности — для caster-scoped эффектов
             ref var queued = ref queuedPool.Get(first);
             int[] targets = queued.Targets ?? Array.Empty<int>();
 
@@ -158,9 +160,17 @@ namespace Game.Core.Ecs.Systems
                     var effects = effectPool.Get(first).Effects;
                     if (effects != null)
                     {
+                        // Caster-scoped эффекты (добор/золото/мана/кост владельцу) — РОВНО ОДИН раз за резолв,
+                        // target = игрок-владелец. Иначе в мультицельной способности (Field/Random с N целями)
+                        // они отработали бы N раз. Для NonTarget (target=[владелец]) результат тот же.
+                        foreach (var effect in effects)
+                            if (effect is ICasterScopedEffect && effect.IsReady)
+                                effect.Apply(world, caster, playerEntity);
+
+                        // Остальные эффекты — по каждой цели.
                         foreach (var target in targets)
                             foreach (var effect in effects)
-                                if (effect != null && effect.IsReady)
+                                if (effect != null && effect.IsReady && !(effect is ICasterScopedEffect))
                                     effect.Apply(world, caster, target);
                     }
                 }

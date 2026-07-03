@@ -29,6 +29,7 @@ namespace Game.Core.Ecs.Systems
         readonly EcsFilterInject<Inc<CreatureTag, BoardTag, SpeedComponent, OwnerComponent>, Exc<DeadTag>> _creatures = default;
         readonly EcsPoolInject<SpeedComponent>   _speedPool  = default;
         readonly EcsPoolInject<OwnerComponent>   _ownerPool  = default;
+        readonly EcsPoolInject<AttacksUsedComponent> _attacksUsedPool = default;
 
         readonly EcsFilterInject<Inc<AbilityContainerComponent, BoardTag, OwnerComponent>, Exc<HandTag, DeckTag>> _boardCards = default;
         readonly EcsPoolInject<TurnStartEvent>   _turnStartEventPool = default;
@@ -49,12 +50,13 @@ namespace Game.Core.Ecs.Systems
 
                 int playerId = _playerPool.Value.Get(entity).PlayerId;
 
-                // 1) Скорость существ владельца
+                // 1) Скорость существ владельца + сброс счётчика атак за ход (#4).
                 foreach (var ce in _creatures.Value)
                 {
                     if (_ownerPool.Value.Get(ce).OwnerId != playerId) continue;
                     ref var sp = ref _speedPool.Value.Get(ce);
                     sp.Remaining = sp.Max;
+                    if (_attacksUsedPool.Value.Has(ce)) _attacksUsedPool.Value.Get(ce).Value = 0;
                 }
 
                 // 2) Золото — кроме игрока с маркером GoldBlockComponent (Наступающий кризис): доход не начисляем.

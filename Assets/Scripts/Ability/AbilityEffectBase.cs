@@ -30,6 +30,11 @@ namespace Game.Core.Ability
 
         public bool IsReady => ConditionRoot == null || ConditionRoot.IsReady;
 
+        /// <summary>Роль для ИИ (PvE utility AI). Virtual ЗДЕСЬ (а не только default в IEffect):
+        /// интерфейс-мапа C# фиксируется на классе, объявившем ": IEffect", поэтому наследники
+        /// переопределяют роль только через эту виртуалку (override), а не скрытием.</summary>
+        public virtual AiEffectRole AiRole => AiEffectRole.Generic;
+
         public abstract void Apply(EcsWorld world, int cardEntity, int target);
     }
 }

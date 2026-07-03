@@ -31,6 +31,8 @@ namespace Game.Core.Ecs.Systems
             var creatureTag = world.GetPool<CreatureTag>();
             var spellTag = world.GetPool<SpellTag>();
             var charmTag = world.GetPool<CharmTag>();
+            var commanderTag = world.GetPool<CommanderTag>();
+            var commanderCd  = world.GetPool<CommanderCooldownComponent>();
             var pendingCellPool = world.GetPool<PendingSelectCellState>();
             var moveToGravePool = world.GetPool<MoveCardToGraveEvent>();
             var moveToBoardPool = world.GetPool<MoveCardToBoardEvent>();
@@ -58,6 +60,15 @@ namespace Game.Core.Ecs.Systems
                 }
 
                 int ownerId = ownerPool.Get(card).OwnerId;
+
+                // pre-cost: командир на кулдауне (после гибели вернулся в руку) — играть нельзя, пока
+                // не истечёт. CommanderCooldownComponent висит на ходах смерти и следующем (skip-one),
+                // RunTurnStartSystem снимает его на старте хода доступности. Проверяем ДО оплаты.
+                if (commanderTag.Has(card) && commanderCd.Has(card))
+                {
+                    Decline(declinePool, card, DeclineReason.CommanderOnCooldown);
+                    continue;
+                }
 
                 // pre-cost: лимит чар (5) — чтобы не списывать стоимость зря
                 if (charmTag.Has(card) && CharmCount(world, ownerPool, ownerId) >= CharmLimit)

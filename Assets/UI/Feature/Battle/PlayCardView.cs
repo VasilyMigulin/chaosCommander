@@ -53,6 +53,12 @@ namespace AwesomeUI.Feature.Battle
         private Canvas        _canvas;
         private RectTransform _layoutRect;  // RectTransform родительского CardLayout
 
+        // ── Драг-розыгрыш существа «под пальцем» (мост через bus, UI Mono-кода не знает) ──
+        // UI шлёт CreatureDragMoved/Released; CreatureDragPreviewSystem ведёт превью-модель и отвечает
+        // CreatureDragOverFieldChangedEvent (карта растворяется/проявляется). Коммит/отмена — на системе.
+        private bool _creatureDrag;      // система сказала «карта над полем, превью активно»
+        private bool _dragToPlace;       // система сказала «это существо: размещение ТОЛЬКО дропом на поле»
+
         // ── Init / Dispose ───────────────────────────────────────────────────
 
         public override SourceSlot Init()
@@ -73,6 +79,8 @@ namespace AwesomeUI.Feature.Battle
             GameEventBus.Subscribe<CardAbilityReadyChangedEvent>(OnAbilityReadyChanged);
             GameEventBus.Subscribe<CardCostChangedEvent>(OnCostChanged);
             GameEventBus.Subscribe<TargetSelectionCancelledEvent>(OnTargetSelectionCancelled);
+            GameEventBus.Subscribe<CreatureDragOverFieldChangedEvent>(OnDragOverFieldChanged);
+            GameEventBus.Subscribe<CreatureDragStartedEvent>(OnCreatureDragStarted);
         }
 
         public override void Unject()
@@ -81,6 +89,8 @@ namespace AwesomeUI.Feature.Battle
             GameEventBus.Unsubscribe<CardAbilityReadyChangedEvent>(OnAbilityReadyChanged);
             GameEventBus.Unsubscribe<CardCostChangedEvent>(OnCostChanged);
             GameEventBus.Unsubscribe<TargetSelectionCancelledEvent>(OnTargetSelectionCancelled);
+            GameEventBus.Unsubscribe<CreatureDragOverFieldChangedEvent>(OnDragOverFieldChanged);
+            GameEventBus.Unsubscribe<CreatureDragStartedEvent>(OnCreatureDragStarted);
         }
 
         public override void Dispose()
@@ -102,6 +112,14 @@ namespace AwesomeUI.Feature.Battle
             _isAffordable   = false;
             _isAbilityReady = false;
             _isDragging     = false;
+            _creatureDrag   = false;
+            _dragToPlace    = false;
+
+            // Сброс растворения: слот КОМАНДИРА не проходит через ClearCard (переиспользуется SetCard'ом
+            // напрямую при возврате в руку после смерти), и после драг-розыгрыша (карта растворилась над
+            // полем: альфа 0 / dissolve 1) командир возвращался НЕВИДИМЫМ.
+            if (_canvasGroup != null) { _canvasGroup.DOKill(); _canvasGroup.alpha = 1f; _canvasGroup.blocksRaycasts = true; }
+            GetComponent<CardDissolveDriver>()?.ResetInstant();
 
             _layoutRect = transform.parent?.GetComponent<RectTransform>();
 
@@ -141,7 +159,9 @@ namespace AwesomeUI.Feature.Battle
         {
             _isDragging  = false;
             _pendingPlay = false;
-            if (_canvasGroup != null) _canvasGroup.blocksRaycasts = true;
+            _creatureDrag = false;
+            _dragToPlace  = false;
+            if (_canvasGroup != null) { _canvasGroup.DOKill(); _canvasGroup.alpha = 1f; _canvasGroup.blocksRaycasts = true; }
             gameObject?.SetActive(false);
             CardEntity      = -1;
             IsOccupied      = false;
@@ -161,6 +181,8 @@ namespace AwesomeUI.Feature.Battle
             if (!IsOccupied || !_isAffordable) return;
 
             _isDragging            = true;
+            _creatureDrag          = false;
+            _dragToPlace           = false;   // система скажет заново для ЭТОГО драга (CreatureDragStartedEvent)
             _dragStartLocalPos     = _rectTransform.localPosition;
             _dragStartSiblingIndex = _rectTransform.GetSiblingIndex();
 
@@ -185,6 +207,33 @@ namespace AwesomeUI.Feature.Battle
                 delta /= _canvas.scaleFactor;
 
             _rectTransform.localPosition += new Vector3(delta.x, delta.y, 0f);
+
+            // Драг-превью существа: сырой ввод → системе (для не-существ она игнорит и не отвечает).
+            GameEventBus.Publish(new CreatureDragMovedEvent
+            {
+                CardEntity     = CardEntity,
+                ScreenPosition = eventData.position,
+            });
+        }
+
+        // Система → UI (раз на драг): тащим СУЩЕСТВО — размещение только дропом на поле; отпускание вне
+        // поля вернёт карту в руку (старый клик-путь для существ больше не включается).
+        private void OnCreatureDragStarted(CreatureDragStartedEvent evt)
+        {
+            if (evt.CardEntity != CardEntity || !_isDragging) return;
+            _dragToPlace = true;
+        }
+
+        // Система → UI: карта над полем → растворяемся (превью существа под пальцем); ушла → проявляемся.
+        // OverField=false принимаем и БЕЗ активного драга: если драг оборвался (релэйаут руки/блок ввода),
+        // stale-уборка системы шлёт false — карта не должна остаться растворённой.
+        private void OnDragOverFieldChanged(CreatureDragOverFieldChangedEvent evt)
+        {
+            if (evt.CardEntity != CardEntity) return;
+            if (evt.OverField && !_isDragging) return;   // растворяться можно только в живом драге
+            if (evt.OverField == _creatureDrag) return;
+            _creatureDrag = evt.OverField;
+            DissolveCard(evt.OverField);
         }
 
         public void OnEndDrag(PointerEventData eventData)
@@ -197,6 +246,39 @@ namespace AwesomeUI.Feature.Battle
             // Возвращаем исходную позицию в иерархии (после SetAsLastSibling при старте),
             // иначе карта остаётся поверх соседей при возврате в руку.
             _rectTransform.SetSiblingIndex(_dragStartSiblingIndex);
+
+            // ВСЕГДА сообщаем системе «палец отпущен» — иначе её пер-драг стейт (_card) утекал, когда драг
+            // кончался НЕ над полем (возврат в руку / OnUse), и превью переставало работать для ДРУГИХ карт
+            // до конца матча. Не над полем система ресетится молча (без Cancel) — безопасно для всех веток.
+            GameEventBus.Publish(new CreatureDragReleasedEvent
+            {
+                CardEntity     = CardEntity,
+                ScreenPosition = eventData.position,
+            });
+
+            // Драг-розыгрыш существа: превью было над полем → отдаём решение системе. Валидная клетка →
+            // она коммитит размещение; нет → пришлёт TargetSelectionCancelledEvent (вернём карту штатно).
+            if (_creatureDrag)
+            {
+                _creatureDrag = false;
+                _dragToPlace  = false;
+                IsSelected    = false;
+                _pendingPlay  = true;
+                gameObject.SetActive(false);
+                return;
+            }
+
+            // Существо, отпущенное ВНЕ поля (система сказала «драг-в-поле» этим драгом) → просто возврат
+            // в руку. Старый клик-путь (OnUse → PendingSelectCell) для существ больше не включается.
+            if (_dragToPlace)
+            {
+                _dragToPlace = false;
+                IsSelected = false;
+                SetHighlight(CardHighlightEffect.HighlightType.Selection, false);
+                _rectTransform.DOLocalMove(_dragStartLocalPos, _returnDuration)
+                    .SetEase(Ease.OutCubic);
+                return;
+            }
 
             bool outside = IsOutsideLayout();
             Debug.Log($"[PlayCardView] IsOutsideLayout={outside} layoutRect={_layoutRect}");
@@ -249,11 +331,27 @@ namespace AwesomeUI.Feature.Battle
             SetHighlight(CardHighlightEffect.HighlightType.Selection, false);
         }
 
+        // Растворение карты над полем (dissolve-out). Если на карте есть CardDissolveDriver (UI dissolve-шейдер) —
+        // гоним его; иначе базовый фолбэк — альфа CanvasGroup. on=false → вернуть карту видимой.
+        private void DissolveCard(bool on)
+        {
+            var driver = GetComponent<CardDissolveDriver>();
+            if (driver != null) { driver.Play(on, 0.25f); return; }
+            if (_canvasGroup != null)
+            {
+                _canvasGroup.DOKill();
+                _canvasGroup.DOFade(on ? 0f : 1f, 0.2f);
+            }
+        }
+
         private void OnTargetSelectionCancelled(TargetSelectionCancelledEvent evt)
         {
             if (!_pendingPlay || evt.CardEntity != CardEntity) return;
-            // Выбор цели отменён — возвращаем карту в руку
+            // Выбор цели отменён — возвращаем карту в руку (и её видимость после dissolve).
             _pendingPlay = false;
+            _creatureDrag = false;
+            DissolveCard(false);
+            if (_canvasGroup != null) { _canvasGroup.DOKill(); _canvasGroup.alpha = 1f; }
             _rectTransform.localPosition = _dragStartLocalPos;
             gameObject.SetActive(true);
             UpdateView();

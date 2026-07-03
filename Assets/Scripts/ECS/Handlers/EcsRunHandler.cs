@@ -54,6 +54,7 @@ namespace Game.Core.Ecs.Handlers
             _initSystems
                 .Add(new InitPlayerSystem())
                 .Add(new InitDeckSystem())
+                .Add(new InitPveOpponentSystem())   // PvE: колода/рука/командир ИИ из энкаунтера (в MP — no-op)
                 .Add(new InitTurnSystem())
                 .Add(new InitMulliganSystem())
                 ;
@@ -91,6 +92,10 @@ namespace Game.Core.Ecs.Handlers
                 .Add(new HandUISystem())
                 // --- Спаун визуала существа на доске ---
                 .Add(new SpawnCreatureViewSystem())
+                // --- Гейт «призыв → OnCast» (#2): CardCastEvent после анимации призыва ---
+                .Add(new RunPendingOnCastSystem())
+                // --- Командная подкраска вью (свои/чужие): реактивно к смене владельца (кража контроля) ---
+                .Add(new TeamTintSystem())
                 // AuraRecalcSystem УДАЛЁН: ауры теперь реактивные (модификатор-стек AddModifier/RemoveModifier),
                 // а его покадровый Value=Base затирал бы модификаторы. Легаси AuraSource/TargetMask не используются.
                 // --- Выбор/движение/атака существ на борде (input → MoveRequestEvent/AttackRequestEvent) ---
@@ -104,6 +109,7 @@ namespace Game.Core.Ecs.Handlers
                 .Add(new DieSystem())
                 .Add(new CharmDieSystem())   // уничтожение чар с DeadTag (таймер истёк) → грав/лимбо + CreatureDiedEvent
                 .Add(new RunLeaveBoardSystem())   // баунс/баниш/замешивание (LeaveBoardEvent) → рука/колода/грав/лимбо
+                .Add(new RunCommanderCooldownSystem())   // кулдаун командира на ЛЮБОЙ возврат в руку (смерть/баунс), а не только смерть
                 // --- Конец матча: HP игрока ≤ 0 после оседания каскада → победа/поражение/ничья ---
                 .Add(new GameOverCheckSystem())
                 // --- Отображение статов существ (HP/атака/скорость) в их CreatureView ---
@@ -114,6 +120,10 @@ namespace Game.Core.Ecs.Handlers
                 .Add(new BurnCardSystem())
                 // --- Тех-читы (выдать ресурсы по дев-кнопке) ---
                 .Add(new DebugCheatSystem())
+                // --- Драг-розыгрыш существа «под пальцем» (превью-модель; мост UI↔мир через bus-события).
+                //     В КОНЦЕ general: его CellClickEvent не видит RunSelectCellSystem (уже отработал в этом
+                //     кадре), но видят роутер (_abilitySystems) и RunSelectCellBoardSystem (_creatureSystems). ---
+                .Add(new CreatureDragPreviewSystem())
                 ;
 
             // ── TODO (новый card-cast роутер): CardCastEvent → подсистемы существо/заклинание/чары
@@ -130,6 +140,11 @@ namespace Game.Core.Ecs.Handlers
             // ── Event-driven пайплайн способностей ──
             // CardCast → триггеры вешают AbilityCastEvent → проверка правил → AbilityQueue → резолв по одной.
             _abilitySystems
+                // PvE-мозг ПЕРВЫМ в группе: его однокадровые RequestCardCastEvent/CellClickEvent должны
+                // родиться ДО потребителей в кадре (роутер — ниже в этой группе; RunSelectCellBoardSystem —
+                // в _creatureSystems после), иначе DelHere сотрёт их до обработки (гонка как у форс-плея).
+                .Add(new RunAiTurnSystem())
+                .Add(new PveOpponentCardPlayUISystem())   // PvE: выкат «оппонент разыграл карту» (в MP — no-op)
                 .Add(new AutoCastSystem())            // авто-розыгрыш созданных карт (Фокус-покус) → RequestCardCast
                 .Add(new RunCastRouterSystem())
                 .Add(new RunCheckAbilityRulesSystem())

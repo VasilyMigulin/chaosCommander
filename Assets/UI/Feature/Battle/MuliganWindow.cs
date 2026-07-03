@@ -40,6 +40,12 @@ namespace AwesomeUI.Feature.Battle
         private int   _replacementsUsed;
         private readonly HashSet<int> _selectedEntities = new HashSet<int>();
 
+        // Гейт открытия окна: MulliganStarted (в Init) готовит данные, но окно всплывает только
+        // по MulliganPhaseBeginUIEvent (после VS-экрана) — чтобы VS был первым.
+        private bool _readyToOpen;
+        private bool _phaseBegun;
+        private bool _opened;
+
         // ── Init / Lifecycle ──────────────────────────────────────────────────
 
         public override SourceWindow Init()
@@ -52,6 +58,9 @@ namespace AwesomeUI.Feature.Battle
             GameEventBus.Subscribe<MulliganCardReplacedEvent>(OnCardReplaced);
             GameEventBus.Subscribe<AllMulligansCompletedEvent>(OnAllMulligansCompleted);
             GameEventBus.Subscribe<PreStartPhaseBeginUIEvent>(OnPreStartPhaseBegin);
+            // Открываемся не сразу по MulliganStarted (он в Init), а по началу фазы мулигана
+            // (RPC_StartGame, после VS-раскрытия) — чтобы VS-экран был ПЕРВЫМ, а мулиган после него.
+            GameEventBus.Subscribe<MulliganPhaseBeginUIEvent>(OnMulliganPhaseBegin);
 
             if (_confirmButton != null) _confirmButton.onClick.AddListener(OnConfirm);
             if (_skipButton != null) _skipButton.onClick.AddListener(OnSkip);
@@ -67,6 +76,7 @@ namespace AwesomeUI.Feature.Battle
             GameEventBus.Unsubscribe<MulliganCardReplacedEvent>(OnCardReplaced);
             GameEventBus.Unsubscribe<AllMulligansCompletedEvent>(OnAllMulligansCompleted);
             GameEventBus.Unsubscribe<PreStartPhaseBeginUIEvent>(OnPreStartPhaseBegin);
+            GameEventBus.Unsubscribe<MulliganPhaseBeginUIEvent>(OnMulliganPhaseBegin);
 
             if (_confirmButton != null) _confirmButton.onClick.RemoveListener(OnConfirm);
             if (_skipButton != null) _skipButton.onClick.RemoveListener(OnSkip);
@@ -117,6 +127,23 @@ namespace AwesomeUI.Feature.Battle
             }
 
             UpdateReplacementsLabel();
+
+            // Данные готовы, но окно открываем только когда началась фаза мулигана (после VS-экрана).
+            _readyToOpen = true;
+            if (_phaseBegun) OpenNow();
+        }
+
+        // Начало фазы мулигана (RPC_StartGame, после показа VS): теперь можно показать окно.
+        private void OnMulliganPhaseBegin(MulliganPhaseBeginUIEvent _)
+        {
+            _phaseBegun = true;
+            if (_readyToOpen) OpenNow();
+        }
+
+        private void OpenNow()
+        {
+            if (_opened) return;
+            _opened = true;
             OnOpen();
         }
 

@@ -36,6 +36,25 @@ namespace Game.Core.Mono
         static readonly int AttackHash = Animator.StringToHash("Attack");
         static readonly int DeathHash  = Animator.StringToHash("Death");
         static readonly int RunHash    = Animator.StringToHash("IsRunning");
+        static readonly int HitHash    = Animator.StringToHash("Hit");
+        static readonly int SummonHash = Animator.StringToHash("Summon");
+        static readonly int CastHash   = Animator.StringToHash("Cast");
+
+        [SerializeField] float summonSeconds = 0.6f;   // длительность «окна призыва»: визуал + гейт до OnCast
+
+        [Header("Team tint (свои/чужие)")]
+        [Tooltip("Оттенок СВОИХ существ (белый = натуральный цвет модели).")]
+        [SerializeField] Color _ownTint = Color.white;
+        [Tooltip("Оттенок ВРАЖЕСКИХ существ (умножается на цвет материала) — чтобы одинаковые существа игроков не путались.")]
+        [SerializeField] Color _enemyTint = new Color(1f, 0.6f, 0.6f, 1f);
+
+        static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");   // URP
+        static readonly int TintColorId = Shader.PropertyToID("_Color");        // Built-in/legacy
+        int _teamTintState = -1;   // -1 не применялся, 0 свой, 1 враг — красим только на смене
+
+        /// <summary>Идёт ли сейчас анимация призыва (гейт для RunPendingOnCastSystem — OnCast ждёт её конца).</summary>
+        public bool IsSummoning { get; private set; }
+        Coroutine _summonRoutine;
 
         Action _onAttackHit;
         Action _onAttackFinished;
@@ -43,6 +62,42 @@ namespace Game.Core.Mono
         private int _row;
         private int _col;
         private int _ownerId;
+
+        /// <summary>
+        /// Командная подкраска (свои/чужие): чтобы одинаковые существа разных игроков различались.
+        /// Идемпотентно (кэш состояния — TeamTintSystem может звать каждый кадр). Красит через
+        /// MaterialPropertyBlock (без инстансинга материалов — совместимо с подменой в MaterializeEffect,
+        /// цвет считается от ЧИСТОГО sharedMaterial → переключение свой↔чужой при краже контроля корректно).
+        /// Текст статов (TMP-рендереры) не трогаем.
+        /// </summary>
+        public void SetTeamTint(bool isEnemy)
+        {
+            int state = isEnemy ? 1 : 0;
+            if (_teamTintState == state) return;
+            _teamTintState = state;
+
+            Color tint = isEnemy ? _enemyTint : _ownTint;
+            var mpb = new MaterialPropertyBlock();
+
+            foreach (var r in GetComponentsInChildren<Renderer>(true))
+            {
+                if (r.GetComponent<TMP_Text>() != null) continue;   // статы/лейблы не красим
+                var mats = r.sharedMaterials;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    var m = mats[i];
+                    if (m == null) continue;
+                    int id = m.HasProperty(BaseColorId) ? BaseColorId
+                           : (m.HasProperty(TintColorId) ? TintColorId : 0);
+                    if (id == 0) continue;
+
+                    mpb.Clear();
+                    r.GetPropertyBlock(mpb, i);
+                    mpb.SetColor(id, m.GetColor(id) * tint);
+                    r.SetPropertyBlock(mpb, i);
+                }
+            }
+        }
 
         /// <summary>Устанавливает координаты клетки под существом для обработки кликов.</summary>
         public void SetCell(int row, int col, int ownerId)
@@ -139,7 +194,7 @@ namespace Game.Core.Mono
             {
                 bool tookDamage = health < _lastHealth && _lastHealth != int.MinValue;
                 _healthText.text = health.ToString();
-                if (tookDamage) FlashDamage();
+                if (tookDamage) { FlashDamage(); PlayHit(); }   // реакция цели на удар (#3)
                 _lastHealth = health;
             }
             if (_attackText != null && attack != _lastAttack)
@@ -238,6 +293,75 @@ namespace Game.Core.Mono
             _attackFallback = null;
         }
 
+        /// <summary>Анимация появления на столе (#2). Триггер аниматора "Summon" или «поп»-масштаб без клипа.
+        /// Держит IsSummoning на summonSeconds — это окно, после которого RunPendingOnCastSystem даёт OnCast.</summary>
+        public void PlaySummon()
+        {
+            IsSummoning = true;
+
+            if (animator != null && HasParam(SummonHash))
+            {
+                animator.SetTrigger(SummonHash);
+            }
+            else
+            {
+                // Нет клипа призыва — «поп»-появление из уменьшенного масштаба к масштабу префаба.
+                transform.DOKill();
+                Vector3 target = transform.localScale;   // масштаб префаба (не жёстко 1)
+                transform.localScale = target * 0.4f;
+                transform.DOScale(target, summonSeconds).SetEase(Ease.OutBack);
+            }
+
+            if (_summonRoutine != null) StopCoroutine(_summonRoutine);
+            _summonRoutine = StartCoroutine(SummonGate());
+        }
+
+        IEnumerator SummonGate()
+        {
+            yield return new WaitForSeconds(summonSeconds);
+            IsSummoning = false;
+            _summonRoutine = null;
+        }
+
+        /// <summary>Драг-розыгрыш (#пайплайн-под-пальцем): существо появляется в мировой точке fromWorld
+        /// (где было превью под пальцем) и плавно «въезжает» в клетку toWorld, играя анимацию Invoke.
+        /// Без поп-масштаба (существо уже «целое» — оно материализовалось под пальцем). Держит IsSummoning
+        /// (гейт OnCast) на summonSeconds.</summary>
+        public void PlaySlideInvoke(Vector3 fromWorld, Vector3 toWorld)
+        {
+            IsSummoning = true;
+
+            transform.DOKill();
+            transform.position = fromWorld;
+            transform.DOMove(toWorld, 0.25f).SetEase(Ease.OutCubic);
+
+            if (animator != null && HasParam(SummonHash))
+                animator.SetTrigger(SummonHash);
+
+            if (_summonRoutine != null) StopCoroutine(_summonRoutine);
+            _summonRoutine = StartCoroutine(SummonGate());
+        }
+
+        /// <summary>Анимация «при разыгрывании» (battlecry) для OnCast (#2). Триггер "Cast" или пульс масштабом.</summary>
+        public void PlayCast()
+        {
+            if (animator != null && HasParam(CastHash))
+                animator.SetTrigger(CastHash);
+            else
+                transform.DOPunchScale(Vector3.one * 0.12f, 0.25f, 6, 0.6f);
+        }
+
+        /// <summary>Реакция цели на удар (#3): триггер аниматора "Hit" + короткий «флинч» масштабом,
+        /// который виден ДАЖЕ без клипа. Пунч масштаба не конфликтует с DOMove/DORotate (разные свойства),
+        /// поэтому DOKill не нужен.</summary>
+        public void PlayHit()
+        {
+            if (animator != null && HasParam(HitHash))
+                animator.SetTrigger(HitHash);
+
+            transform.DOPunchScale(Vector3.one * -0.12f, 0.18f, 6, 0.6f);   // лёгкое «сжатие» от удара
+        }
+
         public void PlayDeath()
         {
             if (animator != null && HasParam(DeathHash))
@@ -250,7 +374,11 @@ namespace Game.Core.Mono
             }
             else
             {
-                HideAfterDeath();   // нет анимации — гасим сразу
+                // Нет клипа смерти — НЕ «телепортируем» существо в никуда (баг #1: мгновенно исчезает),
+                // а плавно ужимаем и гасим. Вьюшку не уничтожаем — просто выключаем (HideAfterDeath).
+                transform.DOKill();
+                transform.DOScale(Vector3.zero, 0.35f).SetEase(Ease.InBack)
+                    .OnComplete(HideAfterDeath);
             }
         }
 

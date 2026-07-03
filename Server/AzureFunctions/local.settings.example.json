@@ -1,0 +1,14 @@
+{
+  "_comment": "Скопируй в local.settings.json (он в .gitignore) для локального запуска `func start`. В облаке те же ключи задаются в Function App → Environment variables. НИКОГДА не коммить реальный секрет.",
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+
+    "PLAYFAB_TITLE_ID": "185AA",
+    "PLAYFAB_DEV_SECRET_KEY": "<PUT-YOUR-SECRET-KEY-HERE>",
+
+    "AUCTION_TABLE_CONNECTION": "UseDevelopmentStorage=true",
+    "AUCTION_TABLE_NAME": "AuctionListings"
+  }
+}

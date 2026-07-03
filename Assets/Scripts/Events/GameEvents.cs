@@ -224,6 +224,41 @@ namespace Game.Core.Events
 
     public struct CreatureDeselectedEvent : IGameEvent { }
 
+    // ── Драг-розыгрыш существа «под пальцем» (UI ↔ CreatureDragPreviewSystem) ──
+    // UI шлёт сырой ввод драга (экранная позиция), система делает всё Mono-осознанное:
+    // рейкаст в доску, превью-модель под пальцем, подсветку клетки, коммит/отмену.
+
+    /// <summary>UI → система: палец с картой двигается (каждый кадр драга). Для не-существ система игнорит.</summary>
+    public struct CreatureDragMovedEvent : IGameEvent
+    {
+        public int CardEntity;
+        public UnityEngine.Vector2 ScreenPosition;
+    }
+
+    /// <summary>UI → система: палец отпущен. Система коммитит размещение (валидная клетка) или шлёт
+    /// TargetSelectionCancelledEvent (UI вернёт карту в руку штатным путём).</summary>
+    public struct CreatureDragReleasedEvent : IGameEvent
+    {
+        public int CardEntity;
+        public UnityEngine.Vector2 ScreenPosition;
+    }
+
+    /// <summary>Система → UI: карта над полем (true → карта растворяется, превью существа видно) /
+    /// ушла с поля (false → карта проявляется обратно).</summary>
+    public struct CreatureDragOverFieldChangedEvent : IGameEvent
+    {
+        public int CardEntity;
+        public bool OverField;
+    }
+
+    /// <summary>Система → UI (один раз на драг): карта — СУЩЕСТВО, размещается только дропом на поле.
+    /// UI на отпускании вне поля возвращает её в руку, НЕ уходя в старый клик-путь (OnUse →
+    /// PendingSelectCell). Без события (нет системы/борда) UI работает по-старому — graceful fallback.</summary>
+    public struct CreatureDragStartedEvent : IGameEvent
+    {
+        public int CardEntity;
+    }
+
     public struct MulliganStartedEvent : IGameEvent
     {
         public int PlayerEntity;
@@ -316,6 +351,11 @@ namespace Game.Core.Events
 
     /// <summary>UI/дев-запрос «завершить ход» — система навесит EndTurnRequestEvent на локального активного.</summary>
     public struct RequestEndTurnUIEvent : IGameEvent { }
+
+    /// <summary>Запрос старта PvE-боя (дев-кнопка оверлея). Обрабатывает MenuState.StartPveBattle:
+    /// чисто гасит активный матчмейкинг, ставит PveMode и грузит BattleScene.
+    /// EncounterPath — путь энкаунтера в Resources (null/пусто = текущий/последний).</summary>
+    public struct PveStartRequestedEvent : IGameEvent { public string EncounterPath; }
 
     public struct DeckSyncedEvent : IGameEvent
     {

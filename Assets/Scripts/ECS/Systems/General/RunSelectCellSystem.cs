@@ -32,9 +32,15 @@ namespace Game.Core.Ecs.Systems
 
         readonly EcsPoolInject<MoveRequestEvent> _movePool = default;
         readonly EcsPoolInject<AttackRequestEvent> _attackPool = default;
+        readonly EcsPoolInject<AttacksUsedComponent> _attacksUsedPool = default;
+
+        // #4: сколько раз существо может атаковать за ход (сверх траты 1 скорости за атаку в AttackSystem).
+        // База 1; бонусы («Неистовство ветра» и т.п.) добавятся отдельным компонентом-модификатором позже.
+        const int MaxAttacksPerTurn = 1;
 
         readonly EcsFilterInject<Inc<AttackAnimPendingTag>> _animPendingFilter = default;
         readonly EcsFilterInject<Inc<MovingTag>> _movingFilter = default;
+        readonly EcsFilterInject<Inc<PendingOnCastComponent>> _pendingOnCastFilter = default;   // #2: призыв → OnCast
 
         readonly EcsFilterInject<Inc<PendingTargetCardComponent>> _pendingTargetFilter = default;
         readonly EcsFilterInject<Inc<PendingSelectCellState>> _pendingCellFilter = default;
@@ -46,6 +52,7 @@ namespace Game.Core.Ecs.Systems
 
             if (_animPendingFilter.Value.GetEntitiesCount() > 0) { if (hasClick) UnityEngine.Debug.Log("[Select] blocked: AttackAnimPending"); return; }
             if (_movingFilter.Value.GetEntitiesCount() > 0)      { if (hasClick) UnityEngine.Debug.Log("[Select] blocked: Moving"); return; }
+            if (_pendingOnCastFilter.Value.GetEntitiesCount() > 0) { if (hasClick) UnityEngine.Debug.Log("[Select] blocked: PendingOnCast (призыв→OnCast)"); return; }
             if (_pendingTargetFilter.Value.GetEntitiesCount() > 0) { if (hasClick) UnityEngine.Debug.Log("[Select] blocked: PendingTargetCard"); return; }
             if (_pendingCellFilter.Value.GetEntitiesCount() > 0) { if (hasClick) UnityEngine.Debug.Log("[Select] blocked: PendingSelectCell"); return; }             // размещение существа
             if (_pendingAbilityTargetFilter.Value.GetEntitiesCount() > 0) { if (hasClick) UnityEngine.Debug.Log("[Select] blocked: AbilityTargetPending"); return; }    // выбор цели способности
@@ -79,15 +86,17 @@ namespace Game.Core.Ecs.Systems
                     ref var selSpeed = ref _speedPool.Value.Get(selectedEntity);
 
                     // Клик по аватар-клетке (-1,-1,side): атака по аватару вражеского игрока.
-                    // Бить можно с ЛЮБОЙ клетки, занятой на территории этой стороны (фронт-линия врага
-                    // или глубже) — т.е. как только существо прорвалось на половину оппонента.
+                    // #5: бить аватар можно ТОЛЬКО с задней линии врага (row 0 его стороны) — ближайшей
+                    // к аватару, а не с любой клетки его половины. #4: не более 1 атаки за ход.
                     if (row == -1 && col == -1)
                     {
                         int avatarPlayer = FindPlayerBySide(ownerId);
                         bool isEnemyAvatar = avatarPlayer >= 0
                             && _playerPool.Value.Get(avatarPlayer).PlayerId != activePlayerId;
-                        if (isEnemyAvatar && selSpeed.Remaining > 0 && selPos.OwnerId == ownerId)
+                        if (isEnemyAvatar && selSpeed.Remaining > 0 && selPos.OwnerId == ownerId
+                            && selPos.Row == 0 && CanAttack(selectedEntity))
                         {
+                            MarkAttacked(selectedEntity);
                             ref var attackReq = ref _attackPool.Value.Add(selectedEntity);
                             attackReq.TargetEntity = avatarPlayer;
                         }
@@ -110,8 +119,11 @@ namespace Game.Core.Ecs.Systems
                     int enemyEntity = FindCreatureAt(row, col, ownerId, activePlayerId, isEnemy: true);
                     if (enemyEntity >= 0)
                     {
-                        if (IsNeighbour(selPos.Row, selPos.Col, selPos.OwnerId, row, col, ownerId))
+                        // #4: атака 1 раз за ход (сверх траты 1 скорости в AttackSystem).
+                        if (IsNeighbour(selPos.Row, selPos.Col, selPos.OwnerId, row, col, ownerId)
+                            && CanAttack(selectedEntity))
                         {
+                            MarkAttacked(selectedEntity);
                             ref var attackReq = ref _attackPool.Value.Add(selectedEntity);
                             attackReq.TargetEntity = enemyEntity;
                         }
@@ -181,6 +193,19 @@ namespace Game.Core.Ecs.Systems
                 return -1;
             }
 
+            // #4: доступна ли ещё атака в этом ходу (лимит MaxAttacksPerTurn).
+            bool CanAttack(int e)
+            {
+                int used = _attacksUsedPool.Value.Has(e) ? _attacksUsedPool.Value.Get(e).Value : 0;
+                return used < MaxAttacksPerTurn;
+            }
+
+            void MarkAttacked(int e)
+            {
+                if (!_attacksUsedPool.Value.Has(e)) _attacksUsedPool.Value.Add(e);
+                _attacksUsedPool.Value.Get(e).Value++;
+            }
+
             void HighlightOptions(int creatureEntity, int playerId)
             {
                 if (_boardView.Value == null) return;
@@ -197,11 +222,15 @@ namespace Game.Core.Ecs.Systems
 
                 if (speed.Remaining <= 0) return;
 
-                // Аватар врага атакуем, если существо стоит на территории вражеской стороны
-                // (прорвалось на половину оппонента) — подсветить аватар-клетку как цель атаки.
+                // #4: если лимит атак за ход исчерпан — атак-подсветки не показываем (двигаться ещё можно).
+                bool canAttack = CanAttack(creatureEntity);
+
+                // #5: аватар врага атакуем ТОЛЬКО с задней линии врага (row 0 его стороны) — подсветить
+                // аватар-клетку как цель, если существо там стоит и атака ещё доступна.
                 int standSide = pos.OwnerId;
                 int standSidePlayer = FindPlayerBySide(standSide);
-                if (standSidePlayer >= 0 && _playerPool.Value.Get(standSidePlayer).PlayerId != playerId)
+                if (canAttack && pos.Row == 0 && standSidePlayer >= 0
+                    && _playerPool.Value.Get(standSidePlayer).PlayerId != playerId)
                     _boardView.Value.GetAvatarCell(standSide)?.SetHighlight(CellHighlight.Attack);
 
                 foreach (var (nr, nc, no) in GetNeighbours(pos.Row, pos.Col, pos.OwnerId))
@@ -212,15 +241,16 @@ namespace Game.Core.Ecs.Systems
                         _boardView.Value.GetCell(nr, nc, no)?.SetHighlight(CellHighlight.Move);
                 }
 
-                foreach (var ce in _creaturesFilter.Value)
-                {
-                    ref var ep = ref _posPool.Value.Get(ce);
-                    ref var eo = ref _ownerPool.Value.Get(ce);
-                    if (eo.OwnerId == playerId) continue;
+                if (canAttack)
+                    foreach (var ce in _creaturesFilter.Value)
+                    {
+                        ref var ep = ref _posPool.Value.Get(ce);
+                        ref var eo = ref _ownerPool.Value.Get(ce);
+                        if (eo.OwnerId == playerId) continue;
 
-                    if (IsNeighbour(pos.Row, pos.Col, pos.OwnerId, ep.Row, ep.Col, eo.OwnerId))
-                        _boardView.Value.GetCell(ep.Row, ep.Col, ep.OwnerId)?.SetHighlight(CellHighlight.Attack);
-                }
+                        if (IsNeighbour(pos.Row, pos.Col, pos.OwnerId, ep.Row, ep.Col, eo.OwnerId))
+                            _boardView.Value.GetCell(ep.Row, ep.Col, ep.OwnerId)?.SetHighlight(CellHighlight.Attack);
+                    }
             }
 
             IEnumerable<(int row, int col, int owner)> GetNeighbours(int row, int col, int owner)

@@ -108,6 +108,12 @@ namespace Game.Core.Photon
         private TaskCompletionSource<bool> _allSceneLoadedTcs;
         private TaskCompletionSource<bool> _allStateInitTcs;
 
+        // VS-раскрытие командиров перед мулиганом: каждый клиент шлёт своего командира (RPC_SubmitCommander),
+        // хост собирает и рассылает RPC_RevealCommanders. Только идентичности (exp/id) — симуляция не трогается.
+        private TaskCompletionSource<bool> _allCommandersTcs;
+        private readonly Dictionary<int, (string exp, int cardId)> _commanderSubmissions = new Dictionary<int, (string, int)>();
+        const int CommanderRevealMs = 3000;
+
         private bool _pipelineStarted = false;
         private Task _sessionPipelineTask;
 
@@ -126,6 +132,8 @@ namespace Game.Core.Photon
                 _allPlayersConnectedTcs = new TaskCompletionSource<bool>();
                 _allSceneLoadedTcs     = new TaskCompletionSource<bool>();
                 _allStateInitTcs       = new TaskCompletionSource<bool>();
+                _allCommandersTcs      = new TaskCompletionSource<bool>();
+                _commanderSubmissions.Clear();
 
                 // Подписываемся на вход игроков
                 if (PhotonInitializer.Instance != null)
@@ -158,6 +166,7 @@ namespace Game.Core.Photon
             _allPlayersConnectedTcs?.TrySetCanceled();
             _allSceneLoadedTcs?.TrySetCanceled();
             _allStateInitTcs?.TrySetCanceled();
+            _allCommandersTcs?.TrySetCanceled();
         }
 
         /// <summary>
@@ -228,6 +237,21 @@ namespace Game.Core.Photon
                 Debug.Log("[Pipeline][HOST] Step 3: Waiting for all players state init...");
                 await _allStateInitTcs.Task;
                 Debug.Log($"[Pipeline][HOST] Step 3 DONE: All players state initialized. PlayersReady={PlayersReady}");
+
+                // Шаг 3.5: обмен командирами → VS-раскрытие ПЕРЕД мулиганом.
+                // Командиры фиксированы на сборке колоды и известны каждому клиенту сразу после state-init,
+                // поэтому их можно раскрыть до снапшота руки (тот приедет после мулигана). Таймаут 5с —
+                // чтобы не подвиснуть, если чей-то submit не дошёл (клиенты просто не покажут пустую карту).
+                Debug.Log("[Pipeline][HOST] Step 3.5: waiting for both commanders...");
+                await Task.WhenAny(_allCommandersTcs.Task, Task.Delay(5000));
+
+                BuildRevealArgs(out int p1Id, out string p1Exp, out int p1CardId,
+                                out int p2Id, out string p2Exp, out int p2CardId);
+                Debug.Log($"[Pipeline][HOST] Step 3.5: reveal commanders p1={p1Exp}:{p1CardId} p2={p2Exp}:{p2CardId}");
+                RPC_RevealCommanders(p1Id, p1Exp ?? string.Empty, p1CardId, p2Id, p2Exp ?? string.Empty, p2CardId);
+
+                // Дать игрокам разглядеть VS-экран, потом стартуем мулиган (VS скроется по MulliganStartedEvent).
+                await Task.Delay(CommanderRevealMs);
 
                 // Шаг 4: старт игры / муллиган
                 CurrentState = SessionState.GameStarted;
@@ -356,7 +380,96 @@ namespace Game.Core.Photon
         private void RPC_StartGame()
         {
             Debug.Log($"[PhotonRunHandler][{(Runner.IsServer ? "HOST" : "CLIENT")}] RPC_StartGame received — mulligan phase begins.");
-             
+
+            // VS-раскрытие закончилось → снимаем крышку: VS-окно закрывается, под ним проявляется
+            // мулиган (он уже открыт с EcsHandler.Init, но был накрыт). Синхронно на обоих клиентах.
+            GameEventBus.Publish(new MulliganPhaseBeginUIEvent());
+        }
+
+        // ── VS-раскрытие командиров (перед мулиганом) ─────────────────────────
+
+        /// <summary>Каждый клиент шлёт идентичность СВОЕГО командира хосту (вызывается после state-init).</summary>
+        public void SubmitLocalCommander()
+        {
+            if (!TryGetLocalCommander(out int playerId, out string exp, out int cardId))
+            {
+                Debug.LogWarning("[PhotonRunHandler] SubmitLocalCommander: локальный командир не найден");
+                return;
+            }
+            RPC_SubmitCommander(playerId, exp ?? string.Empty, cardId);
+        }
+
+        bool TryGetLocalCommander(out int playerId, out string exp, out int cardId)
+        {
+            playerId = -1; exp = null; cardId = -1;
+
+            var world = _state?.World;
+            if (world == null) return false;
+
+            int localId = LocalPlayerId();
+            if (localId < 0) return false;
+
+            var ownerPool = world.GetPool<Game.Core.Ecs.Components.OwnerComponent>();
+            var modelPool = world.GetPool<Game.Core.Ecs.Components.CardModelComponent>();
+
+            foreach (var e in world.Filter<Game.Core.Ecs.Components.CommanderTag>()
+                                    .Inc<Game.Core.Ecs.Components.CardModelComponent>().End())
+            {
+                if (!ownerPool.Has(e) || ownerPool.Get(e).OwnerId != localId) continue;
+
+                ref var m = ref modelPool.Get(e);
+                playerId = localId;
+                exp      = m.ExpansionId;
+                cardId   = m.ModelId;
+                return true;
+            }
+            return false;
+        }
+
+        [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+        public void RPC_SubmitCommander(int playerId, string exp, int cardId, RpcInfo info = default)
+        {
+            if (!IsServer) return;
+
+            _commanderSubmissions[playerId] = (exp, cardId);
+            Debug.Log($"[PhotonRunHandler][HOST] Commander submitted: player={playerId} {exp}:{cardId} ({_commanderSubmissions.Count}/{_playerProgress.Count})");
+
+            if (_commanderSubmissions.Count >= _playerProgress.Count)
+                _allCommandersTcs?.TrySetResult(true);
+        }
+
+        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+        public void RPC_RevealCommanders(int p1Id, string p1Exp, int p1CardId, int p2Id, string p2Exp, int p2CardId)
+        {
+            int localId = LocalPlayerId();
+
+            string localExp, oppExp;
+            int localCard, oppCard;
+            if (localId == p1Id)
+            {
+                localExp = p1Exp; localCard = p1CardId; oppExp = p2Exp; oppCard = p2CardId;
+            }
+            else
+            {
+                localExp = p2Exp; localCard = p2CardId; oppExp = p1Exp; oppCard = p1CardId;
+            }
+
+            Debug.Log($"[VS] RPC_RevealCommanders on {(Runner.IsServer ? "HOST" : "CLIENT")}: localId={localId} local={localExp}:{localCard} opp={oppExp}:{oppCard} → publish CommandersRevealedUIEvent");
+            GameEventBus.Publish(new CommandersRevealedUIEvent
+            {
+                LocalExpansionId    = localExp,
+                LocalCardId         = localCard,
+                OpponentExpansionId = oppExp,
+                OpponentCardId      = oppCard,
+            });
+        }
+
+        void BuildRevealArgs(out int p1Id, out string p1Exp, out int p1CardId,
+                             out int p2Id, out string p2Exp, out int p2CardId)
+        {
+            p1Id = 1; p2Id = 2;
+            (p1Exp, p1CardId) = _commanderSubmissions.TryGetValue(1, out var a) ? (a.exp, a.cardId) : (string.Empty, -1);
+            (p2Exp, p2CardId) = _commanderSubmissions.TryGetValue(2, out var b) ? (b.exp, b.cardId) : (string.Empty, -1);
         }
          
         [Rpc(RpcSources.All, RpcTargets.StateAuthority)]

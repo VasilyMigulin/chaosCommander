@@ -25,6 +25,7 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<ViewRefComponent>       _viewPool    = default;
         readonly EcsPoolInject<ViewSpawnedTag>         _spawnedPool = default;
         readonly EcsPoolInject<OwnerComponent>         _ownerPool   = default;
+        readonly EcsPoolInject<ViewSpawnFromComponent> _spawnFromPool = default;
 
         public void Run(IEcsSystems systems)
         {
@@ -54,6 +55,19 @@ namespace Game.Core.Ecs.Systems
                 var creatureView = instance.GetComponent<CreatureView>();
                 creatureView?.SetCell(pos.Row, pos.Col, pos.OwnerId);
                 creatureView?.SetOwnerFacing(pos.OwnerId);   // владелец 2 смотрит на оппонента
+
+                // Драг-розыгрыш: вью «въезжает» из точки под пальцем (ViewSpawnFrom) в клетку + Invoke.
+                // Иначе — обычное появление с поп-масштабом (PlaySummon). Оба держат IsSummoning (гейт OnCast).
+                if (_spawnFromPool.Value.Has(entity))
+                {
+                    Vector3 from = _spawnFromPool.Value.Get(entity).From;
+                    _spawnFromPool.Value.Del(entity);
+                    creatureView?.PlaySlideInvoke(from, spawnPos);
+                }
+                else
+                {
+                    creatureView?.PlaySummon();               // анимация появления (#2, оба клиента); OnCast ждёт её
+                }
 
                 // Заменяем prefab-ссылку ссылкой на инстанс
                 vr.View = instance;

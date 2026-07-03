@@ -1,0 +1,83 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: spell_card_037
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  CardData:
+    rid: 2419359952424665206
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 2419359952424665206
+      type: {class: CardSpellModel, ns: Game.Core.Model.Card.Spell, asm: Game.Core.Model.Card.Spell}
+      data:
+        Id: 111
+        Name: "\u041F\u0435\u0440\u0435\u0433\u043D\u043E\u0439"
+        Description: "\u0414\u0430\u0435\u0442 \u0432\u0430\u0448\u0435\u043C\u0443
+          \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0443 +2/+2 "
+        Rarity: 0
+        Element: 4
+        ArtImage: {fileID: 0}
+        ExpansionId: standard
+        PlayCost: 1
+        PlayCostAmount: 2
+        IsToken: 0
+        MulliganStartingHand: 0
+        MulliganUnlimitedReplace: 0
+        RuntimeAbilities:
+        - rid: 2419359952424665209
+        Archetypes: []
+        RequiresTarget: 0
+    - rid: 2419359952424665209
+      type: {class: AbilityToTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 2419359952424665210
+        Rules: []
+        Effects:
+        - rid: 2419359952424665212
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 0}
+          ProjectileSpeed: 12
+          MergeArea: 0
+        Selection: 1
+        Count: 1
+        Zone: 0
+        OfferCount: 3
+        Filters:
+        - rid: 2419359952424665211
+    - rid: 2419359952424665210
+      type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2419359952424665211
+      type: {class: AllyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2419359952424665212
+      type: {class: AddBuffEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        Buff:
+          rid: 2419359952424665213
+        Tracked: 0
+        RevertOnSourceDeath: 1
+    - rid: 2419359952424665213
+      type: {class: BuffStat, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Attack: 2
+        Health: 2
+        Speed: 0
+        Permanent: 1

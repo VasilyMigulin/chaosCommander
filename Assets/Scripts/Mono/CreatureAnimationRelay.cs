@@ -19,5 +19,21 @@ namespace Game.Core.Mono
         public void OnAttackHit()      => AttackHit?.Invoke();
         public void OnAttackFinished() => AttackFinished?.Invoke();
         public void OnDeathFinished()  => DeathFinished?.Invoke();
+
+        // ── Алиасы под СТОКОВЫЕ имена ивентов покупных анимаций ──
+        // В FBX-клипах ассет-паков ивенты зашиты при импорте и не переименовываются (read-only), напр.
+        // 'infantry_04_attack_A' у TT_Peasant шлёт 'AttackEvent' → «has no receiver». Принимаем стоковые
+        // имена как синонимы. NB: в одном клипе не должно быть И проектного, И стокового имени (двойной вызов).
+        public void AttackEvent()      => AttackHit?.Invoke();
+        public void HitEvent()         => AttackHit?.Invoke();
+        public void DeathEvent()       => DeathFinished?.Invoke();
+
+        // Частые «шумовые» ивенты стоковых клипов (шаги/каст и т.п.) — глушим, чтобы не сыпались ошибки.
+        public void FootL() { }
+        public void FootR() { }
+        public void FootStep() { }
+        public void Land() { }
+        public void CastEvent() { }
+        public void ShootEvent() { }
     }
 }

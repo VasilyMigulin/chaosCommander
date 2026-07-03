@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4398f9797977492bb5aca1d44acdad03, type: 3}
+  m_Name: deck_gnidalf
+  m_EditorClassIdentifier: 
+  DeckName: "Гнидальф (вонючие облака)"
+  Commander: {fileID: 11400000, guid: ef3314653b76bac4681ec8748794092e, type: 2}
+  Cards:
+  - Card: {fileID: 11400000, guid: f782c13faf86c3047a41cf53cfd79dda, type: 2}
+    Count: 2
+  - Card: {fileID: 11400000, guid: b466477fc60219b4cbc50bdb233c40e9, type: 2}
+    Count: 2
+  - Card: {fileID: 11400000, guid: 78076986f0e86b845ba847d655634377, type: 2}
+    Count: 2
+  - Card: {fileID: 11400000, guid: 1dbd2a8101d4e3943b1402b202e21921, type: 2}
+    Count: 1
+  - Card: {fileID: 11400000, guid: 1a7467fa85e8e0d4c8f7eb91d0b91443, type: 2}
+    Count: 1
+  - Card: {fileID: 11400000, guid: 16c3e4dd35b74fa47bdfcb6e2f8140be, type: 2}
+    Count: 2
+  - Card: {fileID: 11400000, guid: 321c3c0af32073442b4e1b8e919ee05e, type: 2}
+    Count: 2
+  - Card: {fileID: 11400000, guid: 86ecc820c9ed40b49b1e55fd74b6bd01, type: 2}
+    Count: 2
+  - Card: {fileID: 11400000, guid: 4a6bfbf9494a6f24d8392edd96804405, type: 2}
+    Count: 2
+  - Card: {fileID: 11400000, guid: 1477edcc713f41c4582424be33799dd5, type: 2}
+    Count: 2
+  - Card: {fileID: 11400000, guid: 278ba53469323da429cabc3925948789, type: 2}
+    Count: 2

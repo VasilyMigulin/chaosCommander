@@ -37,6 +37,7 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class HealEffect : IEffect, IDynamicValue
     {
+        public Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Heal;
         public int Amount = 1;
         [SerializeReference] public Condition ConditionRoot;
 
@@ -74,6 +75,10 @@ namespace Game.Core.Ability
             => ConditionRoot?.Init(new AbilityContext { World = world, CardEntity = cardEntity, PlayerEntity = playerEntity });
         public void Dispose() => ConditionRoot?.Dispose();
         public bool IsReady => ConditionRoot == null || ConditionRoot.IsReady;
+
+        // ИИ: знак бонусов определяет роль — минусовые статы = дебафф врага, плюсовые = бафф своих.
+        public AiEffectRole AiRole
+            => (AttackBonus < 0 || HealthBonus < 0 || SpeedBonus < 0) ? AiEffectRole.DebuffEnemy : AiEffectRole.BuffAlly;
 
         // Только НЕнулевые бонусы, в порядке атака→здоровье→скорость — чтобы число токенов *N*
         // в тексте совпадало с тем, что автор реально пишет («+*1*/+*2*» = atk,hp; «+*1* к скор.» = speed).
@@ -127,6 +132,7 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class DestroyEffect : IEffect
     {
+        public Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Removal;
         [SerializeReference] public Condition ConditionRoot;
 
         public void Init(EcsWorld world, int cardEntity, int playerEntity)
@@ -148,8 +154,9 @@ namespace Game.Core.Ability
     // === class (OOP) === Добор карт владельцу. NonTarget — target = сущность игрока,
     // но добор всегда у ВЛАДЕЛЬЦА (кэшируем на ините), а не у произвольной цели.
     [Serializable]
-    public sealed class DrawCardEffect : IEffect, IDynamicValue
+    public sealed class DrawCardEffect : ICasterScopedEffect, IDynamicValue
     {
+        public Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Draw;
         public int Count = 1;
         [SerializeReference] public Condition ConditionRoot;
 
@@ -225,8 +232,9 @@ namespace Game.Core.Ability
 
     // === class (OOP) === +золото владельцу (cap Max). NonTarget-стиль, но владелец — кэш.
     [Serializable]
-    public sealed class GainGoldEffect : IEffect, IDynamicValue
+    public sealed class GainGoldEffect : ICasterScopedEffect, IDynamicValue
     {
+        public Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Resource;
         public int Amount = 1;
         [SerializeReference] public Condition ConditionRoot;
 
@@ -258,8 +266,9 @@ namespace Game.Core.Ability
     // RefundAmount в конце хода. КАВЕАТ синка: возврат у ПАССИВА для маны оппонента косметичен —
     // пассив не гоняет turn-end оппонента; для своего игрока (кто пил) всё корректно.
     [Serializable]
-    public sealed class GainTemporaryManaEffect : EffectBase
+    public sealed class GainTemporaryManaEffect : EffectBase, ICasterScopedEffect
     {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Resource;
         public int Amount = 5;
 
         public override void Apply(EcsWorld world, int cardEntity, int target)
@@ -284,8 +293,9 @@ namespace Game.Core.Ability
     // AllPlayers=true → +Amount всем игрокам (глобально); иначе только владельцу источника. Одноразовый
     // перм. эффект (не аура). Читается в RunCastRouterSystem/CardAffordabilitySystem через CostModifierUtil.
     [Serializable]
-    public sealed class AddCostModifierEffect : EffectBase
+    public sealed class AddCostModifierEffect : EffectBase, ICasterScopedEffect
     {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Resource;
         public int Amount = 1;
         public bool AllPlayers = true;
 
@@ -315,7 +325,7 @@ namespace Game.Core.Ability
     // обычного добора в начале хода — «смотри LookCount, выбери одну». NonTarget (target = игрок).
     // Персистентно (не снимается). Перехват/выбор — RunDrawReplacementSystem (+ UI PickupWindow).
     [Serializable]
-    public sealed class InstallDrawReplacementEffect : EffectBase
+    public sealed class InstallDrawReplacementEffect : EffectBase, ICasterScopedEffect
     {
         public int LookCount = 3;
         public bool DestroyChosen = true;
@@ -338,16 +348,21 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class RepeatEffect : EffectBase
     {
+        // ВАЖНО: значения ЗАКРЕПЛЕНЫ явно. Unity сериализует enum по ЧИСЛУ, а ассеты хранят это число —
+        // любая перестановка/вставка члена без явного значения ломает уже настроенные карты (Грыз считал
+        // не то, потому что MatchArchetypeInvoked сдвинулся с 7 на 8). Новые члены добавлять ТОЛЬКО с новым
+        // числом в конце, существующие числа не менять.
         public enum CountSource
         {
-            Fixed, ChainKilled,
-            MatchPlayedSelf,        // сколько раз СВОЯ карта разыграна в матче (Позвать рой)
-            MatchPlayedCard,        // сколько раз разыграна КОНКРЕТНАЯ карта CountCard (любая по ассету)
-            MatchDrawnSelf,         // сколько раз СВОЯ карта взята (Вонючее облако)
-            MatchDrawnCard,         // сколько раз взята КОНКРЕТНАЯ карта CountCard
-            MatchGenerated,         // сколько раз карта CountCard замешана в матче ВСЕГО (любым игроком) — Гнидальф → Вонючее облако
-            MatchGeneratedSelf,     // сколько раз карта CountCard замешана ВАМИ (по инициатору, в т.ч. через гранёные эффекты — Газовое вздутие)
-            MatchArchetypeInvoked,  // сколько существ архетипа ArchetypeKey призвано (Грыз → "Imp")
+            Fixed = 0, ChainKilled = 1,
+            MatchPlayedSelf = 2,        // сколько раз СВОЯ карта разыграна в матче (Позвать рой)
+            MatchPlayedCard = 3,        // сколько раз разыграна КОНКРЕТНАЯ карта CountCard (любая по ассету)
+            MatchDrawnSelf = 4,         // сколько раз СВОЯ карта взята (Вонючее облако)
+            MatchDrawnCard = 5,         // сколько раз взята КОНКРЕТНАЯ карта CountCard
+            MatchGenerated = 6,         // сколько раз карта CountCard замешана в матче ВСЕГО (любым игроком) — Гнидальф → Вонючее облако
+            MatchGeneratedSelf = 7,     // сколько раз карта CountCard замешана ВАМИ (по инициатору, в т.ч. через гранёные эффекты — Газовое вздутие)
+            MatchArchetypeInvoked = 8,  // сколько существ архетипа ArchetypeKey призвано (Грыз → "Imp")
+            OwnCreaturesOnBoard = 9,    // сколько ЖИВЫХ существ у владельца на поле СЕЙЧАС (включая источник, если он на поле)
         }
 
         public CountSource Source = CountSource.Fixed;
@@ -359,6 +374,9 @@ namespace Game.Core.Ability
         [SerializeReference] public ICreatureTag Archetype;
 
         [SerializeReference] public IEffect Inner;
+
+        // ИИ: RepeatEffect — обёртка «сколько раз», суть карты определяет ВНУТРЕННИЙ эффект.
+        public override AiEffectRole AiRole => Inner != null ? Inner.AiRole : AiEffectRole.Generic;
 
         public override void Init(EcsWorld world, int cardEntity, int playerEntity)
         {
@@ -404,6 +422,12 @@ namespace Game.Core.Ability
         {
             if (source == RepeatEffect.CountSource.Fixed) return fixedCount;
             if (source == RepeatEffect.CountSource.ChainKilled) return ChainContext.CurrentKilled;
+
+            // OwnCreaturesOnBoard — живые существа владельца источника на поле в момент резолва.
+            // Борд зеркален на обоих клиентах при резолве (актив применяет, пассив ре-ранит по снапшоту
+            // до оседания следующих действий) → счёт детерминирован, отдельный синк не нужен.
+            if (source == RepeatEffect.CountSource.OwnCreaturesOnBoard)
+                return RuleUtil.CountCreaturesOnBoard(world, OwnerIdOf(world, cardEntity, playerEntity));
 
             // MatchGenerated — ГЛОБАЛЬНО: «за каждое замешанное в этом матче» (кем угодно, в любую колоду —
             // Гнидальф/Старый колдун мешают оппоненту, Газовое вздутие — оппонент сам себе). Суммируем
@@ -451,6 +475,16 @@ namespace Game.Core.Ability
         {
             var p = world.GetPool<CardModelComponent>();
             return p.Has(cardEntity) ? p.Get(cardEntity).ModelId : -1;
+        }
+
+        // «Ваши существа» = сторона владельца ИСТОЧНИКА (карта могла сменить владельца — Обращение),
+        // фолбэк — PlayerId игрока-владельца способности.
+        static int OwnerIdOf(EcsWorld world, int cardEntity, int playerEntity)
+        {
+            var owner = world.GetPool<OwnerComponent>();
+            if (owner.Has(cardEntity)) return owner.Get(cardEntity).OwnerId;
+            var player = world.GetPool<PlayerComponent>();
+            return player.Has(playerEntity) ? player.Get(playerEntity).PlayerId : -1;
         }
     }
 }

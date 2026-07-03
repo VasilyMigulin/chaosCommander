@@ -29,6 +29,9 @@ namespace Game.Core.Ecs.Systems
         readonly EcsFilterInject<Inc<EndTurnState, PlayerComponent>>                     _endFilter = default;
         // Соло: нет сетевого оппонента (RemoteComponent) → передавать ход некому, возвращаем его себе.
         readonly EcsFilterInject<Inc<PlayerComponent, RemoteComponent>> _remotePlayers = default;
+        // PvE: ИИ-игрок (без Remote) завершает ход ЭТОЙ ЖЕ системой; ход чередуется человек↔ИИ.
+        readonly EcsPoolInject<AiPlayerComponent> _aiPool = default;
+        readonly EcsFilterInject<Inc<PlayerComponent>> _allPlayers = default;
         readonly EcsPoolInject<TurnCounterComponent> _counterPool = default;
         readonly EcsFilterInject<Inc<AbilityContainerComponent, BoardTag, OwnerComponent>, Exc<HandTag, DeckTag>> _boardCards = default;
 
@@ -42,6 +45,9 @@ namespace Game.Core.Ecs.Systems
         // авто-каста → у пассива зеркало руки держит фантом разыгранного токена.
         readonly EcsFilterInject<Inc<RequestCardCastEvent>>  _castRequest   = default;
         readonly EcsFilterInject<Inc<CastEvent>>             _castInProgress = default;
+        // #2: ждём гейт «призыв → OnCast» — иначе ранний End Turn хендофит ход до отложенного OnCast
+        // (напр. SelfDestruct/деатрэттл Всадников) → его снапшот уехал бы после передачи хода.
+        readonly EcsFilterInject<Inc<PendingOnCastComponent>> _pendingOnCast = default;
 
         public void Run(IEcsSystems systems)
         {
@@ -50,7 +56,8 @@ namespace Game.Core.Ecs.Systems
             // Шаг A: запрос → СРАЗУ снять ActiveState, поднять OnTurnEnd, войти в EndTurnState.
             foreach (var entity in _reqFilter.Value)
             {
-                if (!_playerPool.Value.Get(entity).IsLocalPlayer) continue;
+                // PvE: ИИ-игрок завершает ход тем же путём (RunAiTurnSystem ставит EndTurnRequestEvent).
+                if (!_playerPool.Value.Get(entity).IsLocalPlayer && !_aiPool.Value.Has(entity)) continue;
 
                 _reqPool.Value.Del(entity);
                 if (_endPool.Value.Has(entity)) continue;   // уже завершаем — игнор повторного запроса
@@ -84,7 +91,7 @@ namespace Game.Core.Ecs.Systems
 
             foreach (var entity in _endFilter.Value)
             {
-                if (!_playerPool.Value.Get(entity).IsLocalPlayer) continue;
+                if (!_playerPool.Value.Get(entity).IsLocalPlayer && !_aiPool.Value.Has(entity)) continue;
 
                 _endPool.Value.Del(entity);
 
@@ -94,7 +101,19 @@ namespace Game.Core.Ecs.Systems
 
                 if (solo)
                 {
-                    // Оппонента нет → не уходим в пассив, сразу возвращаем ход локальному игроку
+                    // PvE: оппонент есть, но ЛОКАЛЬНЫЙ (ИИ, без Remote) → передаём ход ДРУГОМУ игроку.
+                    // Глобальный номер хода = сумма личных счётчиков обоих + 1 (счётчик выданных ходов).
+                    int other = FindOtherPlayer(entity);
+                    if (Service.PveMode.Enabled && other >= 0)
+                    {
+                        TurnFlow.GrantTurn(world, other, TotalTurnsGranted() + 1);
+                        bool toAi = _aiPool.Value.Has(other);
+                        if (toAi)  GameEventBus.Publish(new OpponentTurnEndedEvent());   // UI: «ход оппонента»
+                        UnityEngine.Debug.Log($"[EndTurn] PvE: ход передан {(toAi ? "ИИ" : "игроку")}");
+                        return;
+                    }
+
+                    // Истинное соло: оппонента нет → не уходим в пассив, сразу возвращаем ход локальному игроку
                     // (новый каскад начала хода: ресурсы/добор/OnTurnStart → ActiveState).
                     int next = _counterPool.Value.Has(entity) ? _counterPool.Value.Get(entity).Personal + 1 : 1;
                     TurnFlow.GrantTurn(world, entity, next);
@@ -109,11 +128,27 @@ namespace Game.Core.Ecs.Systems
             }
         }
 
+        int FindOtherPlayer(int current)
+        {
+            foreach (var e in _allPlayers.Value)
+                if (e != current) return e;
+            return -1;
+        }
+
+        int TotalTurnsGranted()
+        {
+            int total = 0;
+            foreach (var e in _allPlayers.Value)
+                if (_counterPool.Value.Has(e)) total += _counterPool.Value.Get(e).Personal;
+            return total;
+        }
+
         bool AbilitiesPending()
             => _abilityCast.Value.GetEntitiesCount()    > 0
             || _abilityTarget.Value.GetEntitiesCount()  > 0
             || _abilityQueued.Value.GetEntitiesCount()  > 0
             || _castRequest.Value.GetEntitiesCount()    > 0   // форс-плей: каст запрошен, ещё не разрезолвлен
-            || _castInProgress.Value.GetEntitiesCount() > 0;  // каст в процессе (до OnCast-способностей)
+            || _castInProgress.Value.GetEntitiesCount() > 0   // каст в процессе (до OnCast-способностей)
+            || _pendingOnCast.Value.GetEntitiesCount()  > 0;  // #2: призыв не «дозрел» до OnCast
     }
 }

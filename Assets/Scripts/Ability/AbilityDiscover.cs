@@ -21,6 +21,7 @@ namespace Game.Core.Ability
     // ─────────────────────────────────────────────────────────────────────────
     public abstract class DiscoverEffect : EffectBase
     {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Draw;
         public int OfferCount = 3;
 
         // Терминал: куда уходит выбранная карта (для FromPool всегда Hand владельца — создаём новую).

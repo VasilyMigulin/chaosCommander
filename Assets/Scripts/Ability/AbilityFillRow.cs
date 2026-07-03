@@ -24,6 +24,7 @@ namespace Game.Core.Ability
     [MovedFrom(true, sourceClassName: "SummonTokenEffect")]   // нейминг: создаёт КАРТУ (токенность = IsToken ассета)
     public sealed class SpawnCardOnBoardEffect : EffectBase
     {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Summon;
         [Tooltip("Ассет CardInstanceData карты (любой; токен = флаг IsToken ассета).")]
         public ScriptableObject Source;
 
@@ -49,6 +50,7 @@ namespace Game.Core.Ability
     [MovedFrom(true, sourceClassName: "SummonRandomTokenEffect")]
     public sealed class SpawnRandomCardOnBoardEffect : EffectBase
     {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Summon;
         [Tooltip("Ассет CardPool (по критериям). Если задан — берём из него, иначе из ручного Pool ниже.")]
         public ScriptableObject PoolAsset;
         [Tooltip("Ручной пул ассетов CardInstanceData (если PoolAsset не задан).")]
@@ -85,6 +87,7 @@ namespace Game.Core.Ability
     // ─────────────────────────────────────────────────────────────────────────
     public abstract class FillRowEffect : EffectBase
     {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Summon;
         [Tooltip("Максимум существ (<=0 → весь свободный фронт-ряд).")]
         public int MaxCount = 0;
 

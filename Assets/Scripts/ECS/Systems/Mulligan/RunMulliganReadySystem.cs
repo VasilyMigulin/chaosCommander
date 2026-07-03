@@ -32,6 +32,26 @@ namespace Game.Core.Ecs.Systems
                 ref var handComp = ref _handPool.Value.Get(entity);
                 ref var playerComp = ref _playerPool.Value.Get(entity);
 
+                // PvE: снапшот/RPC не нужны (оппонент — локальный ИИ, зеркала нет). Повторяем ПРЕ-СТАРТ,
+                // который в MP делает RPC_PreStartPhaseBegin: MatchStartEvent обоим игрокам + стартовая
+                // рука в UI (PreStartPhaseBeginUIEvent — ЗАКРЫВАЕТ мулиган-окно и активирует CardLayout;
+                // без него окно висело, а добор хода 1 бил в неактивный CardLayout — ошибка корутины).
+                // Только затем — первый ход.
+                if (Game.Core.Service.PveMode.Enabled)
+                {
+                    _mulliganPool.Value.Del(entity);
+                    _completePool.Value.Del(entity);
+
+                    var matchStartPool = _world.Value.GetPool<MatchStartEvent>();
+                    foreach (var pe in _world.Value.Filter<PlayerComponent>().End())
+                        if (!matchStartPool.Has(pe)) matchStartPool.Add(pe);
+
+                    PublishPreStartHandUI(entity, ref playerComp);
+                    TurnFlow.GrantTurn(_world.Value, entity, 1);
+                    Debug.Log($"[RunMulliganReadySystem] PvE: пре-старт + первый ход игроку {playerComp.PlayerId}");
+                    continue;
+                }
+
                 Debug.Log($"[RunMulliganReadySystem] Player {playerComp.PlayerId}: mulligan complete. Sending deck snapshot and notifying host.");
 
                 SendSnapshotToOpponent(entity, ref playerComp);
@@ -48,6 +68,68 @@ namespace Game.Core.Ecs.Systems
                 _mulliganPool.Value.Del(entity);
                 _completePool.Value.Del(entity);
             }
+        }
+
+        // PvE-аналог PhotonRunHandler.PublishPreStartHandUI (тот приватный в сборке Photon): собирает
+        // стартовую руку локального игрока в PreStartPhaseBeginUIEvent — MuliganWindow закрывается,
+        // CardLayout показывает руку и командира.
+        void PublishPreStartHandUI(int playerEntity, ref PlayerComponent player)
+        {
+            var viewPool = _world.Value.GetPool<CardViewDataComponent>();
+            ref var hand = ref _handPool.Value.Get(playerEntity);
+
+            var handCards = new List<CardAddedToHandUIEvent>();
+            CardAddedToHandUIEvent commanderCard = default;
+            bool hasCommander = false;
+
+            for (int i = 0; i < hand.Count; i++)
+            {
+                int cardEntity = hand.CardEntities[i];
+                if (!viewPool.Has(cardEntity)) continue;
+
+                ref var view = ref viewPool.Get(cardEntity);
+                string netKey = _netKeyPool.Value.Has(cardEntity) ? _netKeyPool.Value.Get(cardEntity).NetworkEntityKey : string.Empty;
+                bool isCommander = _commanderPool.Value.Has(cardEntity);
+
+                var evt = new CardAddedToHandUIEvent
+                {
+                    CardEntity  = cardEntity,
+                    PlayerId    = player.PlayerId,
+                    NetworkKey  = netKey,
+                    Icon        = view.ArtImage,
+                    CardType    = view.CardType,
+                    Element     = view.Element,
+                    Rarity      = view.Rarity,
+                    CardName    = view.CardName,
+                    IsCommander = isCommander,
+                    Visual      = new Game.Core.Shared.CardVisualData
+                    {
+                        CardName    = view.CardName,
+                        Description = view.Description,
+                        Icon        = view.ArtImage,
+                        CardType    = view.CardType,
+                        Rarity      = view.Rarity,
+                        Element     = view.Element,
+                        CostType    = view.CostType,
+                        CostAmount  = view.CostAmount,
+                        IsCreature  = view.IsCreature,
+                        Attack      = view.Attack,
+                        MaxHealth   = view.MaxHealth,
+                        Speed       = view.Speed,
+                        IsCommander = isCommander,
+                    },
+                };
+
+                if (isCommander) { commanderCard = evt; hasCommander = true; }
+                else             { handCards.Add(evt); }
+            }
+
+            GameEventBus.Publish(new PreStartPhaseBeginUIEvent
+            {
+                HandCards     = handCards.ToArray(),
+                CommanderCard = commanderCard,
+                HasCommander  = hasCommander,
+            });
         }
 
         void SendSnapshotToOpponent(int playerEntity, ref PlayerComponent player)

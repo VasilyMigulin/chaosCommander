@@ -5,6 +5,7 @@ using Game.Core.Shared;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
 namespace AwesomeUI.Core.Card
 {
@@ -18,7 +19,7 @@ namespace AwesomeUI.Core.Card
     ///
     /// Наследники вызывают ApplyVisualData(CardVisualData) чтобы заполнить все поля.
     /// </summary>
-    public abstract class CardBaseView : SourceSlot
+    public abstract class CardBaseView : SourceSlot, IPointerDownHandler, IPointerUpHandler, IPointerExitHandler
     {
         // ── Редкость ──────────────────────────────────────────────────────────
 
@@ -228,5 +229,50 @@ namespace AwesomeUI.Core.Card
         // ── Helpers ─────────────────────────────────────────────────────────── 
         static string CardTypeLabel(EnumService.CardType type)
             => Game.Core.Shared.CardTextLocalization.TypeLabel(type);
+
+        // ── Hold-inspect (удержание карты → предпросмотр) ─────────────────────
+        // Детект удержания живёт в базе, чтобы был у всех карт (библиотека/колода/попап).
+        // Что делать по удержанию — решает наследник в OnHoldTriggered (open предпросмотр своей Model).
+
+        [Header("Hold Inspect")]
+        [SerializeField] bool  _holdInspectEnabled = true;
+        [SerializeField] float _holdThreshold = 0.45f;
+
+        bool  _pressed;
+        bool  _holdFired;
+        bool  _holdClickConsumed;
+        float _pressTime;
+
+        protected virtual void Update()
+        {
+            if (!_pressed || _holdFired || !_holdInspectEnabled) return;
+            if (Time.unscaledTime - _pressTime < _holdThreshold) return;
+
+            _holdFired = true;
+            _holdClickConsumed = true;   // погасить последующий onClick (add/remove)
+            OnHoldTriggered();
+        }
+
+        /// <summary>Вызывается при удержании ≥ порога. Наследник открывает предпросмотр своей карты.</summary>
+        protected virtual void OnHoldTriggered() { }
+
+        /// <summary>Наследник зовёт первым в OnClick: true → это был hold-предпросмотр, обычное действие пропустить.</summary>
+        protected bool ConsumeHoldClick()
+        {
+            if (!_holdClickConsumed) return false;
+            _holdClickConsumed = false;
+            return true;
+        }
+
+        public void OnPointerDown(PointerEventData eventData)
+        {
+            _pressed = true;
+            _holdFired = false;
+            _holdClickConsumed = false;
+            _pressTime = Time.unscaledTime;
+        }
+
+        public void OnPointerUp(PointerEventData eventData)   => _pressed = false;
+        public void OnPointerExit(PointerEventData eventData) => _pressed = false;
     }
 }

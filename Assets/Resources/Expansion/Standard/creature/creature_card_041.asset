@@ -36,16 +36,19 @@ MonoBehaviour:
         Rarity: 3
         Element: 37
         ArtImage: {fileID: 0}
-        ExpansionId: 
+        ExpansionId: standard
         PlayCost: 0
         PlayCostAmount: 5
         IsToken: 0
+        MulliganStartingHand: 0
+        MulliganUnlimitedReplace: 0
         RuntimeAbilities:
         - rid: 1051486475324227815
+        Archetypes: []
         MaxHealth: 5
         Attack: 5
         Speed: 2
-        ViewPrefab: {fileID: 1046069417137952589, guid: f06aa6138ec1c4140ac9af21f0ddde7e, type: 3}
+        ViewPrefab: {fileID: 7973880926573412795, guid: 3d83689b6287fb740ae30544b0dc84d5, type: 3}
         IsCommander: 0
     - rid: 1051486475324227815
       type: {class: AbilityNonTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
@@ -55,6 +58,12 @@ MonoBehaviour:
         Rules: []
         Effects:
         - rid: 1051486475324227817
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 0}
+          ProjectileSpeed: 12
+          MergeArea: 0
     - rid: 1051486475324227816
       type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 

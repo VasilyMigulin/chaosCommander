@@ -175,7 +175,24 @@ namespace AwesomeUI.Feature.Battle
 
             if (evt.IsCommander)
             {
-                _commanderSlot?.SetCard(data);
+                if (_commanderSlot != null)
+                {
+                    // Как обычные карты: перед показом ставим слот в точку добора и раскладываем веером.
+                    // Иначе при ВОЗВРАТЕ командира в руку (после смерти) он появлялся там, где был отпущен
+                    // при розыгрыше — OnEndDrag прячет карту, не сбрасывая localPosition, а SetCard позицию
+                    // не трогает. Отсюда «зависание» командира в точке отпускания.
+                    var crt = _commanderSlot.GetComponent<RectTransform>();
+                    if (crt != null)
+                    {
+                        crt.DOKill();
+                        crt.localPosition = new Vector3(_dealInOffset.x, _dealInOffset.y, 0f);
+                        crt.localRotation = Quaternion.identity;
+                        crt.localScale    = Vector3.one;
+                    }
+
+                    _commanderSlot.SetCard(data);
+                    RefreshFan();   // вернёт командира на его место в веере (анимированно)
+                }
                 return;
             }
 

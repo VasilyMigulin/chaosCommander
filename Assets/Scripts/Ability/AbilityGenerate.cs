@@ -190,6 +190,7 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class CreateCardToHandEffect : GenerateCardEffect
     {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Draw;
         [Tooltip("Ассет CardInstanceData создаваемой карты (перетащить).")]
         public ScriptableObject Source;
 
@@ -237,6 +238,7 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class GainRandomCardEffect : EffectBase
     {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Draw;
         public int Count = 1;
 
         [Tooltip("Куда положить: false = в руку (по умолч.), true = ВТАСОВАТЬ В КОЛОДУ (Латентный работяга: случайного работягу в колоду).")]
@@ -323,6 +325,7 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class SpawnCharmTokenEffect : EffectBase
     {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Summon;
         [Tooltip("Ассет CardInstanceData чары-токена (перетащить).")]
         public ScriptableObject Source;
 
@@ -338,6 +341,7 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class GenerateToOpponentDeckEffect : EffectBase
     {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Curse;
         [Tooltip("Ассет CardInstanceData замешиваемой карты (перетащить).")]
         public ScriptableObject Source;
         public int Count = 1;

@@ -16,6 +16,7 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class DiscardEffect : EffectBase
     {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.HandDisruption;
         public override void Apply(EcsWorld world, int cardEntity, int target)
         {
             if (target < 0) { UnityEngine.Debug.LogWarning("[Discard] target<0 → нет цели (Random не выбрал карту из руки оппонента?)"); return; }
@@ -54,6 +55,7 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class StealToHandEffect : EffectBase
     {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.HandDisruption;
         public int CostReduction = 1;
 
         public override void Apply(EcsWorld world, int cardEntity, int target)

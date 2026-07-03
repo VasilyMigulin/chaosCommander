@@ -30,12 +30,20 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<HandComponent> _handPool = default;
         readonly EcsPoolInject<LocalComponent> _localPool = default;
         readonly EcsPoolInject<RemoteComponent> _remotePool = default;
+        readonly EcsPoolInject<AiPlayerComponent> _aiPool = default;
         readonly EcsPoolInject<HealthComponent> _healthPool = default;
         readonly EcsPoolInject<AvatarViewComponent> _avatarViewPool = default;
         readonly EcsCustomInject<BoardView> _boardView = default;
 
         public void Init(IEcsSystems systems)
-        {  
+        {
+            // ── PvE: сети нет — создаём обоих игроков локально (человек side 1, ИИ side 2). ──
+            if (Game.Core.Service.PveMode.Enabled)
+            {
+                InitPve();
+                return;
+            }
+
             var runner = PhotonInitializer.Instance?.Runner;
             if (runner == null)
             {
@@ -139,5 +147,67 @@ namespace Game.Core.Ecs.Systems
             }
         }
 
-            }
+        // ── PvE: человек (PlayerId=1, side 1, Local) + ИИ (PlayerId=2, side 2, AiPlayerComponent). ──
+        // ИИ БЕЗ RemoteComponent: он не сетевой — соло/PvE-ветки (EndTurnRequestSystem) различают его
+        // по AiPlayerComponent. Камера — сторона 1 (человек).
+        void InitPve()
+        {
+            // Камера: BattleCameraSelector сам ловит PlayerAssignedEvent локального игрока (side 1).
+            CreatePvePlayer(playerId: 1, side: 1, isLocal: true);
+            CreatePvePlayer(playerId: 2, side: 2, isLocal: false);
+            Debug.Log("[InitLocalPlayerSystem] PvE: созданы человек (side 1) и ИИ (side 2)");
         }
+
+        void CreatePvePlayer(int playerId, int side, bool isLocal)
+        {
+            int entity = _world.Value.NewEntity();
+
+            ref var player = ref _playerPool.Value.Add(entity);
+            player.PlayerId = playerId;
+            player.IsLocalPlayer = isLocal;
+
+            _sidePool.Value.Add(entity).Side = side;
+
+            ref var gold = ref _goldPool.Value.Add(entity);
+            gold.Current = 0; gold.Max = 0;
+            ref var mana = ref _manaPool.Value.Add(entity);
+            mana.Current = 0; mana.Max = 0;
+
+            ref var deck = ref _deckPool.Value.Add(entity);
+            deck.CardEntities = new(); deck.Count = 0;
+            ref var hand = ref _handPool.Value.Add(entity);
+            hand.CardEntities = new(); hand.Count = 0;
+
+            ref var health = ref _healthPool.Value.Add(entity);
+            health.Current = 30; health.Max = 30;   // HP ИИ переопределит InitPveOpponentSystem из энкаунтера
+
+            if (_boardView.Value != null)
+            {
+                var avatarView = _boardView.Value.GetAvatarView(side);
+                if (avatarView != null)
+                    _avatarViewPool.Value.Add(entity).View = avatarView.gameObject;
+            }
+
+            if (isLocal)
+            {
+                _state.Value.AddEntity(entity, Service.EntityService.PLAYER_ENTITY);
+                _localPool.Value.Add(entity);
+                Network.NetKey.SetClientPrefix(playerId);   // ключи человека "1-N" (ИИ получает "2-N" в InitPveOpponentSystem)
+            }
+            else
+            {
+                _state.Value.AddEntity(entity, Service.EntityService.OPPONENT_ENTITY);
+                _aiPool.Value.Add(entity);                  // ИИ, НЕ Remote
+            }
+
+            GameEventBus.Publish(new PlayerAssignedEvent
+            {
+                PlayerEntity = entity,
+                Side = side,
+                IsLocalPlayer = isLocal
+            });
+
+            Debug.Log($"[InitLocalPlayerSystem] Player entity={entity} playerId={playerId} side={side} isLocal={isLocal} (PvE)");
+        }
+    }
+}

@@ -91,6 +91,7 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class AddBuffEffect : EffectBase
     {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.BuffAlly;
         [SerializeReference] public IBuffable Buff;
         public bool Tracked = false;
         public bool RevertOnSourceDeath = true;

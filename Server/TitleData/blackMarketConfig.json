@@ -1,0 +1,19 @@
+{
+  "_comment": "Title Data key = 'blackMarketConfig'. Пул чёрного рынка. Правишь по expansionId+cardId (item id = 'expansion_id'). Пул может быть больше числа слотов — сервер роллит нужное кол-во на ротацию. Ротация: weekly по дню/часу UTC (среда). Купил одну карту → остальные гаснут до следующей ротации.",
+  "rotation": { "weeklyDayUtc": 3, "hourUtc": 0 },
+  "slots": { "common": 4, "rare": 3, "epic": 2, "legendary": 1, "exotic": 1 },
+  "prices": {
+    "common":    { "code": "GD", "amount": 200 },
+    "rare":      { "code": "GD", "amount": 600 },
+    "epic":      { "code": "GD", "amount": 1500 },
+    "legendary": { "code": "GD", "amount": 4000 },
+    "exotic":    { "code": "GM", "amount": 150 }
+  },
+  "pools": {
+    "common":    ["Standard_1", "Standard_2", "Standard_3", "Standard_4", "Standard_5", "Standard_6"],
+    "rare":      ["Standard_20", "Standard_21", "Standard_22", "Standard_23"],
+    "epic":      ["Standard_40", "Standard_41", "Standard_42"],
+    "legendary": ["Standard_60", "Standard_61"],
+    "exotic":    ["Standard_80", "Standard_81"]
+  }
+}
