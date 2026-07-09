@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Game.Core.Shared.Interface;
 
 namespace Game.Core.Ecs.Components
 {
@@ -26,5 +27,47 @@ namespace Game.Core.Ecs.Components
         static long CellKey(int ownerId, int col) => ((long)ownerId << 8) | (uint)(col & 0xFF);
         public static bool IsCellClaimed(int ownerId, int col) => _claimedCells.Contains(CellKey(ownerId, col));
         public static void ClaimCell(int ownerId, int col) => _claimedCells.Add(CellKey(ownerId, col));
+    }
+
+    /// <summary>
+    /// Модификаторы для ГЕНЕРИРУЕМЫХ карт (FillRow/SpawnCardOnBoard и пр.): CreateCardEvent обрабатывается
+    /// отложенно (буфер CreateCardSystem), сущности в момент Apply эффекта ещё нет — поэтому эффект регистрирует
+    /// модификаторы здесь ПО ДЕТЕРМИНИРОВАННОМУ ключу порождаемой карты, а CreateCardSystem применяет их сразу
+    /// после материализации (модель уже инициализирована). СИНК ДАРОМ: generate-эффекты ре-ранятся на ОБОИХ
+    /// клиентах (пассив реплеит резолв) с теми же ключами → скрэтч заполняется и применяется зеркально
+    /// (в отличие от summon-семейства, где размещает только актив и модификаторы едут pending-каналом).
+    /// Статик как SummonScratch: резолв однопоточный; чистится в CreateCardSystem.Init (новый матч).
+    /// </summary>
+    public static class GeneratedModScratch
+    {
+        struct Entry
+        {
+            public string Key;
+            public int SourceCard;
+            public IReadOnlyList<IEffect> Mods;
+        }
+
+        static readonly List<Entry> _entries = new List<Entry>();
+
+        public static void Register(string key, int sourceCard, IReadOnlyList<IEffect> mods)
+        {
+            if (string.IsNullOrEmpty(key) || mods == null || mods.Count == 0) return;
+            _entries.Add(new Entry { Key = key, SourceCard = sourceCard, Mods = mods });
+        }
+
+        public static bool TryConsume(string key, out int sourceCard, out IReadOnlyList<IEffect> mods)
+        {
+            for (int i = 0; i < _entries.Count; i++)
+            {
+                if (_entries[i].Key != key) continue;
+                sourceCard = _entries[i].SourceCard;
+                mods = _entries[i].Mods;
+                _entries.RemoveAt(i);
+                return true;
+            }
+            sourceCard = -1; mods = null; return false;
+        }
+
+        public static void Clear() => _entries.Clear();
     }
 }

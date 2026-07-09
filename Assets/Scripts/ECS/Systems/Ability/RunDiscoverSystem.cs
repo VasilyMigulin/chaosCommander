@@ -96,6 +96,19 @@ namespace Game.Core.Ecs.Systems
             r.ShownExp    = exp;
             r.ShownCardId = ids;
 
+            // Авто-розыгрыш (ForceRandomTargeting, как Йогг-Сарон): раскопка НЕ отдаёт выбор игроку —
+            // актив роллит случайный вариант сам (без окна), дальше штатный резолв ResolveChosen →
+            // выбор уезжает пассиву готовым каналом (CardPickResolvedNetEvent).
+            if (_world.Value.GetPool<ForceRandomTargetingComponent>().Has(r.SourceCardEntity))
+            {
+                _chosen.Enqueue(new CardPickChosenEvent
+                {
+                    CastingCardEntity = r.SourceCardEntity,
+                    ChosenCardEntity  = tokens[UnityEngine.Random.Range(0, tokens.Length)],
+                });
+                return;
+            }
+
             GameEventBus.Publish(new CardPickOfferedEvent
             {
                 CastingCardEntity   = r.SourceCardEntity,   // корреляция (эхо в Chosen)
@@ -159,6 +172,7 @@ namespace Game.Core.Ecs.Systems
                 {
                     if (!_poolCreationRequested.Contains(choice.ChosenEntityKey))
                     {
+                        GeneratedModScratch.Register(choice.ChosenEntityKey, r.SourceCardEntity, r.Modifiers);   // зеркально активу
                         SpawnToHand(r.OwnerPlayerEntity, r.OwnerId, choice.ExpansionId, choice.CardId, choice.ChosenEntityKey, isEnemy: true);
                         _poolCreationRequested.Add(choice.ChosenEntityKey);
                     }
@@ -198,6 +212,7 @@ namespace Game.Core.Ecs.Systems
                     // ПУЛ: карта создаётся заново → генерируем новый короткий общий ключ (не геттер NetKey(entity)!).
                     // Полное имя — локальный метод NetKey(int) перекрывает простое имя класса.
                     string key = Game.Core.Network.NetKey.Next();
+                    GeneratedModScratch.Register(key, r.SourceCardEntity, r.Modifiers);   // мод-ры применит CreateCardSystem
                     SpawnToHand(r.OwnerPlayerEntity, r.OwnerId, exp, cid, key, isEnemy: false);
                     EmitResolved(r.SourceCardEntity, chosenEntity: -1, fromPool: true, key, exp, cid);
                 }
@@ -249,6 +264,13 @@ namespace Game.Core.Ecs.Systems
             }
 
             int destPlayer = FindPlayerEntity(destOwnerId);
+
+            // Модификаторы выбранной карты («стоит на 2 меньше» и т.п.) — ДО CardDrawnEvent, чтобы UI руки
+            // сразу увидел изменённую стоимость. PlacePicked идёт на обоих клиентах → применение зеркальное.
+            if (r.Modifiers != null)
+                foreach (var mod in r.Modifiers)
+                    if (mod != null && mod.IsReady)
+                        mod.Apply(_world.Value, r.SourceCardEntity, card);
 
             switch (r.Dest)
             {

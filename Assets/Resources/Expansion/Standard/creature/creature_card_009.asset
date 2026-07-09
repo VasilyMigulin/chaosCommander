@@ -30,9 +30,10 @@ MonoBehaviour:
         Vfx:
           Kind: 0
           Prefab: {fileID: 0}
-          HitPrefab: {fileID: 0}
+          HitPrefab: {fileID: 185366, guid: 2589c453adc70bf4b9d34509504d2d3f, type: 3}
           ProjectileSpeed: 12
           MergeArea: 0
+          PlayCasterAnimation: 1
     - rid: 1051486475324227799
       type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
@@ -46,6 +47,7 @@ MonoBehaviour:
         Count: 1
         FillRow: 0
         Card: {fileID: 0}
+        MaxCost: 0
     - rid: 1051486497689043133
       type: {class: WorkerArchetype, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
@@ -74,4 +76,5 @@ MonoBehaviour:
         Attack: 1
         Speed: 1
         ViewPrefab: {fileID: 8026686172653069236, guid: 5798755a323c0b14691fd7a672890171, type: 3}
+        TurnsAlive: 0
         IsCommander: 0

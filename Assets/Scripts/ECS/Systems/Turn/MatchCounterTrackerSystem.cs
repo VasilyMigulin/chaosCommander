@@ -82,7 +82,14 @@ namespace Game.Core.Ecs.Systems
             int pe = FindPlayerEntity(e.PlayerId);
             if (pe < 0) return;
             ref var c = ref Ensure(pe);
-            Inc(c.CountsByModelId, _modelPool.Value.Get(e.CardEntity).ModelId);
+            ref var model = ref _modelPool.Value.Get(e.CardEntity);
+            Inc(c.CountsByModelId, model.ModelId);
+            if (model.CardType == Game.Core.Service.EnumService.CardType.Spell)
+            {
+                c.SpellsPlayed++;   // «за каждый спелл в матче» (Моментум); событие на обоих → зеркально
+                (c.SpellsPlayedLog ??= new System.Collections.Generic.List<SpellPlayRecord>())
+                    .Add(new SpellPlayRecord { ExpansionId = model.ExpansionId, ModelId = model.ModelId });
+            }
         }
 
         void TrackDrawn(CardDrawnEvent e)

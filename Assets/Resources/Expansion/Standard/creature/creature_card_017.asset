@@ -30,9 +30,10 @@ MonoBehaviour:
         Vfx:
           Kind: 0
           Prefab: {fileID: 0}
-          HitPrefab: {fileID: 0}
+          HitPrefab: {fileID: 185366, guid: 2f98e91049e674d43b96757a89dceecc, type: 3}
           ProjectileSpeed: 12
           MergeArea: 0
+          PlayCasterAnimation: 0
     - rid: 1051486567619100879
       type: {class: OnDieTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
@@ -63,5 +64,6 @@ MonoBehaviour:
         MaxHealth: 1
         Attack: 3
         Speed: 1
-        ViewPrefab: {fileID: 1046069417137952589, guid: f06aa6138ec1c4140ac9af21f0ddde7e, type: 3}
+        ViewPrefab: {fileID: 8026686172653069236, guid: 5e09170fbcf71664d90a24af403906b9, type: 3}
+        TurnsAlive: 0
         IsCommander: 0

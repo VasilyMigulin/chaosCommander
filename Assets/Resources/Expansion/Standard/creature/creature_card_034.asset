@@ -17,8 +17,6 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: -2
-      type: {class: , ns: , asm: }
     - rid: 1051486567619100986
       type: {class: AbilityNonTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
@@ -30,9 +28,10 @@ MonoBehaviour:
         Vfx:
           Kind: 0
           Prefab: {fileID: 0}
-          HitPrefab: {fileID: 0}
+          HitPrefab: {fileID: 185366, guid: 6dcff98dc6fbe6e4bbbdac7b196f0c5e, type: 3}
           ProjectileSpeed: 12
           MergeArea: 0
+          PlayCasterAnimation: 0
     - rid: 1051486567619100988
       type: {class: OnMatchStartTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
@@ -40,8 +39,17 @@ MonoBehaviour:
       type: {class: DoubleHealthEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
         ConditionRoot:
-          rid: -2
-        RequireDeckColor: 8
+          rid: 2419359952424665381
+    - rid: 2419359952424665381
+      type: {class: Condition, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Children:
+        - rid: 2419359952424665382
+        Op: 0
+    - rid: 2419359952424665382
+      type: {class: AllCardsHaveColorCondition, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Color: 8
     - rid: 8072968609180155941
       type: {class: CardCreatureModel, ns: Game.Core.Model.Card.Creature, asm: Game.Core.Model.Card.Creature}
       data:
@@ -69,4 +77,5 @@ MonoBehaviour:
         Attack: 8
         Speed: 2
         ViewPrefab: {fileID: 1046069417137952589, guid: f06aa6138ec1c4140ac9af21f0ddde7e, type: 3}
+        TurnsAlive: 0
         IsCommander: 0

@@ -44,6 +44,7 @@ namespace Game.Core.Ecs.Systems
         public void Init(IEcsSystems systems)
         {
             GameEventBus.Subscribe<CreateCardEvent>(OnCreateCard);
+            GeneratedModScratch.Clear();   // новый матч — стёртые ключи не должны цеплять чужие сущности
         }
 
         void OnCreateCard(CreateCardEvent evt) => _pending.Add(evt);
@@ -122,13 +123,32 @@ namespace Game.Core.Ecs.Systems
 
             if (eventComp.AutoCast)
             {
-                // Авто-розыгрыш (Фокус-покус): пометка для AutoCastSystem + форс Random-таргетинга (Йогг-Сарон).
+                // Авто-розыгрыш (Фокус-покус): пометка для AutoCastSystem. Форс Random-таргетинга (Йогг-Сарон) —
+                // ОТДЕЛЬНЫЙ флаг ForceRandomTarget (не всегда совпадает с AutoCast — см. CreateCardEvent).
                 if (!_autoCastPool.Value.Has(cardEntity)) _autoCastPool.Value.Add(cardEntity);
-                if (!_forceRandomPool.Value.Has(cardEntity)) _forceRandomPool.Value.Add(cardEntity);
+                _autoCastPool.Value.Get(cardEntity).Free = true;
+                if (eventComp.ForceRandomTarget && !_forceRandomPool.Value.Has(cardEntity)) _forceRandomPool.Value.Add(cardEntity);
             }
+
+            // Модификаторы генерации (SummonModifiers генераторов / Modifiers дискавера): применяем к
+            // материализованной сущности (модель уже инициализирована — статы/кост на месте) ДО RegisterInZone,
+            // чтобы CardDrawnEvent/UI руки сразу видел изменённую стоимость. Скрэтч заполняется на обоих
+            // клиентах (generate/discover ре-ранятся) → применение зеркальное, синк не нужен.
+            if (GeneratedModScratch.TryConsume(eventComp.NetworkEntityKey, out int modSource, out var mods))
+                foreach (var mod in mods)
+                    if (mod != null && mod.IsReady)
+                        mod.Apply(_world.Value, modSource, cardEntity);
 
             if (eventComp.RegisterInZoneList)
                 RegisterInZone(eventComp, cardEntity);
+
+            // «Вышло на стол» и для СГЕНЕРИРОВАННЫХ на борд существ (FillRow/SpawnCardOnBoard) — реактивные
+            // ауры/«Неудачная молитва»/счётчик архетипов (Грыз) ловят и токены. Generated=true → CollectAction
+            // НЕ шлёт ActionCastData (создание зеркально ре-раном). ПОСЛЕ модификаторов: реакция видит
+            // финальные статы. Публикуется на обоих клиентах (ре-ран) → счётчики зеркальны; триггеры
+            // гейтятся AbilityFire.Mark (симулирует только актив).
+            if (eventComp.InBoard && _world.Value.GetPool<CreatureTag>().Has(cardEntity))
+                GameEventBus.Publish(new CreatureInvokedEvent { CardEntity = cardEntity, Generated = true });
         }
 
         /// <summary>

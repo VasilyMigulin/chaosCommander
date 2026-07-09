@@ -1,0 +1,94 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: creature_card_056
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  CardData:
+    rid: 2419359952424665334
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 2419359952424665334
+      type: {class: CardCreatureModel, ns: Game.Core.Model.Card.Creature, asm: Game.Core.Model.Card.Creature}
+      data:
+        Id: 121
+        Name: "\u0421\u043E\u0431\u0438\u0440\u0430\u0442\u0435\u043B\u044C \u043F\u043E\u0431\u0440\u044F\u043A\u0443\u0448\u0435\u043A"
+        Description: "\u041F\u0440\u0438 \u0440\u0430\u0437\u044B\u0433\u0440\u044B\u0432\u0430\u043D\u0438\u0438:
+          \u043F\u043E\u0441\u043C\u043E\u0442\u0440\u0438\u0442\u0435 3 \u043A\u0430\u0440\u0442\u044B
+          \u0437\u0435\u043B\u0435\u043D\u043E\u0433\u043E \u0446\u0432\u0435\u0442\u0430,
+          \u043F\u043E\u043B\u043E\u0436\u0438\u0442\u0435 \u0432\u044B\u0431\u0440\u0430\u043D\u043D\u0443\u044E
+          \u0432 \u0440\u0443\u043A\u0443, \u043E\u043D\u0430 \u0441\u0442\u043E\u0438\u0442
+          \u043D\u0430 2 \u043C\u0435\u043D\u044C\u0448\u0435"
+        Rarity: 1
+        Element: 20
+        ArtImage: {fileID: 0}
+        ExpansionId: standard
+        PlayCost: 0
+        PlayCostAmount: 3
+        IsToken: 0
+        MulliganStartingHand: 0
+        MulliganUnlimitedReplace: 0
+        RuntimeAbilities:
+        - rid: 2419359952424665335
+        Archetypes: []
+        MaxHealth: 2
+        Attack: 1
+        Speed: 1
+        ViewPrefab: {fileID: 8026686172653069236, guid: b90aea61042f8d74a84f6a5d03a52746, type: 3}
+        TurnsAlive: 0
+        IsCommander: 0
+    - rid: 2419359952424665335
+      type: {class: AbilityNonTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 2419359952424665336
+        Rules: []
+        Effects:
+        - rid: 2419359952424665337
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 185366, guid: 2589c453adc70bf4b9d34509504d2d3f, type: 3}
+          ProjectileSpeed: 12
+          MergeArea: 0
+          PlayCasterAnimation: 1
+    - rid: 2419359952424665336
+      type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2419359952424665337
+      type: {class: DiscoverFromPoolEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        OfferCount: 3
+        Dest: 0
+        TakeOwnership: 0
+        Modifiers:
+        - rid: 2419359952424665344
+        PoolAsset: {fileID: 11400000, guid: d0c48907454820b4e8bbf0a064a9fbba, type: 2}
+        Pool: []
+    - rid: 2419359952424665344
+      type: {class: AddBuffEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        Buff:
+          rid: 2419359952424665346
+        Tracked: 0
+        RevertOnSourceDeath: 1
+    - rid: 2419359952424665346
+      type: {class: BuffCost, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Delta: -2
+        Permanent: 1

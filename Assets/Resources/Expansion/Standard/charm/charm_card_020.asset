@@ -1,0 +1,78 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: charm_card_020
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  CardData:
+    rid: 2419359952424665662
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 2419359952424665662
+      type: {class: CardCharmModel, ns: Game.Core.Model.Card.Charm, asm: Game.Core.Model.Card.Charm}
+      data:
+        Id: 143
+        Name: "\u041D\u0435\u0443\u0434\u0430\u0447\u043D\u0430\u044F \u043C\u043E\u043B\u0438\u0442\u0432\u0430"
+        Description: "\u041A\u0430\u0436\u0434\u044B\u0439 \u0440\u0430\u0437, \u043A\u043E\u0433\u0434\u0430
+          \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u043E \u0431\u0435\u0437 \u0436\u0435\u043B\u0442\u043E\u0433\u043E
+          \u0446\u0432\u0435\u0442\u0430 \u0432\u044B\u0445\u043E\u0434\u0438\u0442
+          \u043D\u0430 \u043F\u043E\u043B\u0435 \u0431\u043E\u044F, \u044D\u0442\u043E
+          \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u043E \u043F\u043E\u043B\u0443\u0447\u0430\u0435\u0442
+          3 \u0435\u0434 \u0443\u0440\u043E\u043D\u0430"
+        Rarity: 2
+        Element: 8
+        ArtImage: {fileID: 0}
+        ExpansionId: standard
+        PlayCost: 1
+        PlayCostAmount: 5
+        IsToken: 0
+        MulliganStartingHand: 0
+        MulliganUnlimitedReplace: 0
+        RuntimeAbilities:
+        - rid: 2419359952424665677
+        Archetypes: []
+        TurnsAlive: 3
+    - rid: 2419359952424665677
+      type: {class: AbilityToTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 2419359952424665678
+        Rules: []
+        Effects:
+        - rid: 2419359952424665679
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 0}
+          ProjectileSpeed: 12
+          MergeArea: 0
+        Selection: 3
+        Count: 1
+        Zone: 0
+        OfferCount: 3
+        Filters:
+        - rid: 2419359952424665681
+    - rid: 2419359952424665678
+      type: {class: OnCreatureInvokedTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2419359952424665679
+      type: {class: DealDamageEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Amount: 3
+        ConditionRoot:
+          rid: -2
+    - rid: 2419359952424665681
+      type: {class: WithoutColorTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Color: 8

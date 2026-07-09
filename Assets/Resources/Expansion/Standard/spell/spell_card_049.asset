@@ -1,0 +1,91 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: spell_card_049
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  CardData:
+    rid: 2419359952424665609
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 2419359952424665609
+      type: {class: CardSpellModel, ns: Game.Core.Model.Card.Spell, asm: Game.Core.Model.Card.Spell}
+      data:
+        Id: 136
+        Name: "\u0412\u0440\u0435\u043C\u044F \u043A\u043E\u0440\u043C\u0435\u0436\u043A\u0438"
+        Description: "\u0423\u043D\u0438\u0447\u0442\u043E\u0436\u0430\u0435\u0442
+          \u0432\u0430\u0448\u0435 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u043E,
+          \u043F\u0440\u0438\u0437\u044B\u0432\u0430\u0435\u0442 2 \u041F\u0430\u0432\u0443\u043A\u043E\u0432
+          1/1/3"
+        Rarity: 0
+        Element: 5
+        ArtImage: {fileID: 0}
+        ExpansionId: 
+        PlayCost: 1
+        PlayCostAmount: 1
+        IsToken: 0
+        MulliganStartingHand: 0
+        MulliganUnlimitedReplace: 0
+        RuntimeAbilities:
+        - rid: 2419359952424665610
+        Archetypes: []
+        RequiresTarget: 0
+    - rid: 2419359952424665610
+      type: {class: AbilityToTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 2419359952424665611
+        Rules:
+        - Mode: 0
+          Rules:
+          - rid: 2419359952424665620
+        Effects:
+        - rid: 2419359952424665613
+        - rid: 2419359952424665616
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 0}
+          ProjectileSpeed: 12
+          MergeArea: 0
+        Selection: 1
+        Count: 1
+        Zone: 0
+        OfferCount: 3
+        Filters:
+        - rid: 2419359952424665612
+    - rid: 2419359952424665611
+      type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2419359952424665612
+      type: {class: AllyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2419359952424665613
+      type: {class: DestroyEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+    - rid: 2419359952424665616
+      type: {class: FillRowWithCardEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        SummonModifiers: []
+        MaxCount: 2
+        Source: {fileID: 11400000, guid: 27ffa3b8af6f86f4f8103da8e41c126c, type: 2}
+    - rid: 2419359952424665620
+      type: {class: ControlsMinCreaturesRule, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        MinCount: 1
+        ExcludeSelf: 1

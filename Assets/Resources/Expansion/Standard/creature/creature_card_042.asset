@@ -42,5 +42,6 @@ MonoBehaviour:
         MaxHealth: 3
         Attack: 5
         Speed: 2
-        ViewPrefab: {fileID: 1046069417137952589, guid: f06aa6138ec1c4140ac9af21f0ddde7e, type: 3}
+        ViewPrefab: {fileID: 8026686172653069236, guid: f2855e883e665154890754f8e6090cf3, type: 3}
+        TurnsAlive: 0
         IsCommander: 0

@@ -71,16 +71,21 @@ namespace AwesomeUI.Feature.Battle
         {
             GameEventBus.Subscribe<CommandersRevealedUIEvent>(OnCommandersRevealed);
             GameEventBus.Subscribe<MulliganPhaseBeginUIEvent>(OnMulliganPhaseBegin);
+            GameEventBus.Subscribe<PreStartPhaseBeginUIEvent>(OnPreStartPhaseBegin);
         }
 
         void OnDisable()
         {
             GameEventBus.Unsubscribe<CommandersRevealedUIEvent>(OnCommandersRevealed);
             GameEventBus.Unsubscribe<MulliganPhaseBeginUIEvent>(OnMulliganPhaseBegin);
+            GameEventBus.Unsubscribe<PreStartPhaseBeginUIEvent>(OnPreStartPhaseBegin);
         }
 
         void OnCommandersRevealed(CommandersRevealedUIEvent _) => Hide();
         void OnMulliganPhaseBegin(MulliganPhaseBeginUIEvent _) => Hide();
+        // Туториал: мулигана/VS нет — бой начинается сразу с пре-старта (рука в UI). В MP к этому
+        // моменту оверлей уже скрыт (guard _hidden) — подписка безвредна.
+        void OnPreStartPhaseBegin(PreStartPhaseBeginUIEvent _) => Hide();
 
         void Hide()
         {

@@ -36,6 +36,37 @@ namespace Game.Core.Ability
         }
     }
 
+    // === buff: стоимость карты ===
+    // Полный бафф-пайплайн для цены: Permanent (переживает смерть) / мягкий (чистится DieSystem, снимается
+    // Revert'ом ауры), стакается (каждый Apply — отдельный модификатор в стеке кост-компонента). Минус = дешевле,
+    // плюс = дороже, ниже 0 эффективная цена не падает. НЕ путать с AddCostModifierEffect (Гиперинфляция) —
+    // тот вешает ГЛОБАЛЬНЫЙ модификатор на игрока, этот — на конкретную КАРТУ.
+    [Serializable]
+    public sealed class BuffCost : IBuffable
+    {
+        [Tooltip("Сдвиг стоимости: -2 = на 2 дешевле, +1 = на 1 дороже.")]
+        public int Delta = -1;
+        public bool Permanent = false;
+
+        public void Apply(EcsWorld world, int source, int target)  { if (Delta != 0) Add(world, target, Delta, Permanent); }
+        public void Revert(EcsWorld world, int source, int target) { if (Delta != 0) Remove(world, target, Delta); }
+
+        /// <summary>Добавить кост-модификатор карте (какой кост-компонент есть: золото/мана/HP). Переиспользуют StealToHand и др.</summary>
+        public static void Add(EcsWorld world, int card, int delta, bool permanent)
+        {
+            var g = world.GetPool<GoldCostComponent>();   if (g.Has(card)) { g.Get(card).AddModifier(delta, permanent); return; }
+            var m = world.GetPool<ManaCostComponent>();    if (m.Has(card)) { m.Get(card).AddModifier(delta, permanent); return; }
+            var h = world.GetPool<HealthCostComponent>();  if (h.Has(card)) { h.Get(card).AddModifier(delta, permanent); }
+        }
+
+        static void Remove(EcsWorld world, int card, int delta)
+        {
+            var g = world.GetPool<GoldCostComponent>();   if (g.Has(card)) { g.Get(card).RemoveModifier(delta); return; }
+            var m = world.GetPool<ManaCostComponent>();    if (m.Has(card)) { m.Get(card).RemoveModifier(delta); return; }
+            var h = world.GetPool<HealthCostComponent>();  if (h.Has(card)) { h.Get(card).RemoveModifier(delta); }
+        }
+    }
+
     // === buff: маркер-компонент ===
     public interface IMarker
     {

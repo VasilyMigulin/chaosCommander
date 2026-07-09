@@ -43,7 +43,8 @@ MonoBehaviour:
         MaxHealth: 4
         Attack: 3
         Speed: 1
-        ViewPrefab: {fileID: 1046069417137952589, guid: f06aa6138ec1c4140ac9af21f0ddde7e, type: 3}
+        ViewPrefab: {fileID: 8026686172653069236, guid: 5798755a323c0b14691fd7a672890171, type: 3}
+        TurnsAlive: 0
         IsCommander: 0
     - rid: 1051486747143962730
       type: {class: WorkerArchetype, ns: Game.Core.Ability, asm: Game.Core.Ability}
@@ -62,9 +63,10 @@ MonoBehaviour:
         Vfx:
           Kind: 0
           Prefab: {fileID: 0}
-          HitPrefab: {fileID: 0}
+          HitPrefab: {fileID: 185366, guid: 2589c453adc70bf4b9d34509504d2d3f, type: 3}
           ProjectileSpeed: 12
           MergeArea: 0
+          PlayCasterAnimation: 0
     - rid: 1051486747143962732
       type: {class: OnDieTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 

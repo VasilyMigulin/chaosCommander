@@ -51,6 +51,95 @@ namespace Game.Core.Ability
         public void Dispose() => GameEventBus.UnsubscribeAll(this);
     }
 
+    // === class (OOP) === Готово, пока в КОЛОДЕ владельца нет существ (архетип «без существ»: Пустой
+    // фолиант «если в колоде нет существ — возьмите ещё 2»). Пересчёт на событиях, меняющих состав колоды
+    // (добор/розыгрыш/генерация/призыв из колоды) + страховочно на старте хода. Скан по зеркальным тегам →
+    // IsReady одинаков на обоих клиентах.
+    [Serializable]
+    public sealed class NoCreaturesInDeckCondition : ICondition
+    {
+        public bool IsReady { get; private set; }
+        public event Action Changed;
+
+        AbilityContext _ctx;
+
+        public void Init(AbilityContext ctx)
+        {
+            _ctx = ctx;
+            GameEventBus.Subscribe<CardDrawnEvent>(this, _ => Recompute());
+            GameEventBus.Subscribe<CardGeneratedEvent>(this, _ => Recompute());
+            GameEventBus.Subscribe<CardPlayedEvent>(this, _ => Recompute());
+            GameEventBus.Subscribe<CreatureInvokedEvent>(this, _ => Recompute());
+            GameEventBus.Subscribe<TurnStartedEvent>(this, _ => Recompute());
+            Recompute();
+        }
+
+        void Recompute()
+        {
+            int ownerId = RuleUtil.OwnerId(_ctx.World, _ctx.CardEntity);
+            bool now = ownerId >= 0 && !RuleUtil.DeckHasCreatures(_ctx.World, ownerId);
+            if (now == IsReady) return;
+            IsReady = now;
+            Changed?.Invoke();
+        }
+
+        public void Dispose() => GameEventBus.UnsubscribeAll(this);
+    }
+
+    // === class (OOP) === Готово, пока ВСЕ карты владельца в КОЛОДЕ И РУКЕ (кроме командира) имеют цвет(а)
+    // Color (Проповедник: «если все карты жёлтого цвета — удвойте здоровье»). Хоть одна карта БЕЗ нужного
+    // цвета (в т.ч. бесцветная) → не готово. Обе зоны обязательны: OnMatchStart резолвится на ПЕРВОМ ХОДУ,
+    // стартовая рука уже раздана — скан только колоды её пропустил бы (старый баг RequireDeckColor: к тому же
+    // проверял «есть хотя бы одна цветная», а не «все»). Мультицвет ок: карта должна СОДЕРЖАТЬ все флаги
+    // маски Color. Пересчёт на событиях состава зон (замешанное оппонентом Вонючее облако ЛОМАЕТ условие —
+    // осмысленная контр-игра). Теги зеркальны → IsReady одинаков на обоих клиентах.
+    [Serializable]
+    public sealed class AllCardsHaveColorCondition : ICondition
+    {
+        public EnumService.Element Color = EnumService.Element.Yellow;
+
+        public bool IsReady { get; private set; }
+        public event Action Changed;
+
+        AbilityContext _ctx;
+
+        public void Init(AbilityContext ctx)
+        {
+            _ctx = ctx;
+            GameEventBus.Subscribe<CardDrawnEvent>(this, _ => Recompute());
+            GameEventBus.Subscribe<CardGeneratedEvent>(this, _ => Recompute());
+            GameEventBus.Subscribe<CardPlayedEvent>(this, _ => Recompute());
+            GameEventBus.Subscribe<TurnStartedEvent>(this, _ => Recompute());
+            Recompute();
+        }
+
+        void Recompute()
+        {
+            int ownerId = RuleUtil.OwnerId(_ctx.World, _ctx.CardEntity);
+            bool now = ownerId >= 0 && AllColored<DeckTag>(ownerId) && AllColored<HandTag>(ownerId);
+            if (now == IsReady) return;
+            IsReady = now;
+            Changed?.Invoke();
+        }
+
+        bool AllColored<TZone>(int ownerId) where TZone : struct
+        {
+            var world = _ctx.World;
+            var owner = world.GetPool<OwnerComponent>();
+            var model = world.GetPool<CardModelComponent>();
+            var commander = world.GetPool<CommanderTag>();
+            foreach (var e in world.Filter<TZone>().Inc<CardModelComponent>().Inc<OwnerComponent>().End())
+            {
+                if (owner.Get(e).OwnerId != ownerId) continue;
+                if (commander.Has(e)) continue;                          // командир — не из 20 карт колоды
+                if ((model.Get(e).Element & Color) != Color) return false;   // карта без нужного цвета
+            }
+            return true;
+        }
+
+        public void Dispose() => GameEventBus.UnsubscribeAll(this);
+    }
+
     /// <summary>Что считаем (относительно владельца способности). OwnPlayerOwnTurn — урон своему игроку «на
     /// своём ходу» (от себя, Source==Target). Прочее — суммарный урон игроку/существам своей/вражеской стороны.</summary>
     public enum DamageScope { OwnPlayerOwnTurn, OwnPlayer, OwnCreatures, EnemyPlayer, EnemyCreatures }

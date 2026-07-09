@@ -19,6 +19,11 @@ namespace AwesomeUI.Feature.Battle
         [SerializeField] private Image           _sliderFill;
         [SerializeField] private CanvasGroup     _canvasGroup;
 
+        [Header("Busy (пауза на анимациях/резолве)")]
+        [Tooltip("Прячется, пока таймер хода на паузе (TurnTimerBusyUIEvent) — так пауза видна глазами. " +
+                 "Если не назначен — поведение не меняется (просто нет визуальной индикации паузы).")]
+        [SerializeField] private GameObject _busyHideRoot;
+
         [Header("Colors")]
         [SerializeField] private Color _normalColor  = Color.white;
         [SerializeField] private Color _warningColor = Color.yellow;
@@ -31,6 +36,7 @@ namespace AwesomeUI.Feature.Battle
         private float _totalDuration;
         private float _remaining;
         private bool  _isRunning;
+        private bool  _pausedForBusy;   // таймер стоял на паузе из-за TurnTimerBusyUIEvent (не StopTimer)
         private Tween _hideTween;
 
         // ── Lifecycle ─────────────────────────────────────────────────────────
@@ -45,12 +51,14 @@ namespace AwesomeUI.Feature.Battle
         {
             GameEventBus.Subscribe<LocalTurnStartedEvent>(OnLocalTurnStarted);
             GameEventBus.Subscribe<OpponentTurnEndedEvent>(OnOpponentTurn);
+            GameEventBus.Subscribe<TurnTimerBusyUIEvent>(OnTurnTimerBusy);
         }
 
         public void Unject()
         {
             GameEventBus.Unsubscribe<LocalTurnStartedEvent>(OnLocalTurnStarted);
             GameEventBus.Unsubscribe<OpponentTurnEndedEvent>(OnOpponentTurn);
+            GameEventBus.Unsubscribe<TurnTimerBusyUIEvent>(OnTurnTimerBusy);
         }
 
         // ── Unity update ──────────────────────────────────────────────────────
@@ -75,6 +83,7 @@ namespace AwesomeUI.Feature.Battle
             _totalDuration = evt.TurnDurationSeconds;
             _remaining     = evt.TurnDurationSeconds;
             _isRunning     = true;
+            _pausedForBusy = false;
 
             _hideTween?.Kill();
 
@@ -94,11 +103,30 @@ namespace AwesomeUI.Feature.Battle
             StopTimer();
         }
 
+        // Пауза таймера (анимация/резолв способности) — прячем Root (видимая пауза) И реально останавливаем
+        // локальный отсчёт Update() (иначе секунды тихо утекали бы, пока таймер скрыт, и по возврату счёт
+        // разошёлся бы с настоящим ActiveState.TimeRemaining — тем самым, который эта пауза и защищает).
+        private void OnTurnTimerBusy(TurnTimerBusyUIEvent evt)
+        {
+            if (_busyHideRoot != null) _busyHideRoot.SetActive(!evt.IsBusy);
+
+            if (evt.IsBusy)
+            {
+                if (_isRunning) { _isRunning = false; _pausedForBusy = true; }
+            }
+            else if (_pausedForBusy)
+            {
+                _pausedForBusy = false;
+                _isRunning = true;
+            }
+        }
+
         // ── Helpers ───────────────────────────────────────────────────────────
 
         private void StopTimer()
         {
             _isRunning = false;
+            _pausedForBusy = false;
 
             if (_canvasGroup != null)
             {

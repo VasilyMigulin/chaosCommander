@@ -30,9 +30,10 @@ MonoBehaviour:
         Vfx:
           Kind: 0
           Prefab: {fileID: 0}
-          HitPrefab: {fileID: 0}
+          HitPrefab: {fileID: 177544, guid: 74a2cd59e1b82f344a82794fd65efc49, type: 3}
           ProjectileSpeed: 12
           MergeArea: 0
+          PlayCasterAnimation: 1
     - rid: 1051486475324227705
       type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
@@ -50,6 +51,7 @@ MonoBehaviour:
           HitPrefab: {fileID: 0}
           ProjectileSpeed: 12
           MergeArea: 0
+          PlayCasterAnimation: 0
     - rid: 1051486475324227723
       type: {class: OnDieTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
@@ -66,6 +68,7 @@ MonoBehaviour:
           rid: -2
         Count: 1
         Free: 1
+        ForceRandomTarget: 0
     - rid: 8072968609180155947
       type: {class: CardCreatureModel, ns: Game.Core.Model.Card.Creature, asm: Game.Core.Model.Card.Creature}
       data:
@@ -93,4 +96,5 @@ MonoBehaviour:
         Attack: 3
         Speed: 2
         ViewPrefab: {fileID: 1046069417137952589, guid: f06aa6138ec1c4140ac9af21f0ddde7e, type: 3}
+        TurnsAlive: 0
         IsCommander: 0

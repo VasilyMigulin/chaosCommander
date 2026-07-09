@@ -20,7 +20,9 @@ namespace Game.Core.Ability
     {
         // triggerKey (опц.) — тип триггера для множителя частоты (CastMultiplierService): "OnTurnStart" и т.п.
         // Если множитель > 1 (Временная петля), ставим PendingCastsComponent → способность разрешится N раз.
-        public static void Mark(EcsWorld world, int abilityEntity, int cardEntity, int playerEntity, string triggerKey = null)
+        // subjectEntity (опц.) — ВИНОВНИК срабатывания (OnCreatureInvoked → вышедшее существо): едет в
+        // TriggerSubjectComponent для TargetSelection.TriggerSubject («Неудачная молитва»).
+        public static void Mark(EcsWorld world, int abilityEntity, int cardEntity, int playerEntity, string triggerKey = null, int subjectEntity = -1)
         {
             // ВРЕМЕННО: видим, что триггер сработал и не загейчен ли пассивом.
             UnityEngine.Debug.Log($"[Mark] card={cardEntity} ability={abilityEntity} trigger={triggerKey ?? "?"} active={TurnGate.IsLocalActive(world)}");
@@ -33,11 +35,28 @@ namespace Game.Core.Ability
             c.CardEntity = cardEntity;
             c.OwnerPlayerEntity = playerEntity;
 
+            // Ключ триггера ЭТОЙ активации (для AbilityResolveContext.TriggerKey — см. AbilityTriggerKeyComponent).
+            var keyPool = world.GetPool<AbilityTriggerKeyComponent>();
+            if (!keyPool.Has(abilityEntity)) keyPool.Add(abilityEntity);
+            keyPool.Get(abilityEntity).Key = triggerKey;
+
+            // Виновник: ставим/перезаписываем; без виновника — снимаем (не протухает от прошлого файра).
+            var subjPool = world.GetPool<TriggerSubjectComponent>();
+            if (subjectEntity >= 0)
+            {
+                if (!subjPool.Has(abilityEntity)) subjPool.Add(abilityEntity);
+                subjPool.Get(abilityEntity).Entity = subjectEntity;
+            }
+            else if (subjPool.Has(abilityEntity)) subjPool.Del(abilityEntity);
+
             if (triggerKey != null)
             {
                 var ownerPool = world.GetPool<OwnerComponent>();
                 int ownerId = ownerPool.Has(cardEntity) ? ownerPool.Get(cardEntity).OwnerId : -1;
-                int casts = CastMultiplierService.Casts(ownerId, triggerKey);
+                // Множитель ключуется комбинацией «ТипКарты/Триггер» (Spell/OnCast и т.п.) + wildcard "*/Триггер".
+                var modelPool = world.GetPool<CardModelComponent>();
+                var cardType = modelPool.Has(cardEntity) ? modelPool.Get(cardEntity).CardType : EnumService.CardType.Creature;
+                int casts = CastMultiplierService.Casts(ownerId, cardType, triggerKey);
                 if (casts > 1)
                 {
                     var cp = world.GetPool<PendingCastsComponent>();

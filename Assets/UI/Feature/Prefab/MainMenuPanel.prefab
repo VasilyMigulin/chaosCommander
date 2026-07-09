@@ -1277,7 +1277,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a57344f89ca3f024aae35f3d1187d8de, type: 3}
   m_Name: 
   m_EditorClassIdentifier: AwesomeUI.Core.Card::AwesomeUI.Core.Card.LocalizedText
-  _key: ui.menu.play
+  _key: ui.menu.story
 --- !u!1 &5429063584462274748
 GameObject:
   m_ObjectHideFlags: 0

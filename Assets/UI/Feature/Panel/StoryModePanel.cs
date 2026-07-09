@@ -22,7 +22,8 @@ namespace AwesomeUI.Feature
     /// </summary>
     public class StoryModePanel : SourcePanel
     {
-        const string PveResourcesFolder = "Encounter";   // Assets/Resources/Encounter/ (папка энкаунтеров)
+        const string CampaignsFolder = "Campaign";       // Assets/Resources/Campaign/ (ассеты кампаний)
+        const string PveResourcesFolder = "Encounter";   // Assets/Resources/Encounter/ (фолбэк без кампании)
         const int BattleSceneIndex = 3;
 
         // Старт боя идёт через MenuState.StartPveBattle (гасит активный матчмейкинг перед LoadScene —
@@ -57,13 +58,24 @@ namespace AwesomeUI.Feature
                 return;
             }
 
-            // Уровни = все энкаунтеры в Resources/Pve, порядок по имени ассета.
-            var encounters = Resources.LoadAll<PveEncounterConfig>(PveResourcesFolder)
-                                      .OrderBy(e => e.name)
-                                      .ToArray();
+            // Источник уровней: КАМПАНИЯ (Resources/Campaign, первая по имени — MVP: одна кампания,
+            // выбор из нескольких добавим позже). Фолбэк без кампаний — скан Resources/Encounter.
+            PveEncounterConfig[] encounters;
+            var campaigns = Resources.LoadAll<CampaignConfig>(CampaignsFolder).OrderBy(c => c.name).ToArray();
+            if (campaigns.Length > 0)
+            {
+                encounters = campaigns[0].Encounters.Where(e => e != null).ToArray();
+                if (campaigns.Length > 1)
+                    Debug.LogWarning($"[StoryModePanel] Кампаний {campaigns.Length} — показываю первую ('{campaigns[0].name}'); выбор кампании появится позже.");
+            }
+            else
+            {
+                encounters = Resources.LoadAll<PveEncounterConfig>(PveResourcesFolder).OrderBy(e => e.name).ToArray();
+            }
+
             if (encounters.Length == 0)
             {
-                Debug.LogWarning($"[StoryModePanel] В Resources/{PveResourcesFolder}/ нет ассетов PveEncounterConfig.");
+                Debug.LogWarning($"[StoryModePanel] Нет уровней: ни кампании в Resources/{CampaignsFolder}/, ни энкаунтеров в Resources/{PveResourcesFolder}/.");
                 return;
             }
 
@@ -71,28 +83,32 @@ namespace AwesomeUI.Feature
             for (int i = 0; i < encounters.Length; i++)
             {
                 var enc = encounters[i];
-                string path = PveResourcesFolder + "/" + enc.name;
-                bool done = PlayerPrefs.GetInt(PveMode.DoneKey(path), 0) == 1;
+                bool done = PlayerPrefs.GetInt(PveMode.DoneKey(enc.name), 0) == 1;   // прогресс по ИМЕНИ ассета
                 bool locked = !previousDone;   // открыт, если предыдущий пройден
 
                 var slot = Instantiate(_levelSlotPrefab, _levelsRoot);
                 slot.gameObject.SetActive(true);
                 slot.Init();
+                var captured = enc;   // замыкание на элемент цикла
                 slot.SetData(i, enc.EncounterName, done, locked, icon: null,
-                             onStart: () => StartLevel(path));
+                             onStart: () => StartLevel(captured));
                 _slots.Add(slot);
 
                 previousDone = done;
             }
         }
 
-        void StartLevel(string encounterPath)
+        void StartLevel(PveEncounterConfig encounter)
         {
-            if (_state != null) { _state.StartPveBattle(encounterPath); return; }
+            // Кампания передаёт энкаунтер ПРЯМОЙ ссылкой: PveEncounterLocator возьмёт её приоритетнее
+            // Resources-пути; прогресс пишется по имени ассета (PveMode.EncounterId → CurrentDoneKey).
+            PveMode.EncounterAsset = encounter;
+            PveMode.EncounterId = encounter.name;
+
+            if (_state != null) { _state.StartPveBattle(null); return; }
 
             // Фолбэк без контекста меню (не должен случаться): прямой старт.
             PveMode.Enabled = true;
-            PveMode.EncounterPath = encounterPath;
             UnityEngine.SceneManagement.SceneManager.LoadScene(BattleSceneIndex);
         }
 

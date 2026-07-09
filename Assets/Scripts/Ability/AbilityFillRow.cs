@@ -18,13 +18,42 @@ namespace Game.Core.Ability
     // NB: InBoard-создание не вызывает «при разыгрывании» токена (см. GenerateCardEffect.SpawnToBoard).
     // ─────────────────────────────────────────────────────────────────────────
 
+    // === base === Общее для всех «создать существо на борде»: модификаторы порождённого (аналог
+    // SummonEffect.SummonModifiers у summon-семейства). Применяются к КАЖДОЙ порождённой сущности
+    // (target = порождённый, cardEntity = карта-источник) ПОСЛЕ материализации: сущности в момент Apply
+    // ещё нет (CreateCardEvent отложенный) → едут через GeneratedModScratch, применяет CreateCardSystem.
+    // Любой target-эффект: DeathTimerEffect{3} («умрут через 3 хода» — Заполонить сорняками),
+    // BuffStatsEffect{+1/+1} и т.п. СИНК ДАРОМ: generate ре-ранится на обоих клиентах.
+    public abstract class SpawnOnBoardEffect : EffectBase
+    {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Summon;
+
+        [Tooltip("Модификаторы порождённого существа (умрёт через N, +X/+X, ...). Пусто → просто создание.")]
+        [SerializeReference] public List<IEffect> SummonModifiers = new();
+
+        public override void Init(EcsWorld world, int cardEntity, int playerEntity)
+        {
+            base.Init(world, cardEntity, playerEntity);
+            if (SummonModifiers != null)
+                foreach (var mod in SummonModifiers)
+                    mod?.Init(world, cardEntity, playerEntity);
+        }
+
+        public override void Dispose()
+        {
+            base.Dispose();
+            if (SummonModifiers != null)
+                foreach (var mod in SummonModifiers)
+                    mod?.Dispose();
+        }
+    }
+
     // === class (OOP) === Создать ОДИН токен из ассета на свободной клетке фронта. «N токенов» = обернуть в
     // RepeatEffect (Кладка/Токсичная мать → Fixed; Позвать рой → MatchPlayedSelf; Грыз-стиль → архетип).
     [Serializable]
     [MovedFrom(true, sourceClassName: "SummonTokenEffect")]   // нейминг: создаёт КАРТУ (токенность = IsToken ассета)
-    public sealed class SpawnCardOnBoardEffect : EffectBase
+    public sealed class SpawnCardOnBoardEffect : SpawnOnBoardEffect
     {
-        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Summon;
         [Tooltip("Ассет CardInstanceData карты (любой; токен = флаг IsToken ассета).")]
         public ScriptableObject Source;
 
@@ -37,7 +66,7 @@ namespace Game.Core.Ability
 
             int col = BoardFrontRow.ClaimFreeCell(world, ownerId);
             if (col < 0) return;   // фронт полон
-            GenerateCardEffect.SpawnToBoard(world, cardEntity, c.ExpansionId, c.CardId, BoardFrontRow.FrontRow, col);
+            GenerateCardEffect.SpawnToBoard(world, cardEntity, c.ExpansionId, c.CardId, BoardFrontRow.FrontRow, col, SummonModifiers);
         }
     }
 
@@ -48,9 +77,8 @@ namespace Game.Core.Ability
     // автор (напр. «существа ≤3») — рантайм-фильтра по цене нет (ICreatable не несёт стоимость).
     [Serializable]
     [MovedFrom(true, sourceClassName: "SummonRandomTokenEffect")]
-    public sealed class SpawnRandomCardOnBoardEffect : EffectBase
+    public sealed class SpawnRandomCardOnBoardEffect : SpawnOnBoardEffect
     {
-        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Summon;
         [Tooltip("Ассет CardPool (по критериям). Если задан — берём из него, иначе из ручного Pool ниже.")]
         public ScriptableObject PoolAsset;
         [Tooltip("Ручной пул ассетов CardInstanceData (если PoolAsset не задан).")]
@@ -77,7 +105,7 @@ namespace Game.Core.Ability
                 exp = pick.ExpansionId; cardId = pick.CardId;
                 GeneratedCardChannel.Record(exp, cardId);
             }
-            GenerateCardEffect.SpawnToBoard(world, cardEntity, exp, cardId, BoardFrontRow.FrontRow, col);
+            GenerateCardEffect.SpawnToBoard(world, cardEntity, exp, cardId, BoardFrontRow.FrontRow, col, SummonModifiers);
         }
     }
 
@@ -85,9 +113,8 @@ namespace Game.Core.Ability
     // ЗАПОЛНЕНИЕ ВСЕГО ряда (Главарь преисподней/Глава сатанистов/Огненная стена) — отдельный смысл «весь
     // фронт» (MaxCount<=0 → все свободные). Это НЕ «N раз» (RepeatEffect), поэтому остаётся отдельным.
     // ─────────────────────────────────────────────────────────────────────────
-    public abstract class FillRowEffect : EffectBase
+    public abstract class FillRowEffect : SpawnOnBoardEffect
     {
-        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Summon;
         [Tooltip("Максимум существ (<=0 → весь свободный фронт-ряд).")]
         public int MaxCount = 0;
 
@@ -107,7 +134,7 @@ namespace Game.Core.Ability
             {
                 int col = BoardFrontRow.ClaimFreeCell(world, ownerId);
                 if (col < 0) break;
-                GenerateCardEffect.SpawnToBoard(world, cardEntity, exp, id, BoardFrontRow.FrontRow, col);
+                GenerateCardEffect.SpawnToBoard(world, cardEntity, exp, id, BoardFrontRow.FrontRow, col, SummonModifiers);
                 placed++;
             }
         }

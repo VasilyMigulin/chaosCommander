@@ -33,7 +33,7 @@ MonoBehaviour:
         Rarity: 3
         Element: 48
         ArtImage: {fileID: 0}
-        ExpansionId: 
+        ExpansionId: standard
         PlayCost: 0
         PlayCostAmount: 6
         IsToken: 0
@@ -46,7 +46,8 @@ MonoBehaviour:
         MaxHealth: 5
         Attack: 6
         Speed: 1
-        ViewPrefab: {fileID: 1046069417137952589, guid: f06aa6138ec1c4140ac9af21f0ddde7e, type: 3}
+        ViewPrefab: {fileID: 8026686172653069236, guid: 2a8c71c2f907e7a4fb620b992ab20c35, type: 3}
+        TurnsAlive: 0
         IsCommander: 0
     - rid: 1051486567619101015
       type: {class: AbilityNonTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
@@ -59,9 +60,10 @@ MonoBehaviour:
         Vfx:
           Kind: 0
           Prefab: {fileID: 0}
-          HitPrefab: {fileID: 0}
+          HitPrefab: {fileID: 185366, guid: 2589c453adc70bf4b9d34509504d2d3f, type: 3}
           ProjectileSpeed: 12
           MergeArea: 0
+          PlayCasterAnimation: 0
     - rid: 1051486567619101016
       type: {class: OnMatchStartTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
@@ -86,9 +88,10 @@ MonoBehaviour:
         Vfx:
           Kind: 0
           Prefab: {fileID: 0}
-          HitPrefab: {fileID: 0}
+          HitPrefab: {fileID: 185366, guid: 2f98e91049e674d43b96757a89dceecc, type: 3}
           ProjectileSpeed: 12
           MergeArea: 0
+          PlayCasterAnimation: 1
         Selection: 0
         Count: 1
         Zone: 0

@@ -513,7 +513,7 @@ namespace Game.Core.Ecs.Systems
         {
             if (_intervalLoaded) return;
             _intervalLoaded = true;
-            var enc = Resources.Load<PveEncounterConfig>(PveMode.EncounterPath);
+            var enc = PveEncounterLocator.Current;
             if (enc != null) _interval = Mathf.Max(0.1f, enc.ActionInterval);
         }
     }

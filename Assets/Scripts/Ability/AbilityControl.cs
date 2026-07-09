@@ -186,11 +186,16 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class PlayCardFromZoneEffect : EffectBase
     {
+        [Tooltip("Всегда форсить случайную цель у разыгранной карты (как Йогг-Сарон), даже если сам источник " +
+                 "разыгрывается через OnCast (где по умолчанию цель выбирает игрок).")]
+        public bool ForceRandomTarget = false;
+
         public override void Apply(EcsWorld world, int cardEntity, int target)
         {
             if (target < 0) return;
             if (!TurnGate.IsLocalActive(world)) return;   // форс-розыгрыш — активный; пассив реплеит снапшоты
-            PlayCardUtil.Play(world, target, free: true);
+            bool forceRandom = ForceRandomTarget || AbilityResolveContext.TriggerKey != TriggerKeys.OnCast;
+            PlayCardUtil.Play(world, target, free: true, forceRandomTarget: forceRandom);
         }
     }
 
@@ -206,6 +211,10 @@ namespace Game.Core.Ability
     {
         public int Count = 1;       // сколько одноимённых разыграть за раз (текст «и её» → 1; волна — через ре-триггер)
         public bool Free = true;    // спеллы/чары — бесплатно (существа призываются бесплатно в любом случае)
+
+        [Tooltip("Всегда форсить случайную цель у разыгранной копии (как Йогг-Сарон), даже если сам источник " +
+                 "разыгрывается через OnCast (где по умолчанию цель выбирает игрок).")]
+        public bool ForceRandomTarget = false;
 
         public override void Apply(EcsWorld world, int cardEntity, int target)
         {
@@ -228,7 +237,8 @@ namespace Game.Core.Ability
                 found.Add(e);
                 if (found.Count >= Count) break;
             }
-            foreach (var e in found) PlayCardUtil.Play(world, e, Free);
+            bool forceRandom = ForceRandomTarget || AbilityResolveContext.TriggerKey != TriggerKeys.OnCast;
+            foreach (var e in found) PlayCardUtil.Play(world, e, Free, forceRandom);
         }
     }
 
@@ -238,11 +248,21 @@ namespace Game.Core.Ability
     // PlayCardFromZoneEffect (по цели) и PlaySameNameFromHandEffect (по названию).
     internal static class PlayCardUtil
     {
-        public static void Play(EcsWorld world, int card, bool free)
+        // forceRandomTarget: если true — таргетинг РАЗЫГРАННОЙ карты форсится случайным (ForceRandomTargetingComponent),
+        // даже если её собственная способность Selected. Нужен, когда розыгрыш идёт НЕ от OnCast (игрок в этот
+        // момент физически не играет карту-источник сам — триггер мог сработать в чужой ход/асинхронно) — окно
+        // интерактивного выбора цели в такой ситуации не место (см. AbilityResolveContext.TriggerKey).
+        public static void Play(EcsWorld world, int card, bool free, bool forceRandomTarget = false)
         {
             if (card < 0) return;
             var ownerPool = world.GetPool<OwnerComponent>();
             int ownerId = ownerPool.Has(card) ? ownerPool.Get(card).OwnerId : -1;
+
+            if (forceRandomTarget)
+            {
+                var frt = world.GetPool<ForceRandomTargetingComponent>();
+                if (!frt.Has(card)) frt.Add(card);
+            }
 
             var deckTag = world.GetPool<DeckTag>();
             var handTag = world.GetPool<HandTag>();
@@ -274,13 +294,17 @@ namespace Game.Core.Ability
             }
             else
             {
-                // спелл/чара: через роутер (роутит по типу + CardCastEvent + синк)
-                UnityEngine.Debug.Log($"[Play] card={card} ВЕТКА СПЕЛЛ/ЧАРА (free={free}) → RequestCardCastEvent");
-                var reqPool = world.GetPool<RequestCardCastEvent>();
-                if (!reqPool.Has(card)) reqPool.Add(card);
-                ref var req = ref reqPool.Get(card);
-                req.CardEntity = card;
-                req.Free = free;
+                // спелл/чара: через роутер (роутит по типу + CardCastEvent + синк). НЕ ставим RequestCardCastEvent
+                // напрямую — этот метод вызывается ИЗ RunResolveAbilityQueueSystem, который в _abilitySystems идёт
+                // ПОСЛЕ RunCastRouterSystem: одно-кадровое событие тут же смёл бы DelHere<RequestCardCastEvent>
+                // (последняя группа кадра) ДО того, как роутер вообще увидел бы его на следующем кадре (карта
+                // молча пропадала бы без каста/эффекта — баг с Грядущим штормом/Барабуком). ПЕРСИСТЕНТНЫЙ
+                // AutoCastComponent (тот же приём, что у OnDrawForcePlayTrigger) переживает границу кадра —
+                // AutoCastSystem стоит ДО роутера и на следующем кадре превратит его в RequestCardCastEvent.
+                UnityEngine.Debug.Log($"[Play] card={card} ВЕТКА СПЕЛЛ/ЧАРА (free={free}) → AutoCastComponent");
+                var autoCast = world.GetPool<AutoCastComponent>();
+                if (!autoCast.Has(card)) autoCast.Add(card);
+                autoCast.Get(card).Free = free;
             }
         }
     }

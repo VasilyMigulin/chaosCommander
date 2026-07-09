@@ -1,0 +1,63 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: spell_card_043
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  CardData:
+    rid: 2419359952424665372
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 2419359952424665372
+      type: {class: CardSpellModel, ns: Game.Core.Model.Card.Spell, asm: Game.Core.Model.Card.Spell}
+      data:
+        Id: 126
+        Name: "\u0417\u0430\u043F\u043E\u0439\u043D\u043E\u0435 \u0447\u0442\u0435\u043D\u0438\u0435"
+        Description: "\u0412\u043E\u0437\u044C\u043C\u0438\u0442\u0435 2 \u043A\u0430\u0440\u0442\u044B"
+        Rarity: 1
+        Element: 2
+        ArtImage: {fileID: 0}
+        ExpansionId: standard
+        PlayCost: 1
+        PlayCostAmount: 1
+        IsToken: 0
+        MulliganStartingHand: 0
+        MulliganUnlimitedReplace: 0
+        RuntimeAbilities:
+        - rid: 2419359952424665374
+        Archetypes: []
+        RequiresTarget: 0
+    - rid: 2419359952424665374
+      type: {class: AbilityNonTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 2419359952424665375
+        Rules: []
+        Effects:
+        - rid: 2419359952424665376
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 0}
+          ProjectileSpeed: 12
+          MergeArea: 0
+    - rid: 2419359952424665375
+      type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2419359952424665376
+      type: {class: DrawCardEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Count: 2
+        ConditionRoot:
+          rid: -2

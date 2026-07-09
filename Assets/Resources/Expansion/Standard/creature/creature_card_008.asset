@@ -22,16 +22,18 @@ MonoBehaviour:
     - rid: 1051486567619100846
       type: {class: AbilityNonTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
-        Triggers: []
+        Triggers:
+        - rid: 2419360061758898326
         Rules: []
         Effects:
         - rid: 1051486567619100847
         Vfx:
           Kind: 0
           Prefab: {fileID: 0}
-          HitPrefab: {fileID: 0}
+          HitPrefab: {fileID: 185366, guid: 2f98e91049e674d43b96757a89dceecc, type: 3}
           ProjectileSpeed: 12
           MergeArea: 0
+          PlayCasterAnimation: 1
     - rid: 1051486567619100847
       type: {class: RepeatEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
@@ -51,6 +53,9 @@ MonoBehaviour:
           rid: -2
         Source: {fileID: 11400000, guid: 33f54471ec41a3240b3e53008c0c944f, type: 2}
         Count: 1
+    - rid: 2419360061758898326
+      type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
     - rid: 8072968609180155915
       type: {class: CardCreatureModel, ns: Game.Core.Model.Card.Creature, asm: Game.Core.Model.Card.Creature}
       data:
@@ -78,5 +83,6 @@ MonoBehaviour:
         MaxHealth: 5
         Attack: 3
         Speed: 2
-        ViewPrefab: {fileID: 1046069417137952589, guid: f06aa6138ec1c4140ac9af21f0ddde7e, type: 3}
+        ViewPrefab: {fileID: 8026686172653069236, guid: 9010bb516866be3489b601049332fe3c, type: 3}
+        TurnsAlive: 0
         IsCommander: 0

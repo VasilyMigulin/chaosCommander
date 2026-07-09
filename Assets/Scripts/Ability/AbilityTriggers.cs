@@ -203,7 +203,8 @@ namespace Game.Core.Ability
             if (e.CardEntity == _cardEntity) return;                           // сам источник — это OnCast
             if (!TriggerUtil.OnBoard(_world, _cardEntity)) return;             // аура активна только на поле
             if (!_world.GetPool<CreatureTag>().Has(e.CardEntity)) return;      // только существа
-            AbilityFire.Mark(_world, _abilityEntity, _cardEntity, _playerEntity);
+            // Виновник (вышедшее существо) → TriggerSubjectComponent (для TargetSelection.TriggerSubject).
+            AbilityFire.Mark(_world, _abilityEntity, _cardEntity, _playerEntity, subjectEntity: e.CardEntity);
         }
 
         public void Dispose() => GameEventBus.UnsubscribeAll(this);
@@ -284,6 +285,7 @@ namespace Game.Core.Ability
             // принимает каст и на StartTurnState → форс резолвится как часть каскада старта, до ActiveState.
             var autoCast = _world.GetPool<AutoCastComponent>();
             if (!autoCast.Has(_cardEntity)) autoCast.Add(_cardEntity);
+            autoCast.Get(_cardEntity).Free = true;
             var forceRandom = _world.GetPool<ForceRandomTargetingComponent>();
             if (!forceRandom.Has(_cardEntity)) forceRandom.Add(_cardEntity);
         }

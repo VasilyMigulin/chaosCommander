@@ -30,9 +30,10 @@ MonoBehaviour:
         Vfx:
           Kind: 0
           Prefab: {fileID: 0}
-          HitPrefab: {fileID: 0}
+          HitPrefab: {fileID: 185366, guid: 2589c453adc70bf4b9d34509504d2d3f, type: 3}
           ProjectileSpeed: 12
           MergeArea: 0
+          PlayCasterAnimation: 1
     - rid: 1051486475324227796
       type: {class: OnTurnEndTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
@@ -65,4 +66,5 @@ MonoBehaviour:
         Attack: 1
         Speed: 1
         ViewPrefab: {fileID: 6054455401675649271, guid: d716788841b92eb438d808255566822b, type: 3}
+        TurnsAlive: 0
         IsCommander: 0

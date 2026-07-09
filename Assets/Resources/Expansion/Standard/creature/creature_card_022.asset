@@ -30,13 +30,14 @@ MonoBehaviour:
         Vfx:
           Kind: 0
           Prefab: {fileID: 0}
-          HitPrefab: {fileID: 0}
+          HitPrefab: {fileID: 177544, guid: 74a2cd59e1b82f344a82794fd65efc49, type: 3}
           ProjectileSpeed: 12
           MergeArea: 0
+          PlayCasterAnimation: 1
         Selection: 1
         Count: 1
         Zone: 1
-        OfferCount: 3
+        OfferCount: 2
         Filters:
         - rid: 1051486567619100925
         - rid: 1051486567619100924
@@ -49,17 +50,18 @@ MonoBehaviour:
       data:
         ConditionRoot:
           rid: -2
+        ForceRandomTarget: 0
     - rid: 1051486567619100924
       type: {class: CardTypeTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
         CardType: 1
     - rid: 1051486567619100925
-      type: {class: OwnerOwnedTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      type: {class: CasterOwnedTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
     - rid: 1051486567619100926
       type: {class: CostAtMostTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
-        MaxCost: 3
+        MaxCost: 5
     - rid: 8072968609180155929
       type: {class: CardCreatureModel, ns: Game.Core.Model.Card.Creature, asm: Game.Core.Model.Card.Creature}
       data:
@@ -85,5 +87,6 @@ MonoBehaviour:
         MaxHealth: 7
         Attack: 3
         Speed: 2
-        ViewPrefab: {fileID: 1046069417137952589, guid: f06aa6138ec1c4140ac9af21f0ddde7e, type: 3}
+        ViewPrefab: {fileID: 8026686172653069236, guid: c88320a87c9dd0847afaaf55731a12d0, type: 3}
+        TurnsAlive: 0
         IsCommander: 0

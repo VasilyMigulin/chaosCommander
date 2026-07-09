@@ -32,10 +32,11 @@ namespace Game.Core.Ecs.Systems
             {
                 if (active)
                 {
+                    bool free = _autoPool.Value.Get(card).Free;
                     if (!_reqPool.Value.Has(card)) _reqPool.Value.Add(card);
                     ref var r = ref _reqPool.Value.Get(card);
                     r.CardEntity = card;
-                    r.Free = true;
+                    r.Free = free;
                 }
                 _autoPool.Value.Del(card);   // одноразовый триггер (снимаем на обоих)
             }

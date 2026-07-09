@@ -52,7 +52,10 @@ namespace Game.Core.Ability
         /// Порождает карту (exp+cardId) у владельца sourceCard: в руку (toHand) или в колоду. Детерм. ключ
         /// + RegisterInZoneList. Переиспользуют под-эффекты семейства И GainRandomCardEffect (internal).
         /// </summary>
-        internal static void Spawn(EcsWorld world, int sourceCard, string exp, int cardId, bool toHand, bool autoCast = false)
+        // forceRandomTarget: нужен ли ПОРОЖДЁННОЙ карте авто-выбор цели (Selected → Random), НЕЗАВИСИМО от
+        // autoCast. По умолчанию true (старое поведение — все текущие autoCast-вызыватели форсили всегда,
+        // как Йогг-Сарон); PlayRandomFromPoolEffect (Фокус-покус) передаёт вычисленное по триггеру значение.
+        internal static void Spawn(EcsWorld world, int sourceCard, string exp, int cardId, bool toHand, bool autoCast = false, bool forceRandomTarget = true)
         {
             if (string.IsNullOrEmpty(exp) || cardId < 0) return;
 
@@ -76,6 +79,7 @@ namespace Game.Core.Ability
                 // !InHand && !InBoard && !InGrave → колода (else-ветка CreateCardSystem)
                 RegisterInZoneList = !autoCast,   // авто-каст: без UI-зоны (карта тут же разыграется)
                 AutoCast           = autoCast,
+                ForceRandomTarget  = autoCast && forceRandomTarget,
             });
             GameEventBus.Publish(new CardGeneratedEvent { ModelId = cardId, GeneratorPlayerId = Attribution(ownerId) });
         }
@@ -84,8 +88,11 @@ namespace Game.Core.Ability
         /// Порождает карту (exp+cardId) у владельца sourceCard СРАЗУ на клетке борда (row/col). Детерм. ключ
         /// (как Spawn). Для заполнения ряда токенами/копиями (FillRowEffect). NB: InBoard-создание НЕ
         /// публикует CardCastEvent → собственное «при разыгрывании» токена не срабатывает (для токенов ок).
+        /// summonModifiers — target-эффекты, применяемые к порождённой сущности при материализации
+        /// (через GeneratedModScratch → CreateCardSystem; ре-ран на обоих клиентах → синк даром).
         /// </summary>
-        internal static void SpawnToBoard(EcsWorld world, int sourceCard, string exp, int cardId, int row, int col)
+        internal static void SpawnToBoard(EcsWorld world, int sourceCard, string exp, int cardId, int row, int col,
+                                          IReadOnlyList<IEffect> summonModifiers = null)
         {
             if (string.IsNullOrEmpty(exp) || cardId < 0) return;
 
@@ -95,11 +102,12 @@ namespace Game.Core.Ability
 
             if (!TryFindOwnerPlayer(world, ownerId, out int ownerPlayer, out bool ownerIsLocal)) return;
 
+            string genKey = NextKey(world, sourceCard);
             GameEventBus.Publish(new CreateCardEvent
             {
                 ExpansionId        = exp,
                 CardId             = cardId,
-                NetworkEntityKey   = NextKey(world, sourceCard),
+                NetworkEntityKey   = genKey,
                 PlayerOwnerEntity  = ownerPlayer,
                 OwnerId            = ownerId,
                 IsEnemy            = !ownerIsLocal,
@@ -109,6 +117,7 @@ namespace Game.Core.Ability
                 BoardOwnerId       = ownerId,
                 RegisterInZoneList = false,   // на борде — не в списках руки/колоды
             });
+            GeneratedModScratch.Register(genKey, sourceCard, summonModifiers);
             GameEventBus.Publish(new CardGeneratedEvent { ModelId = cardId, GeneratorPlayerId = Attribution(ownerId) });
         }
 
@@ -289,10 +298,13 @@ namespace Game.Core.Ability
     }
 
     // === class (OOP) === РАЗЫГРАТЬ одну случайную карту из ПУЛА (Фокус-покус). Создаёт карту с AutoCast →
-    // AutoCastSystem форс-кастит её (Free) у активного, а её таргетинг авто-выбирает цели (ForceRandomTargeting,
-    // как Йогг-Сарон) → НЕ перехватывает выбор у игрока. «N штук» = обернуть в RepeatEffect (Фокус-покус → Fixed=2).
-    // СИНК: ролл идёт в GeneratedCardChannel (→ снапшот Generated*), пассив TryReplay создаёт ту же карту (детерм.
-    // ключ); каст синкается обычными ActionCastData/ActionAbilityData (его таргетинг-выбор едет в ключах целей).
+    // AutoCastSystem форс-кастит её (Free) у активного. Таргетинг порождённой карты: интерактивный (игрок сам
+    // выбирает цель), ЕСЛИ сам Фокус-покус разыгрывается от OnCast (игрок играет его сейчас, интерактивный
+    // контекст есть) — иначе (любой другой триггер) форсится случайный, как Йогг-Сарон (ForceRandomTargeting);
+    // ForceRandomTarget=true форсит случайный ВСЕГДА, даже от OnCast. «N штук» = обернуть в RepeatEffect
+    // (Фокус-покус → Fixed=2). СИНК: ролл идёт в GeneratedCardChannel (→ снапшот Generated*), пассив TryReplay
+    // создаёт ту же карту (детерм. ключ); каст синкается обычными ActionCastData/ActionAbilityData (таргетинг-
+    // выбор едет в ключах целей).
     [Serializable]
     public sealed class PlayRandomFromPoolEffect : EffectBase
     {
@@ -300,6 +312,10 @@ namespace Game.Core.Ability
         public ScriptableObject PoolAsset;
         [Tooltip("Ручной пул ассетов CardInstanceData (если PoolAsset не задан).")]
         public List<ScriptableObject> Pool = new();
+
+        [Tooltip("Всегда форсить случайную цель у порождённой карты (как Йогг-Сарон), даже если сам источник " +
+                 "разыгрывается через OnCast (где по умолчанию цель выбирает игрок).")]
+        public bool ForceRandomTarget = false;
 
         public override void Apply(EcsWorld world, int cardEntity, int target)
         {
@@ -315,7 +331,48 @@ namespace Game.Core.Ability
                 exp = pick.ExpansionId; cardId = pick.CardId;
                 GeneratedCardChannel.Record(exp, cardId);
             }
-            GenerateCardEffect.Spawn(world, cardEntity, exp, cardId, toHand: true, autoCast: true);
+            // Интерактивный выбор цели допустим только от OnCast (сам Фокус-покус разыгрывается игроком сейчас);
+            // любой другой триггер — не в интерактивном контексте (может сработать и в чужой ход) → форс random.
+            bool forceRandom = ForceRandomTarget || AbilityResolveContext.TriggerKey != TriggerKeys.OnCast;
+            GenerateCardEffect.Spawn(world, cardEntity, exp, cardId, toHand: true, autoCast: true, forceRandomTarget: forceRandom);
+        }
+    }
+
+    // === class (OOP) === Экзотик «разыграть ЗАНОВО все заклинания матча»: за КАЖДЫЙ розыгрыш спелла
+    // владельцем (журнал MatchCounterComponent.SpellsPlayedLog, с повторами — 2×Позвать рой = 2 копии)
+    // создаётся КОПИЯ и авто-кастуется Free (AutoCastComponent). Таргетинг копий: интерактивный, ЕСЛИ сам
+    // экзотик разыгрывается от OnCast (игрок играет его сейчас) — иначе (любой другой триггер) форсится
+    // случайный, как Йогг-Сарон (ForceRandomTarget=true форсит всегда, даже от OnCast). Сам источник
+    // исключается по ModelId (иначе рекурсия). СИНК ДАРОМ: журнал зеркален, порядок детерминирован, ключи
+    // копий детерминированы (NextKey) → оба клиента создают те же копии; касты копий едут обычными
+    // ActionCastData/ActionAbilityData от активного. NB: копии, разыгравшись, сами попадут в журнал —
+    // повторный экзотик реплеит и их (по дизайну).
+    [Serializable]
+    public sealed class ReplayAllSpellsEffect : EffectBase
+    {
+        [Tooltip("Всегда форсить случайную цель у разыгранных копий (как Йогг-Сарон), даже если сам источник " +
+                 "разыгрывается через OnCast (где по умолчанию цель выбирает игрок).")]
+        public bool ForceRandomTarget = false;
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            var counters = world.GetPool<MatchCounterComponent>();
+            if (PlayerEntity < 0 || !counters.Has(PlayerEntity)) return;
+            var log = counters.Get(PlayerEntity).SpellsPlayedLog;
+            if (log == null || log.Count == 0) return;
+
+            var modelPool = world.GetPool<CardModelComponent>();
+            int selfModel = modelPool.Has(cardEntity) ? modelPool.Get(cardEntity).ModelId : -1;
+
+            bool forceRandom = ForceRandomTarget || AbilityResolveContext.TriggerKey != TriggerKeys.OnCast;
+
+            // Снапшот: касты копий будут дописывать журнал — итерируем зафиксированный список.
+            var snapshot = log.ToArray();
+            foreach (var rec in snapshot)
+            {
+                if (rec.ModelId == selfModel) continue;   // не реплеим сам экзотик (рекурсия)
+                GenerateCardEffect.Spawn(world, cardEntity, rec.ExpansionId, rec.ModelId, toHand: true, autoCast: true, forceRandomTarget: forceRandom);
+            }
         }
     }
 

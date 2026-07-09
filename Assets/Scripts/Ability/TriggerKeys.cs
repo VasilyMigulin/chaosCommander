@@ -14,12 +14,30 @@ namespace Game.Core.Ability
         OnDie,         // предсмертный хрип (deathrattle)
     }
 
+    /// <summary>
+    /// Ось «ТИП КАРТЫ» для множителя частоты: ключ множителя = комбинация «Тип/Триггер»
+    /// (CastMultiplierService.ComposeKey): Spell/OnCast — «заклинания срабатывают дважды»,
+    /// Creature/OnTurnEnd — «эффекты конца хода существ», Any — любой тип (Временная петля).
+    /// ⚠️ Значения закреплены: Any=0 → старые ассеты (Временная петля) без поля читаются как Any.
+    /// Имена типов совпадают с EnumService.CardType.ToString() (см. ScopeKey).
+    /// </summary>
+    public enum MultiplierCardScope { Any = 0, Creature = 1, Spell = 2, Charm = 3 }
+
     internal static class TriggerKeys
     {
         public const string OnTurnStart = "OnTurnStart";
         public const string OnTurnEnd   = "OnTurnEnd";
         public const string OnCast      = "OnCast";
         public const string OnDie       = "OnDie";
+
+        /// <summary>Тип-часть составного ключа множителя ("*" / "Creature" / "Spell" / "Charm").</summary>
+        public static string ScopeKey(MultiplierCardScope s) => s switch
+        {
+            MultiplierCardScope.Creature => nameof(Game.Core.Service.EnumService.CardType.Creature),
+            MultiplierCardScope.Spell    => nameof(Game.Core.Service.EnumService.CardType.Spell),
+            MultiplierCardScope.Charm    => nameof(Game.Core.Service.EnumService.CardType.Charm),
+            _ => Game.Core.Ecs.Components.CastMultiplierService.AnyType,
+        };
 
         public static string Of(TriggerKind k) => k switch
         {

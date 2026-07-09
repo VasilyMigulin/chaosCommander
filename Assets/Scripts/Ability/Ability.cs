@@ -4,6 +4,7 @@ using Leopotam.EcsLite;
 using UnityEngine;
 using Game.Core.Shared.Interface;
 using Game.Core.Ecs.Components;
+using Game.Core.Events;
 
 namespace Game.Core.Ability
 {
@@ -27,6 +28,9 @@ namespace Game.Core.Ability
         // Косметика каста (луч/снаряд/область). Авторится на карте, на game-state НЕ влияет.
         public VfxSpec Vfx;
 
+        // Отписки от ConditionRoot.Changed (подсветка «условие эффекта готово» — см. WireConditionHighlight).
+        readonly List<Action> _conditionUnsubs = new();
+
         // ── lifecycle ────────────────────────────────────────────────────────
         public void Init(EcsWorld world, int abilityEntity, int cardEntity, int playerEntity, int abilityIndex)
         {
@@ -45,6 +49,7 @@ namespace Game.Core.Ability
             {
                 foreach (var effect in Effects) effect.Init(world, cardEntity, playerEntity);
                 world.GetPool<AbilityEffectContainerComponent>().Add(abilityEntity).Effects = Effects.ToArray();
+                WireConditionHighlight(abilityEntity, cardEntity);
             }
 
             // Контейнер триггеров — они сами подписываются на шину в Init.
@@ -64,9 +69,51 @@ namespace Game.Core.Ability
 
         public void Dispose()
         {
+            foreach (var unsub in _conditionUnsubs) unsub();
+            _conditionUnsubs.Clear();
             foreach (var trigger in Triggers) trigger.Dispose();
             if (Effects != null) foreach (var effect in Effects) effect.Dispose();
             OnDispose();
+        }
+
+        // Подсветка «условие эффекта готово» (напр. Воображаемые друзья/Все самому: ConditionRoot →
+        // NoCreaturesInDeckCondition — «в колоде нет существ»). БЕЗ ЭТОГО AbilityReadyEvent/AbilityNotReadyEvent
+        // никогда не публикуются (CardAffordabilitySystem их слушает и шлёт CardAbilityReadyChangedEvent →
+        // PlayCardView.SetHighlight(AbilityReady), но публикующей стороны не было вообще) — подсветка молчала
+        // на ВСЕХ картах с условием, а не только у этих двух.
+        // Реактив: ConditionRoot.Changed дёргается при смене IsReady — публикуем на каждое изменение.
+        // Начальный синк: Init эффекта (и первый Recompute условия) идёт ДО того, как эта подписка вообще
+        // повешена (и обычно ДО того, как карта попала в руку — способность инитится сразу на создании карты,
+        // зона роли не играет) — поэтому досылаем текущее состояние по CardPlacedInHandViewEvent (карта
+        // реально показалась в руке → у неё уже есть PlayCardView-подписчик).
+        void WireConditionHighlight(int abilityEntity, int cardEntity)
+        {
+            bool any = false;
+            foreach (var effect in Effects)
+            {
+                if (effect is not EffectBase eb || eb.ConditionRoot == null) continue;
+                any = true;
+                var effectRef = eb;
+                void Publish()
+                {
+                    if (effectRef.IsReady) GameEventBus.Publish(new AbilityReadyEvent { AbilityEntity = abilityEntity, CardEntity = cardEntity });
+                    else                   GameEventBus.Publish(new AbilityNotReadyEvent { AbilityEntity = abilityEntity, CardEntity = cardEntity });
+                }
+                effectRef.ConditionRoot.Changed += Publish;
+                _conditionUnsubs.Add(() => effectRef.ConditionRoot.Changed -= Publish);
+            }
+            if (!any) return;
+
+            GameEventBus.Subscribe<CardPlacedInHandViewEvent>(this, e =>
+            {
+                if (e.CardEntity != cardEntity) return;
+                bool ready = false;
+                foreach (var effect in Effects)
+                    if (effect is EffectBase eb2 && eb2.ConditionRoot != null && eb2.IsReady) { ready = true; break; }
+                if (ready) GameEventBus.Publish(new AbilityReadyEvent { AbilityEntity = abilityEntity, CardEntity = cardEntity });
+                else       GameEventBus.Publish(new AbilityNotReadyEvent { AbilityEntity = abilityEntity, CardEntity = cardEntity });
+            });
+            _conditionUnsubs.Add(() => GameEventBus.UnsubscribeAll(this));
         }
 
         // ── extension points ─────────────────────────────────────────────────

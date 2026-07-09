@@ -30,9 +30,10 @@ MonoBehaviour:
         Vfx:
           Kind: 0
           Prefab: {fileID: 0}
-          HitPrefab: {fileID: 0}
+          HitPrefab: {fileID: 131758, guid: 8385b03242e9e7447b9f870756a377b1, type: 3}
           ProjectileSpeed: 12
           MergeArea: 0
+          PlayCasterAnimation: 1
         Area: 0
         Zone: 1
         Filters:
@@ -74,5 +75,6 @@ MonoBehaviour:
         MaxHealth: 6
         Attack: 2
         Speed: 3
-        ViewPrefab: {fileID: 1046069417137952589, guid: f06aa6138ec1c4140ac9af21f0ddde7e, type: 3}
+        ViewPrefab: {fileID: 8026686172653069236, guid: 5523bb2edc416664f8c876e75fe8efbb, type: 3}
+        TurnsAlive: 0
         IsCommander: 0

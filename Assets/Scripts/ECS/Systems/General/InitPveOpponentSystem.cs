@@ -42,10 +42,10 @@ namespace Game.Core.Ecs.Systems
             foreach (var e in _aiFilter.Value) { aiEntity = e; break; }
             if (aiEntity < 0) { Debug.LogError("[InitPveOpponentSystem] ИИ-игрок не найден (InitPlayerSystem PvE-ветка не отработала?)"); return; }
 
-            var encounter = Resources.Load<PveEncounterConfig>(PveMode.EncounterPath);
+            var encounter = PveEncounterLocator.Current;
             if (encounter == null)
             {
-                Debug.LogError($"[InitPveOpponentSystem] PveEncounterConfig не найден в Resources по пути '{PveMode.EncounterPath}'. " +
+                Debug.LogError($"[InitPveOpponentSystem] Энкаунтер не найден (ни прямой ссылки кампании, ни ассета по пути '{PveMode.EncounterPath}'). " +
                                "Создай ассет (Create → Game → Pve Encounter) в Assets/Resources/Encounter/. ИИ останется без колоды.");
                 return;
             }

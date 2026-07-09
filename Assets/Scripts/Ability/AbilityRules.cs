@@ -35,6 +35,17 @@ namespace Game.Core.Ability
             }
             return n;
         }
+
+        /// <summary>Есть ли в КОЛОДЕ владельца ownerId хоть одно существо (архетип «без существ»: экзотик
+        /// «Я сам всё сделаю!», Пустой фолиант). Скан по тегам (не по спискам DeckComponent — списки
+        /// оппонента у пассива могут быть неточны, теги зеркальны).</summary>
+        public static bool DeckHasCreatures(EcsWorld world, int ownerId)
+        {
+            var owner = world.GetPool<OwnerComponent>();
+            foreach (var e in world.Filter<CreatureTag>().Inc<DeckTag>().Inc<OwnerComponent>().End())
+                if (owner.Get(e).OwnerId == ownerId) return true;
+            return false;
+        }
     }
 
     // === class (OOP) === Источник на поле (борд).

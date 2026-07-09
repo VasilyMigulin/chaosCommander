@@ -15,6 +15,13 @@ namespace Game.Core.Events
         public int ActivePlayerId;
     }
 
+    // Публикует TurnTimerSystem на КАЖДОЕ изменение своего busy-гейта (анимации/резолв способностей блокируют
+    // тикание). UI прячет Root таймера, пока IsBusy=true — так пауза видна ГЛАЗАМИ (не только по тому, что
+    // секунды не уменьшаются, что легко не заметить). Единый источник правды (не путать с разрозненными
+    // InputBlockedEvent/InputRestoredEvent — те шлются из нескольких систем сами по себе и не гарантируют
+    // ровно ОДНО Restored на каждый Blocked).
+    public struct TurnTimerBusyUIEvent : IGameEvent { public bool IsBusy; }
+
     public struct InputBlockedEvent : IGameEvent { }
     public struct InputRestoredEvent : IGameEvent { }
 
@@ -357,6 +364,34 @@ namespace Game.Core.Events
     /// EncounterPath — путь энкаунтера в Resources (null/пусто = текущий/последний).</summary>
     public struct PveStartRequestedEvent : IGameEvent { public string EncounterPath; }
 
+    /// <summary>Туториал: показать подсказку шага (TutorialHintView). Публикует TutorialDirectorSystem
+    /// на каждом переходе шага. Ключ локализации + фолбэк-текст.</summary>
+    public struct TutorialHintUIEvent : IGameEvent
+    {
+        public string TextKey;
+        public string FallbackText;
+    }
+
+    /// <summary>Стори: выданы карты-награды за ПЕРВОЕ прохождение энкаунтера. Публикует BattleState
+    /// (PvE, после победы); RewardToastView показывает очередь «получена карта» (иконка+имя+кол-во).</summary>
+    public struct RewardCardsGrantedUIEvent : IGameEvent
+    {
+        public Game.Core.Shared.CardVisualData Visual;   // визуал полученной карты
+        public int Count;                                // сколько копий
+    }
+
+    /// <summary>Стори: реплика «говорящей головы» (портрет + локализованный текст). Публикует BattleState
+    /// (PvE: интро после мулигана, реплики победы/поражения — из PveEncounterConfig.*Lines);
+    /// показывает StoryDialogueView очередью. Ключи локализации резолвит вью (CardTextLocalization).</summary>
+    public struct StoryLineUIEvent : IGameEvent
+    {
+        public UnityEngine.Sprite Portrait;
+        public string SpeakerKey;     // ключ имени говорящего (пусто = без имени)
+        public string TextKey;        // ключ реплики
+        public string FallbackText;   // текст, если ключа нет в таблице
+        public float Duration;        // сек на экране
+    }
+
     public struct DeckSyncedEvent : IGameEvent
     {
         public int PlayerEntity;
@@ -426,9 +461,15 @@ namespace Game.Core.Events
         public bool RegisterInZoneList;
 
         /// <summary>Если true — созданную карту разыграть автоматически (Фокус-покус): CreateCardSystem вешает
-        /// AutoCastComponent + ForceRandomTargetingComponent, AutoCastSystem форс-кастит её (Free) у активного,
-        /// а её таргетинг авто-выбирает цели (Random, как Йогг-Сарон) → без перехвата выбора у игрока.</summary>
+        /// AutoCastComponent, AutoCastSystem форс-кастит её (Free) у активного. См. также ForceRandomTarget —
+        /// нужен ли ЭТОЙ карте ещё и авто-выбор цели (не всегда одно и то же).</summary>
         public bool AutoCast;
+
+        /// <summary>Форсить ForceRandomTargetingComponent (Selected трактуется как Random, без окна выбора у
+        /// игрока) — НЕЗАВИСИМО от AutoCast: генератор (напр. Фокус-покус) может резолвиться от OnCast (сам
+        /// источник разыгрывается игроком интерактивно → цель порождённой карты тоже вправе выбрать игрок) или
+        /// от иного триггера (не в интерактивном контексте → цель форсится случайно). См. GenerateCardEffect.Spawn.</summary>
+        public bool ForceRandomTarget;
     }
     // ── Network turn coordination events ────────────────────────────────────
 

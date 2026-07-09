@@ -11,9 +11,12 @@ namespace Game.Core.Ecs.Systems
     /// <summary>
     /// Гейт «призыв → OnCast» (#2). Существо, вышедшее на стол (RunInvokeCreatureSystem повесил
     /// PendingOnCastComponent), сначала спавнит вью и проигрывает анимацию призыва (SpawnCreatureViewSystem),
-    /// и только ПОСЛЕ неё публикуется CardCastEvent (OnCast) + анимация каста. Так «при разыгрывании»
-    /// (включая мгновенный SelfDestruct Всадников) срабатывает, когда существо уже видно и отыграло призыв,
-    /// а не удаляется до появления вьюшки.
+    /// и только ПОСЛЕ неё публикуется CardCastEvent (OnCast). Так «при разыгрывании» (включая мгновенный
+    /// SelfDestruct Всадников) срабатывает, когда существо уже видно и отыграло призыв, а не удаляется
+    /// до появления вьюшки. Анимацию КАСТА теперь играет RunResolveAbilityQueueSystem (CreatureView.
+    /// PlayAbilityCast, если VfxSpec.PlayCasterAnimation=true) — когда OnCast-способность реально
+    /// РЕЗОЛВИТСЯ (не здесь: раньше был fire-and-forget PlayCast() сразу по CardCastEvent, что дублировало
+    /// триггер и не давало резолву дождаться CastEvent/FinishEvent).
     ///
     /// Регистрируется в _generalSystems ПОСЛЕ SpawnCreatureViewSystem (чтобы вью уже существовала).
     /// Анти-софтлок: Deadline форсит публикацию, если вью/аниматора нет. Только активный клиент —
@@ -60,10 +63,7 @@ namespace Game.Core.Ecs.Systems
                 _pool.Value.Del(entity);
 
                 if (fireCast)
-                {
                     GameEventBus.Publish(new CardCastEvent { CardEntity = entity });
-                    GetView(entity)?.PlayCast();
-                }
             }
         }
 

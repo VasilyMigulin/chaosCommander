@@ -21,5 +21,18 @@ namespace Game.Core.Ecs.Components
         public int PlayerDamageTaken;          // урон ПЛЕЕРУ (любой источник)
         public int PlayerDamageTakenOwnTurn;   // урон ПЛЕЕРУ от СЕБЯ (Source==Target) ≈ на своём ходу (Вуду)
         public int CreaturesDamageTaken;       // суммарный урон СУЩЕСТВАМ этого игрока
+
+        public int SpellsPlayed;               // разыграно ЗАКЛИНАНИЙ этим игроком («Моментум»: урон за каждый спелл)
+
+        /// <summary>ЖУРНАЛ заклинаний игрока в порядке розыгрыша (с повторами) — идентичности для создания
+        /// копий (экзотик «разыграть все заклинания матча»). События на обоих клиентах → лог зеркален.</summary>
+        public List<SpellPlayRecord> SpellsPlayedLog;
+    }
+
+    /// <summary>Одна запись журнала заклинаний: идентичность для пересоздания копии (CreateCardEvent).</summary>
+    public struct SpellPlayRecord
+    {
+        public string ExpansionId;
+        public int ModelId;
     }
 }

@@ -18,7 +18,12 @@ namespace AwesomeUI.Feature.Login
         {
             base.InvokeCanvas();
 
-            OpenPanel<LoginPanel>();
+            // Роутинг стартовой панели канваса — ЕДИНАЯ точка (раньше жёсткий OpenPanel<LoginPanel>
+            // перебивал открытие панели языка): первый запуск → выбор языка, иначе — логин.
+            if (!Game.Core.Service.FirstRunFlow.LanguageChosen)
+                OpenPanel<AwesomeUI.Feature.LanguageSelectPanel>();
+            else
+                OpenPanel<LoginPanel>();
         }
     }
 }

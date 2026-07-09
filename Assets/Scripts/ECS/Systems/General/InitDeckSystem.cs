@@ -35,15 +35,28 @@ namespace Game.Core.Ecs.Systems
 
         public void Init(IEcsSystems systems)
         {
+            // СЮЖЕТ (PvE): энкаунтер может навязать игроку сюжетную колоду (стори-командир + карты) —
+            // тогда DeckStorage игнорируется. Пусто → играем своей колодой, как обычно.
+            Game.Core.Configs.DeckPreset storyDeck = null;
+            if (Game.Core.Service.PveMode.Enabled)
+            {
+                var enc = Game.Core.Configs.PveEncounterLocator.Current;
+                if (enc != null && enc.PlayerDeck != null)
+                {
+                    storyDeck = enc.PlayerDeck;
+                    Debug.Log($"[InitDeckSystem] PvE: сюжетная колода игрока '{storyDeck.DeckName}' (из энкаунтера)");
+                }
+            }
+
             var decks = DeckStorage.GetCached();
-            if (decks == null || decks.Count == 0)
+            if (storyDeck == null && (decks == null || decks.Count == 0))
             {
                 Debug.LogWarning("[InitDeckSystem] No saved decks found in DeckStorage. Using empty deck.");
                 return;
             }
 
-            // Берём первую доступную колоду
-            var savedDeck = decks[0];
+            // Берём первую доступную колоду (если нет сюжетной)
+            var savedDeck = storyDeck == null ? decks[0] : null;
 
             foreach (var playerEntity in _playerFilter.Value)
             {
@@ -54,20 +67,42 @@ namespace Game.Core.Ecs.Systems
                 var cardEntities = new List<int>();
                 int commanderEntity = -1;
 
-                // Commander — создаём отдельно, в руку не кладём пока
-                if (savedDeck.Commander.CardId != 0)
+                if (storyDeck != null)
                 {
-                    commanderEntity = CreateCardEntity(savedDeck.Commander.ExpansionId, savedDeck.Commander.CardId, player.PlayerId, playerEntity, isCommander: true);
-                }
+                    // ── Сюжетная колода из DeckPreset ──
+                    if (storyDeck.Commander != null && storyDeck.Commander.CardData != null)
+                        commanderEntity = CreateCardEntity(storyDeck.Commander.ExpansionId, storyDeck.Commander.CardId,
+                                                           player.PlayerId, playerEntity, isCommander: true);
 
-                // Остальные карты → в колоду
-                foreach (var card in savedDeck.Cards)
-                {
-                    int copies = Mathf.Max(1, card.Count);
-                    for (int i = 0; i < copies; i++)
+                    foreach (var entry in storyDeck.Cards)
                     {
-                        int newCardEntity = CreateCardEntity(card.ExpansionId, card.CardId, player.PlayerId, playerEntity, isCommander: false);
-                        if (newCardEntity >= 0) cardEntities.Add(newCardEntity);
+                        if (entry.Card == null) continue;
+                        int copies = Mathf.Max(1, entry.Count);
+                        for (int i = 0; i < copies; i++)
+                        {
+                            int e = CreateCardEntity(entry.Card.ExpansionId, entry.Card.CardId, player.PlayerId, playerEntity, isCommander: false);
+                            if (e >= 0) cardEntities.Add(e);
+                        }
+                    }
+                }
+                else
+                {
+                    // ── Обычный путь: колода из DeckStorage ──
+                    // Commander — создаём отдельно, в руку не кладём пока
+                    if (savedDeck.Commander.CardId != 0)
+                    {
+                        commanderEntity = CreateCardEntity(savedDeck.Commander.ExpansionId, savedDeck.Commander.CardId, player.PlayerId, playerEntity, isCommander: true);
+                    }
+
+                    // Остальные карты → в колоду
+                    foreach (var card in savedDeck.Cards)
+                    {
+                        int copies = Mathf.Max(1, card.Count);
+                        for (int i = 0; i < copies; i++)
+                        {
+                            int newCardEntity = CreateCardEntity(card.ExpansionId, card.CardId, player.PlayerId, playerEntity, isCommander: false);
+                            if (newCardEntity >= 0) cardEntities.Add(newCardEntity);
+                        }
                     }
                 }
 
@@ -91,7 +126,8 @@ namespace Game.Core.Ecs.Systems
                         _handTagPool.Value.Add(commanderEntity);
                 }
 
-                Debug.Log($"[InitDeckSystem] Player {player.PlayerId}: deck={deck.Count} cards, commander in hand at index 0 ('{savedDeck.Name}')");
+                string deckName = storyDeck != null ? storyDeck.DeckName : savedDeck.Name;
+                Debug.Log($"[InitDeckSystem] Player {player.PlayerId}: deck={deck.Count} cards, commander in hand at index 0 ('{deckName}')");
             }
         }
 

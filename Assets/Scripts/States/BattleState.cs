@@ -142,6 +142,7 @@ namespace Game.Core.States
                 GameEventBus.Subscribe<CellSelectedEvent>(OnCellSelected);
                 GameEventBus.Subscribe<ExitToMenuRequestedEvent>(OnExitToMenuRequested);
                 GameEventBus.Subscribe<MatchEndedEvent>(OnPveMatchEnded);   // победа → отметка «уровень пройден»
+                GameEventBus.Subscribe<PreStartPhaseBeginUIEvent>(OnPvePreStart);   // мулиган закрыт → интро-реплики
 
                 try
                 {
@@ -224,14 +225,24 @@ namespace Game.Core.States
             string localExp = null, oppExp = null;
             int localId = -1, oppId = -1;
 
-            var decks = Game.Core.DeckBuilder.DeckStorage.GetCached();
-            if (decks != null && decks.Count > 0 && decks[0].Commander.CardId != 0)
+            var encounter = PveEncounterLocator.Current;
+
+            // Свой командир: сюжетная колода энкаунтера (Шальной принц) ИЛИ активная колода игрока.
+            if (encounter != null && encounter.PlayerDeck != null && encounter.PlayerDeck.Commander != null)
             {
-                localExp = decks[0].Commander.ExpansionId;
-                localId  = decks[0].Commander.CardId;
+                localExp = encounter.PlayerDeck.Commander.ExpansionId;
+                localId  = encounter.PlayerDeck.Commander.CardId;
+            }
+            else
+            {
+                var decks = Game.Core.DeckBuilder.DeckStorage.GetCached();
+                if (decks != null && decks.Count > 0 && decks[0].Commander.CardId != 0)
+                {
+                    localExp = decks[0].Commander.ExpansionId;
+                    localId  = decks[0].Commander.CardId;
+                }
             }
 
-            var encounter = Resources.Load<PveEncounterConfig>(Game.Core.Service.PveMode.EncounterPath);
             if (encounter != null && encounter.Commander != null)
             {
                 oppExp = encounter.Commander.ExpansionId;
@@ -257,10 +268,76 @@ namespace Game.Core.States
 
         private void OnPveMatchEnded(MatchEndedEvent evt)
         {
+            // Реплики исхода (говорящая голова) — победные/поражение из энкаунтера.
+            var enc = PveEncounterLocator.Current;
+            if (enc != null)
+                PublishStoryLines(evt.LocalResult == MatchResult.Win ? enc.VictoryLines : enc.DefeatLines);
+
             if (evt.LocalResult != MatchResult.Win) return;
-            PlayerPrefs.SetInt(Game.Core.Service.PveMode.DoneKey(Game.Core.Service.PveMode.EncounterPath), 1);
+
+            // Награда за ПЕРВОЕ прохождение (стори-прогресс = источник стартовых карт): проверяем флаг
+            // ДО записи — повторные победы карт не дают.
+            bool firstWin = PlayerPrefs.GetInt(Game.Core.Service.PveMode.CurrentDoneKey(), 0) == 0;
+            PlayerPrefs.SetInt(Game.Core.Service.PveMode.CurrentDoneKey(), 1);
             PlayerPrefs.Save();
-            Debug.Log($"[BattleState][PVE] уровень '{Game.Core.Service.PveMode.EncounterPath}' пройден ✓");
+            Debug.Log($"[BattleState][PVE] уровень '{Game.Core.Service.PveMode.CurrentDoneKey()}' пройден ✓");
+
+            if (firstWin && enc != null && enc.RewardCards != null)
+                GrantEncounterRewards(enc);
+        }
+
+        // Выдача карт-наград в библиотеку игрока + тосты «получена карта» + сохранение в облако.
+        // MVP: легаси-путь PlayerLibrary/SaveToCloud; при переходе на Economy v2 заменить на серверный грант.
+        private static void GrantEncounterRewards(PveEncounterConfig enc)
+        {
+            bool granted = false;
+            foreach (var reward in enc.RewardCards)
+            {
+                if (reward.Card == null || reward.Card.CardData == null) continue;
+                int count = Mathf.Max(1, reward.Count);
+
+                Game.Core.DeckBuilder.PlayerLibrary.AddCard(reward.Card.CardData, count);
+                granted = true;
+
+                GameEventBus.Publish(new RewardCardsGrantedUIEvent
+                {
+                    Visual = Game.Core.Instance.Card.CardVisualDataFactory.From(reward.Card.CardData),
+                    Count  = count,
+                });
+                Debug.Log($"[BattleState][PVE] награда: {count}× '{reward.Card.name}' → библиотека");
+            }
+
+            if (granted)
+                Game.Core.DeckBuilder.PlayerLibrary.SaveToCloud(
+                    onError: err => Debug.LogWarning($"[BattleState][PVE] не удалось сохранить награды в облако: {err}"));
+        }
+
+        // Мулиган закрыт, борд виден → интро-реплики боя (один раз).
+        private bool _introLinesShown;
+        private void OnPvePreStart(PreStartPhaseBeginUIEvent _)
+        {
+            if (_introLinesShown) return;
+            _introLinesShown = true;
+            var enc = PveEncounterLocator.Current;
+            if (enc != null) PublishStoryLines(enc.IntroLines);
+        }
+
+        private static void PublishStoryLines(PveEncounterConfig.StoryLine[] lines)
+        {
+            if (lines == null) return;
+            foreach (var line in lines)
+            {
+                if (line.Portrait == null && string.IsNullOrEmpty(line.TextKey) && string.IsNullOrEmpty(line.FallbackText))
+                    continue;   // пустая строка конфига
+                GameEventBus.Publish(new StoryLineUIEvent
+                {
+                    Portrait     = line.Portrait,
+                    SpeakerKey   = line.SpeakerKey,
+                    TextKey      = line.TextKey,
+                    FallbackText = line.FallbackText,
+                    Duration     = line.Duration <= 0f ? 3f : line.Duration,
+                });
+            }
         }
 
         private void OnCellSelected(CellSelectedEvent evt)
@@ -279,6 +356,7 @@ namespace Game.Core.States
             GameEventBus.Unsubscribe<CellSelectedEvent>(OnCellSelected);
             GameEventBus.Unsubscribe<ExitToMenuRequestedEvent>(OnExitToMenuRequested);
             GameEventBus.Unsubscribe<MatchEndedEvent>(OnPveMatchEnded);
+            GameEventBus.Unsubscribe<PreStartPhaseBeginUIEvent>(OnPvePreStart);
             EcsHandler?.Dispose();
             MatchTracker.Shutdown();
             Game.Core.Service.PveMode.Reset();   // не тащим PvE-флаг в следующий (возможно MP) матч

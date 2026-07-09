@@ -20,7 +20,8 @@ namespace Game.Core.States
         [Tooltip("Пресеты тест-колод (Create → Game → Deck Preset): собери несколько и переключай индексом ниже. " +
                  "Библиотека автоматически пополняется картами активного пресета.")]
         public DeckPreset[] DeckPresets;
-        [Tooltip("Какой пресет из DeckPresets использовать.")]
+        [Tooltip("Какой пресет из DeckPresets использовать. -1 = пресеты ВЫКЛЮЧЕНЫ: обычная загрузка " +
+                 "из облака — играют колоды, собранные в дек-билдере.")]
         public int ActiveDeckPreset = 0;
 
         [Tooltip("ЛЕГАСИ: старый формат (элемент = копия, [0] = командир). Используется, только если пресет не задан.")]
@@ -36,6 +37,15 @@ namespace Game.Core.States
             UIModule.Initialize();
             UIModule.Open<LoginCanvas>();
             UIModule.Inject(this, this);
+
+            // ЦИКЛ ПЕРВОГО ЗАХОДА: язык → туториал (сцена 4) → логин. Стейт НЕ знает панелей (слои!):
+            // выбор языка при первом запуске открывает сам UI (LoginPanel.OnInject → LanguageSelectPanel,
+            // связь через Service.FirstRunFlow). Здесь — только сценный роутинг в туториал.
+            if (Game.Core.Service.FirstRunFlow.LanguageChosen && !Game.Core.Service.FirstRunFlow.TutorialDone)
+            {
+                Debug.Log("[InitState] первый заход: туториал не пройден → TutorialScene");
+                SceneManager.LoadScene(4);   // TutorialScene
+            }
         }
 
         // ── IInitStateContext ────────────────────────────────────────────────
@@ -57,6 +67,7 @@ namespace Game.Core.States
 
         DeckPreset ActivePreset()
         {
+            if (ActiveDeckPreset < 0) return null;   // -1 = пресеты выключены (играем собранными колодами)
             if (DeckPresets == null || DeckPresets.Length == 0) return null;
             int i = Mathf.Clamp(ActiveDeckPreset, 0, DeckPresets.Length - 1);
             return DeckPresets[i];

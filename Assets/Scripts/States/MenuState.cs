@@ -27,6 +27,45 @@ namespace Game.Core.States
             UIModule.Inject(this, this);
             // Дев-кнопка «PvE» (LogCopyOverlay, сборка Mono — интерфейс ей недоступен) просит PvE через шину.
             Events.GameEventBus.Subscribe<Events.PveStartRequestedEvent>(OnPveStartRequested);
+
+            GrantStarterPackIfNeeded();
+        }
+
+        /// <summary>
+        /// Стартовый набор карт при ПЕРВОМ входе в меню (после первого логина). MVP: курируемый набор
+        /// из ассета Resources/Starter/starter_pack (DeckPreset — карта+количество) → PlayerLibrary +
+        /// облако. При переходе на экономику (Economy v2) здесь же заменится на серверный грант бустеров.
+        /// Флаг не ставится, пока ассета нет — выдастся, когда появится.
+        /// </summary>
+        void GrantStarterPackIfNeeded()
+        {
+            if (Game.Core.Service.FirstRunFlow.StarterGranted) return;
+
+            var pack = UnityEngine.Resources.Load<Game.Core.Configs.DeckPreset>("Starter/starter_pack");
+            if (pack == null)
+            {
+                Debug.LogWarning("[MenuState] стартовый набор не выдан: нет ассета Resources/Starter/starter_pack (DeckPreset).");
+                return;
+            }
+
+            int total = 0;
+            foreach (var entry in pack.Cards)
+            {
+                if (entry.Card == null || entry.Card.CardData == null) continue;
+                int count = UnityEngine.Mathf.Max(1, entry.Count);
+                Game.Core.DeckBuilder.PlayerLibrary.AddCard(entry.Card.CardData, count);
+                total += count;
+            }
+            if (pack.Commander != null && pack.Commander.CardData != null)
+            {
+                Game.Core.DeckBuilder.PlayerLibrary.AddCard(pack.Commander.CardData, 1);
+                total++;
+            }
+
+            Game.Core.DeckBuilder.PlayerLibrary.SaveToCloud(
+                onError: err => Debug.LogWarning($"[MenuState] стартовый набор: облако не сохранилось: {err}"));
+            Game.Core.Service.FirstRunFlow.StarterGranted = true;
+            Debug.Log($"[MenuState] стартовый набор выдан: {total} карт ('{pack.name}')");
         }
 
         public override void OnDestroy()

@@ -35,18 +35,17 @@ namespace Game.Core.Ability
     }
 
     // === class (OOP) === Удвоить здоровье цели-игрока (Проповедник, NonTarget → свой игрок). Max → 2x
-    // (перм. модификатор = текущему Max), Current += старый Max (cap). RequireDeckColor!=0 → только если в
-    // колоде владельца есть карта этого цвета (live-проверка на резолве — на OnMatchStart колода уже собрана).
+    // (перм. модификатор = текущему Max), Current += старый Max (cap). Условие «все карты жёлтые» —
+    // НЕ здесь: штатный ConditionRoot → AllCardsHaveColorCondition (старый вшитый RequireDeckColor удалён —
+    // он к тому же проверял «есть хотя бы одна цветная в колоде», а не «все, включая руку»).
     [Serializable]
     public sealed class DoubleHealthEffect : EffectBase
     {
         public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Heal;
-        public EnumService.Element RequireDeckColor = 0;   // 0 = без условия
 
         public override void Apply(EcsWorld world, int cardEntity, int target)
         {
             if (target < 0) return;
-            if (RequireDeckColor != 0 && !OwnerDeckHasColor(world, RequireDeckColor)) return;
 
             var pool = world.GetPool<HealthComponent>();
             if (!pool.Has(target)) return;
@@ -55,18 +54,6 @@ namespace Game.Core.Ability
             h.AddModifier(old, true);                       // Max → 2x (истинно перманентно)
             h.Current = Math.Min(h.Current + old, h.Max);
             EffectUtil.RaiseResource(world, target, EnumService.ResourceType.Health, h.Current, h.Max);
-        }
-
-        bool OwnerDeckHasColor(EcsWorld world, EnumService.Element color)
-        {
-            var deckPool = world.GetPool<DeckComponent>();
-            if (!deckPool.Has(PlayerEntity)) return false;
-            var deck = deckPool.Get(PlayerEntity).CardEntities;
-            if (deck == null) return false;
-            var modelPool = world.GetPool<CardModelComponent>();
-            foreach (var c in deck)
-                if (modelPool.Has(c) && (modelPool.Get(c).Element & color) != 0) return true;
-            return false;
         }
     }
 
@@ -157,9 +144,16 @@ namespace Game.Core.Ability
     public sealed class SetTriggerMultiplierEffect : EffectBase
     {
         public TriggerKind Trigger = TriggerKind.OnTurnEnd;
+
+        [UnityEngine.Tooltip("Какие карты множить: Any = все (Временная петля), Spell = только заклинания («спеллы срабатывают дважды»), Creature/Charm. Бампы Any и конкретного типа складываются.")]
+        public MultiplierCardScope CardScope = MultiplierCardScope.Any;   // default 0 → старые ассеты (Петля) читаются как Any
+
         public int Times = 2;        // сколько раз срабатывать (>=1; 1 = без изменений)
         public bool Temporary = false;   // true → откатится после Turns ходов владельца; false → до конца матча
         public int Turns = 1;        // для Temporary: сколько ходов владельца держится (1 = до конца этого хода)
+
+        // Условия («если в колоде нет существ» и т.п.) — НЕ флагами здесь, а штатным ConditionRoot
+        // (EffectBase): экзотик = ConditionRoot → NoCreaturesInDeckCondition. Резолв гейтится IsReady.
 
         public override void Apply(EcsWorld world, int cardEntity, int target)
         {
@@ -167,7 +161,8 @@ namespace Game.Core.Ability
             var ownerPool = world.GetPool<OwnerComponent>();
             if (!ownerPool.Has(cardEntity)) return;
             int ownerId = ownerPool.Get(cardEntity).OwnerId;
-            string key = TriggerKeys.Of(Trigger);
+
+            string key = CastMultiplierService.ComposeKey(TriggerKeys.ScopeKey(CardScope), TriggerKeys.Of(Trigger));
 
             if (Temporary) CastMultiplierService.AddTemporary(ownerId, key, Times - 1, Turns);
             else           CastMultiplierService.Add(ownerId, key, Times - 1);

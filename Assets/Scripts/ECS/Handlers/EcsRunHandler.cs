@@ -63,6 +63,7 @@ namespace Game.Core.Ecs.Handlers
                 .Add(new RunFirstTurnStartSystem())
                 .Add(new HandDesyncCanarySystem())      // ВРЕМЕННО: лог руки/колоды по ключам на старте хода (диагностика дрейфа)
                 .Add(new RunTurnStartSystem())          // каскад начала хода: ресурсы/добор/OnTurnStart (по StartTurnState)
+                .Add(new PveScriptedEventSystem())      // PvE: скриптованные сюжет-события боя (в MP — no-op)
                 .Add(new DurationAuraTickSystem())
                 .Add(new CardPlayedBridgeSystem())   // CardCastEvent → CardPlayedEvent (оживляет счётчики/Попадос)
                 .Add(new MatchCounterTrackerSystem())

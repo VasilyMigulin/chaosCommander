@@ -230,6 +230,9 @@ namespace Game.Core.Ability
         }
     }
 
+    // Изменение СТОИМОСТИ карты — это БАФФ (перм/мягкий, стакается, снимается): BuffCost (AbilityBuffs.cs)
+    // через AddBuffEffect{Buff=BuffCost{Delta}} или как модификатор дискавера/призыва. ModifyCostEffect удалён.
+
     // === class (OOP) === +золото владельцу (cap Max). NonTarget-стиль, но владелец — кэш.
     [Serializable]
     public sealed class GainGoldEffect : ICasterScopedEffect, IDynamicValue
@@ -363,6 +366,8 @@ namespace Game.Core.Ability
             MatchGeneratedSelf = 7,     // сколько раз карта CountCard замешана ВАМИ (по инициатору, в т.ч. через гранёные эффекты — Газовое вздутие)
             MatchArchetypeInvoked = 8,  // сколько существ архетипа ArchetypeKey призвано (Грыз → "Imp")
             OwnCreaturesOnBoard = 9,    // сколько ЖИВЫХ существ у владельца на поле СЕЙЧАС (включая источник, если он на поле)
+            MatchSpellsPlayedSelf = 10, // сколько ЗАКЛИНАНИЙ разыграно владельцем в матче (Моментум)
+            SelfResolves = 11,          // порядковый номер ТЕКУЩЕГО применения этой способности: 1,2,3… (Нечищенный источник). НЕ для цепочек (AbilityChain)
         }
 
         public CountSource Source = CountSource.Fixed;
@@ -423,6 +428,15 @@ namespace Game.Core.Ability
             if (source == RepeatEffect.CountSource.Fixed) return fixedCount;
             if (source == RepeatEffect.CountSource.ChainKilled) return ChainContext.CurrentKilled;
 
+            // SelfResolves — номер текущего применения способности (скрэтч ставит RunResolveAbilityQueueSystem
+            // ДО эффектов → в обычном резолве всегда ≥1, первое срабатывание = 1; на пассиве резолв идёт тем же
+            // путём → зеркально). 1,2,3… — «Нечищенный источник». 0 бывает ТОЛЬКО ВНЕ резолва — отложенные
+            // применения (модификаторы генерации в CreateCardSystem, модификаторы дискавера в PlacePicked,
+            // стадии цепочек у пассива): там «номер применения» не определён — трактуем как ПЕРВОЕ (1),
+            // иначе Inner молча не сработал бы ни разу (мёртвая карта вместо явного поведения).
+            if (source == RepeatEffect.CountSource.SelfResolves)
+                return Math.Max(1, AbilityResolveContext.ResolveCount);
+
             // OwnCreaturesOnBoard — живые существа владельца источника на поле в момент резолва.
             // Борд зеркален на обоих клиентах при резолве (актив применяет, пассив ре-ранит по снапшоту
             // до оседания следующих действий) → счёт детерминирован, отдельный синк не нужен.
@@ -464,6 +478,8 @@ namespace Game.Core.Ability
                     var key = archetype?.Key;
                     return (c.InvokedByArchetype != null && !string.IsNullOrEmpty(key)
                             && c.InvokedByArchetype.TryGetValue(key, out int v)) ? v : 0;
+                case RepeatEffect.CountSource.MatchSpellsPlayedSelf:
+                    return c.SpellsPlayed;
                 default: return 0;
             }
         }

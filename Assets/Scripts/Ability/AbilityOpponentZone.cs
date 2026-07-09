@@ -86,16 +86,10 @@ namespace Game.Core.Ability
             if (!handTag.Has(target)) handTag.Add(target);
             ZoneListUtil.AddToHand(world, target, PlayerEntity);
 
-            if (CostReduction != 0) ReduceCost(world, target, CostReduction);
+            // Скидка = перманентный кост-бафф (стек кост-компонента, переживает смерть/зоны).
+            if (CostReduction != 0) BuffCost.Add(world, target, -CostReduction, permanent: true);
 
             GameEventBus.Publish(new CardDrawnEvent { CardEntity = target, PlayerId = PlayerEntity });
-        }
-
-        static void ReduceCost(EcsWorld world, int card, int amount)
-        {
-            var g = world.GetPool<GoldCostComponent>();   if (g.Has(card)) { ref var c = ref g.Get(card); c.Cost = Math.Max(0, c.Cost - amount); return; }
-            var m = world.GetPool<ManaCostComponent>();    if (m.Has(card)) { ref var c = ref m.Get(card); c.Cost = Math.Max(0, c.Cost - amount); return; }
-            var h = world.GetPool<HealthCostComponent>();  if (h.Has(card)) { ref var c = ref h.Get(card); c.Cost = Math.Max(0, c.Cost - amount); }
         }
     }
 

@@ -7,11 +7,13 @@ namespace Game.Core.Events
     /// <summary>Карта разыграна (финиш каста). Источник — RunCastRouterSystem.</summary>
     public struct CardCastEvent : IGameEvent { public int CardEntity; }
 
-    /// <summary>Существо ВЫШЛО на поле боя (любым способом: розыгрыш / призыв). В отличие от
-    /// CardCastEvent («при разыгрывании» — только настоящий каст), это сигнал «появился на столе»
+    /// <summary>Существо ВЫШЛО на поле боя (любым способом: розыгрыш / призыв / генерация на борд). В отличие
+    /// от CardCastEvent («при разыгрывании» — только настоящий каст), это сигнал «появился на столе»
     /// для реакций ДРУГИХ: реактивные ауры (OnCreatureInvokedTrigger) и будущие «на выходе»-способности.
-    /// Призыв (НЕ каст) публикует только это, без CardCastEvent → нет каскада «при разыгрывании».</summary>
-    public struct CreatureInvokedEvent : IGameEvent { public int CardEntity; }
+    /// Призыв (НЕ каст) публикует только это, без CardCastEvent → нет каскада «при разыгрывании».
+    /// Generated=true — токен, созданный СРАЗУ на борд (CreateCardSystem, FillRow/SpawnCardOnBoard):
+    /// CollectActionSystem такие НЕ синкает ActionCastData (создание уже зеркально через детерм. ре-ран).</summary>
+    public struct CreatureInvokedEvent : IGameEvent { public int CardEntity; public bool Generated; }
 
     /// <summary>Существо-карта погибла.</summary>
     public struct CreatureDiedEvent : IGameEvent { public int CardEntity; public int KillerEntity; }

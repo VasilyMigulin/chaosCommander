@@ -30,9 +30,10 @@ MonoBehaviour:
         Vfx:
           Kind: 0
           Prefab: {fileID: 0}
-          HitPrefab: {fileID: 0}
+          HitPrefab: {fileID: 185366, guid: 6dcff98dc6fbe6e4bbbdac7b196f0c5e, type: 3}
           ProjectileSpeed: 12
           MergeArea: 0
+          PlayCasterAnimation: 1
         Area: 0
         Zone: 0
         Filters:
@@ -63,7 +64,7 @@ MonoBehaviour:
           \u0432\u0430\u0448\u0438\u043C \u043A\u043E\u043D\u0442\u0440\u043E\u043B\u0435\u043C
           \u043F\u043E\u043B\u0443\u0447\u0430\u044E\u0442 +1/1 "
         Rarity: 1
-        Element: 0
+        Element: 24
         ArtImage: {fileID: 0}
         ExpansionId: standard
         PlayCost: 0
@@ -78,4 +79,5 @@ MonoBehaviour:
         Attack: 3
         Speed: 3
         ViewPrefab: {fileID: 1046069417137952589, guid: f06aa6138ec1c4140ac9af21f0ddde7e, type: 3}
+        TurnsAlive: 0
         IsCommander: 0

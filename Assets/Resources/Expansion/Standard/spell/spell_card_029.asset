@@ -67,15 +67,16 @@ MonoBehaviour:
     - rid: 1051486611725615266
       type: {class: DealDamageEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
-        Amount: 4
+        Amount: 5
         ConditionRoot:
           rid: -2
     - rid: 1051486611725615267
       type: {class: OpponentTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
     - rid: 1051486611725615272
-      type: {class: CastSameNamedFromHandEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      type: {class: PlaySameNameFromHandEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
         ConditionRoot:
           rid: -2
+        Count: 1
         Free: 1

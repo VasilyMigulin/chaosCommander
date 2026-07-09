@@ -54,6 +54,7 @@ MonoBehaviour:
           HitPrefab: {fileID: 0}
           ProjectileSpeed: 12
           MergeArea: 0
+          PlayCasterAnimation: 0
     - rid: 1051486589887447154
       type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
@@ -76,3 +77,4 @@ MonoBehaviour:
           rid: -2
         PoolAsset: {fileID: 11400000, guid: d4869bdf22ecaac42b7063d6997cb64b, type: 2}
         Pool: []
+        ForceRandomTarget: 1

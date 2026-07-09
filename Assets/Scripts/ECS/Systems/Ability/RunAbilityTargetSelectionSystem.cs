@@ -35,8 +35,14 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<ActiveState>       _activePool = default;
 
         readonly EcsFilterInject<Inc<CreatureTag, BoardTag, BoardPositionComponent, OwnerComponent>, Exc<DeadTag>> _creaturesFilter = default;
-        readonly EcsPoolInject<BoardPositionComponent> _posPool      = default;
-        readonly EcsPoolInject<OwnerComponent>         _creOwnerPool = default;
+        readonly EcsPoolInject<BoardPositionComponent> _posPool = default;
+
+        // Игроки (аватары) как ВОЗМОЖНЫЕ цели (напр. OpponentTargetFilter — «Поджог» и любой спелл по врагу
+        // ИЛИ вражескому игроку): без этого Selected-таргетинг мог только целить существ, клик по аватару
+        // (row=-1,col=-1 — см. RunSelectCellSystem) не находил кандидата → способность фуззлилась впустую
+        // (ресурсы уже списаны роутером). Side, не PlayerId — тот же паттерн, что у атаки аватара.
+        readonly EcsFilterInject<Inc<PlayerComponent, PlayerSideComponent>> _playersFilter = default;
+        readonly EcsPoolInject<PlayerSideComponent> _sidePool = default;
 
         bool _highlightShown;
         int  _lastPending = -1;
@@ -119,18 +125,42 @@ namespace Game.Core.Ecs.Systems
             {
                 if (!TargetGather.FiltersOk(_world.Value, ce, casterCard, casterPlayer, filters)) continue;
                 ref var pos = ref _posPool.Value.Get(ce);
-                ref var own = ref _creOwnerPool.Value.Get(ce);
-                _boardView.Value.GetCell(pos.Row, pos.Col, own.OwnerId)?.SetHighlight(CellHighlight.Target);
+                // ВАЖНО: клетка ищется по BoardPositionComponent.OwnerId («на чьей половине физически стоит
+                // существо» — меняется при пересечении середины поля), а НЕ по OwnerComponent.OwnerId
+                // («кто контролирует» — не меняется при пересечении). Раньше здесь читался OwnerComponent
+                // (_creOwnerPool) → для существа, перешедшего на чужую половину, подсвечивалась ЧУЖАЯ клетка
+                // (его старая сторона), а не та, где оно реально стоит («Поджог» и любой Selected/Board таргетинг).
+                _boardView.Value.GetCell(pos.Row, pos.Col, pos.OwnerId)?.SetHighlight(CellHighlight.Target);
+            }
+
+            // Игроки (аватары) как кандидаты (OpponentTargetFilter и т.п.) — подсвечиваем клетку аватара.
+            foreach (var pe in _playersFilter.Value)
+            {
+                if (!TargetGather.FiltersOk(_world.Value, pe, casterCard, casterPlayer, filters)) continue;
+                int side = _sidePool.Value.Get(pe).Side;
+                _boardView.Value.GetAvatarCell(side)?.SetHighlight(CellHighlight.Target);
             }
         }
 
         int FindCandidate(in CellClickEvent click, int casterCard, int casterPlayer, ITargetFilter[] filters)
         {
+            // Клик по аватару (row=-1,col=-1 — конвенция RunSelectCellSystem): цель — сущность ИГРОКА
+            // соответствующей СТОРОНЫ (Side, не PlayerId — см. комментарий у _playersFilter).
+            if (click.Row == -1 && click.Col == -1)
+            {
+                foreach (var pe in _playersFilter.Value)
+                {
+                    if (_sidePool.Value.Get(pe).Side != click.OwnerId) continue;
+                    return TargetGather.FiltersOk(_world.Value, pe, casterCard, casterPlayer, filters) ? pe : -1;
+                }
+                return -1;
+            }
+
             foreach (var ce in _creaturesFilter.Value)
             {
                 ref var pos = ref _posPool.Value.Get(ce);
-                ref var own = ref _creOwnerPool.Value.Get(ce);
-                if (pos.Row != click.Row || pos.Col != click.Col || own.OwnerId != click.OwnerId) continue;
+                // Сверка клика — ТОЖЕ по BoardPositionComponent.OwnerId (см. комментарий в ShowHighlights).
+                if (pos.Row != click.Row || pos.Col != click.Col || pos.OwnerId != click.OwnerId) continue;
                 if (!TargetGather.FiltersOk(_world.Value, ce, casterCard, casterPlayer, filters)) continue;
                 return ce;
             }

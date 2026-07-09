@@ -1,0 +1,109 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: spell_card_040
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  CardData:
+    rid: 2419359952424665348
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 2419359952424665348
+      type: {class: CardSpellModel, ns: Game.Core.Model.Card.Spell, asm: Game.Core.Model.Card.Spell}
+      data:
+        Id: 122
+        Name: "\u0412\u043E\u043E\u0431\u0440\u0430\u0436\u0430\u0435\u043C\u044B\u0435
+          \u0434\u0440\u0443\u0437\u044C\u044F"
+        Description: "\u041F\u0440\u0438\u0437\u044B\u0432\u0430\u0435\u0442 \u0412\u043E\u043E\u0431\u0440\u0430\u0436\u0430\u0435\u043C\u043E\u0433\u043E
+          \u0434\u0440\u0443\u0433\u0430 \u0425/\u0425/\u0425 \u0433\u0434\u0435
+          \u0425 \u043A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u043E \u043A\u0430\u0440\u0442\u044B
+          \u0440\u0430\u0437\u044B\u0433\u0440\u0430\u043D\u043D\u044B\u0445 \u0441
+          \u044D\u0442\u0438\u043C \u0438\u043C\u0435\u043D\u043D\u0435\u043C, \u0435\u0441\u043B\u0438
+          \u0432 \u0440\u0443\u043A\u0435 \u0435\u0441\u0442\u044C \u0434\u0440\u0443\u0433\u0430\u044F
+          \u043A\u0430\u0440\u0442\u0430 \u0441 \u0442\u0430\u043A\u0438\u043C \u043D\u0430\u0437\u0432\u0430\u043D\u0438\u0435\u043C,
+          \u0440\u0430\u0437\u044B\u0433\u0440\u0430\u0439\u0442\u0435 \u0435\u0435"
+        Rarity: 0
+        Element: 18
+        ArtImage: {fileID: 0}
+        ExpansionId: 
+        PlayCost: 1
+        PlayCostAmount: 2
+        IsToken: 0
+        MulliganStartingHand: 0
+        MulliganUnlimitedReplace: 0
+        RuntimeAbilities:
+        - rid: 2419359952424665349
+        Archetypes: []
+        RequiresTarget: 0
+    - rid: 2419359952424665349
+      type: {class: AbilityNonTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 2419359952424665351
+        Rules: []
+        Effects:
+        - rid: 2419359952424665354
+        - rid: 2419359952424665353
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 0}
+          ProjectileSpeed: 12
+          MergeArea: 0
+    - rid: 2419359952424665351
+      type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2419359952424665353
+      type: {class: PlaySameNameFromHandEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        Count: 1
+        Free: 1
+    - rid: 2419359952424665354
+      type: {class: SpawnCardOnBoardEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        SummonModifiers:
+        - rid: 2419359952424665355
+        Source: {fileID: 11400000, guid: c248a449410d90f40807f38d5618f905, type: 2}
+    - rid: 2419359952424665355
+      type: {class: RepeatEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        Source: 2
+        FixedCount: 1
+        CountCard: {fileID: 0}
+        Archetype:
+          rid: -2
+        Inner:
+          rid: 2419359952424665356
+    - rid: 2419359952424665356
+      type: {class: AddBuffEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        Buff:
+          rid: 2419359952424665357
+        Tracked: 0
+        RevertOnSourceDeath: 1
+    - rid: 2419359952424665357
+      type: {class: BuffStat, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Attack: 1
+        Health: 1
+        Speed: 1
+        Permanent: 1

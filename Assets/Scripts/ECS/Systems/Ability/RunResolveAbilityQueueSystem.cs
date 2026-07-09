@@ -16,21 +16,33 @@ namespace Game.Core.Ecs.Systems
     /// применяет её эффекты (AbilityEffectContainerComponent) к каждой цели (если IsReady) и снимает state.
     /// Кастер берётся из AbilityOwnerComponent.
     ///
-    /// ДОСТАВКА: если у способности VfxKind.Projectile — эффекты НЕ применяются сразу: запускаем снаряд,
-    /// вешаем AbilityCastPendingComponent (гейт очереди + реплея, как AttackAnimPendingTag) и ждём
-    /// VfxArrivedEvent от VfxPresenter (на прилёте). Снапшот (AbilityResolvedNetEvent) шлётся ТОЖЕ на
-    /// прилёте — иначе случайные роллы (GeneratedCardChannel) уйдут раньше применения → рассинхрон.
-    /// Beam/Area/без-VFX — мгновенно. Анти-софтлок: Deadline форсит резолв, если прилёт не пришёл
-    /// (нет VfxPresenter/префаба). Синк: каждый клиент гейтит свой снаряд и применяет на своём прилёте;
-    /// порядок действий фиксирован снапшот-очередью → детерминизм сохраняется.
+    /// АНИМАЦИЯ КАСТЕРА (opt-in, VfxSpec.PlayCasterAnimation=true + кастер — существо с параметром "Cast" в
+    /// аниматоре): резолв НЕ происходит мгновенно на выборке из очереди — кастер играет анимацию "Cast"
+    /// (CreatureView.PlayAbilityCast), эффекты применяются на Animation Event "CastEvent" (авторит
+    /// гейм-дизайнер в клипе), а АЛИБИЛИТИ-ГЕЙТ (AbilityAnimPendingComponent, блокирует очередь/таймер, как
+    /// AttackAnimPendingTag) снимается на "FinishEvent". Анти-софтлок: Deadline форсит оба, если клип их не
+    /// прислал. Без флага/аниматора — резолв мгновенный, КАК РАНЬШЕ (нулевой риск для уже собранных карт).
+    ///
+    /// ДОСТАВКА СНАРЯДА: если у способности VfxKind.Projectile — эффекты НЕ применяются сразу: запускаем
+    /// снаряд (на CastEvent анимации кастера, если она играется, иначе сразу на выборке из очереди), вешаем
+    /// AbilityCastPendingComponent (гейт очереди + реплея, как AttackAnimPendingTag) и ждём VfxArrivedEvent
+    /// от VfxPresenter (на прилёте). Снапшот (AbilityResolvedNetEvent) шлётся ТОЖЕ на прилёте — иначе
+    /// случайные роллы (GeneratedCardChannel) уйдут раньше применения → рассинхрон. Beam/Area/без-VFX —
+    /// мгновенно (на CastEvent, если анимация кастера играется). Анти-софтлок: Deadline форсит резолв, если
+    /// прилёт не пришёл. Синк: каждый клиент гейтит свой снаряд/анимацию и применяет на своём прилёте/
+    /// CastEvent; порядок действий фиксирован снапшот-очередью → детерминизм сохраняется (анимация кастера
+    /// косметическая — на game-state не влияет, только на МОМЕНТ применения на КАЖДОМ клиенте локально).
     /// </summary>
     public sealed class RunResolveAbilityQueueSystem : IEcsInitSystem, IEcsRunSystem, IEcsDestroySystem
     {
         readonly EcsCustomInject<BoardView> _boardView = default;
+        readonly EcsPoolInject<ViewRefComponent> _viewPool = default;
 
         const float ProjectileTimeout = 4f;   // сек до форс-резолва, если прилёт не пришёл
 
-        readonly Queue<int> _arrived = new Queue<int>();   // токены приземлившихся снарядов (ability-сущности)
+        readonly Queue<int> _arrived = new Queue<int>();          // токены приземлившихся снарядов (ability-сущности)
+        readonly Queue<int> _castPointReached = new Queue<int>(); // CastEvent анимации кастера (ability-сущности)
+        readonly Queue<int> _animFinished = new Queue<int>();     // FinishEvent анимации кастера (ability-сущности)
         bool _subscribed;
 
         public void Init(IEcsSystems systems) => Subscribe();
@@ -52,6 +64,7 @@ namespace Game.Core.Ecs.Systems
         {
             var world = systems.GetWorld();
             var pendingPool = world.GetPool<AbilityCastPendingComponent>();
+            var animPendingPool = world.GetPool<AbilityAnimPendingComponent>();
 
             // 1) Приземлившиеся снаряды → применить отложенные эффекты.
             while (_arrived.Count > 0)
@@ -60,16 +73,28 @@ namespace Game.Core.Ecs.Systems
                 if (token >= 0 && pendingPool.Has(token)) LandAndResolve(world, token);
             }
 
-            // 2) Анти-софтлок: форсим резолв просроченных «в полёте» (нет VfxPresenter/префаба). Один за тик.
+            // 2) Анти-софтлок снарядов: форсим резолв просроченных «в полёте» (нет VfxPresenter/префаба).
             foreach (var e in world.Filter<AbilityCastPendingComponent>().End())
             {
                 if (pendingPool.Get(e).Deadline <= Time.time) { LandAndResolve(world, e); break; }
             }
 
-            // 3) Пока что-то в полёте — следующее действие не берём (гейт, как у атаки).
-            if (world.Filter<AbilityCastPendingComponent>().End().GetEntitiesCount() > 0) return;
+            // 3) CastEvent анимации кастера → применить эффекты (или запустить снаряд — та же ветка, что и
+            //    без анимации). FinishEvent → снять гейт анимации (страхуем CastEvent, если клип его не прислал).
+            while (_castPointReached.Count > 0) CompleteCastPoint(world, animPendingPool, _castPointReached.Dequeue());
+            while (_animFinished.Count > 0)     CompleteAnimGate(world, animPendingPool, _animFinished.Dequeue());
 
-            // 4) Обычный разбор очереди — одна способность за тик.
+            // Анти-софтлок анимации кастера: клип не прислал CastEvent/FinishEvent — форсим оба.
+            foreach (var e in world.Filter<AbilityAnimPendingComponent>().End())
+            {
+                if (animPendingPool.Get(e).Deadline <= Time.time) { CompleteAnimGate(world, animPendingPool, e); break; }
+            }
+
+            // 4) Пока что-то в полёте/анимируется — следующее действие не берём (гейт, как у атаки).
+            if (world.Filter<AbilityCastPendingComponent>().End().GetEntitiesCount() > 0) return;
+            if (world.Filter<AbilityAnimPendingComponent>().End().GetEntitiesCount()  > 0) return;
+
+            // 5) Обычный разбор очереди — одна способность за тик.
             var queuedPool = world.GetPool<AbilityQueuedState>();
             var ownerPool  = world.GetPool<AbilityOwnerComponent>();
 
@@ -78,9 +103,83 @@ namespace Game.Core.Ecs.Systems
             { first = entity; break; }
             if (first < 0) return;
 
-            // Снаряд-on-hit? (есть BoardView, спека Projectile, префаб и хотя бы одна цель.)
+            // Анимация кастера (opt-in): если запрошена И у кастера реально есть параметр "Cast" —
+            // откладываем резолв до CastEvent/FinishEvent. Иначе — мгновенно, как раньше.
+            var vfxPoolCheck = world.GetPool<AbilityVfxComponent>();
+            if (vfxPoolCheck.Has(first) && vfxPoolCheck.Get(first).Spec?.PlayCasterAnimation == true)
+            {
+                var casterView = GetCasterView(world, ownerPool.Get(first).CardEntity);
+                if (casterView != null && casterView.HasCastAnimation)
+                {
+                    StartCasterAnim(world, first, casterView);
+                    return;
+                }
+            }
+
+            ResolveOrLaunch(world, first);
+        }
+
+        // Живая CreatureView кастера (существо на поле, объект активен) — null, если карта не существо/
+        // визуал не заспавнен/уже скрыт (напр. умерло раньше резолва).
+        CreatureView GetCasterView(EcsWorld world, int caster)
+        {
+            if (!_viewPool.Value.Has(caster)) return null;
+            var go = _viewPool.Value.Get(caster).View;
+            if (go == null || !go.activeInHierarchy) return null;
+            return go.GetComponent<CreatureView>();
+        }
+
+        const float AbilityAnimTimeout = 4f;   // анти-софтлок (как ProjectileTimeout) на случай кривой разметки клипа
+
+        // Запускает анимацию "Cast" на кастере: вешает гейт (блокирует очередь/таймер), резолв откладывается
+        // до Animation Event'ов клипа (CastEvent/FinishEvent через CreatureAnimationRelay).
+        void StartCasterAnim(EcsWorld world, int ability, CreatureView casterView)
+        {
+            ref var pending = ref world.GetPool<AbilityAnimPendingComponent>().Add(ability);
+            pending.Deadline = Time.time + AbilityAnimTimeout;
+            pending.CastApplied = false;
+            GameEventBus.Publish(new InputBlockedEvent());
+
+            int token = ability;   // замыкание — БЕЗ мутации ECS-состояния из колбэка (см. паттерн _arrived)
+            casterView.PlayAbilityCast(
+                onCastPoint: () => _castPointReached.Enqueue(token),
+                onFinished:  () => _animFinished.Enqueue(token));
+
+            Debug.Log($"[Resolve] ability={ability} играет анимацию каста на кастере (ждём CastEvent/FinishEvent)");
+        }
+
+        // CastEvent пришёл (или форсирован таймаутом) → применить эффекты РОВНО ОДИН раз (CastApplied-гард).
+        void CompleteCastPoint(EcsWorld world, EcsPool<AbilityAnimPendingComponent> pool, int ability)
+        {
+            if (!pool.Has(ability)) return;
+            ref var p = ref pool.Get(ability);
+            if (p.CastApplied) return;
+            p.CastApplied = true;
+            ResolveOrLaunch(world, ability);
+        }
+
+        // FinishEvent пришёл (или форсирован таймаутом) → снять гейт анимации. Страховка: если клип прислал
+        // ТОЛЬКО FinishEvent (без CastEvent) — сначала всё равно применяем эффекты (иначе способность молча
+        // пропадёт без резолва).
+        void CompleteAnimGate(EcsWorld world, EcsPool<AbilityAnimPendingComponent> pool, int ability)
+        {
+            if (!pool.Has(ability)) return;
+            CompleteCastPoint(world, pool, ability);
+            pool.Del(ability);
+            GameEventBus.Publish(new InputRestoredEvent());
+        }
+
+        // Общая точка «применить эффекты ИЛИ запустить снаряд» — используется и мгновенным резолвом (нет
+        // анимации кастера), и CastEvent-веткой (анимация кастера сыграла до момента применения).
+        void ResolveOrLaunch(EcsWorld world, int first)
+        {
+            var queuedPool = world.GetPool<AbilityQueuedState>();
+            var ownerPool  = world.GetPool<AbilityOwnerComponent>();
+            if (!ownerPool.Has(first) || !queuedPool.Has(first)) return;
+
             var vfxPool = world.GetPool<AbilityVfxComponent>();
             int[] targets = queuedPool.Get(first).Targets ?? Array.Empty<int>();
+
             if (_boardView.Value != null && vfxPool.Has(first) && targets.Length > 0)
             {
                 var spec = vfxPool.Get(first).Spec;
@@ -91,7 +190,6 @@ namespace Game.Core.Ecs.Systems
                 }
             }
 
-            // Иначе — применяем сразу.
             ResolveAbility(world, first);
         }
 
@@ -147,6 +245,18 @@ namespace Game.Core.Ecs.Systems
             // Инициатор резолва (атрибуция генерации «кем замешано»).
             var originPool = world.GetPool<AbilityOriginComponent>();
             AbilityResolveContext.OriginOwnerId = originPool.Has(first) ? originPool.Get(first).OriginOwnerId : -1;
+
+            // Ключ триггера ЭТОЙ активации (PlayCardFromZoneEffect/PlaySameNameFromHandEffect: интерактивный
+            // выбор цели только от OnCast — см. AbilityResolveContext.TriggerKey).
+            var triggerKeyPool = world.GetPool<AbilityTriggerKeyComponent>();
+            AbilityResolveContext.TriggerKey = triggerKeyPool.Has(first) ? triggerKeyPool.Get(first).Key : null;
+
+            // Счётчик применений ЭТОЙ способности (Нечищенный источник: 1,2,3… маны через
+            // RepeatEffect{SelfResolves}). Инкремент ДО эффектов → текущее применение = 1 на первом
+            // срабатывании. Пассив резолвит впрыснутую очередь здесь же → зеркально, синк не нужен.
+            var resolveCountPool = world.GetPool<AbilityResolveCounterComponent>();
+            if (!resolveCountPool.Has(first)) resolveCountPool.Add(first);
+            AbilityResolveContext.ResolveCount = ++resolveCountPool.Get(first).Count;
 
             // Синк недетерм. генерации: пассив грузит идентичности активного, актив роллит и Record'ит.
             GeneratedCardChannel.ClearSent();

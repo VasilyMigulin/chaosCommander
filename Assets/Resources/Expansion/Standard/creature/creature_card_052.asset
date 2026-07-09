@@ -1,0 +1,77 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: creature_card_052
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  CardData:
+    rid: 2419359952424665276
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 2419359952424665276
+      type: {class: CardCreatureModel, ns: Game.Core.Model.Card.Creature, asm: Game.Core.Model.Card.Creature}
+      data:
+        Id: 112
+        Name: "\u041C\u0430\u0442\u0443\u0448\u043A\u0430 \u043F\u043E\u043B\u0435\u043D\u043E"
+        Description: "\u0412 \u043A\u043E\u043D\u0446\u0435 \u0445\u043E\u0434\u0430:
+          \u043F\u0440\u0438\u0437\u044B\u0432\u0430\u0435\u0442 \u041E\u0447\u0435\u0440\u0435\u0434\u043D\u043E\u0439
+          \u0441\u043E\u0440\u043D\u044F\u043A 1/1/2"
+        Rarity: 2
+        Element: 4
+        ArtImage: {fileID: 0}
+        ExpansionId: standard
+        PlayCost: 0
+        PlayCostAmount: 5
+        IsToken: 0
+        MulliganStartingHand: 0
+        MulliganUnlimitedReplace: 0
+        RuntimeAbilities:
+        - rid: 2419359952424665278
+        Archetypes:
+        - rid: 2419359952424665282
+        MaxHealth: 8
+        Attack: 1
+        Speed: 1
+        ViewPrefab: {fileID: 1046069417137952589, guid: 258ae52923d79eb4d98997922f0b4d1f, type: 3}
+        TurnsAlive: 0
+        IsCommander: 0
+    - rid: 2419359952424665278
+      type: {class: AbilityNonTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 2419359952424665279
+        Rules: []
+        Effects:
+        - rid: 2419359952424665281
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 119382, guid: 616e8b55bdab6694fabc34c4d1a168fb, type: 3}
+          ProjectileSpeed: 12
+          MergeArea: 0
+          PlayCasterAnimation: 1
+    - rid: 2419359952424665279
+      type: {class: OnTurnEndTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2419359952424665281
+      type: {class: FillRowWithCardEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        SummonModifiers: []
+        MaxCount: 1
+        Source: {fileID: 11400000, guid: a14339634d0e80c48904553cc8ac0165, type: 2}
+    - rid: 2419359952424665282
+      type: {class: FloraArchetype, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 

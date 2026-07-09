@@ -33,7 +33,7 @@ MonoBehaviour:
         ArtImage: {fileID: 0}
         ExpansionId: standard
         PlayCost: 0
-        PlayCostAmount: 6
+        PlayCostAmount: 4
         IsToken: 0
         MulliganStartingHand: 0
         MulliganUnlimitedReplace: 0
@@ -43,7 +43,8 @@ MonoBehaviour:
         MaxHealth: 6
         Attack: 5
         Speed: 1
-        ViewPrefab: {fileID: 1046069417137952589, guid: f06aa6138ec1c4140ac9af21f0ddde7e, type: 3}
+        ViewPrefab: {fileID: 8026686172653069236, guid: 2a8c71c2f907e7a4fb620b992ab20c35, type: 3}
+        TurnsAlive: 0
         IsCommander: 0
     - rid: 1051486567619101024
       type: {class: AbilityToTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}

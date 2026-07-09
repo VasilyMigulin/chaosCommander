@@ -30,9 +30,10 @@ MonoBehaviour:
         Vfx:
           Kind: 0
           Prefab: {fileID: 0}
-          HitPrefab: {fileID: 0}
+          HitPrefab: {fileID: 185366, guid: 6dcff98dc6fbe6e4bbbdac7b196f0c5e, type: 3}
           ProjectileSpeed: 12
           MergeArea: 0
+          PlayCasterAnimation: 1
     - rid: 1051486567619100991
       type: {class: OnTurnEndTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
@@ -42,6 +43,7 @@ MonoBehaviour:
         ConditionRoot:
           rid: -2
         Count: 1
+        ToDeck: 0
         PoolAsset: {fileID: 11400000, guid: 0ea72378ba5bb4b4fa43c8b568ea9eb7, type: 2}
         Pool: []
     - rid: 8072968609180155942
@@ -69,4 +71,5 @@ MonoBehaviour:
         Attack: 3
         Speed: 1
         ViewPrefab: {fileID: 1046069417137952589, guid: f06aa6138ec1c4140ac9af21f0ddde7e, type: 3}
+        TurnsAlive: 0
         IsCommander: 0

@@ -38,11 +38,13 @@ MonoBehaviour:
         MulliganUnlimitedReplace: 0
         RuntimeAbilities:
         - rid: 2419359952424665202
-        Archetypes: []
+        Archetypes:
+        - rid: 2419359952424665283
         MaxHealth: 3
         Attack: 0
         Speed: 1
-        ViewPrefab: {fileID: 1046069417137952589, guid: f06aa6138ec1c4140ac9af21f0ddde7e, type: 3}
+        ViewPrefab: {fileID: 8026686172653069236, guid: e610a7d38b3e8e64dad1b0cabeea4e23, type: 3}
+        TurnsAlive: 0
         IsCommander: 0
     - rid: 2419359952424665202
       type: {class: AbilityToSelf, ns: Game.Core.Ability, asm: Game.Core.Ability}
@@ -55,9 +57,10 @@ MonoBehaviour:
         Vfx:
           Kind: 0
           Prefab: {fileID: 0}
-          HitPrefab: {fileID: 0}
+          HitPrefab: {fileID: 119382, guid: 616e8b55bdab6694fabc34c4d1a168fb, type: 3}
           ProjectileSpeed: 12
           MergeArea: 0
+          PlayCasterAnimation: 1
     - rid: 2419359952424665203
       type: {class: OnTurnStartTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
@@ -77,3 +80,6 @@ MonoBehaviour:
         Health: 1
         Speed: 0
         Permanent: 1
+    - rid: 2419359952424665283
+      type: {class: FloraArchetype, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 

@@ -1,28 +1,44 @@
 using System.Collections.Generic;
+using Game.Core.Service;
 
 namespace Game.Core.Ecs.Components
 {
     // === helper (static) ===
     /// <summary>
-    /// Множители ЧАСТОТЫ срабатывания способностей по ключу (владелец + тип триггера). Временная петля
-    /// бампит (owner, "OnTurnStart"/"OnTurnEnd") → способности с этими триггерами кастуются N раз. Глобальный
-    /// статик: новые существа тоже смотрят его в момент срабатывания (AbilityFire.Mark) → охват без скана/
-    /// подписки. Сбрасывается на старте матча (EcsRunHandler).
+    /// Множители ЧАСТОТЫ срабатывания способностей по КОМБИНИРОВАННОМУ ключу «ТипКарты/Триггер» (решение
+    /// пользователя 2026-07-04): "Spell/OnCast" (экзотик «спеллы дважды»), "Creature/OnTurnEnd" и т.п.;
+    /// wildcard "*/OnTurnStart" = любой тип (Временная петля). Итог для срабатывания = 1 + бамп wildcard +
+    /// бамп типизированного ключа (комбинации складываются). Глобальный статик: новые карты тоже смотрят его
+    /// в момент срабатывания (AbilityFire.Mark) → охват без скана/подписки. Сбрасывается на старте матча.
     ///
-    /// СИНК: бамп делает способность Временной петли (резолвится на обоих → сервис одинаков). Множитель влияет
+    /// СИНК: бамп делает способность-источник (резолвится на обоих → сервис одинаков). Множитель влияет
     /// на число резолвов АКТИВНОГО (→ N обычных ActionAbilityData), пассив реплеит N — спец-канал не нужен.
     /// </summary>
     public static class CastMultiplierService
     {
+        /// <summary>Wildcard-тип «любая карта» в составном ключе.</summary>
+        public const string AnyType = "*";
+
+        /// <summary>Составной ключ множителя: "Spell/OnCast", "*/OnTurnEnd" и т.п.</summary>
+        public static string ComposeKey(string typeKey, string trigger) => typeKey + "/" + trigger;
+
         static readonly Dictionary<(int ownerId, string key), int> _extra = new Dictionary<(int, string), int>();
 
         // Временные бампы: ждут N ходов ВЛАДЕЛЬЦА, по истечении откатываются (TickOwnerTurnEnd).
         sealed class Temp { public int ownerId; public string key; public int delta; public int turnsLeft; }
         static readonly List<Temp> _temp = new List<Temp>();
 
-        /// <summary>Сколько раз кастовать (>=1). 1 + накопленные бампы по (owner,key).</summary>
-        public static int Casts(int ownerId, string key)
-            => 1 + (key != null && _extra.TryGetValue((ownerId, key), out int v) ? v : 0);
+        /// <summary>Сколько раз кастовать (>=1) для срабатывания триггера trigger на карте типа cardType:
+        /// 1 + бамп "*/trigger" + бамп "Тип/trigger" (складываются).</summary>
+        public static int Casts(int ownerId, EnumService.CardType cardType, string trigger)
+        {
+            if (trigger == null) return 1;
+            return 1 + Get(ownerId, ComposeKey(AnyType, trigger))
+                     + Get(ownerId, ComposeKey(cardType.ToString(), trigger));
+        }
+
+        static int Get(int ownerId, string key)
+            => _extra.TryGetValue((ownerId, key), out int v) ? v : 0;
 
         public static void Add(int ownerId, string key, int delta)
         {

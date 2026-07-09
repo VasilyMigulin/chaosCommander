@@ -13,13 +13,27 @@ namespace Game.Core.Service
         /// <summary>Бой идёт против ИИ (локальная симуляция ОБОИХ игроков, сеть не используется).</summary>
         public static bool Enabled;
 
-        /// <summary>Путь ассета PveEncounterConfig в Resources (папка Assets/Resources/Encounter/).</summary>
+        /// <summary>Путь ассета PveEncounterConfig в Resources (папка Assets/Resources/Encounter/) —
+        /// ДЕВ/фолбэк-канал. Кампания задаёт энкаунтер ПРЯМОЙ ссылкой (EncounterAsset) — приоритетнее пути.</summary>
         public static string EncounterPath = "Encounter/encounter_001";
+
+        /// <summary>Прямая ссылка на ассет PveEncounterConfig текущего боя (ставит StoryModePanel из
+        /// кампании). Тип object — Service не знает Configs; потребители кастят (PveEncounterLocator).</summary>
+        public static UnityEngine.Object EncounterAsset;
+
+        /// <summary>Стабильный id энкаунтера для прогресса (имя ассета). Пуст → берётся EncounterPath.</summary>
+        public static string EncounterId;
+
+        /// <summary>Ключ прогресса ТЕКУЩЕГО боя.</summary>
+        public static string CurrentDoneKey()
+            => DoneKey(string.IsNullOrEmpty(EncounterId) ? EncounterPath : EncounterId);
 
         public static void Reset()
         {
             Enabled = false;
-            // EncounterPath не трогаем — удобная «последняя выбранная» для повторного входа.
+            EncounterAsset = null;
+            EncounterId = null;
+            // EncounterPath не трогаем — удобная «последняя выбранная» для повторного входа с дев-кнопки.
         }
 
         /// <summary>Ключ PlayerPrefs «уровень пройден» (пишет BattleState при победе, читает StoryModePanel).

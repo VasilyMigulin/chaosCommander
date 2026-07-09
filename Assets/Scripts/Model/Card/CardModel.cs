@@ -127,17 +127,27 @@ namespace Game.Core.Model.Card
                 }
             }
 
+            // Cost = эффективное (Base + модификаторы), Base — печатная стоимость (иммутабельна, как у статов).
             switch (PlayCost)
             {
                 case EnumService.ResourceType.Gold:
-                    world.GetPool<GoldCostComponent>().Add(entity).Cost = PlayCostAmount;
+                {
+                    ref var c = ref world.GetPool<GoldCostComponent>().Add(entity);
+                    c.Base = PlayCostAmount; c.Cost = PlayCostAmount;
                     break;
+                }
                 case EnumService.ResourceType.Mana:
-                    world.GetPool<ManaCostComponent>().Add(entity).Cost = PlayCostAmount;
+                {
+                    ref var c = ref world.GetPool<ManaCostComponent>().Add(entity);
+                    c.Base = PlayCostAmount; c.Cost = PlayCostAmount;
                     break;
+                }
                 case EnumService.ResourceType.Health:
-                    world.GetPool<HealthCostComponent>().Add(entity).Cost = PlayCostAmount;
+                {
+                    ref var c = ref world.GetPool<HealthCostComponent>().Add(entity);
+                    c.Base = PlayCostAmount; c.Cost = PlayCostAmount;
                     break;
+                }
             }
 
             // Модификатор мулигана (Били) — статичный маркер, читает InitMulliganSystem.

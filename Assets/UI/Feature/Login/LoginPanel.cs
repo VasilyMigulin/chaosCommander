@@ -115,6 +115,11 @@ namespace AwesomeUI.Feature.Login
             SetLoading(false);
             ShowEmailView();
 
+            // ЦИКЛ ПЕРВОГО ЗАХОДА: язык не выбран → АВТОЛОГИН НЕ запускаем (панель языка открывает
+            // LoginCanvas.InvokeCanvas — единая точка роутинга; иначе автологин уносил в меню до выбора).
+            if (!Game.Core.Service.FirstRunFlow.LanguageChosen)
+                return;
+
             // Автологин если сохранены данные
             if (!_isLoggingIn && PlayerPrefs.GetInt(PrefRemember, 0) == 1)
             {

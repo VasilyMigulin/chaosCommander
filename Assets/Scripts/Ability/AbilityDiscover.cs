@@ -28,8 +28,31 @@ namespace Game.Core.Ability
         public DiscoverDest Dest = DiscoverDest.Hand;
         public bool TakeOwnership = false;   // true → карта становится КАСТЕРА (воровство из чужой зоны)
 
+        // Модификаторы ВЫБРАННОЙ карты (аналог SummonModifiers): любой target-эффект — ModifyCostEffect{-2}
+        // («стоит на 2 меньше»), BuffStatsEffect и т.п. Зона → RunDiscoverSystem.PlacePicked применяет к
+        // существующей сущности (резолв идёт на обоих клиентах → зеркально); пул → едут в GeneratedModScratch,
+        // применяет CreateCardSystem при материализации (ключ общий → зеркально). Синка не нужно.
+        [Tooltip("Эффекты к выбранной карте («стоит на 2 меньше», бафф/дебафф). Пусто → просто раскопка.")]
+        [SerializeReference] public List<IEffect> Modifiers = new();
+
         // подтип описывает источник кандидатов (зона/пул)
         protected abstract void Configure(EcsWorld world, int cardEntity, ref DiscoverRequestComponent req);
+
+        public override void Init(EcsWorld world, int cardEntity, int playerEntity)
+        {
+            base.Init(world, cardEntity, playerEntity);
+            if (Modifiers != null)
+                foreach (var mod in Modifiers)
+                    mod?.Init(world, cardEntity, playerEntity);
+        }
+
+        public override void Dispose()
+        {
+            base.Dispose();
+            if (Modifiers != null)
+                foreach (var mod in Modifiers)
+                    mod?.Dispose();
+        }
 
         public override void Apply(EcsWorld world, int cardEntity, int target)
         {
@@ -46,6 +69,7 @@ namespace Game.Core.Ability
             req.OfferCount        = OfferCount;
             req.Dest              = Dest;
             req.TakeOwnership     = TakeOwnership;
+            req.Modifiers         = (Modifiers != null && Modifiers.Count > 0) ? Modifiers.ToArray() : null;
             Configure(world, cardEntity, ref req);
         }
 
@@ -83,7 +107,9 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class DiscoverFromPoolEffect : DiscoverEffect
     {
-        [Tooltip("Пул ассетов CardInstanceData, из которых раскапываем (перетащить).")]
+        [Tooltip("Ассет CardPool (по критериям, напр. «все зелёные»). Если задан — берём из него, иначе из ручного Pool ниже.")]
+        public ScriptableObject PoolAsset;
+        [Tooltip("Ручной пул ассетов CardInstanceData (если PoolAsset не задан).")]
         public List<ScriptableObject> Pool = new();
 
         protected override void Configure(EcsWorld world, int cardEntity, ref DiscoverRequestComponent req)
@@ -91,9 +117,16 @@ namespace Game.Core.Ability
             req.FromPool = true;
             var exp = new List<string>();
             var ids = new List<int>();
-            if (Pool != null)
+            if (PoolAsset is ICardPool cp && cp.Cards != null && cp.Cards.Count > 0)
+            {
+                foreach (var c in cp.Cards)
+                    if (c != null) { exp.Add(c.ExpansionId); ids.Add(c.CardId); }
+            }
+            else if (Pool != null)
+            {
                 foreach (var so in Pool)
                     if (so is ICreatable c) { exp.Add(c.ExpansionId); ids.Add(c.CardId); }
+            }
             req.PoolExp    = exp.ToArray();
             req.PoolCardId = ids.ToArray();
         }

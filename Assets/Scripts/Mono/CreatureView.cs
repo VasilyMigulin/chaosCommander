@@ -14,6 +14,7 @@ namespace Game.Core.Mono
         [SerializeField] float moveSpeed = 4f; // клеток/сек
         [SerializeField] float attackMaxSeconds = 2f; // страховка: макс. длительность атаки, если клип не вызвал ивенты
         [SerializeField] float deathMaxSeconds  = 2f; // страховка: через сколько гасить вьюшку, если клип смерти не вызвал ивент
+        [SerializeField] float abilityCastMaxSeconds = 1.2f; // страховка: PlayAbilityCast форсит CastEvent/FinishEvent, если клип их не вызвал
 
         [Header("Stats UI (опционально, привязать в префабе)")]
         [SerializeField] TMP_Text _healthText;   // текущее HP
@@ -32,6 +33,7 @@ namespace Game.Core.Mono
 
         Coroutine _attackFallback;
         Coroutine _deathFallback;
+        Coroutine _abilityCastFallback;
 
         static readonly int AttackHash = Animator.StringToHash("Attack");
         static readonly int DeathHash  = Animator.StringToHash("Death");
@@ -57,7 +59,8 @@ namespace Game.Core.Mono
         Coroutine _summonRoutine;
 
         Action _onAttackHit;
-        Action _onAttackFinished;
+        Action _currentFinish;      // ОБЩИЙ обработчик конца анимации — атака/каст способности/смерть (что сейчас играет)
+        Action _currentCastPoint;   // обработчик момента применения способности (PlayAbilityCast)
 
         private int _row;
         private int _col;
@@ -144,9 +147,9 @@ namespace Game.Core.Mono
                 // Реле на объект с аниматором: Animation Events вызываются на нём, а не на CreatureView.
                 var relay = animator.GetComponent<CreatureAnimationRelay>();
                 if (relay == null) relay = animator.gameObject.AddComponent<CreatureAnimationRelay>();
-                relay.AttackHit      = OnAttackHit;
-                relay.AttackFinished = OnAttackFinished;
-                relay.DeathFinished  = OnDeathFinished;
+                relay.AttackHit = OnAttackHit;
+                relay.CastPoint = OnCastPointEvent;
+                relay.Finish    = OnFinishEvent;
             }
 
             if (_healthText != null) _healthBaseColor = _healthText.color;
@@ -264,8 +267,8 @@ namespace Game.Core.Mono
         /// </summary>
         public void PlayAttack(Action onHit, Action onFinished)
         {
-            _onAttackHit      = onHit;
-            _onAttackFinished = onFinished;
+            _onAttackHit   = onHit;
+            _currentFinish = onFinished;
             // Если есть аниматор с триггером атаки — играем (урон/финиш придут через Animation Events
             // → CreatureAnimationRelay). Иначе сразу применяем урон и завершаем.
             if (animator != null && HasParam(AttackHash))
@@ -282,6 +285,7 @@ namespace Game.Core.Mono
             {
                 onHit?.Invoke();
                 onFinished?.Invoke();
+                _onAttackHit = null; _currentFinish = null;
             }
         }
 
@@ -289,7 +293,7 @@ namespace Game.Core.Mono
         {
             yield return new WaitForSeconds(attackMaxSeconds);
             OnAttackHit();       // вызовет _onAttackHit, только если ивент ещё не сработал (null-guard внутри)
-            OnAttackFinished();
+            OnFinishEvent();
             _attackFallback = null;
         }
 
@@ -342,13 +346,44 @@ namespace Game.Core.Mono
             _summonRoutine = StartCoroutine(SummonGate());
         }
 
-        /// <summary>Анимация «при разыгрывании» (battlecry) для OnCast (#2). Триггер "Cast" или пульс масштабом.</summary>
-        public void PlayCast()
+        /// <summary>Есть ли у существа анимация каста способности (параметр "Cast" в аниматоре) — использует
+        /// RunResolveAbilityQueueSystem (при VfxSpec.PlayCasterAnimation=true), чтобы решить, ждать ли
+        /// анимацию перед резолвом или применить эффекты мгновенно (как раньше). Неактивный объект (существо
+        /// уже умерло/скрыто ДО резолва — напр. deathrattle) не отдаёт анимацию: инстант-резолв безопаснее
+        /// затяжного анти-софтлок таймаута на невидимом объекте.</summary>
+        public bool HasCastAnimation => animator != null && HasParam(CastHash) && gameObject.activeInHierarchy;
+
+        /// <summary>
+        /// Способность РЕЗОЛВИТСЯ на ЭТОМ существе (любой триггер — не только battlecry: OnTurnEnd/OnAttack/
+        /// OnDie/…). Играет анимацию "Cast": onCastPoint — момент применения эффекта/запуска снаряда
+        /// (Animation Event "CastEvent"), onFinished — конец анимации, снимает блокировку хода/таймера
+        /// (Animation Event "FinishEvent"). Вызывай только когда HasCastAnimation=true — иначе (нет клипа
+        /// каста) поведение то же самое: сразу оба колбэка (мгновенный резолв, полная обратная совместимость).
+        /// </summary>
+        public void PlayAbilityCast(Action onCastPoint, Action onFinished)
         {
-            if (animator != null && HasParam(CastHash))
+            if (HasCastAnimation)
+            {
+                _currentCastPoint = onCastPoint;
+                _currentFinish    = onFinished;
                 animator.SetTrigger(CastHash);
+
+                if (_abilityCastFallback != null) StopCoroutine(_abilityCastFallback);
+                _abilityCastFallback = StartCoroutine(AbilityCastFallback());
+            }
             else
-                transform.DOPunchScale(Vector3.one * 0.12f, 0.25f, 6, 0.6f);
+            {
+                onCastPoint?.Invoke();
+                onFinished?.Invoke();
+            }
+        }
+
+        IEnumerator AbilityCastFallback()
+        {
+            yield return new WaitForSeconds(abilityCastMaxSeconds);
+            OnCastPointEvent();   // null-guard внутри — не задвоит, если CastEvent уже пришёл
+            OnFinishEvent();
+            _abilityCastFallback = null;
         }
 
         /// <summary>Реакция цели на удар (#3): триггер аниматора "Hit" + короткий «флинч» масштабом,
@@ -366,8 +401,9 @@ namespace Game.Core.Mono
         {
             if (animator != null && HasParam(DeathHash))
             {
+                _currentFinish = HideAfterDeath;
                 animator.SetTrigger(DeathHash);
-                // Гасим вьюшку, когда анимация смерти закончится (Animation Event OnDeathFinished через реле).
+                // Гасим вьюшку, когда анимация смерти закончится (Animation Event "FinishEvent" через реле).
                 // Страховка по таймауту — если ивента в клипе нет, всё равно выключим.
                 if (_deathFallback != null) StopCoroutine(_deathFallback);
                 _deathFallback = StartCoroutine(DeathFallback());
@@ -385,11 +421,8 @@ namespace Game.Core.Mono
         IEnumerator DeathFallback()
         {
             yield return new WaitForSeconds(deathMaxSeconds);
-            HideAfterDeath();
+            OnFinishEvent();   // null-guard внутри — вызовет HideAfterDeath, только если ивент клипа не пришёл
         }
-
-        /// <summary>Animation Event конца анимации смерти (через реле).</summary>
-        public void OnDeathFinished() => HideAfterDeath();
 
         void HideAfterDeath()
         {
@@ -407,11 +440,21 @@ namespace Game.Core.Mono
             cb?.Invoke();
         }
 
-        /// <summary>Вызывается через Animation Event в конце анимации атаки.</summary>
-        public void OnAttackFinished()
+        /// <summary>Вызывается через Animation Event "CastEvent" — момент применения способности
+        /// (PlayAbilityCast).</summary>
+        public void OnCastPointEvent()
         {
-            var cb = _onAttackFinished;
-            _onAttackFinished = null;
+            var cb = _currentCastPoint;
+            _currentCastPoint = null;
+            cb?.Invoke();
+        }
+
+        /// <summary>Вызывается через Animation Event "FinishEvent" — конец ТЕКУЩЕЙ анимации (атака/каст
+        /// способности/смерть, какая сейчас играет — только одна одновременно).</summary>
+        public void OnFinishEvent()
+        {
+            var cb = _currentFinish;
+            _currentFinish = null;
             cb?.Invoke();
         }
 

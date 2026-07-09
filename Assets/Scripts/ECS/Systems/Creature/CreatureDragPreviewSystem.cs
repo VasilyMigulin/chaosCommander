@@ -118,7 +118,11 @@ namespace Game.Core.Ecs.Systems
         {
             if (_board.Value == null || !_creaturePool.Value.Has(_card)) { ResetDrag(); return; }
 
-            var cam = BattleCameraSelector.ActiveCamera;
+            // Фолбэк на Camera.main (как CreatureView/AvatarPlayerView): без BattleCameraSelector на сцене
+            // (напр. TutorialScene без него) ActiveCamera остаётся null → драг-превью НИКОГДА не стартует
+            // (_startedSent/CreatureDragStartedEvent не публикуются) → PlayCardView тихо падает в старый
+            // клик-путь (OnUse) — «используется старый вариант визуала розыгрыша карты».
+            var cam = BattleCameraSelector.ActiveCamera != null ? BattleCameraSelector.ActiveCamera : Camera.main;
             if (cam == null) return;
 
             // Один раз на драг: UI узнаёт, что тащит СУЩЕСТВО (размещение только дропом на поле) —

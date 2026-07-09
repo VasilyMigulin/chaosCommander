@@ -41,6 +41,18 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<SpeedComponent> _speedPool = default;
         readonly EcsPoolInject<AttackComponent> _atkPool = default;
         readonly EcsPoolInject<AttacksUsedComponent> _attacksUsedPool = default;
+        readonly EcsPoolInject<GoldCostComponent>   _goldCostPool   = default;
+        readonly EcsPoolInject<ManaCostComponent>   _manaCostPool   = default;
+        readonly EcsPoolInject<HealthCostComponent> _healthCostPool = default;
+
+        // Гонка Cast/Death на ОДНОМ Animator (напр. Всадники: OnCast+SelfDestruct — существо умирает от
+        // СВОЕЙ ЖЕ способности, пока играет её анимацию каста): если триггернуть "Death" ПОКА ещё крутится
+        // "Cast" на том же аниматоре, контроллер может не принять переход (нет валидного Cast→Death) →
+        // смерть виснет за анимацией каста и просто телепортируется (SetActive(false) по deathMaxSeconds
+        // таймауту), не дав анимации смерти вообще начаться. Ждём, пока СВОЯ cast-анимация полностью
+        // закончится (AbilityAnimPendingComponent снят), и только потом обрабатываем смерть.
+        readonly EcsFilterInject<Inc<AbilityAnimPendingComponent, AbilityOwnerComponent>> _castingAbilities = default;
+        readonly EcsPoolInject<AbilityOwnerComponent> _abilityOwnerPool = default;
 
         readonly EcsFilterInject<Inc<PlayerComponent, HandComponent>> _playerFilter = default;
 
@@ -48,6 +60,8 @@ namespace Game.Core.Ecs.Systems
         {
             foreach (var entity in _filter.Value)
             {
+                if (HasPendingCastAnim(entity)) continue;   // ждём конца СВОЕЙ анимации каста — попробуем следующим кадром
+
                 if (_selectPool.Value.Has(entity))
                     _selectPool.Value.Del(entity);
 
@@ -191,11 +205,15 @@ namespace Game.Core.Ecs.Systems
         }
 
         // Чистка МЯГКИХ стат-модификаторов при смерти (перманентные остаются). Пересчёт внутри ClearModifiers.
+        // Стоимость — тот же пайплайн (мягкие кост-баффы сгорают, перманентная скидка/наценка переживает смерть).
         private void ClearStatModifiers(int entity)
         {
             if (_atkPool.Value.Has(entity))   { ref var a = ref _atkPool.Value.Get(entity);   a.ClearModifiers(); }
             if (_hpPool.Value.Has(entity))    { ref var h = ref _hpPool.Value.Get(entity);     h.ClearModifiers(); }
             if (_speedPool.Value.Has(entity)) { ref var s = ref _speedPool.Value.Get(entity);  s.ClearModifiers(); }
+            if (_goldCostPool.Value.Has(entity))   { ref var c = ref _goldCostPool.Value.Get(entity);   c.ClearModifiers(); }
+            if (_manaCostPool.Value.Has(entity))   { ref var c = ref _manaCostPool.Value.Get(entity);   c.ClearModifiers(); }
+            if (_healthCostPool.Value.Has(entity)) { ref var c = ref _healthCostPool.Value.Get(entity); c.ClearModifiers(); }
         }
 
         private int FindPlayerEntity(int playerId)
@@ -203,6 +221,17 @@ namespace Game.Core.Ecs.Systems
             foreach (var pe in _playerFilter.Value)
                 if (_playerPool.Value.Get(pe).PlayerId == playerId) return pe;
             return -1;
+        }
+
+        // Существо САМО ещё играет анимацию каста (AbilityAnimPendingComponent на его же способности) —
+        // напр. Всадники: SelfDestruct резолвится ПОСЛЕ CastEvent, но гейт снимается только на FinishEvent
+        // (см. RunResolveAbilityQueueSystem). Ждём FinishEvent (или анти-софтлок таймаут) ПЕРЕД тем, как
+        // триггерить "Death" на том же аниматоре — иначе анимация смерти может не начаться вовсе.
+        private bool HasPendingCastAnim(int cardEntity)
+        {
+            foreach (var ae in _castingAbilities.Value)
+                if (_abilityOwnerPool.Value.Get(ae).CardEntity == cardEntity) return true;
+            return false;
         }
     }
 }

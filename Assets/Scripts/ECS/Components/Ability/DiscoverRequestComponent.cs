@@ -25,6 +25,8 @@ namespace Game.Core.Ecs.Components
         // ── терминал: куда и кому уходит выбранная карта ──
         public DiscoverDest Dest;        // Hand / Deck / Grave
         public bool TakeOwnership;       // true → карта становится КАСТЕРА (воровство); false → остаётся у владельца
+        public IEffect[] Modifiers;      // target-эффекты к ВЫБРАННОЙ карте («стоит на 2 меньше», бафф/дебафф);
+                                         // зона → применяет PlacePicked, пул → едут через GeneratedModScratch
 
         // ── источник кандидатов ──
         public bool            FromPool; // true → PoolExp/PoolCardId (создаём новую); false → Zone (двигаем существующую)

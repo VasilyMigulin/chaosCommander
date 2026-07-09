@@ -27,6 +27,13 @@ namespace Game.Core.Ecs.Components
 
         [Tooltip("Area: true = ОДИН эффект, растянутый на общий Bounds клеток (сплошной прямоугольник); false = по эффекту НА КАЖДУЮ клетку (крест/произвольный набор).")]
         public bool MergeArea = false;
+
+        [Tooltip("Кастер играет анимацию 'Cast' на СЕБЕ перед резолвом (напр. Чёрт — анимация и только потом " +
+                 "огненная стрела). Эффекты применяются на Animation Event 'CastEvent', гейт снимается на " +
+                 "'FinishEvent' (см. RunResolveAbilityQueueSystem/CreatureView.PlayAbilityCast). ОПЦИОНАЛЬНО " +
+                 "(default false) — включай ТОЛЬКО когда в клипе кастера реально размечены эти два ивента, " +
+                 "иначе резолв будет ждать anti-softlock таймаут (abilityCastMaxSeconds) впустую.")]
+        public bool PlayCasterAnimation = false;
     }
 
     /// <summary>Спека VFX способности на ability-сущности (если задана). Ability.Init кладёт сюда Vfx,

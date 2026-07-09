@@ -179,6 +179,18 @@ namespace Game.Core.Mono
                 Toast($"PvE: запрошен бой (энкаунтер '{Game.Core.Service.PveMode.EncounterPath}')");
                 Game.Core.Events.GameEventBus.Publish(new Game.Core.Events.PveStartRequestedEvent());
             }
+            // Сброс цикла первого захода (язык/туториал/стартовый набор) — для теста онбординга.
+            if (GUI.Button(new Rect(pad + 260 * _scale + pad + 150 * _scale + pad + 110 * _scale + pad, y2, 150 * _scale, h), "1stRun ✗", _btn))
+            {
+                Game.Core.Service.FirstRunFlow.ResetAll();
+                Toast("Флаги первого захода сброшены (язык/туториал/стартовый набор)");
+            }
+            // Пропуск туториала (дев): чтобы роутинг первого захода не уводил в TutorialScene.
+            if (GUI.Button(new Rect(pad + 260 * _scale + pad + 150 * _scale + pad + 110 * _scale + pad + 150 * _scale + pad, y2, 110 * _scale, h), "Tut ✓", _btn))
+            {
+                Game.Core.Service.FirstRunFlow.TutorialDone = true;
+                Toast("Туториал помечен пройденным");
+            }
 
             // Тост-подтверждение.
             if (_toast != null && Time.realtimeSinceStartup < _toastUntil)

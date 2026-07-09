@@ -112,6 +112,9 @@ namespace Game.Core.Ecs.Systems
         // поэтому без этого пути призванные существа не появлялись бы у оппонента.
         private void OnCreatureInvoked(CreatureInvokedEvent evt)
         {
+            // Токены, созданные сразу на борд (FillRow/SpawnCardOnBoard): создание зеркально через детерм.
+            // ре-ран generate-эффекта у обоих — ActionCastData дал бы ДУБЛЬ размещения у пассива.
+            if (evt.Generated) return;
             if (!IsOwnCard(evt.CardEntity)) return;
             EnqueueCast(evt.CardEntity);
         }

@@ -42,9 +42,40 @@ namespace Game.Core.Ecs.Systems
                 if (targetPool.Has(entity))
                 {
                     ref var tc = ref targetPool.Get(entity);
+
+                    // Виновник триггера («Неудачная молитва»: урон ИМЕННО вышедшему существу). Кандидаты
+                    // собираются штатно (те же фильтры: WithoutColor и пр.) — если виновник их не прошёл
+                    // (жёлтый) или уже умер, целей нет → способность фуззлится. Синк — target-ключом.
+                    if (tc.Selection == TargetSelection.TriggerSubject)
+                    {
+                        var subjPool = world.GetPool<TriggerSubjectComponent>();
+                        int subject = subjPool.Has(entity) ? subjPool.Get(entity).Entity : -1;
+                        if (subjPool.Has(entity)) subjPool.Del(entity);   // одноразовый (не протухает)
+
+                        var valid = TargetGather.Gather(world, tc.Filters, owner.CardEntity, owner.PlayerEntity, null, tc.Zone);
+                        Queue(queuedPool, entity, subject >= 0 && valid.Contains(subject)
+                            ? new[] { subject }
+                            : Array.Empty<int>());
+                        statePool.Del(entity);
+                        continue;
+                    }
+
                     // Авто-розыгрыш (Фокус-покус): карта с ForceRandomTargetingComponent НЕ передаёт выбор игроку —
                     // Selected трактуем как Random (игра сама выбирает цели, как Йогг-Сарон).
                     bool forceRandom = world.GetPool<ForceRandomTargetingComponent>().Has(owner.CardEntity);
+
+                    // ЧУЖАЯ карта: этот пайплайн крутится ТОЛЬКО на активном клиенте (пассив реплеит уже
+                    // выбранные цели снапшотом) — но триггер способности НЕ ОБЯЗАН принадлежать активному
+                    // игроку (напр. OnDie у существа ОППОНЕНТА, которое активный только что убил). Без этой
+                    // проверки интерактивный Selected-пикер показался бы активному игроку за ЧУЖУЮ способность
+                    // (окно выбора цели «не по адресу»). Своя карта — как раньше, интерактив.
+                    if (!forceRandom)
+                    {
+                        var playerPool = world.GetPool<PlayerComponent>();
+                        if (!playerPool.Has(owner.PlayerEntity) || !playerPool.Get(owner.PlayerEntity).IsLocalPlayer)
+                            forceRandom = true;
+                    }
+
                     if (tc.Selection == TargetSelection.Selected && !forceRandom)
                     {
                         // нет валидных целей → способность фуззлится, не зависаем в ожидании выбора

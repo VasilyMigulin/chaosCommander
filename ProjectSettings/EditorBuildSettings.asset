@@ -17,6 +17,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/BattleScene.unity
     guid: c1a5c8c491a9107429359870fd50ea6c
+  - enabled: 1
+    path: Assets/Scenes/TutorialScene.unity
+    guid: 53354388261fe894e9b38ff37e9967ea
   m_configObjects:
     com.unity.addressableassets: {fileID: 11400000, guid: 6007ed9ecc019c64fb6a80f52ca7e4c7, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
