@@ -1111,6 +1111,1426 @@ MonoBehaviour:
     m_Key: ui.story.level
     m_Metadata:
       m_Items: []
+  - m_Id: 5340893006520320
+    m_Key: card.standard.112.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600704
+    m_Key: card.standard.112.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600705
+    m_Key: card.standard.113.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600706
+    m_Key: card.standard.114.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600707
+    m_Key: card.standard.114.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600708
+    m_Key: card.standard.115.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600709
+    m_Key: card.standard.115.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600710
+    m_Key: card.standard.116.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600711
+    m_Key: card.standard.116.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600712
+    m_Key: card.standard.117.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600713
+    m_Key: card.standard.118.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600714
+    m_Key: card.standard.118.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600715
+    m_Key: card.standard.119.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600716
+    m_Key: card.standard.119.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600717
+    m_Key: card.standard.120.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600718
+    m_Key: card.standard.120.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600719
+    m_Key: card.standard.121.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600720
+    m_Key: card.standard.121.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600721
+    m_Key: card.standard.122.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600722
+    m_Key: card.standard.122.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600723
+    m_Key: card.standard.123.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600724
+    m_Key: card.standard.124.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600725
+    m_Key: card.standard.124.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600726
+    m_Key: card.standard.125.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600727
+    m_Key: card.standard.125.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600728
+    m_Key: card.standard.126.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600729
+    m_Key: card.standard.126.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600730
+    m_Key: card.standard.127.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600731
+    m_Key: card.standard.127.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600732
+    m_Key: card.standard.128.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600733
+    m_Key: card.standard.128.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600734
+    m_Key: card.standard.129.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600735
+    m_Key: card.standard.129.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600736
+    m_Key: card.standard.130.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600737
+    m_Key: card.standard.130.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600738
+    m_Key: card.standard.131.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600739
+    m_Key: card.standard.131.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600740
+    m_Key: card.standard.132.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600741
+    m_Key: card.standard.132.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600742
+    m_Key: card.standard.133.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600743
+    m_Key: card.standard.133.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600744
+    m_Key: card.standard.134.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600745
+    m_Key: card.standard.134.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600746
+    m_Key: card.standard.135.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600747
+    m_Key: card.standard.135.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600748
+    m_Key: card.standard.136.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600749
+    m_Key: card.standard.136.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600750
+    m_Key: card.standard.137.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600751
+    m_Key: card.standard.137.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600752
+    m_Key: card.standard.138.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600753
+    m_Key: card.standard.138.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600754
+    m_Key: card.standard.139.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600755
+    m_Key: card.standard.139.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600756
+    m_Key: card.standard.140.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600757
+    m_Key: card.standard.140.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600758
+    m_Key: card.standard.141.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600759
+    m_Key: card.standard.141.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600760
+    m_Key: card.standard.142.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600761
+    m_Key: card.standard.142.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600762
+    m_Key: card.standard.143.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600763
+    m_Key: card.standard.143.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600764
+    m_Key: card.standard.144.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600765
+    m_Key: card.standard.144.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600766
+    m_Key: card.standard.145.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600767
+    m_Key: card.standard.145.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600768
+    m_Key: card.standard.146.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600769
+    m_Key: card.standard.146.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600770
+    m_Key: card.standard.147.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600771
+    m_Key: card.standard.147.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600772
+    m_Key: story.prince.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600773
+    m_Key: story.gnidalf.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600774
+    m_Key: story.c1e1.intro.1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600775
+    m_Key: story.c1e1.intro.2
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600776
+    m_Key: story.c1e1.victory.1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600777
+    m_Key: story.c1e1.defeat.1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600778
+    m_Key: story.c1e6.intro.1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600779
+    m_Key: story.c1e6.victory.1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600780
+    m_Key: story.c1e5.gnidalf.1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600781
+    m_Key: ui.reward.card
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600782
+    m_Key: ui.language.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600783
+    m_Key: ui.tutorial.step1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600784
+    m_Key: ui.tutorial.step2
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600785
+    m_Key: ui.tutorial.step3
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600786
+    m_Key: ui.tutorial.step4
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600787
+    m_Key: ui.tutorial.step5
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600788
+    m_Key: ui.tutorial.done
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5344678172942336
+    m_Key: card.standard.148.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5344678172942337
+    m_Key: card.standard.148.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624514355200
+    m_Key: card.standard.149.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881152
+    m_Key: card.standard.149.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881153
+    m_Key: card.standard.150.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881154
+    m_Key: card.standard.150.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881155
+    m_Key: card.standard.151.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881156
+    m_Key: card.standard.151.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881157
+    m_Key: card.standard.152.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881158
+    m_Key: card.standard.152.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881159
+    m_Key: card.standard.153.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881160
+    m_Key: card.standard.153.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881161
+    m_Key: card.standard.154.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881162
+    m_Key: card.standard.154.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881163
+    m_Key: card.standard.155.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881164
+    m_Key: card.standard.155.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881165
+    m_Key: card.standard.156.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881166
+    m_Key: card.standard.156.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881167
+    m_Key: card.standard.157.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881168
+    m_Key: card.standard.157.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881169
+    m_Key: card.standard.158.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881170
+    m_Key: card.standard.158.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881171
+    m_Key: card.standard.159.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881172
+    m_Key: card.standard.159.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881173
+    m_Key: card.standard.160.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881174
+    m_Key: card.standard.160.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881175
+    m_Key: card.standard.161.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881176
+    m_Key: card.standard.161.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881177
+    m_Key: card.standard.162.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881178
+    m_Key: card.standard.162.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881179
+    m_Key: card.standard.163.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881180
+    m_Key: card.standard.163.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939655467008
+    m_Key: ui.nav.play
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187264
+    m_Key: ui.nav.boosters
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187265
+    m_Key: ui.nav.shop
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187266
+    m_Key: ui.nav.market
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187267
+    m_Key: ui.nav.tasks
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187268
+    m_Key: ui.nav.auction
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187269
+    m_Key: ui.home.pvp
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187270
+    m_Key: ui.home.pve
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187271
+    m_Key: ui.home.find
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187272
+    m_Key: ui.home.play
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187273
+    m_Key: ui.home.deck
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187274
+    m_Key: ui.home.blackMarket
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187275
+    m_Key: ui.home.rank
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187276
+    m_Key: ui.home.online
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187277
+    m_Key: ui.home.quick
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187278
+    m_Key: ui.home.season
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187279
+    m_Key: ui.home.level
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187280
+    m_Key: ui.pve.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187281
+    m_Key: ui.pve.battle
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187282
+    m_Key: ui.pve.reward
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187283
+    m_Key: ui.pve.play
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187284
+    m_Key: ui.pve.locked
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187285
+    m_Key: ui.pve.done
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187286
+    m_Key: ui.meta.buy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187287
+    m_Key: ui.meta.sell
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187288
+    m_Key: ui.meta.remove
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187289
+    m_Key: ui.meta.collect
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187290
+    m_Key: ui.meta.streak
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187291
+    m_Key: ui.meta.reward
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187292
+    m_Key: ui.meta.loginReward
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187293
+    m_Key: ui.meta.purchase
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187294
+    m_Key: ui.meta.notEnough
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187295
+    m_Key: ui.meta.enterPrice
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187296
+    m_Key: ui.meta.empty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187297
+    m_Key: ui.dialog.confirm
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187298
+    m_Key: ui.dialog.cancel
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187299
+    m_Key: ui.dialog.buyConfirm
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187300
+    m_Key: ui.dialog.sellConfirm
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187301
+    m_Key: ui.task.play_games
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187302
+    m_Key: ui.task.win_games
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939718381568
+    m_Key: ui.task.play_cards
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939718381569
+    m_Key: ui.task.open_boosters
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939718381570
+    m_Key: ui.booster.tap
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939718381571
+    m_Key: ui.keyword.worker.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939718381572
+    m_Key: ui.keyword.worker.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939718381573
+    m_Key: ui.keyword.imp.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939718381574
+    m_Key: ui.keyword.imp.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939718381575
+    m_Key: ui.keyword.flora.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939718381576
+    m_Key: ui.keyword.flora.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939718381577
+    m_Key: ui.firstrun.skip_tutorial
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6183373272768512
+    m_Key: ui.menu.daily
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6401313490329600
+    m_Key: ui.journal.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6401313557438464
+    m_Key: ui.journal.tasks
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6401313557438465
+    m_Key: ui.journal.login
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6401313557438466
+    m_Key: ui.journal.daily
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6401313557438467
+    m_Key: ui.journal.weekly
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6401313557438468
+    m_Key: ui.journal.achievements
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6401313557438469
+    m_Key: ui.profile.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6401313557438470
+    m_Key: ui.profile.wins
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6401313557438471
+    m_Key: ui.profile.losses
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6401313557438472
+    m_Key: ui.profile.winrate
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6401313557438473
+    m_Key: ui.profile.games
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6401313557438474
+    m_Key: ui.profile.achievements
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6401313557438475
+    m_Key: ui.profile.boosters
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6401313557438476
+    m_Key: ui.profile.cards
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6401313570021376
+    m_Key: ui.title.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6401313570021377
+    m_Key: ui.title.tap
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057553027072
+    m_Key: ui.pve.chapterOf
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057649496064
+    m_Key: ui.pve.campaignDone
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690368
+    m_Key: ui.inspect.related
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690369
+    m_Key: ui.deck.decks
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690370
+    m_Key: ui.deck.add
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690371
+    m_Key: ui.deck.empty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690372
+    m_Key: ui.deck.delete_confirm
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690373
+    m_Key: ui.deck.limit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690374
+    m_Key: ui.deck.name_taken
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690375
+    m_Key: ui.deck.code_copied
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690376
+    m_Key: ui.deck.code_imported
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690377
+    m_Key: ui.deck.imported
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690378
+    m_Key: ui.deck.imported_partial
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690379
+    m_Key: ui.deck.missing_cards
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690380
+    m_Key: ui.mm.flavor.01
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690381
+    m_Key: ui.mm.flavor.02
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690382
+    m_Key: ui.mm.flavor.03
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690383
+    m_Key: ui.mm.flavor.04
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690384
+    m_Key: ui.mm.flavor.05
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690385
+    m_Key: ui.mm.flavor.06
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690386
+    m_Key: ui.mm.flavor.07
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690387
+    m_Key: ui.mm.flavor.08
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690388
+    m_Key: ui.mm.flavor.09
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690389
+    m_Key: ui.mm.flavor.10
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690390
+    m_Key: ui.mm.flavor.11
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690391
+    m_Key: ui.mm.flavor.12
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690392
+    m_Key: ui.mm.flavor.13
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690393
+    m_Key: ui.mm.flavor.14
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690394
+    m_Key: ui.mm.flavor.15
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690395
+    m_Key: ui.mm.flavor.16
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690396
+    m_Key: ui.mm.flavor.17
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690397
+    m_Key: ui.mm.flavor.18
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690398
+    m_Key: ui.mm.flavor.19
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690399
+    m_Key: ui.mm.flavor.20
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690400
+    m_Key: ui.mm.flavor.21
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690401
+    m_Key: ui.mm.flavor.22
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690402
+    m_Key: ui.mm.flavor.23
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690403
+    m_Key: ui.mm.flavor.24
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690404
+    m_Key: ui.mm.flavor.25
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690405
+    m_Key: ui.mm.flavor.26
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690406
+    m_Key: ui.mm.flavor.27
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690407
+    m_Key: ui.mm.flavor.28
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690408
+    m_Key: ui.mm.flavor.29
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690409
+    m_Key: ui.mm.flavor.30
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690410
+    m_Key: ui.mm.flavor.31
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690411
+    m_Key: ui.mm.flavor.32
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690412
+    m_Key: ui.mm.flavor.33
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690413
+    m_Key: ui.mm.flavor.34
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690414
+    m_Key: ui.mm.flavor.35
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690415
+    m_Key: ui.mm.flavor.36
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690416
+    m_Key: ui.mm.flavor.37
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690417
+    m_Key: ui.mm.flavor.38
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690418
+    m_Key: ui.mm.flavor.39
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690419
+    m_Key: ui.mm.flavor.40
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690420
+    m_Key: ui.mm.flavor.41
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690421
+    m_Key: ui.mm.flavor.42
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690422
+    m_Key: ui.mm.flavor.43
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690423
+    m_Key: ui.mm.flavor.44
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6727656241356800
+    m_Key: ui.deck.copy_code
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6727656279105536
+    m_Key: ui.deck.delete
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6727656279105537
+    m_Key: ui.deck.edit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6727656279105538
+    m_Key: ui.deck.save
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6727656279105539
+    m_Key: ui.deck.clear
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6733122736480256
+    m_Key: ui.deck.select
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6733122778423296
+    m_Key: ui.deck.active
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6733122778423297
+    m_Key: ui.deck.selected
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6733122778423298
+    m_Key: ui.deck.incomplete
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7582018962448384
+    m_Key: ui.deck.missing_owned
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7582019025362944
+    m_Key: ui.err.not_enough
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7582019025362945
+    m_Key: ui.err.already_owned
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7582019025362946
+    m_Key: ui.err.unknown_item
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7582019025362947
+    m_Key: ui.err.not_owned
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7582019025362948
+    m_Key: ui.err.config_missing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7582019025362949
+    m_Key: ui.err.grant_failed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7582019025362950
+    m_Key: ui.err.not_logged_in
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7582019025362951
+    m_Key: ui.err.bad_request
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7582019025362952
+    m_Key: ui.err.dev_disabled
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7582019025362953
+    m_Key: ui.shop.booster_standard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7582019025362954
+    m_Key: ui.shop.booster_premium
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7582019025362955
+    m_Key: ui.shop.avatar_prince
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7582019025362956
+    m_Key: ui.shop.avatar_gnidalf
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7626595249414144
+    m_Key: ui.home.training
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7626595312328704
+    m_Key: ui.home.training_desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7626595312328705
+    m_Key: ui.deck.is_commander
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7626595316523008
+    m_Key: ui.login.offline
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7626595316523009
+    m_Key: ui.login.offline_vpn
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7626595316523010
+    m_Key: ui.login.retry
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7633779744038912
+    m_Key: ui.shop.owned
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7633779794370560
+    m_Key: ui.currency.GD
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7633779794370561
+    m_Key: ui.currency.GM
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7642452184784896
+    m_Key: ui.shop.empty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7667532814082048
+    m_Key: ui.journal.day
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7667532881190912
+    m_Key: ui.journal.reset
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7903993614295040
+    m_Key: ui.journal.dayShort
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7903993685598208
+    m_Key: ui.currency.SC
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7903993685598209
+    m_Key: ui.card.dust
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7903993685598210
+    m_Key: ui.market.sold
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7903993685598211
+    m_Key: ui.task.completed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7903993685598212
+    m_Key: ui.task.claimed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721925574656
+    m_Key: ui.auction.bid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294912
+    m_Key: ui.auction.place
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294913
+    m_Key: ui.auction.raise
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294914
+    m_Key: ui.auction.minBid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294915
+    m_Key: ui.auction.seller
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294916
+    m_Key: ui.auction.leading
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294917
+    m_Key: ui.auction.outbid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294918
+    m_Key: ui.auction.noBids
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294919
+    m_Key: ui.auction.ended
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294920
+    m_Key: ui.auction.list
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294921
+    m_Key: ui.auction.bids
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294922
+    m_Key: ui.auction.nearFull
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294923
+    m_Key: ui.auction.full
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294924
+    m_Key: ui.auction.capacity
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294925
+    m_Key: ui.auction.bidCost
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294926
+    m_Key: ui.auction.bidConfirm
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294927
+    m_Key: ui.auction.listConfirm
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294928
+    m_Key: ui.auction.timeH
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294929
+    m_Key: ui.err.auction_full
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294930
+    m_Key: ui.err.has_bids
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294931
+    m_Key: ui.err.outbid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294932
+    m_Key: ui.err.own_lot
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294933
+    m_Key: ui.err.ended
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721988489216
+    m_Key: ui.err.not_sellable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721988489217
+    m_Key: ui.err.bad_currency
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721988489218
+    m_Key: ui.err.bid_too_low
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721988489219
+    m_Key: ui.err.not_found
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721988489220
+    m_Key: ui.err.not_owner
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7951154511077376
+    m_Key: ui.auction.tabBrowse
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7951154540437504
+    m_Key: ui.auction.tabMy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7963797472927744
+    m_Key: ui.auction.tabMyLots
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7963797523259392
+    m_Key: ui.auction.tabSell
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668274851840
+    m_Key: ui.welcome.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183488
+    m_Key: ui.welcome.continue
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183489
+    m_Key: ui.welcome.nickname_hint
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183490
+    m_Key: ui.welcome.google
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183491
+    m_Key: ui.welcome.apple
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183492
+    m_Key: ui.welcome.soon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183493
+    m_Key: ui.welcome.name_too_short
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183494
+    m_Key: ui.welcome.name_taken
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183495
+    m_Key: ui.welcome.name_failed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183496
+    m_Key: ui.booster.openN
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183497
+    m_Key: ui.battle.end_turn
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183498
+    m_Key: ui.login.flavor.01
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183499
+    m_Key: ui.login.flavor.02
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183500
+    m_Key: ui.login.flavor.03
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183501
+    m_Key: ui.login.flavor.04
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183502
+    m_Key: ui.login.flavor.05
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183503
+    m_Key: ui.login.flavor.06
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183504
+    m_Key: ui.login.flavor.07
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183505
+    m_Key: ui.login.flavor.08
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183506
+    m_Key: ui.login.flavor.09
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183507
+    m_Key: ui.login.flavor.10
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183508
+    m_Key: ui.login.flavor.11
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183509
+    m_Key: ui.login.flavor.12
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8723275818459136
+    m_Key: ui.tutorial.commander
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8723275856207872
+    m_Key: ui.tutorial.gold
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8723275856207873
+    m_Key: ui.tutorial.playCreature
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8723275856207874
+    m_Key: ui.tutorial.stats
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8723275856207875
+    m_Key: ui.tutorial.speed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8723275856207876
+    m_Key: ui.tutorial.move
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8723275856207877
+    m_Key: ui.tutorial.attack
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8723275856207878
+    m_Key: ui.tutorial.mana
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8723275856207879
+    m_Key: ui.tutorial.playSpell
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8723275856207880
+    m_Key: ui.tutorial.charms
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8723275856207881
+    m_Key: ui.tutorial.lethal
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8723275856207882
+    m_Key: ui.tutorial.next
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10032882314633216
+    m_Key: card.standard.58.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10032882373353472
+    m_Key: ui.dialog.buyConfirmMany
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10032882373353473
+    m_Key: ui.dialog.max
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10032882373353474
+    m_Key: ui.card.dustAll
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

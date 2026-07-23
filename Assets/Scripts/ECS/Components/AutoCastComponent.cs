@@ -18,4 +18,23 @@ namespace Game.Core.Ecs.Components
     /// идёт ПОСЛЕ снятия AutoCastComponent); уходит вместе с картой в кладбище, безвреден.
     /// </summary>
     public struct ForceRandomTargetingComponent { }
+
+    /// <summary>Критерий УМНОГО авто-выбора цели для ИИ (PvE): вместо случайного из валидных кандидатов
+    /// RunAbilityTargetingSystem сортирует по критерию. Фильтры карты уже задали, КОГО можно выбирать
+    /// (враг/союзник/зона) — здесь только «какого именно».</summary>
+    public enum AiTargetPreference
+    {
+        None = 0,          // как раньше — случайно
+        HighestAttack = 1, // самая опасная цель (removal/дебафф) или лучший получатель баффа
+        LowestHealth = 2,  // добивание уроном
+        MostDamaged = 3,   // лечение: макс. потерянного HP
+    }
+
+    /// <summary>
+    /// «ИИ уже выбрал, как целиться» — вешается RunAiTurnSystem на КАРТУ вместе с
+    /// ForceRandomTargetingComponent при касте. RunAbilityTargetingSystem при авто-выборе (random-ветка)
+    /// сортирует кандидатов по Mode вместо шаффла. Только PvE (ИИ — единственный, кто ставит);
+    /// персистентный, как ForceRandomTargetingComponent, безвреден после розыгрыша.
+    /// </summary>
+    public struct AiTargetPreferenceComponent { public AiTargetPreference Mode; }
 }

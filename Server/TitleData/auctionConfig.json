@@ -1,0 +1,7 @@
+{
+  "_comment": "Title Data key = 'auctionConfig'. Аукцион СО СТАВКАМИ. maxLots — лимит лотов на рынке (намеренная фишка: 'рынок вот-вот лопнет'), при заполнении выставить нельзя. lotDurationMin — сколько живёт лот. feePercent — комиссия покупателя (buyer's premium): победитель платит ставку×(1+fee), продавец получает ставку, разница сгорает (сток валюты). minBid — минимальная стартовая ставка по валюте (GD золото / GM гемы). Хранилище — Shared Group Data 'auction_house'; расчёт истёкших лотов — Scheduled Task на ResolveAuctions.",
+  "maxLots": 40,
+  "lotDurationMin": 60,
+  "feePercent": 10,
+  "minBid": { "GD": 10, "GM": 1 }
+}

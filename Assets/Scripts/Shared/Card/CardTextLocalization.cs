@@ -57,6 +57,7 @@ namespace Game.Core.Shared
         {
             ["ru"] = new[]
             {
+                "Когда вы получаете урон на своём ходу", "Когда вы получаете урон на своем ходу",
                 "При разыгрывании", "В начале матча", "В начале хода", "В конце хода",
                 "При получении урона", "При уничтожении", "При убийстве", "При атаке",
                 "Пока контролируете", "Когда вы берёте карту", "Когда вы берете карту",
@@ -64,6 +65,7 @@ namespace Game.Core.Shared
             },
             ["en"] = new[]
             {
+                "When you take damage during your turn",
                 "When played", "At the start of the match", "At the start of turn", "At the end of turn",
                 "When damaged", "When destroyed", "On kill", "On attack",
                 "While you control", "When you draw a card",

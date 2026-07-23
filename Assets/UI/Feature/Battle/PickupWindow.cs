@@ -34,8 +34,6 @@ namespace AwesomeUI.Feature.Battle
             _cardViews.ForEach(v => v.Init());
             if (_canvasGroup == null) _canvasGroup = GetComponent<CanvasGroup>();
 
-            GameEventBus.Subscribe<CardPickOfferedEvent>(OnOffered);
-
             if (_cancelButton != null) _cancelButton.onClick.AddListener(OnCancel);
 
             gameObject.SetActive(false);
@@ -45,11 +43,15 @@ namespace AwesomeUI.Feature.Battle
         public override void Dispose()
         {
             base.Dispose();
-            GameEventBus.Unsubscribe<CardPickOfferedEvent>(OnOffered);
             if (_cancelButton != null) _cancelButton.onClick.RemoveListener(OnCancel);
         }
 
-        public override void Unject() { }
+        // BattleCanvas — persistent (DontDestroyOnLoad): между матчами объект не пересоздаётся, Init()/Dispose()
+        // второй раз не вызываются. А GameEventBus.Clear() (см. EcsRunHandler.Dispose при выходе из боя) обнуляет
+        // ВСЮ шину — подписка из Init() пропадала бы навсегда после первого же матча (окно раскопки просто
+        // переставало бы открываться). OnInject()/Unject() вызывает UIHandler НА КАЖДЫЙ матч.
+        public override void OnInject() => GameEventBus.Subscribe<CardPickOfferedEvent>(OnOffered);
+        public override void Unject()   => GameEventBus.Unsubscribe<CardPickOfferedEvent>(OnOffered);
 
         // ── Events ───────────────────────────────────────────────────────────────
 

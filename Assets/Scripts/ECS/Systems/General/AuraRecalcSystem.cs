@@ -30,6 +30,7 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<AuraSourceComponent> _auraPool = default;
         readonly EcsPoolInject<TargetMaskComponent> _flagsPool = default;
 
+
         public void Run(IEcsSystems systems)
         {
             // 1. Сброс к базовым статам

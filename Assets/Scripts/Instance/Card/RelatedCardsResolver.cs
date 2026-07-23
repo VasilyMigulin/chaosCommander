@@ -9,9 +9,15 @@ namespace Game.Core.Instance.Card
 {
     /// <summary>
     /// Собирает «связанные» карты для данной карты — те, что она создаёт/замешивает/призывает
-    /// через свои способности (Старый колдун → Вонючее облако, Водонос → Освежающий напиток,
-    /// случайные пулы и т.п.). Нужна для предпросмотра в колодостроителе, чтобы игрок видел,
+    /// через свои способности (Старый колдун → Вонючее облако, чара-призыв → Боец на арене).
+    /// Нужна для предпросмотра в колодостроителе (CardInspectPopup), чтобы игрок видел,
     /// что именно карта порождает.
+    ///
+    /// ЧТО ПОКАЗЫВАЕМ: любая ссылка на карту в графе способностей (прямые поля Source/Card И карты
+    /// внутри пулов) попадает в список, только если карта-кандидат — ТОКЕН (IsToken, показываются
+    /// всегда) ИЛИ явно помечена CardModel.ShowAsLinked (обычные карты, порождаемые адресно).
+    /// Обычные карты пулов без флага не показываются — иначе Фокус-покус вываливал бы весь пул.
+    /// Никаких эвристик по именам полей: решение целиком на флаге самой карты.
     ///
     /// Как работает: обходит граф RuntimeAbilities рефлексией и собирает все ссылки на
     /// CardInstanceData (ICreatable) и пулы (ICardPool). Из CardInstanceData берётся уже готовый
@@ -46,10 +52,12 @@ namespace Game.Core.Instance.Card
             return result;
         }
 
+        // Единый фильтр показа: токен — всегда; обычная карта — только с явным флагом ShowAsLinked.
         static void Collect(ICreatable creatable, HashSet<(string, int)> seen, List<CardModel> result)
         {
             var model = (creatable as CardInstanceData)?.CardData;
             if (model == null) return;
+            if (!model.IsToken && !model.ShowAsLinked) return;
             if (seen.Add((model.ExpansionId, model.Id)))
                 result.Add(model);
         }
@@ -58,7 +66,7 @@ namespace Game.Core.Instance.Card
         {
             if (obj == null || depth > MaxDepth) return;
 
-            // Создаваемая карта / пул — собираем и НЕ углубляемся внутрь них (глубина 1).
+            // Ссылка на карту / пул — собираем (фильтр в Collect) и НЕ углубляемся внутрь них (глубина 1).
             if (obj is ICreatable creatable) { Collect(creatable, seen, result); return; }
             if (obj is ICardPool pool)
             {

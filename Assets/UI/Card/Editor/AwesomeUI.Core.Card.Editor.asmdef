@@ -2,7 +2,9 @@
     "name": "AwesomeUI.Core.Card.Editor",
     "rootNamespace": "",
     "references": [
-        "GUID:b8047bce962474b4caac4c7812503d29"
+        "GUID:b8047bce962474b4caac4c7812503d29",
+        "GUID:581d83ee1d8cbde408a461e635eb5b8d",
+        "GUID:6055be8ebefd69e48b49212b09b47b2f"
     ],
     "includePlatforms": [
         "Editor"

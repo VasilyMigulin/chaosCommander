@@ -2,11 +2,11 @@
     "name": "AwesomeUI.Core.Card",
     "rootNamespace": "",
     "references": [
-        "GUID:581d83ee1d8cbde408a461e635eb5b8d",
         "GUID:6055be8ebefd69e48b49212b09b47b2f",
         "GUID:40c9061943587d8468b12e839093bc31",
         "GUID:ab46f0384b91e604cab2878e7c49e9f1",
-        "GUID:aaadf7a94e4556f4d89ea0cb53ff3a99"
+        "GUID:aaadf7a94e4556f4d89ea0cb53ff3a99",
+        "GUID:581d83ee1d8cbde408a461e635eb5b8d"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

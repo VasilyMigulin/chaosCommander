@@ -24,6 +24,14 @@ namespace Game.Core.Backend
             Action<TResp> onSuccess, Action<string> onError = null)
             where TResp : class
         {
+            // Без логина (в т.ч. SkipLogin / до авторизации) серверные вызовы невозможны —
+            // ExecuteCloudScript кинул бы исключение «Must be logged in». Грейсфул: onError, без краша.
+            if (!PlayFabClientAPI.IsClientLoggedIn())
+            {
+                onError?.Invoke("not_logged_in");
+                return;
+            }
+
             PlayFabClientAPI.ExecuteCloudScript(
                 new ExecuteCloudScriptRequest
                 {

@@ -34,7 +34,8 @@ MonoBehaviour:
         ExpansionId: standard
         PlayCost: 0
         PlayCostAmount: 4
-        IsToken: 0
+        IsToken: 1
+        ShowAsLinked: 1
         MulliganStartingHand: 0
         MulliganUnlimitedReplace: 0
         RuntimeAbilities:
@@ -44,6 +45,16 @@ MonoBehaviour:
         Attack: 5
         Speed: 1
         ViewPrefab: {fileID: 8026686172653069236, guid: 2a8c71c2f907e7a4fb620b992ab20c35, type: 3}
+        SummonVfx:
+          PrePrefab: {fileID: 0}
+          PreLeadSeconds: 0
+          ResolvePrefab: {fileID: 0}
+          ResolveAttach: 1
+          ResolveDelaySeconds: 0.1
+          ResolveFollow: 1
+          FinishPrefab: {fileID: 0}
+          FinishAnchor: 1
+          FinishAttach: 0
         TurnsAlive: 0
         IsCommander: 0
     - rid: 1051486567619101024
@@ -63,6 +74,7 @@ MonoBehaviour:
           HitPrefab: {fileID: 0}
           ProjectileSpeed: 12
           MergeArea: 0
+          PlayCasterAnimation: 0
         Selection: 0
         Count: 1
         Zone: 0

@@ -17,8 +17,10 @@ namespace Game.Core.Ecs.Systems
     /// </summary>
     public sealed class DieSystem : IEcsRunSystem
     {
+        readonly EcsWorldInject _world = default;   // для пере-привязки способностей краденого командира
         readonly EcsFilterInject<Inc<DeadTag, BoardTag, CreatureTag>> _filter = default;
 
+        readonly EcsPoolInject<AttackAnimPendingTag> _attackAnimPool = default;
         readonly EcsPoolInject<BoardTag> _boardPool = default;
         readonly EcsPoolInject<GraveTag> _gravePool = default;
         readonly EcsPoolInject<DieEvent> _diePool = default;
@@ -45,6 +47,13 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<ManaCostComponent>   _manaCostPool   = default;
         readonly EcsPoolInject<HealthCostComponent> _healthCostPool = default;
 
+        // Захваченный (TakeControlEffect) командир при смерти возвращается ИЗНАЧАЛЬНОМУ владельцу, а не
+        // текущему контролёру — см. ReturnCommanderToHand.
+        readonly EcsPoolInject<OriginalOwnerComponent>  _originalOwnerPool = default;
+        readonly EcsPoolInject<TempControlledComponent> _tempControlPool  = default;
+        readonly EcsPoolInject<OwnCardTag>              _ownCardTagPool   = default;
+        readonly EcsPoolInject<EnemyCardTag>            _enemyCardTagPool = default;
+
         // Гонка Cast/Death на ОДНОМ Animator (напр. Всадники: OnCast+SelfDestruct — существо умирает от
         // СВОЕЙ ЖЕ способности, пока играет её анимацию каста): если триггернуть "Death" ПОКА ещё крутится
         // "Cast" на том же аниматоре, контроллер может не принять переход (нет валидного Cast→Death) →
@@ -60,7 +69,19 @@ namespace Game.Core.Ecs.Systems
         {
             foreach (var entity in _filter.Value)
             {
-                if (HasPendingCastAnim(entity)) continue;   // ждём конца СВОЕЙ анимации каста — попробуем следующим кадром
+                if (HasPendingCastAnim(entity))
+                {
+                    continue;   // ждём конца СВОЕЙ анимации каста — попробуем следующим кадром
+                }
+
+                // Гонка Attack/Death на ОДНОМ Animator (существо гибнет — напр. от контр-урона в onHit —
+                // ПОКА ещё играет СВОЮ анимацию атаки): SetTrigger("Death") посреди состояния "Attack" может
+                // не найти валидный переход (та же природа бага, что и с Cast/Death — см. HasPendingCastAnim).
+                // Ждём, пока AttackAnimPendingTag снимется (FinishEvent атаки/анти-софтлок в AttackSystem).
+                if (_attackAnimPool.Value.Has(entity))
+                {
+                    continue;
+                }
 
                 if (_selectPool.Value.Has(entity))
                     _selectPool.Value.Del(entity);
@@ -140,12 +161,41 @@ namespace Game.Core.Ecs.Systems
 
         private void ReturnCommanderToHand(int entity, int ownerId)
         {
-            // Деспавним визуал, чтобы повторное развёртывание создало новый инстанс
+            // Захваченный командир (TakeControlEffect: контроль-на-месте, OwnerId сменился на захватчика) при
+            // смерти возвращается ИЗНАЧАЛЬНОМУ владельцу, а не текущему контролёру — иначе игрок, укравший
+            // командира, получал бы его в СВОЮ руку. OriginalOwnerComponent ставится ОДИН раз при первом
+            // захвате (переживает и Temporary, и постоянный TakeControlEffect) — если её нет, командира никто
+            // не захватывал, ownerId уже правильный.
+            if (_originalOwnerPool.Value.Has(entity))
+            {
+                int originalOwnerId = _originalOwnerPool.Value.Get(entity).OwnerId;
+                if (originalOwnerId != ownerId)
+                {
+                    ownerId = originalOwnerId;
+                    RevertOwnershipToOriginal(entity, originalOwnerId);
+                    // ХС-семантика: способности при краже были пере-привязаны к вору (IAbility.Rebind) —
+                    // возвращаем командира истинному владельцу ВМЕСТЕ с его способностями, иначе при
+                    // повторном розыгрыше из руки эффекты кредитовали бы похитителя.
+                    AbilityRebindUtil.RebindToPlayerId(_world.Value, entity, originalOwnerId);
+                }
+                _originalOwnerPool.Value.Del(entity);   // командир снова у истинного владельца — память не нужна
+            }
+            // Временный контроль (TempControlledComponent) больше не актуален — командир покидает борд.
+            if (_tempControlPool.Value.Has(entity))
+                _tempControlPool.Value.Del(entity);
+
+            // Визуал: сначала АНИМАЦИЯ СМЕРТИ (как у обычных существ — раньше инстанс сносился мгновенно
+            // и командир «телепортировался» в руку), уничтожение — отложенно, когда анимация точно
+            // отыграла (PlayDeath сам прячет вьюшку по её концу; 3с > deathMaxSeconds-фолбэка). Ссылку
+            // обнуляем СРАЗУ — повторное развёртывание создаст новый инстанс, не трогая доигрывающий.
             if (_viewPool.Value.Has(entity))
             {
                 ref var vr = ref _viewPool.Value.Get(entity);
                 if (vr.View != null)
-                    Object.Destroy(vr.View);
+                {
+                    vr.View.GetComponent<CreatureView>()?.PlayDeath();
+                    Object.Destroy(vr.View, 3f);
+                }
                 vr.View = null;
             }
             if (_spawnedPool.Value.Has(entity))
@@ -221,6 +271,31 @@ namespace Game.Core.Ecs.Systems
             foreach (var pe in _playerFilter.Value)
                 if (_playerPool.Value.Get(pe).PlayerId == playerId) return pe;
             return -1;
+        }
+
+        // Откатывает OwnerComponent + клиент-относительные Own/EnemyCardTag на ИЗНАЧАЛЬНОГО владельца
+        // (симметрично TempControlRevertSystem.RevertControl, но здесь считаем «свой/чужой» напрямую по
+        // PlayerComponent.IsLocalPlayer — OriginalWasOwn тут не хранится, в отличие от TempControlledComponent).
+        private void RevertOwnershipToOriginal(int entity, int originalOwnerId)
+        {
+            if (_ownerPool.Value.Has(entity))
+                _ownerPool.Value.Get(entity).OwnerId = originalOwnerId;
+
+            int localPlayerId = -1;
+            foreach (var pe in _playerFilter.Value)
+                if (_playerPool.Value.Get(pe).IsLocalPlayer) { localPlayerId = _playerPool.Value.Get(pe).PlayerId; break; }
+
+            bool isOwn = originalOwnerId == localPlayerId;
+            if (isOwn)
+            {
+                if (_enemyCardTagPool.Value.Has(entity)) _enemyCardTagPool.Value.Del(entity);
+                if (!_ownCardTagPool.Value.Has(entity))   _ownCardTagPool.Value.Add(entity);
+            }
+            else
+            {
+                if (_ownCardTagPool.Value.Has(entity))    _ownCardTagPool.Value.Del(entity);
+                if (!_enemyCardTagPool.Value.Has(entity)) _enemyCardTagPool.Value.Add(entity);
+            }
         }
 
         // Существо САМО ещё играет анимацию каста (AbilityAnimPendingComponent на его же способности) —

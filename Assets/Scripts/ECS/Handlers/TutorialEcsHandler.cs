@@ -24,6 +24,11 @@ namespace Game.Core.Ecs.Handlers
 
         public TutorialEcsHandler(IGameStateContext state)
         {
+            // См. EcsRunHandler — та же защита от гонки с предыдущим Dispose (статические поля не должны
+            // переживать в новый туториал-запуск).
+            Game.Core.Ecs.Components.MatchState.Clear();
+            Game.Core.Ecs.Components.CastMultiplierService.Clear();
+
             World = new EcsWorld();
 
             var init = new EcsSystems(World, state);
@@ -53,6 +58,9 @@ namespace Game.Core.Ecs.Handlers
             general
                 .Add(new CreateCardSystem())
                 .Add(new CardAffordabilitySystem())
+                // Живые статы карт в руке → PlayCardView. Туториал отдельно УЧИТ читать атаку/здоровье/
+                // скорость, так что цифры на картах должны быть настоящими.
+                .Add(new HandCardStatsViewSystem())
                 .Add(new RunDrawReplacementSystem())
                 .Add(new RunDiscoverSystem())
                 .Add(new DrawCardSystem())
@@ -61,6 +69,10 @@ namespace Game.Core.Ecs.Handlers
                 .Add(new RunPendingOnCastSystem())
                 .Add(new TeamTintSystem())
                 .Add(new RunSelectCellSystem())
+                // Исполнение маршрута по шагам (PathMoveComponent → MoveRequestEvent/AttackRequestEvent).
+                // БЕЗ неё приказ «идти» ставит состояние движения, завершать его некому — существо стоит,
+                // ввод навсегда заблокирован («blocked: PathMove executing»), туториал уходит в софт-лок.
+                .Add(new RunPathMoveSystem())
                 .Add(new MoveSystem())
                 .Add(new AttackSystem())
                 .Add(new ReflectDamageSystem())
@@ -72,6 +84,7 @@ namespace Game.Core.Ecs.Handlers
                 .Add(new GameOverCheckSystem())
                 .Add(new CreatureStatsViewSystem())
                 .Add(new PlayerStatsViewSystem())
+                .Add(new CreatureInspectSystem())
                 .Add(new BurnCardSystem())
                 .Add(new DebugCheatSystem())
                 .Add(new CreatureDragPreviewSystem())

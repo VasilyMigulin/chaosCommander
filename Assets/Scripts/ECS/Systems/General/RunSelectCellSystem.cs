@@ -1,4 +1,4 @@
-﻿using Leopotam.EcsLite;
+using Leopotam.EcsLite;
 using Leopotam.EcsLite.Di;
 using Game.Core.Ecs.Components;
 using Game.Core.Events;
@@ -7,6 +7,15 @@ using System.Collections.Generic;
 
 namespace Game.Core.Ecs.Systems
 {
+    // === class (ECS system) ===
+    /// <summary>
+    /// Ввод локального активного игрока по клеткам: выбор существа (SelectTag), подсветка ВСЕХ
+    /// достижимых клеток/целей в пределах оставшейся скорости (BFS по пустым клеткам — BoardNav) и
+    /// превращение клика в МАРШРУТ (PathMoveComponent: несколько шагов + опциональная атака в конце) —
+    /// «дойти куда угодно и ударить» одним кликом, вместо клика на каждый шаг.
+    /// Исполняет маршрут RunPathMoveSystem (по одному MoveRequestEvent за оседание анимации);
+    /// смежные цели без подхода — это просто маршрут с пустым списком шагов.
+    /// </summary>
     public sealed class RunSelectCellSystem : IEcsRunSystem
     {
         readonly EcsWorldInject _world = default;
@@ -30,8 +39,8 @@ namespace Game.Core.Ecs.Systems
         readonly EcsFilterInject<Inc<SelectTag>> _selectedFilter = default;
         readonly EcsPoolInject<SelectTag> _selectPool = default;
 
-        readonly EcsPoolInject<MoveRequestEvent> _movePool = default;
-        readonly EcsPoolInject<AttackRequestEvent> _attackPool = default;
+        readonly EcsPoolInject<PathMoveComponent> _pathPool = default;
+        readonly EcsFilterInject<Inc<PathMoveComponent>> _pathFilter = default;
         readonly EcsPoolInject<AttacksUsedComponent> _attacksUsedPool = default;
 
         // #4: сколько раз существо может атаковать за ход (сверх траты 1 скорости за атаку в AttackSystem).
@@ -48,15 +57,9 @@ namespace Game.Core.Ecs.Systems
 
         public void Run(IEcsSystems systems)
         {
-            bool hasClick = _clickFilter.Value.GetEntitiesCount() > 0;
-
-            if (_animPendingFilter.Value.GetEntitiesCount() > 0) { if (hasClick) UnityEngine.Debug.Log("[Select] blocked: AttackAnimPending"); return; }
-            if (_movingFilter.Value.GetEntitiesCount() > 0)      { if (hasClick) UnityEngine.Debug.Log("[Select] blocked: Moving"); return; }
-            if (_pendingOnCastFilter.Value.GetEntitiesCount() > 0) { if (hasClick) UnityEngine.Debug.Log("[Select] blocked: PendingOnCast (призыв→OnCast)"); return; }
-            if (_pendingTargetFilter.Value.GetEntitiesCount() > 0) { if (hasClick) UnityEngine.Debug.Log("[Select] blocked: PendingTargetCard"); return; }
-            if (_pendingCellFilter.Value.GetEntitiesCount() > 0) { if (hasClick) UnityEngine.Debug.Log("[Select] blocked: PendingSelectCell"); return; }             // размещение существа
-            if (_pendingAbilityTargetFilter.Value.GetEntitiesCount() > 0) { if (hasClick) UnityEngine.Debug.Log("[Select] blocked: AbilityTargetPending"); return; }    // выбор цели способности
-
+            // Сброс выбора, переживающего конец хода: проверяем СОСТОЯНИЕ, а не событие (TurnEndedEvent
+            // покрывал не все пути завершения — кнопка/таймер/MP; выбор и подсветка зависали на доске).
+            // Локальный игрок не активен, а SelectTag есть → снять выбор и почистить подсветку.
             int activePlayerId = -1;
             foreach (var pe in _activePlayerFilter.Value)
             {
@@ -64,7 +67,24 @@ namespace Game.Core.Ecs.Systems
                 activePlayerId = _playerPool.Value.Get(pe).PlayerId;
                 break;
             }
-            if (activePlayerId < 0) { if (hasClick) UnityEngine.Debug.Log("[Select] blocked: local player not active (no ActiveState)"); return; }
+
+            if (activePlayerId < 0)
+            {
+                foreach (var se in _selectedFilter.Value) { Deselect(se); break; }
+                return;
+            }
+
+            bool hasClick = _clickFilter.Value.GetEntitiesCount() > 0;
+
+            if (_animPendingFilter.Value.GetEntitiesCount() > 0) { if (hasClick) UnityEngine.Debug.Log("[Select] blocked: AttackAnimPending"); return; }
+            if (_movingFilter.Value.GetEntitiesCount() > 0)      { if (hasClick) UnityEngine.Debug.Log("[Select] blocked: Moving"); return; }
+            // Исполняется маршрут (между шагами MovingTag на кадр пропадает) — клики не принимаем,
+            // иначе можно выбрать/подвигать другое существо посреди чужого маршрута.
+            if (_pathFilter.Value.GetEntitiesCount() > 0)        { if (hasClick) UnityEngine.Debug.Log("[Select] blocked: PathMove executing"); return; }
+            if (_pendingOnCastFilter.Value.GetEntitiesCount() > 0) { if (hasClick) UnityEngine.Debug.Log("[Select] blocked: PendingOnCast (призыв→OnCast)"); return; }
+            if (_pendingTargetFilter.Value.GetEntitiesCount() > 0) { if (hasClick) UnityEngine.Debug.Log("[Select] blocked: PendingTargetCard"); return; }
+            if (_pendingCellFilter.Value.GetEntitiesCount() > 0) { if (hasClick) UnityEngine.Debug.Log("[Select] blocked: PendingSelectCell"); return; }             // размещение существа
+            if (_pendingAbilityTargetFilter.Value.GetEntitiesCount() > 0) { if (hasClick) UnityEngine.Debug.Log("[Select] blocked: AbilityTargetPending"); return; }    // выбор цели способности
 
             foreach (var clickEntity in _clickFilter.Value)
             {
@@ -85,25 +105,6 @@ namespace Game.Core.Ecs.Systems
                     ref var selPos   = ref _posPool.Value.Get(selectedEntity);
                     ref var selSpeed = ref _speedPool.Value.Get(selectedEntity);
 
-                    // Клик по аватар-клетке (-1,-1,side): атака по аватару вражеского игрока.
-                    // #5: бить аватар можно ТОЛЬКО с задней линии врага (row 0 его стороны) — ближайшей
-                    // к аватару, а не с любой клетки его половины. #4: не более 1 атаки за ход.
-                    if (row == -1 && col == -1)
-                    {
-                        int avatarPlayer = FindPlayerBySide(ownerId);
-                        bool isEnemyAvatar = avatarPlayer >= 0
-                            && _playerPool.Value.Get(avatarPlayer).PlayerId != activePlayerId;
-                        if (isEnemyAvatar && selSpeed.Remaining > 0 && selPos.OwnerId == ownerId
-                            && selPos.Row == 0 && CanAttack(selectedEntity))
-                        {
-                            MarkAttacked(selectedEntity);
-                            ref var attackReq = ref _attackPool.Value.Add(selectedEntity);
-                            attackReq.TargetEntity = avatarPlayer;
-                        }
-                        Deselect(selectedEntity);
-                        continue;
-                    }
-
                     if (selPos.Row == row && selPos.Col == col && selPos.OwnerId == ownerId)
                     {
                         Deselect(selectedEntity);
@@ -116,16 +117,36 @@ namespace Game.Core.Ecs.Systems
                         continue;
                     }
 
+                    // Достижимость: BFS по пустым клеткам в бюджете скорости (общая для клика и подсветки).
+                    var reach = BoardNav.ComputeReachable(_creaturesFilter.Value, _posPool.Value,
+                                                          selPos.Row, selPos.Col, selPos.OwnerId, selSpeed.Remaining);
+
+                    // Клик по аватар-клетке (-1,-1,side): «дойти до row 0 врага и ударить аватар» одним кликом.
+                    // #5: бить аватар можно ТОЛЬКО с задней линии врага (row 0 его стороны). #4: 1 атака/ход.
+                    if (row == -1 && col == -1)
+                    {
+                        int avatarPlayer = FindPlayerBySide(ownerId);
+                        bool isEnemyAvatar = avatarPlayer >= 0
+                            && _playerPool.Value.Get(avatarPlayer).PlayerId != activePlayerId;
+                        if (isEnemyAvatar && CanAttack(selectedEntity)
+                            && TryAvatarApproachPath(reach, ownerId, selSpeed.Remaining, out var toRow0))
+                        {
+                            StartPath(selectedEntity, reach.PathTo(toRow0), avatarPlayer);
+                        }
+                        Deselect(selectedEntity);
+                        continue;
+                    }
+
                     int enemyEntity = FindCreatureAt(row, col, ownerId, activePlayerId, isEnemy: true);
                     if (enemyEntity >= 0)
                     {
-                        // #4: атака 1 раз за ход (сверх траты 1 скорости в AttackSystem).
-                        if (IsNeighbour(selPos.Row, selPos.Col, selPos.OwnerId, row, col, ownerId)
-                            && CanAttack(selectedEntity))
+                        // «Подойти и ударить»: ближайшая достижимая клетка, СМЕЖНАЯ с целью, + 1 скорость
+                        // на саму атаку. Уже смежен → путь пустой (чистая атака, как раньше).
+                        // #4: лимит атак; AttacksUsed спишет RunPathMoveSystem в момент удара.
+                        if (CanAttack(selectedEntity)
+                            && TryApproachPath(reach, row, col, ownerId, selSpeed.Remaining, out var standCell))
                         {
-                            MarkAttacked(selectedEntity);
-                            ref var attackReq = ref _attackPool.Value.Add(selectedEntity);
-                            attackReq.TargetEntity = enemyEntity;
+                            StartPath(selectedEntity, reach.PathTo(standCell), enemyEntity);
                         }
                         Deselect(selectedEntity);
                         continue;
@@ -134,13 +155,9 @@ namespace Game.Core.Ecs.Systems
                     int allyOnCell = FindCreatureAt(row, col, ownerId, activePlayerId, isEnemy: false);
                     if (allyOnCell < 0)
                     {
-                        if (IsNeighbour(selPos.Row, selPos.Col, selPos.OwnerId, row, col, ownerId))
-                        {
-                            ref var moveReq   = ref _movePool.Value.Add(selectedEntity);
-                            moveReq.ToRow     = row;
-                            moveReq.ToCol     = col;
-                            moveReq.ToOwnerId = ownerId;
-                        }
+                        // Пустая клетка: идём, если достижима в бюджете скорости (весь маршрут одним кликом).
+                        if (reach.Cost.ContainsKey((row, col, ownerId)))
+                            StartPath(selectedEntity, reach.PathTo((row, col, ownerId)), attackTarget: -1);
                         Deselect(selectedEntity);
                         continue;
                     }
@@ -172,6 +189,18 @@ namespace Game.Core.Ecs.Systems
                 UnityEngine.Debug.Log($"[Select] selected creature {found} at ({row},{col},owner{ownerId}) speed={speed.Remaining}");
             }
 
+            // Маршрут одним кликом: шаги (может быть пусто — «ударить с места») + опциональная цель атаки.
+            // Исполняет RunPathMoveSystem по одному шагу за оседание анимации; клики на время исполнения
+            // блокируются гейтом PathMove выше.
+            void StartPath(int creature, List<(int Row, int Col, int Owner)> steps, int attackTarget)
+            {
+                if (steps == null) return;
+                if (steps.Count == 0 && attackTarget < 0) return;
+                ref var path = ref _pathPool.Value.Add(creature);
+                path.Steps = steps;
+                path.AttackTargetEntity = attackTarget;
+            }
+
             void Deselect(int entity)
             {
                 if (!_selectPool.Value.Has(entity)) return;
@@ -200,10 +229,36 @@ namespace Game.Core.Ecs.Systems
                 return used < MaxAttacksPerTurn;
             }
 
-            void MarkAttacked(int e)
+            // Ближайшая достижимая клетка, с которой бьётся цель (tr,tc,to): смежная с целью, стоимость
+            // подхода + 1 (сама атака) укладывается в бюджет скорости. Стоим смежно → cost 0.
+            bool TryApproachPath(BoardNav.Reachability reach, int tr, int tc, int to, int budget, out (int, int, int) standCell)
             {
-                if (!_attacksUsedPool.Value.Has(e)) _attacksUsedPool.Value.Add(e);
-                _attacksUsedPool.Value.Get(e).Value++;
+                standCell = default;
+                int best = int.MaxValue;
+                foreach (var kv in reach.Cost)
+                {
+                    var (cr, cc, co) = kv.Key;
+                    if (!BoardNav.IsNeighbour(cr, cc, co, tr, tc, to)) continue;
+                    if (kv.Value + 1 > budget) continue;   // подход + удар
+                    if (kv.Value < best) { best = kv.Value; standCell = kv.Key; }
+                }
+                return best != int.MaxValue;
+            }
+
+            // Подход для удара по аватару стороны side: ближайшая достижимая клетка row 0 этой стороны
+            // (включая текущую позицию, если уже там), подход + 1 удар в бюджете.
+            bool TryAvatarApproachPath(BoardNav.Reachability reach, int side, int budget, out (int, int, int) standCell)
+            {
+                standCell = default;
+                int best = int.MaxValue;
+                foreach (var kv in reach.Cost)
+                {
+                    var (cr, cc, co) = kv.Key;
+                    if (cr != 0 || co != side) continue;
+                    if (kv.Value + 1 > budget) continue;
+                    if (kv.Value < best) { best = kv.Value; standCell = kv.Key; }
+                }
+                return best != int.MaxValue;
             }
 
             void HighlightOptions(int creatureEntity, int playerId)
@@ -222,55 +277,38 @@ namespace Game.Core.Ecs.Systems
 
                 if (speed.Remaining <= 0) return;
 
-                // #4: если лимит атак за ход исчерпан — атак-подсветки не показываем (двигаться ещё можно).
-                bool canAttack = CanAttack(creatureEntity);
-
-                // #5: аватар врага атакуем ТОЛЬКО с задней линии врага (row 0 его стороны) — подсветить
-                // аватар-клетку как цель, если существо там стоит и атака ещё доступна.
-                int standSide = pos.OwnerId;
-                int standSidePlayer = FindPlayerBySide(standSide);
-                if (canAttack && pos.Row == 0 && standSidePlayer >= 0
-                    && _playerPool.Value.Get(standSidePlayer).PlayerId != playerId)
-                    _boardView.Value.GetAvatarCell(standSide)?.SetHighlight(CellHighlight.Attack);
-
-                foreach (var (nr, nc, no) in GetNeighbours(pos.Row, pos.Col, pos.OwnerId))
+                // Вся достижимость одним BFS: пустые клетки в бюджете → Move.
+                var reach = BoardNav.ComputeReachable(_creaturesFilter.Value, _posPool.Value,
+                                                      pos.Row, pos.Col, pos.OwnerId, speed.Remaining);
+                foreach (var kv in reach.Cost)
                 {
-                    bool occupied = FindCreatureAt(nr, nc, no, playerId, isEnemy: false) >= 0
-                                 || FindCreatureAt(nr, nc, no, playerId, isEnemy: true) >= 0;
-                    if (!occupied)
-                        _boardView.Value.GetCell(nr, nc, no)?.SetHighlight(CellHighlight.Move);
+                    if (kv.Key == reach.Start) continue;
+                    var (cr, cc, co) = kv.Key;
+                    _boardView.Value.GetCell(cr, cc, co)?.SetHighlight(CellHighlight.Move);
                 }
 
-                if (canAttack)
-                    foreach (var ce in _creaturesFilter.Value)
-                    {
-                        ref var ep = ref _posPool.Value.Get(ce);
-                        ref var eo = ref _ownerPool.Value.Get(ce);
-                        if (eo.OwnerId == playerId) continue;
+                // #4: лимит атак исчерпан — атак-подсветок нет (двигаться ещё можно).
+                if (!CanAttack(creatureEntity)) return;
 
-                        if (IsNeighbour(pos.Row, pos.Col, pos.OwnerId, ep.Row, ep.Col, eo.OwnerId))
-                            _boardView.Value.GetCell(ep.Row, ep.Col, ep.OwnerId)?.SetHighlight(CellHighlight.Attack);
-                    }
-            }
+                // Враги в радиусе «подойти + ударить».
+                foreach (var ce in _creaturesFilter.Value)
+                {
+                    ref var ep = ref _posPool.Value.Get(ce);
+                    ref var eo = ref _ownerPool.Value.Get(ce);
+                    if (eo.OwnerId == playerId) continue;
 
-            IEnumerable<(int row, int col, int owner)> GetNeighbours(int row, int col, int owner)
-            {
-                if (col > 0) yield return (row, col - 1, owner);
-                if (col < 4) yield return (row, col + 1, owner);
-                // Назад (в тыл своей половины)
-                if (row > 0) yield return (row - 1, col, owner);
-                // Вперёд: row=0→row=1 (внутри своей стороны), row=1→row=1 другого owner (пересечение фронта)
-                if (row < 1)
-                    yield return (row + 1, col, owner);
-                else
-                    yield return (1, col, owner == 1 ? 2 : 1);
-            }
+                    if (TryApproachPath(reach, ep.Row, ep.Col, ep.OwnerId, speed.Remaining, out _))
+                        _boardView.Value.GetCell(ep.Row, ep.Col, ep.OwnerId)?.SetHighlight(CellHighlight.Attack);
+                }
 
-            bool IsNeighbour(int r1, int c1, int o1, int r2, int c2, int o2)
-            {
-                foreach (var (nr, nc, no) in GetNeighbours(r1, c1, o1))
-                    if (nr == r2 && nc == c2 && no == o2) return true;
-                return false;
+                // #5: аватар врага — если достижима row 0 его стороны (или уже стоим там) с запасом на удар.
+                foreach (var pe in _playersFilter.Value)
+                {
+                    if (_playerPool.Value.Get(pe).PlayerId == playerId) continue;
+                    int side = _sidePool.Value.Get(pe).Side;
+                    if (TryAvatarApproachPath(reach, side, speed.Remaining, out _))
+                        _boardView.Value.GetAvatarCell(side)?.SetHighlight(CellHighlight.Attack);
+                }
             }
 
             int FindCreatureAt(int row, int col, int ownerId, int playerId, bool isEnemy)

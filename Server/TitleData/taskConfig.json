@@ -13,13 +13,21 @@
   ],
 
   "daily": [
-    { "id": "d_play_games",  "type": "play_games",  "target": 3, "reward": { "currencies": [ { "code": "GD", "amount": 100 } ] } },
-    { "id": "d_win_games",   "type": "win_games",   "target": 1, "reward": { "currencies": [ { "code": "GD", "amount": 150 } ] } },
-    { "id": "d_play_cards",  "type": "play_cards",  "target": 20, "reward": { "currencies": [ { "code": "GD", "amount": 80 } ] } }
+    { "id": "d_play_games",     "type": "play_games",     "target": 3,  "reward": { "currencies": [ { "code": "GD", "amount": 100 } ] } },
+    { "id": "d_win_games",      "type": "win_games",      "target": 1,  "reward": { "currencies": [ { "code": "GD", "amount": 150 } ] } },
+    { "id": "d_play_cards",     "type": "play_cards",     "target": 15, "reward": { "currencies": [ { "code": "GD", "amount": 80 } ] } },
+    { "id": "d_kill_creatures", "type": "kill_creatures", "target": 8,  "reward": { "currencies": [ { "code": "GD", "amount": 90 } ] } },
+    { "id": "d_deal_damage",    "type": "deal_damage",    "target": 40, "reward": { "currencies": [ { "code": "GD", "amount": 90 } ] } },
+    { "id": "d_summon_creatures","type": "summon_creatures","target": 6, "reward": { "currencies": [ { "code": "GD", "amount": 90 } ] } }
   ],
 
   "weekly": [
-    { "id": "w_win_games",     "type": "win_games",     "target": 10, "reward": { "boosters": [ "booster_standard" ] } },
-    { "id": "w_open_boosters", "type": "open_boosters", "target": 3,  "reward": { "currencies": [ { "code": "GM", "amount": 100 } ] } }
+    { "id": "w_win_games",      "type": "win_games",      "target": 10,  "reward": { "boosters": [ "booster_standard" ] } },
+    { "id": "w_open_boosters",  "type": "open_boosters",  "target": 3,   "reward": { "currencies": [ { "code": "GM", "amount": 100 } ] } },
+    { "id": "w_kill_creatures", "type": "kill_creatures", "target": 60,  "reward": { "currencies": [ { "code": "GD", "amount": 500 } ] } },
+    { "id": "w_spend_mana",     "type": "spend_mana",     "target": 150, "reward": { "currencies": [ { "code": "GM", "amount": 30 } ] } },
+    { "id": "w_fill_board",     "type": "fill_board",     "target": 5,   "reward": { "currencies": [ { "code": "GM", "amount": 20 } ] } },
+    { "id": "w_charm_turns",    "type": "charm_turns",    "target": 15,  "reward": { "currencies": [ { "code": "GD", "amount": 300 } ] } },
+    { "id": "w_deathrattle",    "type": "deathrattle",    "target": 12,  "reward": { "currencies": [ { "code": "GD", "amount": 300 } ] } }
   ]
 }

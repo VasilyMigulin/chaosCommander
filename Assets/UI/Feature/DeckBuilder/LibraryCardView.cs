@@ -55,7 +55,7 @@ namespace AwesomeUI.Feature.DeckBuilder
             int available = _data.OwnedCount - _data.DeckCount;
 
             if (_counterText != null)
-                _counterText.text = available.ToString();
+                _counterText.text = $"X{available}";
 
             bool canAdd = available > 0 && _data.DeckCount < _data.MaxCopies;
             if (_unavailableOverlay != null) _unavailableOverlay.SetActive(!canAdd);
@@ -81,7 +81,7 @@ namespace AwesomeUI.Feature.DeckBuilder
 
         protected override void OnHoldTriggered()
         {
-            if (Model != null) CardInspectBus.Request(Model);
+            if (Model != null) CardInspectBus.RequestDustable(Model);   // из коллекции → с «Порвать»
         }
     }
 }

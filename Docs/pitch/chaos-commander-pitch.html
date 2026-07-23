@@ -1,0 +1,278 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Chaos Commander — питч для издателя</title>
+<style>
+  :root{
+    --bg:#141018; --surface:#1E1826; --surface2:#241C2E;
+    --ink:#EDE6DA; --ink-dim:#A99FB0; --line:#3A3145;
+    --accent:#F2A33C; --red:#C24B33; --green:#6FA65A;
+    --mono:Consolas,"Cascadia Mono","Roboto Mono",monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{background:#0B090E}
+  body{
+    font-family:"Segoe UI",Roboto,-apple-system,Arial,sans-serif;
+    color:var(--ink); background:#0B090E;
+    display:flex; flex-direction:column; align-items:center; gap:28px; padding:28px 12px;
+  }
+  .slide{
+    position:relative; width:min(1122px,100%); aspect-ratio:297/210;
+    background:var(--bg); overflow:hidden; border:1px solid var(--line);
+    display:flex; flex-direction:column; padding:4.2% 5% 3.2%;
+  }
+  /* колонтитул */
+  .slide::after{
+    content:attr(data-footer);
+    position:absolute; left:5%; right:5%; bottom:2.6%;
+    display:flex; justify-content:space-between;
+    font:600 10px/1 var(--mono); letter-spacing:.18em; text-transform:uppercase;
+    color:var(--ink-dim); border-top:1px solid var(--line); padding-top:8px;
+    white-space:pre;
+  }
+  .eyebrow{
+    font:700 11px/1 var(--mono); letter-spacing:.28em; text-transform:uppercase;
+    color:var(--accent); margin-bottom:14px;
+  }
+  h1{font-size:64px; font-weight:900; line-height:.98; letter-spacing:.01em; text-transform:uppercase; text-wrap:balance}
+  h2{font-size:34px; font-weight:900; line-height:1.05; text-transform:uppercase; letter-spacing:.02em; margin-bottom:18px; text-wrap:balance}
+  h3{font-size:15px; font-weight:800; letter-spacing:.04em; margin-bottom:6px}
+  p,li{font-size:14.5px; line-height:1.5; color:var(--ink)}
+  .dim{color:var(--ink-dim)}
+  .acc{color:var(--accent)}
+  ul{list-style:none}
+  li{padding-left:16px; position:relative; margin-bottom:7px}
+  li::before{content:""; position:absolute; left:0; top:.55em; width:7px; height:7px; background:var(--accent)}
+  li.red::before{background:var(--red)} li.green::before{background:var(--green)}
+
+  .cols{display:grid; gap:22px; flex:1; min-height:0; align-content:start}
+  .c2{grid-template-columns:1fr 1fr} .c3{grid-template-columns:1fr 1fr 1fr}
+  .card{background:var(--surface); border:1px solid var(--line); padding:16px 18px}
+  .card .k{font:700 10px/1 var(--mono); letter-spacing:.2em; text-transform:uppercase; color:var(--accent); display:block; margin-bottom:8px}
+
+  .big{font:900 56px/1 "Segoe UI",Roboto,sans-serif; color:var(--accent); font-variant-numeric:tabular-nums}
+  .big small{display:block; font:600 12px/1.35 "Segoe UI",Roboto,sans-serif; color:var(--ink-dim); text-transform:none; letter-spacing:0; margin-top:6px}
+
+  .ph{ /* плейсхолдер — заполнить перед отправкой */
+    color:var(--bg); background:var(--accent); font-weight:800; padding:0 6px;
+  }
+
+  /* мотив доски 2×5 */
+  .board{display:grid; grid-template-columns:repeat(5,1fr); gap:6px}
+  .board div{aspect-ratio:1; border:1px solid var(--line); background:var(--surface)}
+  .board div.on{background:var(--accent); border-color:var(--accent)}
+  .board div.foe{background:var(--red); border-color:var(--red)}
+
+  .flow{display:flex; gap:0; align-items:stretch}
+  .flow .step{flex:1; background:var(--surface); border:1px solid var(--line); padding:12px 14px; position:relative}
+  .flow .step+.step{margin-left:14px}
+  .flow .step+.step::before{content:"→"; position:absolute; left:-13px; top:50%; transform:translateY(-50%); color:var(--accent); font-weight:900}
+
+  table{border-collapse:collapse; width:100%; font-size:13.5px}
+  th,td{padding:8px 12px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top}
+  th{font:700 10px/1.2 var(--mono); letter-spacing:.16em; text-transform:uppercase; color:var(--ink-dim)}
+  td:first-child{font-weight:700}
+  .num{font-family:var(--mono); font-variant-numeric:tabular-nums}
+
+  @media print{
+    html,body{background:var(--bg); padding:0; gap:0}
+    body{display:block}
+    .slide{width:297mm; height:210mm; aspect-ratio:auto; border:none; page-break-after:always; break-after:page}
+    .slide:last-child{page-break-after:auto}
+    *{-webkit-print-color-adjust:exact; print-color-adjust:exact}
+  }
+  @page{size:A4 landscape; margin:0}
+</style>
+
+<!-- ═══════════ 1. ОБЛОЖКА ═══════════ -->
+<section class="slide" data-footer="CHAOS COMMANDER · ПИТЧ ДЛЯ ИЗДАТЕЛЯ&#9;01">
+  <div class="eyebrow">Питч для издателя · тактическая коллекционная карточная игра</div>
+  <div style="flex:1; display:flex; flex-direction:column; justify-content:center; gap:26px">
+    <h1>Chaos<br><span class="acc">Commander</span></h1>
+    <p style="font-size:20px; max-width:34em" class="dim">Рука — как в Hearthstone. Доска — как в шахматах.<br>
+    Существа не стоят в ряд, а <b style="color:var(--ink)">ходят, занимают клетки и прорываются к аватару</b>.</p>
+    <div style="display:grid; grid-template-columns:repeat(2,minmax(0,260px)); gap:10px 6px; max-width:540px">
+      <div class="board"><div></div><div class="on"></div><div></div><div></div><div></div><div></div><div></div><div class="on"></div><div></div><div></div></div>
+      <div class="board"><div></div><div></div><div class="foe"></div><div></div><div></div><div></div><div class="foe"></div><div></div><div></div><div class="foe"></div></div>
+    </div>
+  </div>
+  <p class="dim" style="font-size:13px">Играбельный vertical slice: 150 карт · PvP-синк · PvE-кампания · туториал.
+  Ищем финансирование на визуальный продакшн. Контакт: <span class="ph">[имя · почта · телеграм]</span></p>
+</section>
+
+<!-- ═══════════ 2. ПОЧЕМУ ЭТО РАБОТАЕТ ═══════════ -->
+<section class="slide" data-footer="ПОЗИЦИОНИРОВАНИЕ&#9;02">
+  <div class="eyebrow">Позиционирование</div>
+  <h2>Знакомый жанр + недостающее измерение</h2>
+  <div class="cols c3">
+    <div class="card">
+      <span class="k">Знакомый вход</span>
+      <p>Луп ККИ, который аудитория знает наизусть: колода, рука, мулиган, стоимость карт, баттлкраи и предсмертные эффекты. Порог входа — нулевой для игрока Hearthstone / Marvel Snap.</p>
+    </div>
+    <div class="card">
+      <span class="k">Новая глубина</span>
+      <p>Существа выходят на доску 2×5 и <b>двигаются</b>: скорость — ресурс хода, атака по аватару — только прорвавшись на заднюю линию врага. Каждый размен — позиционное решение, а не «трейд в лицо».</p>
+    </div>
+    <div class="card">
+      <span class="k">Тон, который запоминается</span>
+      <p>Трэш-комедийное фэнтези: Работяги со стройки, Черти, Гнидальф и Шальной принц. Карты вроде «Прикурить!» и «Чёрная бухгалтерия» — сеттинг сам продаёт скриншоты.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 3. КОР-ГЕЙМПЛЕЙ ═══════════ -->
+<section class="slide" data-footer="КОР-ГЕЙМПЛЕЙ&#9;03">
+  <div class="eyebrow">Кор-геймплей</div>
+  <h2>Один ход — три слоя решений</h2>
+  <div class="cols c2">
+    <div>
+      <div class="flow" style="margin-bottom:18px">
+        <div class="step"><h3>Разыграть</h3><p class="dim">Карты за золото; существа — на свою заднюю линию</p></div>
+        <div class="step"><h3>Манёвр</h3><p class="dim">Движение по клеткам в пределах скорости — в один клик по маршруту</p></div>
+        <div class="step"><h3>Прорыв</h3><p class="dim">Дойти до задней линии врага и бить аватара</p></div>
+      </div>
+      <ul>
+        <li>Доска 5×2 на каждую сторону, встречный фронт по центру</li>
+        <li><b>Два ресурса:</b> золото растёт по ходам, <b>мана — только за убийства</b>: агрессия буквально оплачивает сильные карты</li>
+        <li>Командир — карта-герой: гибнет на доске → возвращается в руку с кулдауном, а не проигрывает партию</li>
+        <li>Чары — третий тип карт: постоянные эффекты на поле со своим статус-баром и таймерами</li>
+      </ul>
+    </div>
+    <div class="card" style="align-self:start">
+      <span class="k">Матч в цифрах</span>
+      <table>
+        <tr><td>Колода</td><td class="num">16 карт + командир</td></tr>
+        <tr><td>Длина матча</td><td class="num">8–15 минут</td></tr>
+        <tr><td>Типы карт</td><td>существа · заклинания · чары</td></tr>
+        <tr><td>Лимит чар на поле</td><td class="num">5</td></tr>
+        <tr><td>Атака</td><td class="num">1 за ход + расход скорости</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 4. КОНТЕНТ ═══════════ -->
+<section class="slide" data-footer="КОНТЕНТ&#9;04">
+  <div class="eyebrow">Контент — уже в билде</div>
+  <h2>Это не прототип, это играбельная игра</h2>
+  <div class="cols c3" style="grid-template-rows:auto auto">
+    <div class="card"><div class="big">150<small>карт в пуле — существа, заклинания, чары; плюс токены вне пула</small></div></div>
+    <div class="card"><div class="big">4<small>архетипа: Работяги, Черти, Флора и колода на чарах</small></div></div>
+    <div class="card"><div class="big">6<small>боёв сюжетной кампании с боссами и скриптовыми событиями</small></div></div>
+    <div class="card">
+      <span class="k">Механики</span>
+      <p class="dim" style="font-size:13px">Дискавер из пулов и зон · генерация и замешивание карт · журналы матча («разыграй всё заново») · кража и контроль · редирект урона · реактивные ауры · счётчики «за каждого X» · командирские кулдауны</p>
+    </div>
+    <div class="card">
+      <span class="k">Режимы</span>
+      <p class="dim" style="font-size:13px">PvP реалтайм (Photon Fusion) · PvE против ИИ · сюжетная кампания «Шальной принц против Гнидальфа» · обучение · онбординг первого запуска (язык → туториал → стартовый набор)</p>
+    </div>
+    <div class="card">
+      <span class="k">UX уже в игре</span>
+      <p class="dim" style="font-size:13px">Мулиган · VS-экран командиров · драг-розыгрыш «из руки на клетку» · инспект карт удержанием · история розыгрышей · бар активных чар · локализация RU/EN с шаблонизатором описаний</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 5. ТЕХНОЛОГИЯ ═══════════ -->
+<section class="slide" data-footer="ТЕХНОЛОГИЯ&#9;05">
+  <div class="eyebrow">Технология</div>
+  <h2>Фундамент, который не придётся переписывать</h2>
+  <div class="cols c2">
+    <ul>
+      <li><b>Unity 6</b>, геймплей на ECS (LeoECS Lite) — правила отделены от визуала, новые карты собираются в редакторе из готовых «кирпичей»-эффектов без программиста</li>
+      <li><b>Детерминированный синк</b>: активный клиент играет, пассивный воспроизводит снапшоты действий — реплеи и спектейт-режим достаются почти бесплатно</li>
+      <li><b>Photon Fusion</b> — матчмейкинг и реалтайм PvP уже работают</li>
+      <li><b>PlayFab Economy v2 + Azure Functions</b> — серверная экономика заложена: инвентарь, каталог, валюты</li>
+      <li>Пайплайн локализации: CSV → Unity Localization, вся карта-верстка через шаблонизатор</li>
+    </ul>
+    <div class="card">
+      <span class="k">Почему это важно издателю</span>
+      <p>Стоимость добавления контента низкая: карта = ассет из готовых компонентов + две строки локализации. Команда масштабирует контент без роста кодовой базы. Технический риск проекта — уже позади; остался визуальный продакшн.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 6. МОНЕТИЗАЦИЯ ═══════════ -->
+<section class="slide" data-footer="МОНЕТИЗАЦИЯ · LIVE-OPS&#9;06">
+  <div class="eyebrow">Монетизация и live-ops — архитектура заложена</div>
+  <h2>Классика ККИ + рынок игрока</h2>
+  <div class="cols c3">
+    <div class="card">
+      <span class="k">Фаза 1 · запуск</span>
+      <ul>
+        <li>Бустеры и стартовые наборы</li>
+        <li>Магазин за твёрдую/мягкую валюту</li>
+        <li>Ежедневные награды и задачи</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="k">Фаза 2 · удержание</span>
+      <ul>
+        <li>Чёрный рынок — ротация редких лотов</li>
+        <li>Сезонные события кампании</li>
+        <li>Косметика: эпичные появления лег и экзотов (пайплайн VFX готов)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="k">Фаза 3 · экономика игроков</span>
+      <ul>
+        <li>Аукцион карт между игроками</li>
+        <li>Комиссия — денежный сток экономики</li>
+      </ul>
+      <p class="dim" style="margin-top:8px; font-size:12.5px">Серверная часть на PlayFab: без своего бэкенда и его содержания.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 7. ЗАПРОС ═══════════ -->
+<section class="slide" data-footer="ЗАПРОС ФИНАНСИРОВАНИЯ&#9;07">
+  <div class="eyebrow">Запрос</div>
+  <h2>Финансирование визуального продакшна</h2>
+  <div class="cols c2">
+    <div>
+      <p style="margin-bottom:14px">Геймплей, сеть, контент и экономический фундамент готовы и играются. Единственное, что отделяет билд от витрины стора, — визуальный слой:</p>
+      <ul>
+        <li class="red"><b>Арты карт</b> — 150+ иллюстраций и рамки редкостей</li>
+        <li class="red"><b>VFX</b> — эффекты кастов, попаданий и «эпичных появлений» (трёхфазный пайплайн Pre/Resolve/Finish уже в коде — нужны сами эффекты)</li>
+        <li class="red"><b>Модели и анимации существ</b> — замена плейсхолдеров</li>
+        <li class="red"><b>UI-полиш</b> — арт-направление интерфейса, иконография</li>
+        <li class="red"><b>Звук и музыка</b></li>
+      </ul>
+    </div>
+    <div class="card" style="align-self:start">
+      <span class="k">Рамка сделки — заполнить</span>
+      <table>
+        <tr><th>Статья</th><th>Оценка</th></tr>
+        <tr><td>Арт карт</td><td class="num"><span class="ph">[ … ]</span></td></tr>
+        <tr><td>VFX + анимации</td><td class="num"><span class="ph">[ … ]</span></td></tr>
+        <tr><td>UI + звук</td><td class="num"><span class="ph">[ … ]</span></td></tr>
+        <tr><td>Софт-ланч (маркетинг)</td><td class="num"><span class="ph">[ … ]</span></td></tr>
+        <tr><td><b>Итого</b></td><td class="num"><b><span class="ph">[ … ]</span></b></td></tr>
+      </table>
+      <p class="dim" style="margin-top:10px; font-size:12.5px">Сроки: <span class="ph">[ N месяцев до софт-ланча ]</span> · Платформы: <span class="ph">[ mobile / PC / … ]</span></p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 8. РОАДМАП + КОМАНДА ═══════════ -->
+<section class="slide" data-footer="РОАДМАП · КОМАНДА · КОНТАКТЫ&#9;08">
+  <div class="eyebrow">Роадмап</div>
+  <h2>От vertical slice до софт-ланча</h2>
+  <div class="flow" style="margin-bottom:24px">
+    <div class="step"><h3 class="acc">Сейчас</h3><p class="dim">Играбельный слайс: кор-луп, 150 карт, PvP, кампания</p></div>
+    <div class="step"><h3>Визуальный продакшн</h3><p class="dim">Арт, VFX, анимации, звук — предмет этого питча</p></div>
+    <div class="step"><h3>Закрытая бета</h3><p class="dim">Баланс, мета-экономика на живых игроках</p></div>
+    <div class="step"><h3>Софт-ланч</h3><p class="dim"><span class="ph">[ регион / платформа ]</span></p></div>
+  </div>
+  <div class="cols c2">
+    <div class="card">
+      <span class="k">Команда</span>
+      <p><span class="ph">[ состав команды, опыт, шипнутые проекты ]</span></p>
+    </div>
+    <div class="card">
+      <span class="k">Контакты</span>
+      <p><span class="ph">[ имя ]</span> · <span class="ph">[ почта ]</span> · <span class="ph">[ телеграм ]</span></p>
+      <p class="dim" style="margin-top:8px; font-size:12.5px">Билд и живое демо — по запросу. PvE-версия не требует сервера.</p>
+    </div>
+  </div>
+</section>

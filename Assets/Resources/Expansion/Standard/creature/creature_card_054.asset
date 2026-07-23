@@ -68,6 +68,7 @@ MonoBehaviour:
         - rid: 2419359952424665317
         - rid: 2419359952424665318
         - rid: 2419359952424665322
+        - rid: 2419360061758898544
     - rid: 2419359952424665315
       type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
@@ -103,4 +104,7 @@ MonoBehaviour:
         Permanent: 0
     - rid: 2419359952424665322
       type: {class: NotSelfTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2419360061758898544
+      type: {class: NotAlreadyTrackedTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 

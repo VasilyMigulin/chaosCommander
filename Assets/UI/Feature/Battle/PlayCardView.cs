@@ -35,6 +35,13 @@ namespace AwesomeUI.Feature.Battle
         [Header("Drag Settings")]
         [SerializeField] private float _returnDuration = 0.25f;
 
+        [Header("Hold Zoom (предпросмотр карты в руке удержанием)")]
+        [Tooltip("Во сколько раз увеличить карту при удержании (чтобы прочитать текст).")]
+        [SerializeField] private float _zoomScale = 1.6f;
+        [Tooltip("Подъём карты вверх при зуме, px — чтобы палец не закрывал текст.")]
+        [SerializeField] private float _zoomLift = 90f;
+        [SerializeField] private float _zoomDuration = 0.15f;
+
         public int  CardEntity { get; private set; }
         public bool IsOccupied { get; private set; }
         public bool IsSelected { get; private set; }
@@ -59,6 +66,58 @@ namespace AwesomeUI.Feature.Battle
         private bool _creatureDrag;      // система сказала «карта над полем, превью активно»
         private bool _dragToPlace;       // система сказала «это существо: размещение ТОЛЬКО дропом на поле»
 
+        // ── Zoom-предпросмотр (hold-механика CardBaseView: OnHoldTriggered/OnHoldReleased) ──
+        // Работает для ЛЮБОЙ карты руки — доступной и недоступной к розыгрышу (это чтение, не действие).
+        private bool    _zoomActive;
+        private int     _zoomSiblingIndex;
+        private Vector3 _zoomStartLocalPos;
+
+        /// <summary>Удержание ≥ порога: карта увеличивается, приподнимается и выходит на первый план —
+        /// прочитать текст. Розыгрыш при этом не стартует (драг начнётся только с движения пальца).</summary>
+        protected override void OnHoldTriggered()
+        {
+            if (!IsOccupied || _isDragging || _pendingPlay || _zoomActive) return;
+
+            _zoomActive        = true;
+            _zoomSiblingIndex  = _rectTransform.GetSiblingIndex();
+            _zoomStartLocalPos = _rectTransform.localPosition;
+
+            _rectTransform.SetAsLastSibling();   // поверх соседних карт
+            _rectTransform.DOKill();
+            _rectTransform.DOScale(_zoomScale, _zoomDuration).SetEase(Ease.OutCubic);
+            _rectTransform.DOLocalMoveY(_zoomStartLocalPos.y + _zoomLift, _zoomDuration).SetEase(Ease.OutCubic);
+        }
+
+        /// <summary>Палец отпущен/увели после сработавшего удержания — плавно вернуть карту на место.</summary>
+        protected override void OnHoldReleased() => CancelZoom(instant: false);
+
+        // Схлопнуть зум и ГАРАНТИРОВАННО вернуть масштаб/позицию/порядок. instant — без твинов
+        // (перед стартом драга и на деактивации: DOTween на неактивном объекте не играет).
+        // Позиция восстанавливается в запомненную на момент зума; если рука успела перестроиться
+        // (добор во время удержания) — ближайший релэйаут CardLayout всё равно расставит веер заново.
+        private void CancelZoom(bool instant)
+        {
+            if (!_zoomActive) return;
+            _zoomActive = false;
+
+            _rectTransform.DOKill();
+            _rectTransform.SetSiblingIndex(_zoomSiblingIndex);
+
+            if (instant || !gameObject.activeInHierarchy)
+            {
+                _rectTransform.localScale    = Vector3.one;
+                _rectTransform.localPosition = _zoomStartLocalPos;
+                return;
+            }
+
+            _rectTransform.DOScale(1f, _zoomDuration).SetEase(Ease.OutCubic);
+            _rectTransform.DOLocalMove(_zoomStartLocalPos, _zoomDuration).SetEase(Ease.OutCubic);
+        }
+
+        // Страховка от «застрявшего» зума: объект выключили любым путём (розыгрыш, дискард эффектом
+        // оппонента, конец матча) — мгновенно вернуть трансформ к базе.
+        private void OnDisable() => CancelZoom(instant: true);
+
         // ── Init / Dispose ───────────────────────────────────────────────────
 
         public override SourceSlot Init()
@@ -78,6 +137,7 @@ namespace AwesomeUI.Feature.Battle
             GameEventBus.Subscribe<CardAffordableChangedEvent>(OnAffordableChanged);
             GameEventBus.Subscribe<CardAbilityReadyChangedEvent>(OnAbilityReadyChanged);
             GameEventBus.Subscribe<CardCostChangedEvent>(OnCostChanged);
+            GameEventBus.Subscribe<HandCardStatsChangedUIEvent>(OnHandStatsChanged);
             GameEventBus.Subscribe<TargetSelectionCancelledEvent>(OnTargetSelectionCancelled);
             GameEventBus.Subscribe<CreatureDragOverFieldChangedEvent>(OnDragOverFieldChanged);
             GameEventBus.Subscribe<CreatureDragStartedEvent>(OnCreatureDragStarted);
@@ -88,6 +148,7 @@ namespace AwesomeUI.Feature.Battle
             GameEventBus.Unsubscribe<CardAffordableChangedEvent>(OnAffordableChanged);
             GameEventBus.Unsubscribe<CardAbilityReadyChangedEvent>(OnAbilityReadyChanged);
             GameEventBus.Unsubscribe<CardCostChangedEvent>(OnCostChanged);
+            GameEventBus.Unsubscribe<HandCardStatsChangedUIEvent>(OnHandStatsChanged);
             GameEventBus.Unsubscribe<TargetSelectionCancelledEvent>(OnTargetSelectionCancelled);
             GameEventBus.Unsubscribe<CreatureDragOverFieldChangedEvent>(OnDragOverFieldChanged);
             GameEventBus.Unsubscribe<CreatureDragStartedEvent>(OnCreatureDragStarted);
@@ -121,6 +182,10 @@ namespace AwesomeUI.Feature.Battle
             if (_canvasGroup != null) { _canvasGroup.DOKill(); _canvasGroup.alpha = 1f; _canvasGroup.blocksRaycasts = true; }
             GetComponent<CardDissolveDriver>()?.ResetInstant();
 
+            // Новая карта в слоте — никакого унаследованного зума: флаг долой, масштаб к базе.
+            _zoomActive = false;
+            if (_rectTransform != null) { _rectTransform.DOKill(); _rectTransform.localScale = Vector3.one; }
+
             _layoutRect = transform.parent?.GetComponent<RectTransform>();
 
             if (_icon != null && data.Icon != null)
@@ -137,6 +202,7 @@ namespace AwesomeUI.Feature.Battle
         /// </summary>
         public void PlayDiscardAnimation(System.Action onComplete, float duration = 0.45f)
         {
+            _zoomActive = false;   // дискард (в т.ч. эффектом оппонента ПОКА карту держат) главнее зума
             _rectTransform.DOKill();
             if (_canvasGroup != null) _canvasGroup.blocksRaycasts = false;
 
@@ -157,12 +223,18 @@ namespace AwesomeUI.Feature.Battle
         /// <summary>Очистить View и деактивировать для повторного использования.</summary>
         public virtual void ClearCard()
         {
+            // Компонент уже уничтожен (teardown сцены/выход из приложения: SourceLayout.Dispose приходит
+            // после разрушения объектов) — обращение к .gameObject кинуло бы NullReferenceException прямо
+            // в UnityEngine.Component.get_gameObject. `gameObject?.` тут НЕ спасает: бросает сам геттер,
+            // а не разыменование. Проверка через перегруженный Unity-оператор == ловит и fake-null.
+            if (this == null) return;
+
             _isDragging  = false;
             _pendingPlay = false;
             _creatureDrag = false;
             _dragToPlace  = false;
             if (_canvasGroup != null) { _canvasGroup.DOKill(); _canvasGroup.alpha = 1f; _canvasGroup.blocksRaycasts = true; }
-            gameObject?.SetActive(false);
+            gameObject.SetActive(false);
             CardEntity      = -1;
             IsOccupied      = false;
             IsSelected      = false;
@@ -178,6 +250,13 @@ namespace AwesomeUI.Feature.Battle
         public void OnBeginDrag(PointerEventData eventData)
         {
             Debug.Log($"[PlayCardView] OnBeginDrag card={CardEntity} occupied={IsOccupied} affordable={_isAffordable}");
+
+            // Палец двинулся достаточно для драга — зум-предпросмотр схлопывается МГНОВЕННО и ДО записи
+            // стартовой позиции/индекса ниже (иначе драг запомнил бы зумнутый масштаб/поднятую позицию/
+            // «поверх всех» и они «сохранились» бы после возврата карты в руку). Для недоступной карты
+            // ранний return ниже просто оставит карту на месте — зум уже снят, розыгрыш не начнётся.
+            CancelZoom(instant: true);
+
             if (!IsOccupied || !_isAffordable) return;
 
             _isDragging            = true;
@@ -375,6 +454,14 @@ namespace AwesomeUI.Feature.Battle
         {
             if (evt.CardEntity != CardEntity) return;
             SetCostAmount(evt.EffectiveCost);   // эффективная цена (с модификатором — Гиперинфляция)
+        }
+
+        // Живые статы существа в руке (бафф/дебафф/урон командиру): цвет относительно базы + панч.
+        // Initial=true — карта только увидена системой (могла прийти уже баффнутой) — без панча.
+        private void OnHandStatsChanged(HandCardStatsChangedUIEvent evt)
+        {
+            if (evt.CardEntity != CardEntity) return;
+            SetLiveStats(evt.Attack, evt.MaxHealth, evt.CurrentHealth, punch: !evt.Initial);
         }
 
         // ── UpdateView ───────────────────────────────────────────────────────

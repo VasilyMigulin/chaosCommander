@@ -24,7 +24,14 @@ namespace Game.Core.Ecs.Components
         {
             if (permanent) (ModifiersPermanent ??= new List<int>()).Add(m);
             else           (Modifiers          ??= new List<int>()).Add(m);
+
+            // Прирост Max сразу превращаем в юзабельный Remaining ЭТОТ же ход — иначе бафф, навешанный триггером
+            // «в начале хода» (напр. «За работу!»), приходил бы визуально на ход позже: RunTurnStartSystem уже
+            // сбросил Remaining=Max (СТАРЫЙ) ДО того, как TurnStartedEvent доходит до OnTurnStartTrigger и
+            // резолвит бафф — RecalculateValue сам поднять Remaining не мог (только подрезал сверху).
+            int oldMax = Max;
             RecalculateValue();
+            if (Max > oldMax) Remaining += Max - oldMax;
         }
 
         public bool RemoveModifier(int m)

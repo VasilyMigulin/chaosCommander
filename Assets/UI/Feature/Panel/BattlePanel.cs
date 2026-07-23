@@ -32,12 +32,23 @@ namespace AwesomeUI.Feature.Battle
         [Header("Opponent Card")]
         [SerializeField] private OpponentCardPlayView _opponentCardPlayView;
 
+        [Header("Card Detail")]
+        [SerializeField] private CardDetailPopupView _cardDetailPopupView;
+
+        [Header("Active Auras (локальный игрок)")]
+        [Tooltip("Бар активных аур ЛОКАЛЬНОГО игрока — тот же класс AuraStatusBarView используется на аватаре "
+               + "оппонента, но там данные приходят напрямую (AvatarPlayerView.SetAuras), а сюда — только через "
+               + "AuraStatusChangedUIEvent (см. OnAuraStatusChanged). Компонент сам не подписывается на шину —"
+               + "иначе оба инстанса ловили бы одно и то же локальное событие.")]
+        [SerializeField] private AuraStatusBarView _localAuraBarView;
+
         [Header("Resources")]
         [SerializeField] private List<ResourceIndicatorView> _resourceIndicators;
 
         [Header("Turn")]
         [SerializeField] private TurnTimerView _turnTimerView;
         [SerializeField] private TurnHintView  _turnHintView;
+        [SerializeField] private EndTurnButtonView _endTurnButtonView;
 
         public override void Init(IPanelController panelController)
         {
@@ -52,11 +63,20 @@ namespace AwesomeUI.Feature.Battle
             if (_opponentCardPlayView == null)
                 _opponentCardPlayView = GetComponentInChildren<OpponentCardPlayView>(true);
 
+            if (_cardDetailPopupView == null)
+                _cardDetailPopupView = GetComponentInChildren<CardDetailPopupView>(true);
+
+            if (_localAuraBarView == null)
+                _localAuraBarView = GetComponentInChildren<AuraStatusBarView>(true);
+
             if (_turnTimerView == null)
                 _turnTimerView = GetComponentInChildren<TurnTimerView>(true);
 
             if (_turnHintView == null)
                 _turnHintView = GetComponentInChildren<TurnHintView>(true);
+
+            if (_endTurnButtonView == null)
+                _endTurnButtonView = GetComponentInChildren<EndTurnButtonView>(true);
 
             if (_resourceIndicators == null || _resourceIndicators.Count == 0)
             {
@@ -87,15 +107,20 @@ namespace AwesomeUI.Feature.Battle
 
             _turnTimerView?.OnInject();
             _turnHintView?.OnInject();
+            _endTurnButtonView?.OnInject();
 
             GameEventBus.Subscribe<OpponentCardPlayedUIEvent>(OnOpponentCardPlayed);
+            GameEventBus.Subscribe<CardDetailUIEvent>(OnCardDetail);
             GameEventBus.Subscribe<PreStartPhaseBeginUIEvent>(OnPreStartPhaseBegin);
+            GameEventBus.Subscribe<AuraStatusChangedUIEvent>(OnAuraStatusChanged);
         }
 
         public override void Unject()
         {
             GameEventBus.Unsubscribe<OpponentCardPlayedUIEvent>(OnOpponentCardPlayed);
+            GameEventBus.Unsubscribe<CardDetailUIEvent>(OnCardDetail);
             GameEventBus.Unsubscribe<PreStartPhaseBeginUIEvent>(OnPreStartPhaseBegin);
+            GameEventBus.Unsubscribe<AuraStatusChangedUIEvent>(OnAuraStatusChanged);
 
             _muliganWindow?.Unject();
             _cardLayout?.Unject();
@@ -107,6 +132,7 @@ namespace AwesomeUI.Feature.Battle
 
             _turnTimerView?.Unject();
             _turnHintView?.Unject();
+            _endTurnButtonView?.Unject();
         }
 
         public override void OnDipose()
@@ -129,5 +155,14 @@ namespace AwesomeUI.Feature.Battle
         {
             _opponentCardPlayView?.Show(evt.Visual);
         }
+
+        private void OnCardDetail(CardDetailUIEvent evt)
+        {
+            if (evt.Show) _cardDetailPopupView?.Show(evt.Visual);
+            else          _cardDetailPopupView?.Hide();
+        }
+
+        private void OnAuraStatusChanged(AuraStatusChangedUIEvent evt)
+            => _localAuraBarView?.SetAuras(evt.Visuals, evt.TurnsRemaining, evt.StackCounts);
     }
 }

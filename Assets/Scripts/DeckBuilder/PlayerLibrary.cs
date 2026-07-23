@@ -18,6 +18,10 @@ namespace Game.Core.DeckBuilder
 
         public static IReadOnlyDictionary<string, CardEntry> Entries => _entries;
 
+        /// <summary>Библиотека изменилась (загрузка/выдача карт). Панели коллекции обновляются в рантайме.</summary>
+        public static event Action Changed;
+        static void RaiseChanged() => Changed?.Invoke();
+
         // ── Load ─────────────────────────────────────────────────────────────
 
         /// <summary>
@@ -54,6 +58,7 @@ namespace Game.Core.DeckBuilder
                 else
                     _entries[key] = new CardEntry(instance.CardData.Clone(), data.Count);
             }
+            RaiseChanged();
         }
 
         // ── Load из Economy v2 инвентаря (актуальный путь) ─────────────────────
@@ -100,6 +105,31 @@ namespace Game.Core.DeckBuilder
                 else
                     _entries[key] = new CardEntry(instance.CardData.Clone(), 1);
             }
+            RaiseChanged();
+        }
+
+        /// <summary>
+        /// Применить выданные сервером карты (RewardBundle.Cards) к библиотеке — БЕЗ повторного запроса
+        /// инвентаря: сервер уже сказал, что выдал. Резолвит item id → CardConfig → добавляет. Одно
+        /// событие Changed на всю пачку. Зовётся после гранта карт / открытия бустера / покупки.
+        /// </summary>
+        public static void AddGranted(IEnumerable<GrantedCard> granted, CardConfig config)
+        {
+            if (granted == null || config == null) return;
+            bool any = false;
+            foreach (var g in granted)
+            {
+                if (g == null || !CardItemId.TryParse(g.ItemId, out var exp, out var id)) continue;
+                var inst = config.Get(exp, id);
+                if (inst == null || inst.CardData == null)
+                {
+                    Debug.LogWarning($"[PlayerLibrary] Выданная карта не найдена в CardConfig: {g.ItemId}");
+                    continue;
+                }
+                AddCardInternal(inst.CardData, Mathf.Max(1, g.Amount));
+                any = true;
+            }
+            if (any) RaiseChanged();
         }
 
         // ── Save (ЛЕГАСИ — только до полного перехода на Economy) ──────────────
@@ -116,6 +146,13 @@ namespace Game.Core.DeckBuilder
         /// <summary>Добавить карту в библиотеку (при открытии бустера и т.п.).</summary>
         public static void AddCard(CardModel model, int count = 1)
         {
+            AddCardInternal(model, count);
+            RaiseChanged();
+        }
+
+        // Без события — для пачечных добавлений (одно Changed на всю пачку у вызывающего).
+        static void AddCardInternal(CardModel model, int count)
+        {
             string key = MakeKey(model.ExpansionId, model.Id);
             if (_entries.TryGetValue(key, out var entry))
                 entry.AddCopies(count);
@@ -129,11 +166,14 @@ namespace Game.Core.DeckBuilder
         /// </summary>
         public static void AddCards(IEnumerable<CardModel> models, int countEach = 1)
         {
+            bool any = false;
             foreach (var model in models)
             {
                 if (model == null) continue;
-                AddCard(model, countEach);
+                AddCardInternal(model, countEach);
+                any = true;
             }
+            if (any) RaiseChanged();
         }
 
         /// <summary>
@@ -165,8 +205,56 @@ namespace Game.Core.DeckBuilder
                     _ => countEach,
                 };
 
-                AddCard(instance.CardData, count); // Clone выполняется внутри AddCard
+                AddCardInternal(instance.CardData, count); // Clone выполняется внутри
             }
+            RaiseChanged();
+        }
+
+        /// <summary>
+        /// REVIEW-СБОРКА: заполнить библиотеку ВСЕЙ коллекцией из CardConfig в максимуме копий под лимиты
+        /// колоды (комон 4 / рарка 3 / эпик 2 / лега 1 / экзот 1) — чтобы издатель сразу собирал ЛЮБЫЕ колоды.
+        /// Полностью ЛОКАЛЬНО (сервер и реальное владение не трогаем). Зовётся ТОЛЬКО под дефайном
+        /// PUBLISHER_REVIEW (см. InitState) — в проде не вызывается.
+        /// </summary>
+        public static void FillFullCollection(CardConfig config)
+        {
+            _entries.Clear();
+            if (config == null || config.Expansions == null) { RaiseChanged(); return; }
+            config.Rebuild();   // проставляет CardData.ExpansionId по каждому сету (ключи карт не схлопнутся)
+            foreach (var exp in config.Expansions)
+            {
+                if (exp == null || exp.Cards == null) continue;
+                foreach (var instance in exp.Cards)
+                {
+                    if (instance == null || instance.CardData == null) continue;
+                    if (instance.CardData.IsToken) continue;   // токены/стори-карты (IsToken) в коллекцию не идут — как в CardPool.Matches
+                    AddCardInternal(instance.CardData, MaxCopiesFor(instance.CardData.Rarity));
+                }
+            }
+            Debug.Log($"[PlayerLibrary] REVIEW: коллекция разблокирована ({_entries.Count} уникальных карт).");
+            RaiseChanged();
+        }
+
+        // Максимум копий карты по редкости = лимит колоды (совпадает с AddInstanceCards / DeckBuilderService).
+        static int MaxCopiesFor(Service.EnumService.Rarity r) => r switch
+        {
+            Service.EnumService.Rarity.Common    => 4,
+            Service.EnumService.Rarity.Rare      => 3,
+            Service.EnumService.Rarity.Epic      => 2,
+            Service.EnumService.Rarity.Legendary => 1,
+            Service.EnumService.Rarity.Exotic    => 1,
+            _ => 1,
+        };
+
+        /// <summary>Убрать копии карты (распыление «Порвать»). count &lt; 0 не бывает; 0 копий → запись удаляется.
+        /// Событие Changed → коллекция обновится в рантайме.</summary>
+        public static void RemoveCard(string expansionId, int cardId, int count = 1)
+        {
+            string key = MakeKey(expansionId, cardId);
+            if (!_entries.TryGetValue(key, out var entry)) return;
+            entry.RemoveCopies(count);
+            if (entry.OwnedCount <= 0) _entries.Remove(key);
+            RaiseChanged();
         }
 
         // ── Helpers ──────────────────────────────────────────────────────────
@@ -176,7 +264,7 @@ namespace Game.Core.DeckBuilder
 
         public static string MakeKey(string expansionId, int cardId) => $"{expansionId}_{cardId}";
 
-        public static void Clear() => _entries.Clear();
+        public static void Clear() { _entries.Clear(); RaiseChanged(); }
 
         public static IEnumerable<OwnedCardData> ToOwnedList()
         {

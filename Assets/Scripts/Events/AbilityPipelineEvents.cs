@@ -13,7 +13,7 @@ namespace Game.Core.Events
     /// Призыв (НЕ каст) публикует только это, без CardCastEvent → нет каскада «при разыгрывании».
     /// Generated=true — токен, созданный СРАЗУ на борд (CreateCardSystem, FillRow/SpawnCardOnBoard):
     /// CollectActionSystem такие НЕ синкает ActionCastData (создание уже зеркально через детерм. ре-ран).</summary>
-    public struct CreatureInvokedEvent : IGameEvent { public int CardEntity; public bool Generated; }
+    public struct CreatureInvokedEvent : IGameEvent { public int CardEntity; public bool Generated; public int OwnerId; }
 
     /// <summary>Существо-карта погибла.</summary>
     public struct CreatureDiedEvent : IGameEvent { public int CardEntity; public int KillerEntity; }

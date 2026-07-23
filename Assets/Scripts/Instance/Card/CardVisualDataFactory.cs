@@ -12,6 +12,30 @@ namespace Game.Core.Instance.Card
     /// </summary>
     public static class CardVisualDataFactory
     {
+        /// <summary>Из CardViewDataComponent (уже собранные при инициализации entity данные — без похода
+        /// в CardConfig/CardModel). Поля 1:1 совпадают с CardVisualData — раньше копировались вручную в
+        /// ReplayActionSystem.ReplayCast и PveOpponentCardPlayUISystem.OnCast (дублирование), теперь один
+        /// хелпер на оба места + на новые фичи (инспект существа, история розыгрышей).</summary>
+        public static CardVisualData From(in Game.Core.Ecs.Components.CardViewDataComponent vd)
+        {
+            return new CardVisualData
+            {
+                CardName    = vd.CardName,
+                Description = vd.Description,
+                Icon        = vd.ArtImage,
+                CardType    = vd.CardType,
+                Rarity      = vd.Rarity,
+                Element     = vd.Element,
+                CostType    = vd.CostType,
+                CostAmount  = vd.CostAmount,
+                IsCreature  = vd.IsCreature,
+                Attack      = vd.Attack,
+                MaxHealth   = vd.MaxHealth,
+                Speed       = vd.Speed,
+                IsCommander = vd.IsCommander,
+            };
+        }
+
         public static CardVisualData From(CardModel model, bool isCommander = false)
         {
             if (model == null) return default;

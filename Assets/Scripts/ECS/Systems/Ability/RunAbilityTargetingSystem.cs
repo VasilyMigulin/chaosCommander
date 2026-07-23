@@ -100,9 +100,17 @@ namespace Game.Core.Ecs.Systems
                     }
 
                     var candidates = TargetGather.Gather(world, tc.Filters, owner.CardEntity, owner.PlayerEntity, null, tc.Zone);
-                    Queue(queuedPool, entity, tc.Selection == TargetSelection.Strongest
-                        ? PickStrongest(world, candidates, tc.Count)
-                        : PickRandom(candidates, tc.Count));
+
+                    // Умный авто-выбор ИИ (PvE): карта несёт AiTargetPreferenceComponent → вместо случайного
+                    // кандидата берём лучших по критерию (фильтры уже отсеяли, КОГО можно).
+                    var prefPool = world.GetPool<AiTargetPreferenceComponent>();
+                    var pref = prefPool.Has(owner.CardEntity) ? prefPool.Get(owner.CardEntity).Mode : AiTargetPreference.None;
+
+                    int[] picked;
+                    if (tc.Selection == TargetSelection.Strongest) picked = PickStrongest(world, candidates, tc.Count);
+                    else if (pref != AiTargetPreference.None)      picked = PickByPreference(world, candidates, tc.Count, pref);
+                    else                                            picked = PickRandom(candidates, tc.Count);
+                    Queue(queuedPool, entity, picked);
                 }
                 else if (fieldPool.Has(entity))
                 {
@@ -139,6 +147,30 @@ namespace Game.Core.Ecs.Systems
                 int va = atk.Has(a) ? atk.Get(a).Value : 0;
                 int vb = atk.Has(b) ? atk.Get(b).Value : 0;
                 return vb.CompareTo(va);   // по убыванию атаки
+            });
+            int take = Math.Min(count, candidates.Count);
+            var res = new int[take];
+            candidates.CopyTo(0, res, 0, take);
+            return res;
+        }
+
+        // Сортировка по критерию ИИ (AiTargetPreferenceComponent). Детерминизм синка не нужен:
+        // компонент ставит только RunAiTurnSystem (PvE, без пассива).
+        static int[] PickByPreference(EcsWorld world, List<int> candidates, int count, AiTargetPreference pref)
+        {
+            if (count <= 0 || candidates.Count == 0) return Array.Empty<int>();
+            var atk = world.GetPool<AttackComponent>();
+            var hp = world.GetPool<HealthComponent>();
+
+            int Atk(int e) => atk.Has(e) ? atk.Get(e).Value : 0;
+            int Cur(int e) => hp.Has(e) ? hp.Get(e).Current : 0;
+            int Lost(int e) => hp.Has(e) ? hp.Get(e).Max - hp.Get(e).Current : 0;
+
+            candidates.Sort((a, b) => pref switch
+            {
+                AiTargetPreference.LowestHealth => Cur(a) != Cur(b) ? Cur(a).CompareTo(Cur(b)) : Atk(b).CompareTo(Atk(a)),   // добить; при равном HP — опаснее
+                AiTargetPreference.MostDamaged  => Lost(b).CompareTo(Lost(a)),                                                // макс. потерянного HP
+                _                               => Atk(a) != Atk(b) ? Atk(b).CompareTo(Atk(a)) : Cur(b).CompareTo(Cur(a)),   // HighestAttack; при равной атаке — жирнее
             });
             int take = Math.Min(count, candidates.Count);
             var res = new int[take];

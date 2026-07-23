@@ -48,6 +48,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c3e0f7959ca14394ab1c0dabec9b60b2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: AwesomeUI.Core.Handler::AwesomeUI.Core.Handler.UIHandler
+  _globalConfigs:
+  - {fileID: 11400000, guid: 6bc137bfac7b42f48a8f0a914b44d27f, type: 2}
 --- !u!1 &2240883497937102804
 GameObject:
   m_ObjectHideFlags: 0

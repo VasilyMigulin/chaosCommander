@@ -29,18 +29,18 @@ MonoBehaviour:
           \u043F\u043E\u0434 \u0432\u0430\u0448\u0438\u043C \u043A\u043E\u043D\u0442\u0440\u043E\u043B\u0435\u043C
           \u043F\u043E\u043B\u0443\u0447\u0430\u044E\u0442 +1 \u043A \u0441\u043A\u043E\u0440\u043E\u0441\u0442\u0438"
         Rarity: 0
-        Element: 0
+        Element: 16
         ArtImage: {fileID: 0}
         ExpansionId: standard
-        PlayCost: 0
-        PlayCostAmount: 0
+        PlayCost: 1
+        PlayCostAmount: 2
         IsToken: 0
         MulliganStartingHand: 0
         MulliganUnlimitedReplace: 0
         RuntimeAbilities:
         - rid: 1051486497689043199
         Archetypes: []
-        TurnsAlive: 3
+        TurnsAlive: 4
     - rid: 1051486497689043199
       type: {class: AbilityToField, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
@@ -49,6 +49,13 @@ MonoBehaviour:
         Rules: []
         Effects:
         - rid: 1051486497689043203
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 0}
+          ProjectileSpeed: 12
+          MergeArea: 0
+          PlayCasterAnimation: 0
         Area: 0
         Zone: 0
         Filters:
@@ -72,3 +79,4 @@ MonoBehaviour:
         HealthBonus: 0
         SpeedBonus: 1
         RevertOnSourceDeath: 1
+        Stack: 0

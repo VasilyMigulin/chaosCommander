@@ -107,6 +107,19 @@ namespace Game.Core.Events
         public int EffectiveCost;
     }
 
+    /// <summary>Живые статы карты-СУЩЕСТВА в руке ЛОКАЛЬНОГО игрока изменились (бафф/дебафф/урон командиру) —
+    /// PlayCardView красит статы относительно базы и панчит текст (см. CardBaseView.SetLiveStats).
+    /// Публикует HandCardStatsViewSystem диффом (не каждый кадр). Initial=true — карта впервые увидена в руке
+    /// (первичная отрисовка: цвет применить, панч не играть).</summary>
+    public struct HandCardStatsChangedUIEvent : IGameEvent
+    {
+        public int CardEntity;
+        public int Attack;
+        public int MaxHealth;
+        public int CurrentHealth;
+        public bool Initial;
+    }
+
     /// <summary>Глобальный модификатор стоимости карт изменился (AddCostModifierEffect). Сигнал для
     /// CardAffordabilitySystem пересчитать affordability + эффективную стоимость карт руки.</summary>
     public struct CostModifierChangedEvent : IGameEvent { }
@@ -216,12 +229,56 @@ namespace Game.Core.Events
         public int NewValue;
         public int MaxValue;
     }
-     
+
+    /// <summary>Счётчик руки/колоды ЛОКАЛЬНОГО игрока — для ResourceIndicatorView (та же панель, что
+    /// золото/мана/здоровье; см. PlayerStatsViewSystem). Не переиспользует ResourceChangedEvent/ResourceType
+    /// намеренно — ResourceType означает «трачу на каст», а рука/колода не тратятся, это просто счётчик.
+    /// HandMax — HandComponent.MaxHandSize (6); DeckMax=0 — у колоды нет фиксированного максимума (не рисуем
+    /// слайдер, ResourceIndicatorView просто покажет число).</summary>
+    public struct HandDeckCountChangedUIEvent : IGameEvent
+    {
+        public int HandCount;
+        public int HandMax;
+        public int DeckCount;
+    }
+
+    /// <summary>Активные чары ЛОКАЛЬНОГО игрока изменились (появилась/исчезла/тикнул таймер) — статус-бар
+    /// аур (см. PlayerStatsViewSystem). Оппоненту те же данные кладутся НАПРЯМУЮ в AvatarPlayerView.SetAuras
+    /// (как HP/золото/мана), без этого события — оно только для локального. TurnsRemaining[i] соответствует
+    /// Visuals[i]; -1 = чара постоянная (без CharmTimerComponent).</summary>
+    public struct AuraStatusChangedUIEvent : IGameEvent
+    {
+        public Game.Core.Shared.CardVisualData[] Visuals;
+        public int[] TurnsRemaining;
+        /// <summary>Размер стака одноимённых чар (слот показывает ×N при N>1); параллелен Visuals.</summary>
+        public int[] StackCounts;
+    }
+
     public struct CellSelectedEvent : IGameEvent
     {
         public int Row;
         public int Col;
         public int OwnerId;
+    }
+
+    /// <summary>Удержание пальца на существе на столе (CreatureView) ≥ порога — просьба показать карточку
+    /// существа. Show=false — палец отпущен, скрыть. Row/Col/OwnerId — та же конвенция клетки, что у
+    /// CellSelectedEvent; CreatureInspectSystem резолвит существо на этой клетке и строит CardVisualData.</summary>
+    public struct CreatureHoldUIEvent : IGameEvent
+    {
+        public int Row;
+        public int Col;
+        public int OwnerId;
+        public bool Show;
+    }
+
+    /// <summary>Показ/скрытие карточки-инспектора ЛЮБОЙ карты (существо на столе — CreatureInspectSystem;
+    /// миниатюра истории розыгрышей — PlayHistoryDrawerView вызывает CardDetailPopupView напрямую, без
+    /// события, тип карты не важен).</summary>
+    public struct CardDetailUIEvent : IGameEvent
+    {
+        public Game.Core.Shared.CardVisualData Visual;
+        public bool Show;
     }
 
     public struct CreatureSelectedEvent : IGameEvent
@@ -319,6 +376,9 @@ namespace Game.Core.Events
     }
      
     public struct OpponentTurnEndedEvent : IGameEvent { } 
+    /// <summary>«Кто-то разыграл карту» — несмотря на имя (историческое, оставлено намеренно — см. память
+    /// project_build_debug_map.md, «Единый фид розыгрышей»), публикуется теперь на ЛЮБОЙ каст (свой/чужой/
+    /// авто-сгенерированный), не только оппонента — см. IsLocalPlayer.</summary>
     public struct OpponentCardPlayedUIEvent : IGameEvent
     {
         public string CardName;
@@ -326,12 +386,15 @@ namespace Game.Core.Events
         /// <summary>Полные визуальные данные карты — выкат рендерит её как настоящую карту (арт/имя/стоимость/
         /// статы/описание) через CardBaseView. CardName/Icon оставлены как fallback.</summary>
         public Game.Core.Shared.CardVisualData Visual;
+        /// <summary>true — разыграл ЛОКАЛЬНЫЙ игрок (свой каст); false — оппонент/чужая реплеенная карта.</summary>
+        public bool IsLocalPlayer;
     }
     public struct PlayerAssignedEvent : IGameEvent
     {
         public int PlayerEntity;
         public int Side;         // 1 РёР»Рё 2
         public bool IsLocalPlayer;
+        public int PlayerId;     // PlayerComponent.PlayerId владельца (== OwnerId карт) — фильтр «свой/чужой» в трекерах задач
     }
 
     /// <summary>Активный игрок завершил ход — коллектор шлёт ActionEndTurnData оппоненту.</summary>
@@ -370,6 +433,24 @@ namespace Game.Core.Events
     {
         public string TextKey;
         public string FallbackText;
+        /// <summary>ИНФО-шаг: игрок просто читает и жмёт «Далее» (вью показывает кнопку и шлёт
+        /// TutorialContinueEvent). false — шаг-действие: ждём событие боя, кнопки нет.</summary>
+        public bool NeedsContinue;
+    }
+
+    /// <summary>Игрок нажал «Далее» на инфо-шаге туториала (TutorialHintView → TutorialDirectorSystem).</summary>
+    public struct TutorialContinueEvent : IGameEvent { }
+
+    /// <summary>Подсветить цель туториала: оверлей TutorialHighlightView вырезает дырку в затемнении вокруг
+    /// якоря (TutorialAnchor с этим id). Anchor=None или Show=false — подсветка снимается.</summary>
+    public struct TutorialHighlightUIEvent : IGameEvent
+    {
+        public TutorialAnchorId Anchor;
+        public bool Show;
+        /// <summary>ИНФО-шаг: блокируем ВЕСЬ ввод (включая дырку) — игрок только читает и жмёт «Далее».
+        /// Иначе он сыграет наперёд, а шаг-действие потом будет ждать того, что уже нечем сделать (софт-лок).
+        /// false — шаг-действие: сквозь дырку кликать МОЖНО, всё остальное перекрыто.</summary>
+        public bool BlockAll;
     }
 
     /// <summary>Стори: выданы карты-награды за ПЕРВОЕ прохождение энкаунтера. Публикует BattleState

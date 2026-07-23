@@ -69,16 +69,19 @@ namespace AwesomeUI.Feature.Battle
 
         void OnEnable()
         {
-            GameEventBus.Subscribe<CommandersRevealedUIEvent>(OnCommandersRevealed);
-            GameEventBus.Subscribe<MulliganPhaseBeginUIEvent>(OnMulliganPhaseBegin);
-            GameEventBus.Subscribe<PreStartPhaseBeginUIEvent>(OnPreStartPhaseBegin);
+            // SubscribePersistent, не Subscribe: объект persistent (DontDestroyOnLoad), OnEnable отрабатывает
+            // ОДИН раз за сессию — обычная подписка терялась бы навсегда после первого GameEventBus.Clear()
+            // (см. EcsRunHandler.Dispose при выходе из боя), и оверлей переставал бы сам прятаться со 2-го матча.
+            GameEventBus.SubscribePersistent<CommandersRevealedUIEvent>(OnCommandersRevealed);
+            GameEventBus.SubscribePersistent<MulliganPhaseBeginUIEvent>(OnMulliganPhaseBegin);
+            GameEventBus.SubscribePersistent<PreStartPhaseBeginUIEvent>(OnPreStartPhaseBegin);
         }
 
         void OnDisable()
         {
-            GameEventBus.Unsubscribe<CommandersRevealedUIEvent>(OnCommandersRevealed);
-            GameEventBus.Unsubscribe<MulliganPhaseBeginUIEvent>(OnMulliganPhaseBegin);
-            GameEventBus.Unsubscribe<PreStartPhaseBeginUIEvent>(OnPreStartPhaseBegin);
+            GameEventBus.UnsubscribePersistent<CommandersRevealedUIEvent>(OnCommandersRevealed);
+            GameEventBus.UnsubscribePersistent<MulliganPhaseBeginUIEvent>(OnMulliganPhaseBegin);
+            GameEventBus.UnsubscribePersistent<PreStartPhaseBeginUIEvent>(OnPreStartPhaseBegin);
         }
 
         void OnCommandersRevealed(CommandersRevealedUIEvent _) => Hide();
@@ -95,6 +98,20 @@ namespace AwesomeUI.Feature.Battle
             _cg.blocksRaycasts = false;
             _cg.DOKill();
             _cg.DOFade(0f, _fadeDuration).SetUpdate(true);
+        }
+
+        /// <summary>Показать оверлей заново для НОВОГО матча. BattleCanvas — persistent (DontDestroyOnLoad,
+        /// см. UIModule/UIHandler.InvokeCanvas): объект не пересоздаётся между боями, Awake()/OnEnable() второй
+        /// раз не вызываются, поэтому без явного вызова оверлей на повторном бою оставался бы невидимым (alpha=0
+        /// с прошлого фейда, _hidden=true навсегда) — раскрытие сцены/handshake проходило бы «голым».
+        /// Вызывается из BattleState при открытии BattleCanvas для нового матча.</summary>
+        public void Show()
+        {
+            _hidden = false;
+            _cg.DOKill();
+            _cg.alpha = 1f;
+            _cg.blocksRaycasts = true;
+            BeginFlavor();
         }
 
         // ── Крутёж фраз через Update (без корутины/DOTween) ────────────────────

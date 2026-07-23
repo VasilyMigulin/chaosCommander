@@ -239,6 +239,28 @@ namespace Game.Core.Ability
         }
     }
 
+    // === class (OOP) === Замешать в КОЛОДУ владельца ИСТОЧНИКА Count копий ЦЕЛЕВОЙ карты («Дополнительные
+    // возможности»: кладётся в Modifiers дискавера — target там = выбранная карта; годится и как обычный
+    // target-эффект «замешай 3 копии цели»). Идентичность — CardModelComponent цели; владелец копий — владелец
+    // источника (Spawn). СИНК ДАРОМ: для discover-из-пула модификаторы применяет CreateCardSystem при
+    // материализации выбора на ОБОИХ клиентах (GeneratedModScratch), ключи копий детерминированы (NextKey
+    // источника) → обе стороны создают одинаковые копии без спец-канала.
+    [Serializable]
+    public sealed class ShuffleCopiesOfTargetEffect : EffectBase
+    {
+        public int Count = 3;
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            if (target < 0 || Count <= 0) return;
+            var pool = world.GetPool<CardModelComponent>();
+            if (!pool.Has(target)) return;
+            ref var m = ref pool.Get(target);
+            for (int i = 0; i < Count; i++)
+                GenerateCardEffect.Spawn(world, cardEntity, m.ExpansionId, m.ModelId, toHand: false);
+        }
+    }
+
     // === class (OOP) === Дать Count случайных карт из ПУЛА в руку владельца. Пул — ассеты
     // CardInstanceData (ICreatable), напр. все жёлтые спеллы. «Сколько раз» в зависимости от контекста
     // (число убитых и т.п.) — НЕ здесь: оборачивай в RepeatEffect (универсально для любого эффекта).
@@ -373,6 +395,33 @@ namespace Game.Core.Ability
                 if (rec.ModelId == selfModel) continue;   // не реплеим сам экзотик (рекурсия)
                 GenerateCardEffect.Spawn(world, cardEntity, rec.ExpansionId, rec.ModelId, toHand: true, autoCast: true, forceRandomTarget: forceRandom);
             }
+        }
+    }
+
+    // === class (OOP) === ПРИЗВАТЬ ЗАНОВО все чары, разыгранные владельцем в этом матче (Мистер Постоянство).
+    // Журнал — MatchCounterComponent.CharmsPlayedLog (порядок розыгрыша, с повторами, БЕЗ токенов — трекер
+    // не пишет их). Каждая чара пересоздаётся на борде свежей копией (SpawnToBoard, Row=-1 — чары без клетки),
+    // срок жизни/поведение — заново с инита её модели. ЛИМИТ 5 ЧАР ОБХОДИТСЯ ШТАТНО: лимит проверяет только
+    // каст-роутер (RunCastRouterSystem, pre-cost на RequestCardCastEvent) — прямой призыв через него не идёт.
+    // СИНК ДАРОМ: журнал зеркален, ключи копий детерминированы (NextKey источника) → оба клиента создают
+    // одинаковый набор. Призванные копии НЕ разыгрываются (нет CardCastEvent) → в журнал не дописываются,
+    // рекурсии нет.
+    [Serializable]
+    public sealed class SummonAllPlayedCharmsEffect : EffectBase
+    {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Summon;
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            var counters = world.GetPool<MatchCounterComponent>();
+            if (PlayerEntity < 0 || !counters.Has(PlayerEntity)) return;
+            var log = counters.Get(PlayerEntity).CharmsPlayedLog;
+            if (log == null || log.Count == 0) return;
+
+            // Снапшот — на случай если чья-то реакция дополнит журнал во время призыва.
+            var snapshot = log.ToArray();
+            foreach (var rec in snapshot)
+                GenerateCardEffect.SpawnToBoard(world, cardEntity, rec.ExpansionId, rec.ModelId, -1, -1);
         }
     }
 

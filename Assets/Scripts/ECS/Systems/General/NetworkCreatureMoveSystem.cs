@@ -11,7 +11,7 @@ namespace Game.Core.Ecs.Systems
     /// Перехватывает CreatureMovedEvent локального игрока и отправляет RPC оппоненту,
     /// чтобы тот воспроизвёл ход существа у себя.
     /// </summary>
-    public sealed class NetworkCreatureMoveSystem : IEcsRunSystem, IEcsInitSystem, System.IDisposable
+    public sealed class NetworkCreatureMoveSystem : IEcsRunSystem, IEcsInitSystem, IEcsDestroySystem, System.IDisposable
     {
         readonly EcsCustomInject<PhotonRunHandler>      _photon     = default;
         readonly EcsPoolInject<NetworkEntityComponent> _netKeyPool = default;
@@ -23,6 +23,10 @@ namespace Game.Core.Ecs.Systems
         {
             GameEventBus.Subscribe<CreatureMovedEvent>(OnCreatureMoved);
         }
+
+        // EcsSystems.Destroy() ищет IEcsDestroySystem, не System.IDisposable — без этого моста Dispose()
+        // фреймворк никогда не вызывал бы (см. EcsRunHandler/TutorialEcsHandler.Dispose → _allSystems.Destroy()).
+        public void Destroy(IEcsSystems systems) => Dispose();
 
         public void Dispose()
         {

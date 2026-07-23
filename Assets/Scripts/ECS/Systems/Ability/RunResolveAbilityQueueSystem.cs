@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Game.Core.Configs;
 using Game.Core.Ecs.Components;
 using Game.Core.Events;
 using Game.Core.Mono;
@@ -36,6 +37,7 @@ namespace Game.Core.Ecs.Systems
     public sealed class RunResolveAbilityQueueSystem : IEcsInitSystem, IEcsRunSystem, IEcsDestroySystem
     {
         readonly EcsCustomInject<BoardView> _boardView = default;
+        readonly EcsCustomInject<DefaultAbilityVfxConfig> _defaultVfx = default;
         readonly EcsPoolInject<ViewRefComponent> _viewPool = default;
 
         const float ProjectileTimeout = 4f;   // сек до форс-резолва, если прилёт не пришёл
@@ -105,8 +107,14 @@ namespace Game.Core.Ecs.Systems
 
             // Анимация кастера (opt-in): если запрошена И у кастера реально есть параметр "Cast" —
             // откладываем резолв до CastEvent/FinishEvent. Иначе — мгновенно, как раньше.
+            // ВАЖНО: только если у способности реально ЕСТЬ цели — Field/Target-таргетинг кладёт в очередь
+            // ПУСТОЙ массив, когда подходящих кандидатов нет (напр. Селекционер: все союзники уже забаффаны),
+            // и без этой проверки кастер всё равно проигрывал бы анимацию/VFX «в никуда» (эффект и так не
+            // применится, но выглядело бы как сработавшая способность). NonTarget/Self всегда дают ≥1 цель
+            // (игрок-владелец/сам кастер), так их анимация не задевается.
             var vfxPoolCheck = world.GetPool<AbilityVfxComponent>();
-            if (vfxPoolCheck.Has(first) && vfxPoolCheck.Get(first).Spec?.PlayCasterAnimation == true)
+            bool hasTargets = (queuedPool.Get(first).Targets?.Length ?? 0) > 0;
+            if (hasTargets && vfxPoolCheck.Has(first) && vfxPoolCheck.Get(first).Spec?.PlayCasterAnimation == true)
             {
                 var casterView = GetCasterView(world, ownerPool.Get(first).CardEntity);
                 if (casterView != null && casterView.HasCastAnimation)
@@ -246,10 +254,14 @@ namespace Game.Core.Ecs.Systems
             var originPool = world.GetPool<AbilityOriginComponent>();
             AbilityResolveContext.OriginOwnerId = originPool.Has(first) ? originPool.Get(first).OriginOwnerId : -1;
 
-            // Ключ триггера ЭТОЙ активации (PlayCardFromZoneEffect/PlaySameNameFromHandEffect: интерактивный
-            // выбор цели только от OnCast — см. AbilityResolveContext.TriggerKey).
+            // Ключ триггера ЭТОЙ активации (PlayTargetCardEffect/PlaySameNameFromHandEffect: интерактивный
+            // выбор цели только от OnCast — см. AbilityResolveContext.TriggerKey). Копия в локальную переменную
+            // — ниже она нужна ПОСЛЕ finally, который зовёт AbilityResolveContext.Clear() (обнуляет TriggerKey);
+            // без локальной копии EmitDefaultTriggerVfx всегда видел бы null (баг: дефолтные VFX для OnCast/
+            // OnDie никогда не срабатывали, независимо от того, назначен ли DefaultAbilityVfxConfig).
             var triggerKeyPool = world.GetPool<AbilityTriggerKeyComponent>();
-            AbilityResolveContext.TriggerKey = triggerKeyPool.Has(first) ? triggerKeyPool.Get(first).Key : null;
+            string triggerKey = triggerKeyPool.Has(first) ? triggerKeyPool.Get(first).Key : null;
+            AbilityResolveContext.TriggerKey = triggerKey;
 
             // Счётчик применений ЭТОЙ способности (Нечищенный источник: 1,2,3… маны через
             // RepeatEffect{SelfResolves}). Инкремент ДО эффектов → текущее применение = 1 на первом
@@ -305,10 +317,21 @@ namespace Game.Core.Ecs.Systems
                 }
             }
 
-            // КОСМЕТИКА Beam/Area (Projectile уже запущен в LaunchProjectile).
+            // КОСМЕТИКА Beam/Area (Projectile уже запущен в LaunchProjectile) + универсальный индикатор
+            // OnCast/OnDie (см. EmitDefaultTriggerVfx) — играет ВСЕГДА для этих двух триггеров, ДОПОЛНИТЕЛЬНО
+            // к своему VFX способности, а не вместо него (решение пользователя — как в HS: «черепок» на
+            // деатрэттле и «белая аура» на баттлкрае идут поверх ЛЮБОГО кастомного эффекта карты, не только
+            // когда у карты своего VFX нет).
             var vfxPool = world.GetPool<AbilityVfxComponent>();
-            if (_boardView.Value != null && vfxPool.Has(first) && targets.Length > 0)
-                EmitVfx(world, vfxPool.Get(first).Spec, caster, targets);
+            var vfxSpec = vfxPool.Has(first) ? vfxPool.Get(first).Spec : null;
+            bool hasCustomVisual = vfxSpec != null && (vfxSpec.HitPrefab != null || (vfxSpec.Kind != VfxKind.None && vfxSpec.Prefab != null));
+
+            if (_boardView.Value != null)
+            {
+                if (hasCustomVisual && targets.Length > 0)
+                    EmitVfx(world, vfxSpec, caster, targets);
+                EmitDefaultTriggerVfx(world, caster, triggerKey);
+            }
 
             int[] summoned = SummonScratch.Summoned.Count > 0 ? SummonScratch.Summoned.ToArray() : Array.Empty<int>();
 
@@ -335,10 +358,46 @@ namespace Game.Core.Ecs.Systems
             });
         }
 
+        // Универсальный индикатор триггера (как в HS: «черепок» на деатрэттле, «белая аура» на баттлкрае) —
+        // вспышка НА КАСТЕРЕ для OnCast/OnDie из DefaultAbilityVfxConfig. Играет ВСЕГДА при этих триггерах,
+        // ДОПОЛНИТЕЛЬНО к любому кастомному VFX способности (не фолбэк — см. вызывающий код). triggerKey
+        // приходит параметром (не читаем AbilityResolveContext.TriggerKey здесь — к этому моменту ResolveAbility
+        // уже вызвал AbilityResolveContext.Clear() в своём finally, так что статик всегда null; вызывающий
+        // передаёт локально захваченную копию до Clear()). Строки совпадают с TriggerKeys.OnCast/OnDie в
+        // Game.Core.Ability, но тот класс internal и в другой сборке — сверяем литералом. Любой другой триггер
+        // (OnAttack/OnTurnStart/…) индикатор не получает — только эти два.
+        void EmitDefaultTriggerVfx(EcsWorld world, int caster, string triggerKey)
+        {
+            var cfg = _defaultVfx.Value;
+            if (cfg == null) return;
+
+            GameObject prefab = triggerKey switch
+            {
+                "OnCast" => cfg.OnCastVfxPrefab,
+                "OnDie"  => cfg.OnDieVfxPrefab,
+                _        => null,
+            };
+            if (prefab == null) return;
+
+            GameEventBus.Publish(new HitVfxEvent { At = WorldPos(world, caster), Prefab = prefab });
+        }
+
         // Публикует косметику Beam/Area (Projectile запускается в LaunchProjectile с токеном ожидания).
         void EmitVfx(EcsWorld world, VfxSpec spec, int caster, int[] targets)
         {
-            if (spec == null || spec.Prefab == null || spec.Kind == VfxKind.None) return;
+            if (spec == null) return;
+
+            // Kind=None, но задан HitPrefab — простая вспышка на КАЖДОЙ цели без луча/области/снаряда (нет
+            // геометрии каст→цель, просто «эффект попадания»; напр. Голубой волшебник: мана себе).
+            if (spec.Kind == VfxKind.None)
+            {
+                if (spec.HitPrefab == null) return;
+                foreach (var t in targets)
+                    GameEventBus.Publish(new HitVfxEvent { At = WorldPos(world, t), Prefab = spec.HitPrefab });
+                return;
+            }
+
+            if (spec.Prefab == null) return;
             var bv = _boardView.Value;
 
             switch (spec.Kind)

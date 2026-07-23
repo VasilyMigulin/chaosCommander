@@ -113,48 +113,46 @@ namespace AwesomeUI.Core.Card
             _isMulliganSelected  = false;
 
             if (_material != null)
+            {
                 _material.SetColor(ID_Color, _refreshColor);
+                if (_material.HasProperty(ID_RimColor)) _material.SetColor(ID_RimColor, _refreshColor);
+            }
             if (_image != null)
                 _image.enabled = false;
         }
 
         // ── Private ───────────────────────────────────────────────────────────
 
-        // Приоритет: Selection > (AbilityReady | Affordable, только если доступна) > нет подсветки
+        // ДВА цветовых канала шейдера: _RimColor — цвет СВЕЧЕНИЯ рамки (главный статус), _Color — тинт
+        // спрайта рамки (второй активный статус). Раньше ставился только _Color — рим всегда светил
+        // дефолтным цветом материала, а комбинация статусов (Affordable+AbilityReady, Selection поверх)
+        // схлопывалась в один цвет. Приоритет главного: Mulligan > Selection > AbilityReady > Affordable;
+        // второй активный уходит в тинт (нет второго → оба канала одним цветом).
         void Refresh()
         {
             if (_material == null) return;
-
             if (!_material.HasProperty(ID_Color)) return;
 
             if (_isMulliganSelected)
-            {
-                _image.enabled = true;
-                _material.SetColor(ID_Color, _mulliganSelectedColor);
-                ApplySettings();
-            }
+                Apply(_mulliganSelectedColor, _mulliganSelectedColor);
+            else if (_isSelected && _isAbilityReady)
+                Apply(_selectionColor, _abilityReadyColor);
             else if (_isSelected)
-            {
-                _image.enabled = true;
-                _material.SetColor(ID_Color, _selectionColor);
-                ApplySettings();
-            }
+                Apply(_selectionColor, _isAffordable ? _affordableColor : _selectionColor);
             else if (_isAffordable && _isAbilityReady)
-            {
-                _image.enabled = true;
-                _material.SetColor(ID_Color, _abilityReadyColor);
-                ApplySettings();
-            }
+                Apply(_abilityReadyColor, _affordableColor);
             else if (_isAffordable)
-            {
-                _image.enabled = true;
-                _material.SetColor(ID_Color, _affordableColor);
-                ApplySettings();
-            }
+                Apply(_affordableColor, _affordableColor);
             else
-            {
                 _image.enabled = false;
-            }
+        }
+
+        void Apply(Color rim, Color tint)
+        {
+            _image.enabled = true;
+            if (_material.HasProperty(ID_RimColor)) _material.SetColor(ID_RimColor, rim);
+            _material.SetColor(ID_Color, tint);
+            ApplySettings();
         }
 
         // Вычисляет долю padding / totalSize, чтобы шейдер знал,

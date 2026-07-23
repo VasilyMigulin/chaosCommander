@@ -26,9 +26,16 @@ namespace AwesomeUI.Core.Panel
 
         [Header("Panel Settings")]
         public bool isOpenOnInit;
-        public bool isAlwaysOpen; 
+        public bool isAlwaysOpen;
         public bool isOpen => _isOpen;
         protected bool _isOpen;
+
+        [Tooltip("Id панели для навигации ПО ID из AwesomeButton (префабы панели и кнопки не связаны " +
+                 "прямой ссылкой). Пусто → берётся имя класса панели.")]
+        [PanelId]
+        [SerializeField] private string _panelId;
+        /// <summary>Идентификатор панели для навигации по id. По умолчанию — имя типа (класса).</summary>
+        public string PanelId => string.IsNullOrEmpty(_panelId) ? GetType().Name : _panelId;
 
         protected List<SourceWindow> _windows;
         protected List<SourceLayout> _layouts;
@@ -72,10 +79,28 @@ namespace AwesomeUI.Core.Panel
         {
             gameObject.SetActive(true);
 
+            // Кнопки этой панели, что открывают ДРУГИЕ панели, могут вести в раздел, которого нет в
+            // текущей сцене/сборке (недособранный черновой раздел меню) — гасим их автоматически при
+            // каждом открытии панели, не дожидаясь клика (см. GatePanelButton).
+            RefreshPanelGates();
+
             if (_isOpen)
                 return;
 
             Show(onComplete);
+        }
+
+        /// <summary>Переопределяется в наследнике: перечислить GatePanelButton&lt;T&gt;(button) для каждой
+        /// своей кнопки, ведущей на другую панель. Вызывается автоматически на каждый OnOpen() — если
+        /// целевая панель недоступна (не собрана в этой сцене), кнопка сама выключится.</summary>
+        protected virtual void RefreshPanelGates() { }
+
+        /// <summary>Включает/выключает button по факту наличия панели типа T у контроллера (GetPanel&lt;T&gt;).
+        /// Ничего не открывает — только гейтит interactable. Null-safe и на button, и на панель.</summary>
+        protected void GatePanelButton<T>(UnityEngine.UI.Button button) where T : class, IPanel
+        {
+            if (button == null) return;
+            button.interactable = _panelController != null && _panelController.TryGetPanel<T>(out _);
         }
 
         public virtual void OnCLose(params Action[] onComplete)

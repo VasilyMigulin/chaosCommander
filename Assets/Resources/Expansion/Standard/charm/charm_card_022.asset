@@ -42,7 +42,7 @@ MonoBehaviour:
         RuntimeAbilities:
         - rid: 2419359952424665671
         Archetypes: []
-        TurnsAlive: 3
+        TurnsAlive: 4
     - rid: 2419359952424665671
       type: {class: AbilityToField, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
@@ -57,6 +57,7 @@ MonoBehaviour:
           HitPrefab: {fileID: 0}
           ProjectileSpeed: 12
           MergeArea: 0
+          PlayCasterAnimation: 0
         Area: 0
         Zone: 0
         Filters:

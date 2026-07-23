@@ -21,6 +21,7 @@ namespace Game.Core.Ecs.Systems
         readonly EcsFilterInject<Inc<InvokeEvent, CreatureTag>> _filter = default;
         readonly EcsPoolInject<InvokeEvent> _invokePool = default;
         readonly EcsPoolInject<PendingOnCastComponent> _pendingPool = default;
+        readonly EcsPoolInject<OwnerComponent> _ownerPool = default;   // владелец → в CreatureInvokedEvent (задачи: «призыв»)
 
         const float OnCastDeadline = 3f;   // анти-софтлок: форс OnCast, если призыв не «дозреет»
 
@@ -30,7 +31,11 @@ namespace Game.Core.Ecs.Systems
             {
                 ref var invokeComp = ref _invokePool.Value.Get(cardEntity);
 
-                GameEventBus.Publish(new CreatureInvokedEvent { CardEntity = cardEntity });
+                GameEventBus.Publish(new CreatureInvokedEvent
+                {
+                    CardEntity = cardEntity,
+                    OwnerId = _ownerPool.Value.Has(cardEntity) ? _ownerPool.Value.Get(cardEntity).OwnerId : -1
+                });
 
                 if (!_pendingPool.Value.Has(cardEntity)) _pendingPool.Value.Add(cardEntity);
                 ref var p = ref _pendingPool.Value.Get(cardEntity);

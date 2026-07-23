@@ -14,7 +14,7 @@ namespace Game.Core.Ecs.Systems
     ///   CreatureInvokedEvent→ InvokedByArchetype (призвано; владелец по OwnerComponent; ключ по тегам).
     /// События идут на обоих клиентах (в т.ч. при реплее) → счётчики зеркальны, синк не нужен.
     /// </summary>
-    public sealed class MatchCounterTrackerSystem : IEcsInitSystem, System.IDisposable
+    public sealed class MatchCounterTrackerSystem : IEcsInitSystem, IEcsDestroySystem, System.IDisposable
     {
         readonly EcsWorldInject _world = default;
         readonly EcsPoolInject<MatchCounterComponent> _counterPool = default;
@@ -22,11 +22,23 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<CardModelComponent> _modelPool = default;
         readonly EcsPoolInject<OwnerComponent> _ownerPool = default;
         readonly EcsPoolInject<ArchetypeComponent> _archPool = default;
+        readonly EcsPoolInject<TokenTag> _tokenPool = default;
         readonly EcsFilterInject<Inc<PlayerComponent>> _playerFilter = default;
 
         bool _subscribed;
 
+        // Чей сейчас ход — по TurnStartedEvent (зеркально на обоих клиентах, реплей его тоже публикует).
+        // НЕ по ActiveState: тот вешается только после оседания стартового каскада (RunActivateSystem) и
+        // снимается в начале конечного — урон от чар/триггеров в начале и конце хода остался бы «вне хода»,
+        // хотя по тексту карт («во время своего хода», Вуду-будду) это ещё ход игрока.
+        int _currentTurnPlayerId = -1;
+
         public void Init(IEcsSystems systems) => Subscribe();
+
+        // EcsSystems.Destroy() ищет IEcsDestroySystem, не System.IDisposable — без этого моста Dispose()
+        // фреймворк никогда не вызывал бы (см. EcsRunHandler/TutorialEcsHandler.Dispose → _allSystems.Destroy()).
+        public void Destroy(IEcsSystems systems) => Dispose();
+
         public void Dispose()
         {
             if (!_subscribed) return;
@@ -35,6 +47,7 @@ namespace Game.Core.Ecs.Systems
             GameEventBus.Unsubscribe<CardGeneratedEvent>(OnGenerated);
             GameEventBus.Unsubscribe<CreatureInvokedEvent>(OnInvoked);
             GameEventBus.Unsubscribe<DamageTrackedEvent>(OnDamage);
+            GameEventBus.Unsubscribe<TurnStartedEvent>(OnTurnStarted);
             _subscribed = false;
         }
         void Subscribe()
@@ -46,6 +59,7 @@ namespace Game.Core.Ecs.Systems
             GameEventBus.Subscribe<CardGeneratedEvent>(OnGenerated);
             GameEventBus.Subscribe<CreatureInvokedEvent>(OnInvoked);
             GameEventBus.Subscribe<DamageTrackedEvent>(OnDamage);
+            GameEventBus.Subscribe<TurnStartedEvent>(OnTurnStarted);
         }
 
         // СИНХРОННО (Publish копирует список → безопасно): счётчик должен быть актуален К МОМЕНТУ резолва
@@ -56,6 +70,7 @@ namespace Game.Core.Ecs.Systems
         void OnGenerated(CardGeneratedEvent e)=> TrackGenerated(e);
         void OnInvoked(CreatureInvokedEvent e)=> TrackInvoked(e);
         void OnDamage(DamageTrackedEvent e)   => TrackDamage(e);
+        void OnTurnStarted(TurnStartedEvent e)=> _currentTurnPlayerId = e.ActivePlayerId;
 
         void TrackDamage(DamageTrackedEvent e)
         {
@@ -64,7 +79,10 @@ namespace Game.Core.Ecs.Systems
             {
                 ref var c = ref Ensure(e.TargetEntity);
                 c.PlayerDamageTaken += e.Amount;
-                if (e.SourcePlayerId == e.TargetPlayerId)        // от себя ≈ на своём ходу (Вуду)
+                // Вуду-будду: «нанесли СЕБЕ урон во время СВОЕГО хода» — обе части буквально:
+                // источник принадлежит цели И сейчас ход цели (окно TurnStartedEvent(я)→TurnStartedEvent(след.),
+                // т.е. каскады начала/конца хода включены).
+                if (e.SourcePlayerId == e.TargetPlayerId && e.TargetPlayerId == _currentTurnPlayerId)
                     c.PlayerDamageTakenOwnTurn += e.Amount;
             }
             else                                                  // урон СУЩЕСТВУ → копим владельцу
@@ -88,6 +106,12 @@ namespace Game.Core.Ecs.Systems
             {
                 c.SpellsPlayed++;   // «за каждый спелл в матче» (Моментум); событие на обоих → зеркально
                 (c.SpellsPlayedLog ??= new System.Collections.Generic.List<SpellPlayRecord>())
+                    .Add(new SpellPlayRecord { ExpansionId = model.ExpansionId, ModelId = model.ModelId });
+            }
+            else if (model.CardType == Game.Core.Service.EnumService.CardType.Charm
+                     && !_tokenPool.Value.Has(e.CardEntity))   // токены не реплеим (Мистер Постоянство)
+            {
+                (c.CharmsPlayedLog ??= new System.Collections.Generic.List<SpellPlayRecord>())
                     .Add(new SpellPlayRecord { ExpansionId = model.ExpansionId, ModelId = model.ModelId });
             }
         }

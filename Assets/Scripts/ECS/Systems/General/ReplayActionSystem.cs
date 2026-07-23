@@ -137,7 +137,7 @@ namespace Game.Core.Ecs.Systems
                 }
                 // Трекинг «выхода на стол» у пассива (для счётчиков, напр. Грыз). Ауры/«на выходе» гейтятся
                 // AbilityFire (пассив пассивен) → не сработают; счётчик InvokedByArchetype зеркалится.
-                GameEventBus.Publish(new CreatureInvokedEvent { CardEntity = card });
+                GameEventBus.Publish(new CreatureInvokedEvent { CardEntity = card, OwnerId = OwnerId(card) });
             }
             else if (_spellTag.Value.Has(card))
             {
@@ -174,33 +174,14 @@ namespace Game.Core.Ecs.Systems
             UnityEngine.Sprite cIcon = vp.Has(card) ? vp.Get(card).ArtImage : null;
 
             // Полные визуальные данные (как в HandUISystem) — выкат рендерит настоящую карту через CardBaseView.
-            var visual = default(Game.Core.Shared.CardVisualData);
-            if (vp.Has(card))
-            {
-                ref var v = ref vp.Get(card);
-                visual = new Game.Core.Shared.CardVisualData
-                {
-                    CardName    = v.CardName,
-                    Description = v.Description,
-                    Icon        = v.ArtImage,
-                    CardType    = v.CardType,
-                    Rarity      = v.Rarity,
-                    Element     = v.Element,
-                    CostType    = v.CostType,
-                    CostAmount  = v.CostAmount,
-                    IsCreature  = v.IsCreature,
-                    Attack      = v.Attack,
-                    MaxHealth   = v.MaxHealth,
-                    Speed       = v.Speed,
-                    IsCommander = v.IsCommander,
-                };
-            }
+            var visual = vp.Has(card) ? Game.Core.Instance.Card.CardVisualDataFactory.From(in vp.Get(card)) : default;
 
             GameEventBus.Publish(new OpponentCardPlayedUIEvent
             {
-                CardName = cName,
-                Icon     = cIcon,
-                Visual   = visual,
+                CardName      = cName,
+                Icon          = cIcon,
+                Visual        = visual,
+                IsLocalPlayer = false,   // ReplayCast — ВСЕГДА реплей ЧУЖОГО хода (по определению пассива)
             });
         }
 

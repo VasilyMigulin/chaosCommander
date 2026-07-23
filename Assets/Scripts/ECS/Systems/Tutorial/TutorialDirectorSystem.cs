@@ -21,7 +21,7 @@ namespace Game.Core.Ecs.Systems
     /// Подсказки — TutorialHintUIEvent (локализованные ключи ui.tutorial.*) → TutorialHintView.
     /// Поражение: TutorialDone не ставится → роутинг InitState вернёт в туториал заново.
     /// </summary>
-    public sealed class TutorialDirectorSystem : IEcsInitSystem, IEcsRunSystem, System.IDisposable
+    public sealed class TutorialDirectorSystem : IEcsInitSystem, IEcsRunSystem, IEcsDestroySystem, System.IDisposable
     {
         readonly EcsWorldInject _world = default;
         readonly EcsFilterInject<Inc<PlayerComponent, LocalComponent>> _humanFilter = default;
@@ -42,14 +42,49 @@ namespace Game.Core.Ecs.Systems
 
         const int StartingHand = 4;
         const int ManaGift = 2;
-        const int DummyRow = 1;   // груша на ЗАДНЕМ ряду ИИ: игрок дойдёт за пару шагов и атакует
+        const int DummyRow = 1;   // груша НЕ на линии призыва ИИ: игрок успеет сходить, прежде чем ударить
         const int DummyCol = 2;
 
-        enum Step { Setup, PlayCreature, MoveCreature, KillEnemy, PlaySpell, Lethal, Done }
-        Step _step = Step.Setup;
+        /// <summary>Чего ждёт шаг: нажатия «Далее» (инфо) или конкретного события боя (действие).</summary>
+        enum Wait { Continue, CreaturePlayed, CreatureMoved, EnemyDied, SpellCast, Won }
 
-        // Флаги из bus-обработчиков (обрабатываем в Run — детерминированная точка кадра).
-        bool _creaturePlayed, _creatureMoved, _enemyDied, _spellCast, _won;
+        readonly struct Beat
+        {
+            public readonly string Key, Text;
+            public readonly Wait Wait;
+            public readonly TutorialAnchorId Anchor;   // что подсветить (дырка в затемнении)
+            public Beat(string key, string text, Wait wait, TutorialAnchorId anchor)
+            { Key = key; Text = text; Wait = wait; Anchor = anchor; }
+        }
+
+        // СЦЕНАРИЙ. Инфо-шаги объясняют механику (ввод заблокирован), шаги-действия ждут события боя
+        // (затемнение чисто визуальное — играть можно).
+        static readonly Beat[] Script =
+        {
+            new Beat("ui.tutorial.commander", "Это твой командир. Всегда под рукой — выставляй когда вздумается. Прикончат — вернётся через ход, злой и с претензиями.", Wait.Continue, TutorialAnchorId.Commander),
+            new Beat("ui.tutorial.gold",      "Золотишко. За него на стол выходят существа. В начале хода его становится больше и оно восстанавливается — копить бессмысленно, тратить приятно.", Wait.Continue, TutorialAnchorId.Gold),
+            new Beat("ui.tutorial.playCreature", "Тащи существо из руки на свою переднюю линию. Золотишка хватает — не жмись.", Wait.CreaturePlayed, TutorialAnchorId.Hand),
+            // Шаги про доску без якоря: доска — мировые 3D-объекты, uGUI-якорь на неё не повесить.
+            // Инфо-шаги просто затемняют экран (ввод перекрыт), шаги-действия оверлей не показывают вовсе.
+            new Beat("ui.tutorial.stats",     "У существа три числа. Атака — сколько отсыпет. Здоровье — сколько стерпит. Скорость — вот тут внимательнее.", Wait.Continue, TutorialAnchorId.None),
+            new Beat("ui.tutorial.speed",     "Скорость — это действия, а не бег. Шаг стоит скорости, удар — тоже. Бить можно раз за ход. В начале хода всё восстанавливается.", Wait.Continue, TutorialAnchorId.None),
+            new Beat("ui.tutorial.move",      "Кликни своё существо, потом соседнюю клетку. Шаг тратит скорость: кончилась — заверши ход, и она восстановится.", Wait.CreatureMoved, TutorialAnchorId.None),
+            new Beat("ui.tutorial.attack",    "Дойди до чужого существа и вдарь: клик по своему, клик по врагу рядом. Скорости не хватило — заверши ход и продолжи в следующем.", Wait.EnemyDied, TutorialAnchorId.None),
+            new Beat("ui.tutorial.mana",      "С трупа капнула мана. Она нужна для заклинаний и чар. Сама не появляется — добывается из чужих существ или разными хитростями.", Wait.Continue, TutorialAnchorId.Mana),
+            // «Чары» идут ДО розыгрыша заклинания намеренно: инфо-шаг сразу ПОСЛЕ действия с прицеливанием
+            // вставал бы модалкой поверх выбора цели (CardCastEvent летит раньше, чем игрок выбрал цель).
+            // Заодно и по смыслу: чары — сразу после объяснения маны.
+            new Beat("ui.tutorial.charms",    "Ещё бывают чары — постоянные штуки, тоже за ману. Больше пяти под контролем не удержишь.", Wait.Continue, TutorialAnchorId.None),
+            new Beat("ui.tutorial.playSpell", "Мана есть — разыграй заклинание. У заклинаний бывают требования: нет подходящей цели — не сыграется.", Wait.SpellCast, TutorialAnchorId.Hand),
+            new Beat("ui.tutorial.lethal",    "Финал. Пробейся к аватару противника и колоти, пока не кончится. Кончилась скорость — заверши ход.", Wait.Won, TutorialAnchorId.None),
+        };
+
+        int _beat = -1;      // -1 = сетап ещё не отработал
+        bool _finished;
+
+        // Флаги ждущего события. ВАЖНО: сбрасываются при входе в шаг — иначе действие, сделанное РАНЬШЕ
+        // времени (напр. заклинание до объяснения маны), мгновенно проматывало бы будущий шаг.
+        bool _creaturePlayed, _creatureMoved, _enemyDied, _spellCast, _won, _continue;
         int _humanId = -1, _aiId = -1;
         bool _subscribed;
 
@@ -60,8 +95,13 @@ namespace Game.Core.Ecs.Systems
             GameEventBus.Subscribe<CreatureDiedEvent>(OnDied);
             GameEventBus.Subscribe<CardCastEvent>(OnCast);
             GameEventBus.Subscribe<MatchEndedEvent>(OnMatchEnded);
+            GameEventBus.Subscribe<TutorialContinueEvent>(OnContinue);
             _subscribed = true;
         }
+
+        // EcsSystems.Destroy() ищет IEcsDestroySystem, не System.IDisposable — без этого моста Dispose()
+        // фреймворк никогда не вызывал бы (см. EcsRunHandler/TutorialEcsHandler.Dispose → _allSystems.Destroy()).
+        public void Destroy(IEcsSystems systems) => Dispose();
 
         public void Dispose()
         {
@@ -71,6 +111,7 @@ namespace Game.Core.Ecs.Systems
             GameEventBus.Unsubscribe<CreatureDiedEvent>(OnDied);
             GameEventBus.Unsubscribe<CardCastEvent>(OnCast);
             GameEventBus.Unsubscribe<MatchEndedEvent>(OnMatchEnded);
+            GameEventBus.Unsubscribe<TutorialContinueEvent>(OnContinue);
             _subscribed = false;
         }
 
@@ -103,6 +144,8 @@ namespace Game.Core.Ecs.Systems
             if (e.LocalResult == MatchResult.Win) _won = true;
         }
 
+        void OnContinue(TutorialContinueEvent _) => _continue = true;
+
         int OwnerOf(int entity)
             => entity >= 0 && _ownerPool.Value.Has(entity) ? _ownerPool.Value.Get(entity).OwnerId : -999;
 
@@ -121,80 +164,120 @@ namespace Game.Core.Ecs.Systems
             if (_activePool.Value.Has(ai) && !_endReqPool.Value.Has(ai))
                 _endReqPool.Value.Add(ai);
 
-            // ПОБЕДА ЗАВЕРШАЕТ ТУТОРИАЛ С ЛЮБОГО ШАГА: шустрый игрок может сделать летал раньше сценария
-            // (напр. убить аватара до «убей существо»). Раньше _won читался только на шаге Lethal →
-            // TutorialDone не ставился → выход → роутинг возвращал в туториал («сцена перезапускается»).
-            if (_won && _step != Step.Done)
+            if (_finished) return;
+
+            // ПОБЕДА ЗАВЕРШАЕТ ТУТОРИАЛ С ЛЮБОГО ШАГА: шустрый игрок может сделать летал раньше сценария.
+            // Иначе TutorialDone не ставился бы → выход → роутинг возвращал в туториал («сцена перезапускается»).
+            if (_won) { Finish("досрочный летал — сценарий свёрнут"); return; }
+
+            // СЕТАП (один раз): рука, груша, показ руки в UI, первый ход игроку.
+            if (_beat < 0)
             {
-                FirstRunFlow.TutorialDone = true;
-                Hint("ui.tutorial.done", "Победа! Обучение пройдено — вперёд, к созданию аккаунта.");
-                _step = Step.Done;
-                Debug.Log("[Tutorial] пройден ✓ (досрочный летал — сценарий свёрнут)");
+                DealStartingHand(human);
+                SpawnDummy(ai);
+                PreStartHandUiUtil.Publish(_world.Value, human);   // рука в UI + гасит лоадинг-оверлей
+                TurnFlow.GrantTurn(_world.Value, human, 1);
+                EnterBeat(0);
+                Debug.Log("[Tutorial] сетап готов → шаг 1");
                 return;
             }
 
-            switch (_step)
+            // Ждём того, что просит текущий шаг.
+            if (!IsBeatSatisfied(Script[_beat].Wait)) return;
+
+            // Мана капает ПЕРЕД объяснением про ману (следующий шаг — как раз про неё).
+            if (Script[_beat].Wait == Wait.EnemyDied) GrantMana(human);
+
+            if (_beat + 1 >= Script.Length) { Finish("сценарий пройден"); return; }
+            EnterBeat(_beat + 1);
+        }
+
+        bool IsBeatSatisfied(Wait wait)
+        {
+            switch (wait)
             {
-                case Step.Setup:
-                    DealStartingHand(human);
-                    SpawnDummy(ai);
-                    PreStartHandUiUtil.Publish(_world.Value, human);   // рука в UI + гасит лоадинг-оверлей
-                    TurnFlow.GrantTurn(_world.Value, human, 1);
-                    Hint("ui.tutorial.step1", "Разыграй существо: перетащи карту существа из руки на свою переднюю линию. Не хватает золота — нажми «Завершить ход».");
-                    _step = Step.PlayCreature;
-                    Debug.Log("[Tutorial] сетап готов → шаг 1 (разыграй существо)");
-                    break;
-
-                case Step.PlayCreature:
-                    if (!_creaturePlayed) break;
-                    Hint("ui.tutorial.step2", "Отлично! Теперь походи: кликни по своему существу, затем по соседней клетке. Кончились действия — «Завершить ход».");
-                    _step = Step.MoveCreature;
-                    break;
-
-                case Step.MoveCreature:
-                    if (!_creatureMoved) break;
-                    Hint("ui.tutorial.step3", "Дойди до существа противника и атакуй: кликни по своему существу, затем по врагу на соседней клетке.");
-                    _step = Step.KillEnemy;
-                    break;
-
-                case Step.KillEnemy:
-                    if (!_enemyDied) break;
-                    GrantMana(human);
-                    Hint("ui.tutorial.step4", "Получена мана! Разыграй заклинание из руки (перетащи его из руки).");
-                    _step = Step.PlaySpell;
-                    break;
-
-                case Step.PlaySpell:
-                    if (!_spellCast) break;
-                    Hint("ui.tutorial.step5", "Финальный удар! Дойди до задней линии противника и атакуй его аватар до победы.");
-                    _step = Step.Lethal;
-                    break;
-
-                case Step.Lethal:
-                    if (!_won) break;
-                    FirstRunFlow.TutorialDone = true;
-                    Hint("ui.tutorial.done", "Победа! Обучение пройдено — вперёд, к созданию аккаунта.");
-                    _step = Step.Done;
-                    Debug.Log("[Tutorial] пройден ✓ (флаг TutorialDone)");
-                    break;
+                case Wait.Continue:       return _continue;
+                case Wait.CreaturePlayed: return _creaturePlayed;
+                case Wait.CreatureMoved:  return _creatureMoved;
+                case Wait.EnemyDied:      return _enemyDied;
+                case Wait.SpellCast:      return _spellCast;
+                case Wait.Won:            return _won;
+                default:                  return true;
             }
         }
 
+        // Вход в шаг. Флаги действий НАМЕРЕННО не сбрасываем: если игрок успел сделать действие раньше
+        // (например, разыграл существо на инфо-шаге), шаг просто зачтётся — он его выполнил. Сброс приводил
+        // к СОФТ-ЛОКУ: шаг ждал повтора того, что уже нечем сделать (кончилось золото/карты).
+        // «Далее» сбрасываем — иначе один клик пролистал бы несколько инфо-шагов подряд.
+        void EnterBeat(int index)
+        {
+            _beat = index;
+            _continue = false;
+
+            var beat = Script[index];
+            bool info = beat.Wait == Wait.Continue;
+
+            Hint(beat.Key, beat.Text, info);
+            // ИНФО → ввод перекрыт целиком (иначе игрок сыграет наперёд и шаг-действие станет непроходим).
+            // ДЕЙСТВИЕ → затемнение только подсказывает, куда смотреть; играть можно свободно.
+            GameEventBus.Publish(new TutorialHighlightUIEvent
+            {
+                Anchor = beat.Anchor, Show = true, BlockAll = info
+            });
+
+            Debug.Log($"[Tutorial] шаг {index + 1}/{Script.Length}: ждём {beat.Wait}");
+        }
+
+        void Finish(string reason)
+        {
+            _finished = true;
+            FirstRunFlow.TutorialDone = true;
+            Hint("ui.tutorial.done", "Всё, ты обучен. Дальше будет только хуже — но веселее.", false);
+            GameEventBus.Publish(new TutorialHighlightUIEvent { Show = false });   // снять затемнение
+            Debug.Log($"[Tutorial] пройден ✓ ({reason})");
+        }
+
+        // Рука сетапа. ГАРАНТИРУЕМ существо и не-существо (заклинание/чары): иначе шаг «разыграй существо»
+        // или «разыграй заклинание» физически непроходим — игроку остаётся бесконечно пасовать (тупик).
         void DealStartingHand(int human)
         {
             ref var deck = ref _deckPool.Value.Get(human);
             ref var hand = ref _handPool.Value.Get(human);
-            int take = Mathf.Min(StartingHand, deck.CardEntities?.Count ?? 0);
-            for (int i = 0; i < take; i++)
-            {
-                int card = deck.CardEntities[deck.CardEntities.Count - 1];   // верх колоды = конец списка
-                deck.CardEntities.RemoveAt(deck.CardEntities.Count - 1);
-                if (_deckTagPool.Value.Has(card)) _deckTagPool.Value.Del(card);
-                if (!_handTagPool.Value.Has(card)) _handTagPool.Value.Add(card);
-                hand.CardEntities.Add(card);
-            }
-            deck.Count = deck.CardEntities?.Count ?? 0;
+            if (deck.CardEntities == null) return;
+
+            int creature = FindInDeck(deck.CardEntities, wantCreature: true);
+            int spell    = FindInDeck(deck.CardEntities, wantCreature: false);
+
+            if (creature >= 0) MoveToHand(deck.CardEntities, hand.CardEntities, creature);
+            if (spell    >= 0) MoveToHand(deck.CardEntities, hand.CardEntities, spell);
+
+            // Остальное добираем с верха колоды (конец списка).
+            while (hand.CardEntities.Count < StartingHand && deck.CardEntities.Count > 0)
+                MoveToHand(deck.CardEntities, hand.CardEntities, deck.CardEntities[deck.CardEntities.Count - 1]);
+
+            deck.Count = deck.CardEntities.Count;
             hand.Count = hand.CardEntities.Count;
+
+            if (creature < 0)
+                Debug.LogWarning("[Tutorial] в колоде энкаунтера НЕТ существ — шаг «разыграй существо» не пройти.");
+            if (spell < 0)
+                Debug.LogWarning("[Tutorial] в колоде энкаунтера НЕТ заклинаний/чар — шаг «разыграй заклинание» не пройти.");
+        }
+
+        int FindInDeck(List<int> cards, bool wantCreature)
+        {
+            for (int i = cards.Count - 1; i >= 0; i--)
+                if (_creatureTagPool.Value.Has(cards[i]) == wantCreature) return cards[i];
+            return -1;
+        }
+
+        void MoveToHand(List<int> deckCards, List<int> handCards, int card)
+        {
+            deckCards.Remove(card);
+            if (_deckTagPool.Value.Has(card)) _deckTagPool.Value.Del(card);
+            if (!_handTagPool.Value.Has(card)) _handTagPool.Value.Add(card);
+            handCards.Add(card);
         }
 
         // Груша: НОВАЯ сущность первой карты колоды энкаунтера, сразу на стол ИИ (ряд 1 — чтобы игрок
@@ -240,8 +323,11 @@ namespace Game.Core.Ecs.Systems
             });
         }
 
-        static void Hint(string key, string fallback)
-            => GameEventBus.Publish(new TutorialHintUIEvent { TextKey = key, FallbackText = fallback });
+        static void Hint(string key, string fallback, bool needsContinue)
+            => GameEventBus.Publish(new TutorialHintUIEvent
+            {
+                TextKey = key, FallbackText = fallback, NeedsContinue = needsContinue
+            });
     }
 
     // === helper === Стартовая рука → UI (PreStartPhaseBeginUIEvent: закрывает мулиган-окно, если было,

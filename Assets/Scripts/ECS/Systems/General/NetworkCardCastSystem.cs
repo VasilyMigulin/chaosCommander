@@ -14,7 +14,7 @@ namespace Game.Core.Ecs.Systems
     /// Оппонент получит RemoteCardCastEvent → RemoteCastSystem создаст CastEvent на
     /// карте оппонента детерминированно.
     /// </summary>
-    public sealed class NetworkCardCastSystem : IEcsRunSystem, IEcsInitSystem, System.IDisposable
+    public sealed class NetworkCardCastSystem : IEcsRunSystem, IEcsInitSystem, IEcsDestroySystem, System.IDisposable
     {
         readonly EcsCustomInject<PhotonRunHandler> _photon = default;
         readonly EcsPoolInject<NetworkEntityComponent> _netKeyPool    = default;
@@ -26,6 +26,10 @@ namespace Game.Core.Ecs.Systems
         {
             GameEventBus.Subscribe<CardPlayedEvent>(OnCardPlayed);
         }
+
+        // EcsSystems.Destroy() ищет IEcsDestroySystem, не System.IDisposable — без этого моста Dispose()
+        // фреймворк никогда не вызывал бы (см. EcsRunHandler/TutorialEcsHandler.Dispose → _allSystems.Destroy()).
+        public void Destroy(IEcsSystems systems) => Dispose();
 
         public void Dispose()
         {

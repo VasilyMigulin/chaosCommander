@@ -24,6 +24,12 @@ namespace AwesomeUI.Feature
         [SerializeField] private Transform _optionsRoot;
         [SerializeField] private Button _optionButtonPrefab;
 
+        [Header("Tutorial skip (релизная опция)")]
+        [Tooltip("Тумблер «Пропустить обучение» — для тех, кто не любит туториалы: включён при выборе " +
+                 "языка → TutorialDone проставляется сразу, цикл первого захода идёт в логин, минуя " +
+                 "TutorialScene. Лейбл — LocalizedText с ключом ui.firstrun.skip_tutorial.")]
+        [SerializeField] private Toggle _skipTutorialToggle;
+
         readonly List<GameObject> _spawned = new();
 
         Coroutine _waitLocales;
@@ -99,6 +105,15 @@ namespace AwesomeUI.Feature
         {
             LocaleService.SetLanguage(code);
             FirstRunFlow.LanguageChosen = true;
+
+            // Игрок отказался от обучения — помечаем туториал пройденным (пере-предлагать не будем;
+            // сброс — вместе с общим ResetAll первого захода).
+            if (_skipTutorialToggle != null && _skipTutorialToggle.isOn && !FirstRunFlow.TutorialDone)
+            {
+                FirstRunFlow.TutorialDone = true;
+                Debug.Log("[LanguageSelectPanel] игрок пропустил обучение (тумблер на панели языка)");
+            }
+
             Debug.Log($"[LanguageSelectPanel] выбран язык '{code}' → дальше по циклу первого захода");
 
             // Дальше по циклу: туториал (если не пройден) → иначе логин.

@@ -34,10 +34,13 @@ namespace AwesomeUI.Feature.Battle
             if (_group != null) { _group.alpha = 0f; _group.blocksRaycasts = false; }
         }
 
-        private void OnEnable()  => GameEventBus.Subscribe<RewardCardsGrantedUIEvent>(OnReward);
+        // SubscribePersistent, не Subscribe: объект persistent (DontDestroyOnLoad), OnEnable отрабатывает
+        // ОДИН раз за сессию — обычная подписка терялась бы навсегда после первого GameEventBus.Clear()
+        // (см. EcsRunHandler.Dispose при выходе из боя).
+        private void OnEnable()  => GameEventBus.SubscribePersistent<RewardCardsGrantedUIEvent>(OnReward);
         private void OnDisable()
         {
-            GameEventBus.Unsubscribe<RewardCardsGrantedUIEvent>(OnReward);
+            GameEventBus.UnsubscribePersistent<RewardCardsGrantedUIEvent>(OnReward);
             if (_playing != null) { StopCoroutine(_playing); _playing = null; }
             _queue.Clear();
             if (_group != null) _group.alpha = 0f;

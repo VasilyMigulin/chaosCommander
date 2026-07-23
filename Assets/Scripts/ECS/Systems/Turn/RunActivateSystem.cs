@@ -31,7 +31,6 @@ namespace Game.Core.Ecs.Systems
         {
             if (MatchState.IsOver) return;   // матч окончен — новый ход не выдаём
 
-            bool pending = _filter.Value.GetEntitiesCount() > 0;
             bool busy = _abilityCast.Value.GetEntitiesCount()   > 0
                      || _abilityTarget.Value.GetEntitiesCount() > 0
                      || _abilityQueued.Value.GetEntitiesCount() > 0
@@ -39,14 +38,7 @@ namespace Game.Core.Ecs.Systems
                      || _attackAnim.Value.GetEntitiesCount()    > 0
                      || _pendingOnCast.Value.GetEntitiesCount() > 0;   // #2: ждём призыв → OnCast
 
-            if (busy)
-            {
-                if (pending)
-                    UnityEngine.Debug.Log($"[Activate] waiting (busy): cast={_abilityCast.Value.GetEntitiesCount()} " +
-                        $"target={_abilityTarget.Value.GetEntitiesCount()} queued={_abilityQueued.Value.GetEntitiesCount()} " +
-                        $"moving={_moving.Value.GetEntitiesCount()} anim={_attackAnim.Value.GetEntitiesCount()}");
-                return;
-            }
+            if (busy) return;
 
             foreach (var entity in _filter.Value)
             {

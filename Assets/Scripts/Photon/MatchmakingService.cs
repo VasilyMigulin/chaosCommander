@@ -14,12 +14,27 @@ namespace Game.Core.Photon
 #else
         public int TargetPlayerCount = 2;
 #endif
-        public int SceneIndex = 2; 
+        public int SceneIndex = 2;
         public string MatchName = "Ladder";
         public string GameVersion = "1.0";
         public int MaxRetries = 3;
         public float RetryDelay = 1f;
         public float SessionSearchTimeout = 5f;
+
+        // ── Подбор по MMR ───────────────────────────────────────────────────────
+        /// <summary>MMR ищущего. 0 → подставится PlayerRating.Mmr при старте поиска.</summary>
+        public int Mmr = 0;
+
+        /// <summary>Допуск: соперник «свой», если |его MMR − мой| ≤ этого значения.</summary>
+        public int MmrTolerance = 150;
+
+        /// <summary>
+        /// true → к сопернику вне допуска НЕ подсаживаемся (создаём свою комнату и ждём «своих»).
+        /// false (по умолчанию, MVP/тест) → если в допуске никого нет, садимся к БЛИЖАЙШЕМУ по MMR:
+        /// при пустом онлайне матч всё равно состоится, как и до появления рейтинга.
+        /// Включать, когда онлайн вырастет — иначе игроки будут висеть в поиске.
+        /// </summary>
+        public bool StrictMmr = false;
     }
 
     public enum MatchmakingState
@@ -75,6 +90,7 @@ namespace Game.Core.Photon
             }
 
             _config = config ?? new MatchmakingConfig();
+            if (_config.Mmr <= 0) _config.Mmr = Service.PlayerRating.Mmr;
             _isCancelled = false;
 
             SetState(MatchmakingState.SearchingSessions);
@@ -164,44 +180,87 @@ namespace Game.Core.Photon
             _sessionListTcs?.TrySetResult(sessions);
         }
 
+        /// <summary>
+        /// Выбор комнаты. Fusion умеет фильтровать сессии только по ТОЧНОМУ совпадению свойств
+        /// (SQL-лобби из PUN тут нет), поэтому диапазон MMR считаем сами по списку лобби — благо
+        /// список мы и так тянем. MMR хоста едет в ИМЕНИ комнаты («…_m1480_3») — не нужны
+        /// SessionProperties и правки StartGameArgs.
+        ///
+        /// Берём НЕ первую попавшуюся, а ближайшую по MMR среди открытых. Вне допуска: StrictMmr=false
+        /// (MVP) — всё равно садимся к ближайшему; StrictMmr=true — создаём свою комнату.
+        /// </summary>
         private string FindOrCreateSessionName(List<SessionInfo> sessions)
         {
             string baseSessionName = $"Match_{_config.MatchName}_{_config.GameVersion}_{_config.TargetPlayerCount}p";
             int roomNumber = 0;
 
-            // Ищем комнату с свободными местами
+            SessionInfo best = null;
+            int bestDiff = int.MaxValue;
+
             foreach (var session in sessions ?? new List<SessionInfo>())
             {
                 if (!session.Name.StartsWith(baseSessionName))
                     continue;
 
-                // Проверяем есть ли свободные места
-                if (session.PlayerCount < session.MaxPlayers && session.IsOpen && session.IsVisible)
-                {
-                    Debug.Log($"[Matchmaking] Found available session: {session.Name} ({session.PlayerCount}/{session.MaxPlayers})");
-                    return session.Name;
-                }
+                if (TryParseSessionName(session.Name, baseSessionName, out int hostMmr, out int num))
+                    roomNumber = Mathf.Max(roomNumber, num);   // номер комнаты держим уникальным
 
-                // Запоминаем максимальный номер комнаты
-                if (TryExtractRoomNumber(session.Name, baseSessionName, out int num))
+                if (session.PlayerCount >= session.MaxPlayers || !session.IsOpen || !session.IsVisible)
+                    continue;
+
+                // Комната без MMR в имени (старый формат) — «бесконечно далёкая»: годится только как
+                // фолбэк, когда ближе никого нет и StrictMmr выключен.
+                int diff = hostMmr > 0 ? Mathf.Abs(hostMmr - _config.Mmr) : int.MaxValue - 1;
+                if (diff < bestDiff)
                 {
-                    roomNumber = Mathf.Max(roomNumber, num);
+                    bestDiff = diff;
+                    best = session;
                 }
             }
 
-            // Создаём новую комнату с инкрементированным номером
-            string newSessionName = $"{baseSessionName}_{roomNumber + 1}";
-            Debug.Log($"[Matchmaking] Creating new session: {newSessionName}");
+            if (best != null)
+            {
+                bool inRange = bestDiff <= _config.MmrTolerance;
+                if (inRange || !_config.StrictMmr)
+                {
+                    Debug.Log($"[Matchmaking] Found available session: {best.Name} ({best.PlayerCount}/{best.MaxPlayers}), " +
+                              $"MMR diff {bestDiff}" + (inRange ? "" : $" — вне допуска ±{_config.MmrTolerance}, беру ближайшего (StrictMmr=false)"));
+                    return best.Name;
+                }
+
+                Debug.Log($"[Matchmaking] Ближайшая комната вне допуска (diff {bestDiff} > {_config.MmrTolerance}) — создаю свою.");
+            }
+
+            // Создаём новую комнату: свой MMR + инкрементированный номер
+            string newSessionName = $"{baseSessionName}_m{_config.Mmr}_{roomNumber + 1}";
+            Debug.Log($"[Matchmaking] Creating new session: {newSessionName} (MMR {_config.Mmr})");
             return newSessionName;
         }
 
-        private bool TryExtractRoomNumber(string sessionName, string baseName, out int number)
+        /// <summary>
+        /// Разбирает имя комнаты «{base}_m{mmr}_{num}». Комнаты старого формата «{base}_{num}»
+        /// тоже понимаются — у них mmr = 0 (не подсчитан).
+        /// </summary>
+        private bool TryParseSessionName(string sessionName, string baseName, out int mmr, out int number)
         {
+            mmr = 0;
             number = 0;
             if (!sessionName.StartsWith(baseName + "_"))
                 return false;
 
-            string suffix = sessionName.Substring(baseName.Length + 1);
+            string suffix = sessionName.Substring(baseName.Length + 1);   // «m1480_3» или «3»
+
+            if (suffix.Length > 1 && suffix[0] == 'm')
+            {
+                int sep = suffix.IndexOf('_');
+                if (sep < 2 || !int.TryParse(suffix.Substring(1, sep - 1), out mmr))
+                {
+                    mmr = 0;
+                    return false;
+                }
+                return int.TryParse(suffix.Substring(sep + 1), out number);
+            }
+
             return int.TryParse(suffix, out number);
         }
 

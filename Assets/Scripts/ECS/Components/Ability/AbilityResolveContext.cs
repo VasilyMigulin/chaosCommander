@@ -18,7 +18,7 @@ namespace Game.Core.Ecs.Components
 
         /// <summary>Строковый ключ триггера, ЗАПУСТИВШЕГО текущий резолв (см. TriggerKeys/AbilityFire.Mark) —
         /// null, если триггер не передал ключ (напр. OnKill/OnAttack). Источник — AbilityTriggerKeyComponent
-        /// ability-сущности. Читают PlayCardFromZoneEffect/PlaySameNameFromHandEffect: цель выбирает ИГРОК
+        /// ability-сущности. Читают PlayTargetCardEffect/PlaySameNameFromHandEffect: цель выбирает ИГРОК
         /// только если разыгрывание идёт от OnCast (игрок сам сейчас играет карту-источник) — любой другой
         /// триггер (OnDie/OnTurnEnd/…) может сработать НЕ в ход владельца/без интерактивного контекста →
         /// таргетинг форсится случайным (как ForceRandomTargetingComponent у Фокус-покус).</summary>

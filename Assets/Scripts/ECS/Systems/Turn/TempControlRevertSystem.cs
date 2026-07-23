@@ -14,17 +14,36 @@ namespace Game.Core.Ecs.Systems
     /// таймер-смерти), иначе несимметричные границы хода рассинхронили бы владельца. Контроль-на-месте →
     /// откатываем только OwnerComponent + Own/EnemyCardTag (позицию/визуал TakeControl не менял).
     /// </summary>
-    public sealed class TempControlRevertSystem : IEcsInitSystem, IEcsRunSystem, System.IDisposable
+    public sealed class TempControlRevertSystem : IEcsInitSystem, IEcsRunSystem, IEcsDestroySystem, System.IDisposable
     {
         readonly EcsWorldInject _world = default;
         readonly EcsFilterInject<Inc<TempControlledComponent>> _filter = default;
         readonly EcsPoolInject<TempControlledComponent> _tempPool = default;
+
+        // ХС-порядок конца хода: откат ЖДЁТ оседания ability-пайплайна — «в конце хода» украденного
+        // существа должен разрезолвиться В ПОЛЬЗУ контролёра ДО возврата хозяину (Rebind при откате
+        // перепривяжет способности обратно). Набор гейтов — как у EndTurnRequestSystem.AbilitiesPending
+        // + анимации; передача хода (Шаг B, _castSystems) в кадре идёт ПОЗЖЕ этой системы (_turnSystems),
+        // поэтому при оседании порядок гарантирован: резолв → откат → передача хода.
+        readonly EcsFilterInject<Inc<AbilityCastEvent>>       _abilityCast    = default;
+        readonly EcsFilterInject<Inc<AbilityTargetingState>>  _abilityTarget  = default;
+        readonly EcsFilterInject<Inc<AbilityQueuedState>>     _abilityQueued  = default;
+        readonly EcsFilterInject<Inc<RequestCardCastEvent>>   _castRequest    = default;
+        readonly EcsFilterInject<Inc<CastEvent>>              _castInProgress = default;
+        readonly EcsFilterInject<Inc<PendingOnCastComponent>> _pendingOnCast  = default;
+        readonly EcsFilterInject<Inc<MovingTag>>              _moving         = default;
+        readonly EcsFilterInject<Inc<AttackAnimPendingTag>>   _attackAnim     = default;
 
         readonly Queue<int> _pending = new Queue<int>();
         readonly List<int> _expired = new List<int>();
         bool _subscribed;
 
         public void Init(IEcsSystems systems) => Subscribe();
+
+        // EcsSystems.Destroy() ищет IEcsDestroySystem, не System.IDisposable — без этого моста Dispose()
+        // фреймворк никогда не вызывал бы (см. EcsRunHandler/TutorialEcsHandler.Dispose → _allSystems.Destroy()).
+        public void Destroy(IEcsSystems systems) => Dispose();
+
         public void Dispose()
         {
             if (!_subscribed) return;
@@ -41,8 +60,20 @@ namespace Game.Core.Ecs.Systems
 
         public void Run(IEcsSystems systems)
         {
+            if (_pending.Count == 0) return;
+            if (PipelineBusy()) return;   // прощальный OnTurnEnd украденного резолвится В ПОЛЬЗУ контролёра до отката
             while (_pending.Count > 0) Tick(_pending.Dequeue());
         }
+
+        bool PipelineBusy()
+            => _abilityCast.Value.GetEntitiesCount()    > 0
+            || _abilityTarget.Value.GetEntitiesCount()  > 0
+            || _abilityQueued.Value.GetEntitiesCount()  > 0
+            || _castRequest.Value.GetEntitiesCount()    > 0
+            || _castInProgress.Value.GetEntitiesCount() > 0
+            || _pendingOnCast.Value.GetEntitiesCount()  > 0
+            || _moving.Value.GetEntitiesCount()         > 0
+            || _attackAnim.Value.GetEntitiesCount()     > 0;
 
         // Конец хода контролёра playerId: дотикиваем срок его временных контролей; истёкшие откатываем + шлём.
         void Tick(int playerId)
@@ -89,7 +120,12 @@ namespace Game.Core.Ecs.Systems
                 if (!enemyTag.Has(entity)) enemyTag.Add(entity);
             }
 
+            int originalOwnerId = t.OriginalOwnerId;
             tempPool.Del(entity);
+
+            // ХС-семантика: способности вернувшегося существа снова «служат» исходному хозяину (зеркало
+            // пере-привязки при краже, см. AbilityOwnershipUtil в сборке Ability).
+            AbilityRebindUtil.RebindToPlayerId(world, entity, originalOwnerId);
         }
     }
 }

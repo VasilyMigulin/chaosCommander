@@ -37,8 +37,33 @@ namespace Game.Core.Ecs.Systems
 
         int _highlightedFor = -1;
 
+        bool _subscribed;
+        readonly System.Collections.Generic.Queue<int> _turnEnded = new System.Collections.Generic.Queue<int>();
+
         public void Run(IEcsSystems systems)
         {
+            if (!_subscribed)
+            {
+                _subscribed = true;
+                GameEventBus.Subscribe<TurnEndedEvent>(e => _turnEnded.Enqueue(e.ActivePlayerId));
+            }
+
+            // Ход закончился, а существо ещё не разместили (окно выбора клетки открыто) — не должно
+            // зависать после EndTurn. Отменяем ТОЧНО так же, как ручную отмену (ПКМ/тап мимо): полный откат
+            // (возврат стоимости + карта обратно в руку), а не форс-random (тут и выбирать нечего — цель
+            // «где встать», а не таргет способности).
+            while (_turnEnded.Count > 0)
+            {
+                int playerId = _turnEnded.Dequeue();
+                foreach (var e in _pendingFilter.Value)
+                {
+                    ref var pend = ref _pendingPool.Value.Get(e);
+                    if (_playerPool.Value.Get(pend.OwnerPlayerEntity).PlayerId != playerId) continue;
+                    Cancel(e, pend.OwnerPlayerEntity);
+                    break;   // модифицирует пул — один за тик, редкий кейс (обычно размещается сразу одна карта)
+                }
+            }
+
             // первая карта, ожидающая размещения
             int card = -1;
             foreach (var e in _pendingFilter.Value) { card = e; break; }

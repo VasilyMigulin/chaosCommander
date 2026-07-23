@@ -42,6 +42,7 @@ namespace Game.Core.States
 
         [SerializeField] private BoardView _boardView;
         [SerializeField] private CardConfig _cardConfig;
+        [SerializeField] private DefaultAbilityVfxConfig _defaultAbilityVfxConfig;
 
         [HideInInspector] public EcsRunHandler EcsHandler;
         [HideInInspector] public PhotonRunHandler PhotonRunHandler;
@@ -138,6 +139,9 @@ namespace Game.Core.States
             {
                 UIModule.Open<BattleCanvas>();
                 UIModule.Inject(this, this, EcsHandler.World, _cardConfig);
+                // BattleCanvas persistent — оверлей загрузки нужно явно «поднять» заново для этого матча
+                // (см. BattleLoadingOverlay.Show — без этого он навсегда остаётся невидимым после первого боя).
+                FindFirstObjectByType<AwesomeUI.Feature.Battle.BattleLoadingOverlay>()?.Show();
 
                 GameEventBus.Subscribe<CellSelectedEvent>(OnCellSelected);
                 GameEventBus.Subscribe<ExitToMenuRequestedEvent>(OnExitToMenuRequested);
@@ -148,7 +152,7 @@ namespace Game.Core.States
                 {
                     // Без PhotonRunHandler в инжектах: EcsCustomInject<PhotonRunHandler> останется null —
                     // системы либо проверяют null (Collect), либо имеют PvE-ветки (InitPlayer/MulliganReady).
-                    EcsHandler.Init(BoardView, _cardConfig);
+                    EcsHandler.Init(BoardView, _cardConfig, _defaultAbilityVfxConfig);
                     Debug.Log("[BattleState][PVE] EcsHandler.Init completed (бой против ИИ).");
                 }
                 catch (Exception e)
@@ -173,8 +177,19 @@ namespace Game.Core.States
                 }
             }
 
+            // Awake выходит раньше создания хендлера, если сетевой объект ещё не заспавнился (штатный случай —
+            // ради него и сделан повторный поиск выше). Раньше EcsHandler так и оставался null, и Update падал
+            // с NRE на EcsHandler.Run() каждый кадр. Создаём ЗДЕСЬ, а не в Awake: IsServer зависит от
+            // PhotonRunHandler, и без него клиент получил бы ServerRunHandler вместо ClientRunHandler.
+            if (EcsHandler == null)
+            {
+                Debug.Log("[BattleState] EcsHandler не создан в Awake (PhotonRunHandler тогда ещё не существовал) — создаю сейчас.");
+                EcsHandler = EcsRunHandler.Create(this);
+            }
+
             UIModule.Open<BattleCanvas>();
             UIModule.Inject(this, this, EcsHandler.World, _cardConfig);
+            FindFirstObjectByType<AwesomeUI.Feature.Battle.BattleLoadingOverlay>()?.Show();
 
             // Подписываемся на ECS-init триггер от сервера.
             GameEventBus.Subscribe<TriggerStateInitEvent>(OnTriggerStateInit);
@@ -196,7 +211,7 @@ namespace Game.Core.States
 
             try
             {
-                EcsHandler.Init(PhotonRunHandler, BoardView, _cardConfig);
+                EcsHandler.Init(PhotonRunHandler, BoardView, _cardConfig, _defaultAbilityVfxConfig);
                 PhotonRunHandler.RegisterGameState(this);
                 Debug.Log($"[BattleState][{(PhotonRunHandler.IsServer ? "HOST" : "CLIENT")}] OnTriggerStateInit: EcsHandler.Init completed successfully.");
             }
@@ -227,7 +242,10 @@ namespace Game.Core.States
 
             var encounter = PveEncounterLocator.Current;
 
-            // Свой командир: сюжетная колода энкаунтера (Шальной принц) ИЛИ активная колода игрока.
+            // Свой командир: сюжетная колода энкаунтера (Шальной принц) ИЛИ АКТИВНАЯ колода игрока —
+            // та же единая точка, что у InitDeckSystem (DeckStorage.GetActive). Раньше здесь брался
+            // decks[0] (первая в списке) → при выбранной НЕ первой колоде VS-экран показывал чужого
+            // командира, хотя в бою играл правильный.
             if (encounter != null && encounter.PlayerDeck != null && encounter.PlayerDeck.Commander != null)
             {
                 localExp = encounter.PlayerDeck.Commander.ExpansionId;
@@ -235,11 +253,11 @@ namespace Game.Core.States
             }
             else
             {
-                var decks = Game.Core.DeckBuilder.DeckStorage.GetCached();
-                if (decks != null && decks.Count > 0 && decks[0].Commander.CardId != 0)
+                var deck = Game.Core.DeckBuilder.DeckStorage.GetActive();
+                if (deck != null && deck.Commander.CardId != 0)
                 {
-                    localExp = decks[0].Commander.ExpansionId;
-                    localId  = decks[0].Commander.CardId;
+                    localExp = deck.Commander.ExpansionId;
+                    localId  = deck.Commander.CardId;
                 }
             }
 
@@ -402,10 +420,25 @@ namespace Game.Core.States
                 PhotonRunHandler.RPC_NotifyStateReady();
             }
 
+            // ECS не поднялся (напр. PhotonRunHandler так и не заспавнился) — молчать нельзя, но и сыпать
+            // NRE каждый кадр тоже: говорим ОДИН раз, что именно сломано, и не гоняем пайплайн.
+            if (EcsHandler == null)
+            {
+                if (!_noEcsLogged)
+                {
+                    _noEcsLogged = true;
+                    Debug.LogError("[BattleState] EcsHandler == null — бой не инициализирован (PhotonRunHandler не найден?). Пайплайн ECS не запускается.");
+                }
+                return;
+            }
+
             EcsHandler.Run();
         }
-        public void FixedUpdate() => EcsHandler.FixedRun();
-        public void LateUpdate() => EcsHandler.LateRun();
+
+        bool _noEcsLogged;
+
+        public void FixedUpdate() { if (EcsHandler != null) EcsHandler.FixedRun(); }
+        public void LateUpdate()  { if (EcsHandler != null) EcsHandler.LateRun(); }
 
         public bool TryGetPlayerEntity(out int playerEntity)
         {

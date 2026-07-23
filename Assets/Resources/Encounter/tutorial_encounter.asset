@@ -13,8 +13,10 @@ MonoBehaviour:
   m_Name: tutorial_encounter
   m_EditorClassIdentifier: Game.Core.Configs::Game.Core.Configs.PveEncounterConfig
   EncounterName: "\u041F\u0440\u043E\u0442\u0438\u0432\u043D\u0438\u043A"
-  Commander: {fileID: 0}
-  Cards: []
+  Commander: {fileID: 11400000, guid: 449e446e847cf2b4bb8d38281c9fff8a, type: 2}
+  Cards:
+  - Card: {fileID: 11400000, guid: 9295d834f4825c846b2b4695bb0324bb, type: 2}
+    Count: 4
   StartingHand: 0
   Health: 5
   PlayerDeck: {fileID: 11400000, guid: c6720bdd87557ba4aaf02625dda68717, type: 2}

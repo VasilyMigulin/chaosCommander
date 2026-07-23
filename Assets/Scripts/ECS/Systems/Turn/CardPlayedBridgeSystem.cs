@@ -18,7 +18,7 @@ namespace Game.Core.Ecs.Systems
     ///
     /// СИНК: CardCastEvent идёт на обоих клиентах (реплей розыгрыша тоже его публикует) → счётчики зеркальны.
     /// </summary>
-    public sealed class CardPlayedBridgeSystem : IEcsInitSystem, IDisposable
+    public sealed class CardPlayedBridgeSystem : IEcsInitSystem, IEcsDestroySystem, IDisposable
     {
         readonly EcsPoolInject<CardModelComponent> _modelPool = default;
         readonly EcsPoolInject<OwnerComponent> _ownerPool = default;
@@ -30,6 +30,11 @@ namespace Game.Core.Ecs.Systems
             GameEventBus.Subscribe<CardCastEvent>(OnCast);
             _subscribed = true;
         }
+
+        // EcsSystems.Destroy() ищет IEcsDestroySystem, не System.IDisposable — без этого моста Dispose()
+        // фреймворк никогда не вызывал бы (см. EcsRunHandler/TutorialEcsHandler.Dispose → _allSystems.Destroy()).
+        public void Destroy(IEcsSystems systems) => Dispose();
+
         public void Dispose()
         {
             if (!_subscribed) return;

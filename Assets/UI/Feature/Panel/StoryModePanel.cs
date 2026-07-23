@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using AwesomeUI.Core.Panel;
 using Game.Core.Configs;
 using Game.Core.Service;
@@ -22,8 +21,6 @@ namespace AwesomeUI.Feature
     /// </summary>
     public class StoryModePanel : SourcePanel
     {
-        const string CampaignsFolder = "Campaign";       // Assets/Resources/Campaign/ (ассеты кампаний)
-        const string PveResourcesFolder = "Encounter";   // Assets/Resources/Encounter/ (фолбэк без кампании)
         const int BattleSceneIndex = 3;
 
         // Старт боя идёт через MenuState.StartPveBattle (гасит активный матчмейкинг перед LoadScene —
@@ -32,6 +29,9 @@ namespace AwesomeUI.Feature
 
         [Header("Navigation")]
         [SerializeField] private Button _backBtn;
+
+        [Tooltip("Необязательно. Заголовок кампании («Распрекрасная принцесса») — то же имя, что на карточке PvE.")]
+        [SerializeField] private TMPro.TextMeshProUGUI _campaignTitle;
 
         [Header("Levels")]
         [SerializeField] private Transform _levelsRoot;
@@ -44,7 +44,7 @@ namespace AwesomeUI.Feature
             base.OnInject();
 
             if (_backBtn != null)
-                _backBtn.onClick.AddListener(() => _panelController.OpenPanel<MainMenuPanel>());
+                _backBtn.onClick.AddListener(() => _panelController.Back());
 
             RebuildLevelList();
         }
@@ -58,32 +58,26 @@ namespace AwesomeUI.Feature
                 return;
             }
 
-            // Источник уровней: КАМПАНИЯ (Resources/Campaign, первая по имени — MVP: одна кампания,
-            // выбор из нескольких добавим позже). Фолбэк без кампаний — скан Resources/Encounter.
-            PveEncounterConfig[] encounters;
-            var campaigns = Resources.LoadAll<CampaignConfig>(CampaignsFolder).OrderBy(c => c.name).ToArray();
-            if (campaigns.Length > 0)
-            {
-                encounters = campaigns[0].Encounters.Where(e => e != null).ToArray();
-                if (campaigns.Length > 1)
-                    Debug.LogWarning($"[StoryModePanel] Кампаний {campaigns.Length} — показываю первую ('{campaigns[0].name}'); выбор кампании появится позже.");
-            }
-            else
-            {
-                encounters = Resources.LoadAll<PveEncounterConfig>(PveResourcesFolder).OrderBy(e => e.name).ToArray();
-            }
+            // Источник уровней и прогресса — общий с GamePanel (карточка «глава 3 из 6»), см. CampaignProgress:
+            // кампания из Resources/Campaign, фолбэк — скан Resources/Encounter.
+            var progress = CampaignProgress.Load();
+            var encounters = progress.Encounters;
 
-            if (encounters.Length == 0)
+            if (!progress.HasLevels)
             {
-                Debug.LogWarning($"[StoryModePanel] Нет уровней: ни кампании в Resources/{CampaignsFolder}/, ни энкаунтеров в Resources/{PveResourcesFolder}/.");
+                Debug.LogWarning($"[StoryModePanel] Нет уровней: ни кампании в Resources/{CampaignProgress.CampaignsFolder}/, " +
+                                 $"ни энкаунтеров в Resources/{CampaignProgress.EncountersFolder}/.");
                 return;
             }
+
+            if (_campaignTitle != null)
+                _campaignTitle.text = string.IsNullOrEmpty(progress.Name) ? UIStrings.Campaign : progress.Name;
 
             bool previousDone = true;   // первый уровень всегда открыт
             for (int i = 0; i < encounters.Length; i++)
             {
                 var enc = encounters[i];
-                bool done = PlayerPrefs.GetInt(PveMode.DoneKey(enc.name), 0) == 1;   // прогресс по ИМЕНИ ассета
+                bool done = CampaignProgress.IsDone(enc);   // прогресс по ИМЕНИ ассета
                 bool locked = !previousDone;   // открыт, если предыдущий пройден
 
                 var slot = Instantiate(_levelSlotPrefab, _levelsRoot);

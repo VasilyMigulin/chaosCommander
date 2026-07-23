@@ -30,6 +30,17 @@ namespace Game.Core.Ecs.Handlers
         protected List<EcsSystems> _allSystems;
         public EcsRunHandler(IGameStateContext state)
         {
+            // Защита от гонки с предыдущим матчем: MatchState.Clear()/CastMultiplierService.Clear() штатно
+            // вызываются в Dispose() ПРЕДЫДУЩЕГО хендлера, но если по какой-то причине сцена/стейт-машина
+            // пересоздаёт хендлер БЕЗ гарантированного Dispose (или порядок «новый Init до старого Dispose»
+            // съезжает) — статические поля переживают в новый матч. Для MatchState.IsOver это ОСОБЕННО заметно:
+            // GameOverCheckSystem/RunActivateSystem/TurnTimerSystem видят «матч уже окончен» С ПЕРВОГО КАДРА
+            // нового боя и сразу показывают старый результат победы/поражения (баг: PvE-реванш мгновенно
+            // завершался исходом ПРЕДЫДУЩЕГО матча). Чистим оба здесь тоже, максимально рано — до того как
+            // любая система успеет их прочитать.
+            Game.Core.Ecs.Components.MatchState.Clear();
+            Game.Core.Ecs.Components.CastMultiplierService.Clear();
+
             World = new EcsWorld();
             _data = new EcsData();
             _allSystems = new List<EcsSystems>();
@@ -77,6 +88,8 @@ namespace Game.Core.Ecs.Handlers
                 ;
 
             _generalSystems
+                // --- Косметика: аватар оппонента по синку (CommandersRevealedUIEvent) ---
+                .Add(new SyncOpponentAvatarSystem())
                 // --- Создание сущностей карт по CreateCardEvent ---
                 .Add(new CreateCardSystem())
                 // --- Синхронизация: сбор действий (актив) + воспроизведение снапшотов (пассив) ---
@@ -84,6 +97,8 @@ namespace Game.Core.Ecs.Handlers
                 .Add(new ReplayActionSystem())
                 // --- Доступность карт для UI ---
                 .Add(new CardAffordabilitySystem())
+                // --- Живые статы карт руки (бафф/урон) → цвет/панч на PlayCardView ---
+                .Add(new HandCardStatsViewSystem())
                 // --- Замена добора (Адовый червь): перехват ПЕРЕД обычным добором ---
                 .Add(new RunDrawReplacementSystem())
                 // --- Раскопка-эффект (DiscoverEffect): окно выбора → карта в руку, синк через ActionCardPicked ---
@@ -99,8 +114,10 @@ namespace Game.Core.Ecs.Handlers
                 .Add(new TeamTintSystem())
                 // AuraRecalcSystem УДАЛЁН: ауры теперь реактивные (модификатор-стек AddModifier/RemoveModifier),
                 // а его покадровый Value=Base затирал бы модификаторы. Легаси AuraSource/TargetMask не используются.
-                // --- Выбор/движение/атака существ на борде (input → MoveRequestEvent/AttackRequestEvent) ---
+                // --- Выбор/движение/атака существ на борде (input → PathMoveComponent) ---
                 .Add(new RunSelectCellSystem())
+                // --- Исполнение маршрута по одному шагу (PathMoveComponent → MoveRequestEvent/AttackRequestEvent) ---
+                .Add(new RunPathMoveSystem())
                 // --- Движение существ ---
                 .Add(new MoveSystem())
                 // --- Бой ---
@@ -109,6 +126,7 @@ namespace Game.Core.Ecs.Handlers
                 .Add(new TakeDamageSystem())
                 .Add(new DieSystem())
                 .Add(new CharmDieSystem())   // уничтожение чар с DeadTag (таймер истёк) → грав/лимбо + CreatureDiedEvent
+                .Add(new BuffPerCharmSystem())   // Обжора: «+X/+Y за каждую чару» — дифф стека модификаторов (после смертей чар)
                 .Add(new RunLeaveBoardSystem())   // баунс/баниш/замешивание (LeaveBoardEvent) → рука/колода/грав/лимбо
                 .Add(new RunCommanderCooldownSystem())   // кулдаун командира на ЛЮБОЙ возврат в руку (смерть/баунс), а не только смерть
                 // --- Конец матча: HP игрока ≤ 0 после оседания каскада → победа/поражение/ничья ---
@@ -117,6 +135,7 @@ namespace Game.Core.Ecs.Handlers
                 .Add(new CreatureStatsViewSystem())
                 // --- Отображение HP/ресурсов игроков (аватар врага + панель локального) ---
                 .Add(new PlayerStatsViewSystem())
+                .Add(new CreatureInspectSystem())   // удержание на существе → карточка-инспектор (CardDetailUIEvent)
                 // --- Утилиты ---
                 .Add(new BurnCardSystem())
                 // --- Тех-читы (выдать ресурсы по дев-кнопке) ---
@@ -135,6 +154,7 @@ namespace Game.Core.Ecs.Handlers
                 .Add(new RunMoveCardToBoardSystem())
                 .Add(new RunMoveCardToGraveSystem())
                 .Add(new RunInvokeCreatureSystem())
+                .Add(new BoardFillTrackSystem())    // задачи: «заполнить свою сторону» (edge-detect полной линии)
                 .Add(new RepositionViewSystem())   // визуальный «переезд» по ViewRepositionRequest (Бешеная бабка)
                 ;
 

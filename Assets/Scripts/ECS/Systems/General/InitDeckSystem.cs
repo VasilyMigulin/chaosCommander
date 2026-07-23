@@ -48,15 +48,16 @@ namespace Game.Core.Ecs.Systems
                 }
             }
 
-            var decks = DeckStorage.GetCached();
-            if (storyDeck == null && (decks == null || decks.Count == 0))
+            // Колода, которую игрок ВЫБРАЛ в DeckViewPanel (DeckStorage.ActiveDeckName). Если не выбирал —
+            // GetActive() отдаст первую. Раньше здесь брался decks[0] вслепую, и выбор колоды был невозможен.
+            var savedDeck = storyDeck == null ? DeckStorage.GetActive() : null;
+            if (storyDeck == null && savedDeck == null)
             {
                 Debug.LogWarning("[InitDeckSystem] No saved decks found in DeckStorage. Using empty deck.");
                 return;
             }
-
-            // Берём первую доступную колоду (если нет сюжетной)
-            var savedDeck = storyDeck == null ? decks[0] : null;
+            if (savedDeck != null)
+                Debug.Log($"[InitDeckSystem] Играем колодой '{savedDeck.Name}'.");
 
             foreach (var playerEntity in _playerFilter.Value)
             {

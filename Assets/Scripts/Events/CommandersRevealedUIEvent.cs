@@ -12,5 +12,10 @@ namespace Game.Core.Events
         public int    LocalCardId;
         public string OpponentExpansionId;
         public int    OpponentCardId;
+
+        // Косметические аватары (itemId, напр. "avatar_prince"). Пусто → дефолт. Едут тем же каналом,
+        // что и командиры (SubmitLocalCommander → RevealCommanders): оппонент увидит НАШ аватар, мы — его.
+        public string LocalAvatarId;
+        public string OpponentAvatarId;
     }
 }

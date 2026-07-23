@@ -30,6 +30,19 @@ namespace Game.Core.Ability
             var pool = world.GetPool<PlayerComponent>();
             return pool.Has(playerEntity) ? pool.Get(playerEntity).PlayerId : -1;
         }
+
+        /// <summary>Сейчас ход ВЛАДЕЛЬЦА (все фазы: начало/середина/конец)? Фазовые состояния
+        /// StartTurnState/ActiveState/EndTurnState висят на АКТИВНОМ игроке — т.е. на владельце ровно в
+        /// его ход, включая каскады начала/конца. Проверяем сущность владельца НАПРЯМУЮ, а не «локальный
+        /// активен» (TurnGate.IsLocalActive): в PvE один клиент симулирует ОБОИХ, и тот гейт истинен и в
+        /// ход ИИ — реакции «на своём ходу» (Вуду-будду) утекали бы на чужой ход.</summary>
+        public static bool IsOwnersTurn(EcsWorld world, int playerEntity)
+        {
+            if (playerEntity < 0) return false;
+            return world.GetPool<ActiveState>().Has(playerEntity)
+                || world.GetPool<StartTurnState>().Has(playerEntity)
+                || world.GetPool<EndTurnState>().Has(playerEntity);
+        }
     }
 
     // === class (OOP) === Начало хода ВЛАДЕЛЬЦА (источник на поле). Сигнал — bus
@@ -39,6 +52,8 @@ namespace Game.Core.Ability
     {
         EcsWorld _world;
         int _abilityEntity, _cardEntity, _playerEntity;
+
+        public bool AiTurnCycle => true;   // ценность каждый ход → ИИ прячет носителя (см. ITrigger)
 
         public void Init(EcsWorld world, int abilityEntity, int cardEntity, int playerEntity)
         {
@@ -94,6 +109,8 @@ namespace Game.Core.Ability
     {
         EcsWorld _world;
         int _abilityEntity, _cardEntity, _playerEntity;
+
+        public bool AiTurnCycle => true;   // ценность каждый ход → ИИ прячет носителя (см. ITrigger)
 
         public void Init(EcsWorld world, int abilityEntity, int cardEntity, int playerEntity)
         {
@@ -320,12 +337,22 @@ namespace Game.Core.Ability
     }
 
     // === class (OOP) === ВЛАДЕЛЬЦУ источника нанесён урон (Вуду-будду: «когда вы получаете урон»). Источник
-    // (чара) на поле. Сигнал — bus PlayerDamagedEvent. Турновый гейт ДАРОМ: AbilityFire.Mark пропускает
-    // только когда локальный игрок активен → срабатывает лишь в ход владельца («на вашем ходу»), и синкается
-    // стандартно (ActionAbilityData). Величину урона эффект берёт из LastDamageTakenComponent владельца.
+    // (чара) на поле. Сигнал — bus PlayerDamagedEvent. По умолчанию ТОЛЬКО на ходу владельца: гейт по фазовым
+    // состояниям владельца (TriggerUtil.IsOwnersTurn), НЕ по AbilityFire.Mark/IsLocalActive — в PvE один
+    // клиент симулирует обоих, и тот гейт истинен в ход ИИ, так что реакция «на своём ходу» утекала на чужой
+    // ход (урон отражался в оппонента и на его ходу). AnyTurn=true снимает ограничение (реакция в любой ход;
+    // синк-гейт IsLocalActive внутри Mark остаётся — он про актив/пассив, не про семантику хода).
+    // Величину урона эффект берёт из LastDamageTakenComponent.
     [Serializable]
     public sealed class OnOwnerDamagedTrigger : ITrigger
     {
+        // ИНВЕРТИРОВАННЫЙ флаг НАМЕРЕННО: default(bool)=false → «только свой ход» = поведение старых ассетов.
+        // OwnTurnOnly=true сломал бы существующие карты, если SerializeReference проигнорит инициализатор
+        // (см. [[project_countsource_enum_serialization]]). Новая карта «реагируй на урон в любой ход» → AnyTurn=true.
+        [UnityEngine.Tooltip("false (умолч.) — только на ходу владельца («на своём ходу», Вуду-будду). "
+                           + "true — реагировать на урон в ЛЮБОЙ ход (в т.ч. ход оппонента).")]
+        public bool AnyTurn = false;
+
         EcsWorld _world;
         int _abilityEntity, _cardEntity, _playerEntity;
 
@@ -337,8 +364,9 @@ namespace Game.Core.Ability
 
         void OnDamaged(PlayerDamagedEvent e)
         {
-            if (e.PlayerEntity != _playerEntity) return;             // урон ИМЕННО владельцу
-            if (!TriggerUtil.OnBoard(_world, _cardEntity)) return;   // источник (чара) на поле
+            if (e.PlayerEntity != _playerEntity) return;                 // урон ИМЕННО владельцу
+            if (!TriggerUtil.OnBoard(_world, _cardEntity)) return;       // источник (чара) на поле
+            if (!AnyTurn && !TriggerUtil.IsOwnersTurn(_world, _playerEntity)) return;   // умолч. — «на вашем ходу» (с каскадами начала/конца)
             AbilityFire.Mark(_world, _abilityEntity, _cardEntity, _playerEntity);
         }
 

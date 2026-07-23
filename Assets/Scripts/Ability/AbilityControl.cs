@@ -148,6 +148,28 @@ namespace Game.Core.Ability
 
             if (wasOwn) { ownTag.Del(target); if (!enemyTag.Has(target)) enemyTag.Add(target); }
             else        { if (enemyTag.Has(target)) enemyTag.Del(target); if (!ownTag.Has(target)) ownTag.Add(target); }
+
+            // ВРЕМЕННЫЙ контроль всегда освежает действия: рефил скорости на старте хода (RunTurnStartSystem)
+            // уже прошёл ДО резолва OnTurnStart-способности Еретика и существо ещё числилось за оппонентом —
+            // без этого украденное приходило «выдохшимся» (Remaining=0) и весь контроль был бессмыслен.
+            // Дизайн-инвариант: «одолжил — значит может действовать». Перманентные кражи (Машина пропаганды/
+            // Обращение) не трогаем — там существо честно ждёт следующего старта хода нового владельца.
+            // СИНК ДАРОМ: эффект резолвится на обоих клиентах (реплей), значения зеркальны.
+            if (Temporary)
+            {
+                var speedPool = world.GetPool<SpeedComponent>();
+                if (speedPool.Has(target))
+                {
+                    ref var sp = ref speedPool.Get(target);
+                    sp.Remaining = sp.Max;
+                }
+                var attacksPool = world.GetPool<AttacksUsedComponent>();
+                if (attacksPool.Has(target)) attacksPool.Get(target).Value = 0;
+            }
+
+            // ХС-семантика: способности украденного «служат» новому владельцу — триггеры начала/конца
+            // хода срабатывают на ЕГО ходу, бенефициар/таргетинг смотрят с его стороны (см. util).
+            AbilityOwnershipUtil.Rebind(world, target, PlayerEntity);
         }
     }
 
@@ -178,13 +200,17 @@ namespace Game.Core.Ability
         }
     }
 
-    // === class (OOP) === УНИВЕРСАЛЬНО разыграть выбранную карту (target) из ЛЮБОЙ зоны БЕСПЛАТНО (Барабук:
-    // случайный спелл из колоды). Зону/выбор задаёт таргетинг (AbilityToTarget{Zone, Random/Selected}); этот
-    // эффект лишь «играет» target. Существо — авто на свободную клетку фронта (как Гомункул) + InvokeEvent
-    // (свой OnCast). Спелл/чара — через роутер с Free (роутер: спелл→кладбище+cast, чара→борд+cast). СИНК как
-    // у призыва: делает активный, пассив получает обычным каст-синком (ActionCastData/ActionAbilityData).
+    // === class (OOP) === УНИВЕРСАЛЬНО разыграть ЦЕЛЕВУЮ карту (target) БЕСПЛАТНО, где бы она ни лежала
+    // (Барабук: случайный спелл из колоды; «Дополнительные возможности»: Modifier раскопки — target там =
+    // выбранная карта). Зону/выбор задаёт ВНЕШНИЙ контекст — таргетинг (AbilityToTarget{Zone, Random/Selected})
+    // или пайплайн Modifiers дискавера; сам эффект зону НЕ выбирает, он лишь «играет» target (за это и
+    // переименован из PlayCardFromZoneEffect — старое имя намекало на выбор зоны внутри). Существо — авто на
+    // свободную клетку фронта (как Гомункул) + InvokeEvent (свой OnCast). Спелл/чара — через роутер с Free
+    // (роутер: спелл→кладбище+cast, чара→борд+cast). СИНК как у призыва: делает активный, пассив получает
+    // обычным каст-синком (ActionCastData/ActionAbilityData).
     [Serializable]
-    public sealed class PlayCardFromZoneEffect : EffectBase
+    [MovedFrom(true, sourceClassName: "PlayCardFromZoneEffect")]   // ремап: spell_card_052 / creature_card_022
+    public sealed class PlayTargetCardEffect : EffectBase
     {
         [Tooltip("Всегда форсить случайную цель у разыгранной карты (как Йогг-Сарон), даже если сам источник " +
                  "разыгрывается через OnCast (где по умолчанию цель выбирает игрок).")]
@@ -245,7 +271,7 @@ namespace Game.Core.Ability
     // === helper === ЕДИНОЕ ядро «разыграть карту из любой зоны»: снять с зоны, существо → на свободную клетку
     // фронта + InvokeEvent (свой OnCast), спелл/чара → RequestCardCastEvent{free} (роутер ведёт по типу).
     // Гейт IsLocalActive — на вызывающем эффекте (форс делает актив, пассив реплеит снапшоты). Используют
-    // PlayCardFromZoneEffect (по цели) и PlaySameNameFromHandEffect (по названию).
+    // PlayTargetCardEffect (по цели) и PlaySameNameFromHandEffect (по названию).
     internal static class PlayCardUtil
     {
         // forceRandomTarget: если true — таргетинг РАЗЫГРАННОЙ карты форсится случайным (ForceRandomTargetingComponent),

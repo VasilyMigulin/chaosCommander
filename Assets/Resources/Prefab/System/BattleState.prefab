@@ -47,6 +47,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Core.States::Game.Core.States.BattleState
   _boardView: {fileID: 0}
   _cardConfig: {fileID: 11400000, guid: 29818ebb13c82be4ab11bb3076e3d547, type: 2}
+  _defaultAbilityVfxConfig: {fileID: 11400000, guid: 7a857b504c0fe4047abe7711f6fb4f39, type: 2}
   PhotonRunHandler: {fileID: 0}
 --- !u!114 &7198164270660894532
 MonoBehaviour:
@@ -62,3 +63,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Core.Mono::Game.Core.Mono.BattleCameraSelector
   side1Camera: {fileID: 0}
   side2Camera: {fileID: 0}
+  boardView: {fileID: 0}
+  distance: 5
+  height: 10
+  fieldOfView: 60

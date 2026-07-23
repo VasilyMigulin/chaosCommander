@@ -53,16 +53,18 @@ namespace Game.Core.Ecs.Systems
         bool _subscribed;
         readonly Queue<CardPickChosenEvent>    _chosen    = new Queue<CardPickChosenEvent>();
         readonly Queue<CardPickCancelledEvent> _cancelled = new Queue<CardPickCancelledEvent>();
+        readonly Queue<int> _turnEndedOwners = new Queue<int>();   // PlayerId, чей ход закончился (форс-резолв discover)
         readonly HashSet<string> _poolCreationRequested = new HashSet<string>();
 
         public void Init(IEcsSystems systems)
         {
             GameEventBus.Subscribe<CardPickChosenEvent>(e => _chosen.Enqueue(e));
             GameEventBus.Subscribe<CardPickCancelledEvent>(e => _cancelled.Enqueue(e));
+            GameEventBus.Subscribe<TurnEndedEvent>(e => _turnEndedOwners.Enqueue(e.ActivePlayerId));
             _subscribed = true;
-        } 
+        }
         public void Run(IEcsSystems systems)
-        { 
+        {
             // Копим в буфер: обработка может создавать/удалять сущности (CreateCardEvent / DelEntity).
             var pending = new List<int>();
             foreach (var req in _reqFilter.Value) pending.Add(req);
@@ -76,6 +78,49 @@ namespace Game.Core.Ecs.Systems
 
             while (_chosen.Count > 0)    ResolveChosen(_chosen.Dequeue());
             while (_cancelled.Count > 0) ResolveCancelled(_cancelled.Dequeue());
+
+            // Ход закончился, а раскопка ещё висит (окно открыто/не открыто, игрок не успел выбрать) — окно
+            // НЕ должно пережить конец хода (баг: зависало навсегда). Форсим случайный выбор из предложенного,
+            // как ForceRandomTargetingComponent у Йогг-Сарон-эффектов.
+            while (_turnEndedOwners.Count > 0) ForceResolveForEndedTurn(_turnEndedOwners.Dequeue());
+        }
+
+        // Все СВОИ (не чужие-из-реплея) discover-запросы владельца, чей ход закончился, — форс-резолв
+        // случайным выбором из уже предложенного (или предложить и сразу выбрать, если ещё не успели оффернуть).
+        void ForceResolveForEndedTurn(int playerId)
+        {
+            var pending = new List<int>();
+            foreach (var req in _reqFilter.Value) pending.Add(req);
+            foreach (var req in pending)
+            {
+                if (!_reqPool.Value.Has(req)) continue;
+                ref var r = ref _reqPool.Value.Get(req);
+                if (!_ownPool.Value.Has(r.SourceCardEntity)) continue;   // чужие резолвятся из CardPickReplayStore
+                if (!_playerPool.Value.Has(r.OwnerPlayerEntity) || _playerPool.Value.Get(r.OwnerPlayerEntity).PlayerId != playerId) continue;
+                ForceResolveDiscover(req);
+            }
+        }
+
+        void ForceResolveDiscover(int reqEntity)
+        {
+            if (!_reqPool.Value.Has(reqEntity)) return;
+            ref var r = ref _reqPool.Value.Get(reqEntity);
+
+            if (!r.Offered)
+            {
+                int[] tokens; string[] exp; int[] ids; CardVisualData[] visuals;
+                if (r.FromPool) BuildPoolOffer(r, out tokens, out exp, out ids, out visuals);
+                else            BuildZoneOffer(r, out tokens, out exp, out ids, out visuals);
+                if (tokens.Length == 0) { _world.Value.DelEntity(reqEntity); return; }   // фуззл
+                r.Offered = true; r.ShownTokens = tokens; r.ShownExp = exp; r.ShownCardId = ids;
+            }
+            if (r.ShownTokens == null || r.ShownTokens.Length == 0) { _world.Value.DelEntity(reqEntity); return; }
+
+            _chosen.Enqueue(new CardPickChosenEvent
+            {
+                CastingCardEntity = r.SourceCardEntity,
+                ChosenCardEntity  = r.ShownTokens[UnityEngine.Random.Range(0, r.ShownTokens.Length)],
+            });
         }
 
         // ── Своя карта: показать окно (один раз, в свой ход) ─────────────────────
@@ -261,6 +306,10 @@ namespace Game.Core.Ecs.Systems
                 bool wasOwn = _ownTagPool.Value.Has(card);
                 if (wasOwn) { _ownTagPool.Value.Del(card); if (!_enemyTagPool.Value.Has(card)) _enemyTagPool.Value.Add(card); }
                 else        { if (_enemyTagPool.Value.Has(card)) _enemyTagPool.Value.Del(card); if (!_ownTagPool.Value.Has(card)) _ownTagPool.Value.Add(card); }
+
+                // ХС-семантика: способности украденной карты «служат» вору (триггеры/бенефициар/таргетинг —
+                // пере-привязка; та же логика, что у StealToHandEffect/TakeControlEffect).
+                AbilityRebindUtil.Rebind(_world.Value, card, r.OwnerPlayerEntity);
             }
 
             int destPlayer = FindPlayerEntity(destOwnerId);

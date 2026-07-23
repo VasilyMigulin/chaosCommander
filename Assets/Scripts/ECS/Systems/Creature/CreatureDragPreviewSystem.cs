@@ -25,7 +25,7 @@ namespace Game.Core.Ecs.Systems
     /// (он уже отработал в этом кадре), но виден роутеру (_abilitySystems) и RunSelectCellBoardSystem
     /// (_creatureSystems) в этом же кадре; DelHere чистит его в конце кадра. Синка не требует.
     /// </summary>
-    public sealed class CreatureDragPreviewSystem : IEcsInitSystem, IEcsRunSystem, System.IDisposable
+    public sealed class CreatureDragPreviewSystem : IEcsInitSystem, IEcsRunSystem, IEcsDestroySystem, System.IDisposable
     {
         readonly EcsCustomInject<BoardView> _board = default;
         readonly EcsWorldInject _world = default;
@@ -64,6 +64,10 @@ namespace Game.Core.Ecs.Systems
             GameEventBus.Subscribe<CreatureDragMovedEvent>(OnMoved);
             GameEventBus.Subscribe<CreatureDragReleasedEvent>(OnReleased);
         }
+
+        // EcsSystems.Destroy() ищет IEcsDestroySystem, не System.IDisposable — без этого моста Dispose()
+        // фреймворк никогда не вызывал бы (см. EcsRunHandler/TutorialEcsHandler.Dispose → _allSystems.Destroy()).
+        public void Destroy(IEcsSystems systems) => Dispose();
 
         public void Dispose()
         {

@@ -25,6 +25,12 @@ namespace Game.Core.Backend
         /// <summary>Загрузить инвентарь + валюты игрока (один вызов) и разложить по категориям.</summary>
         public static void GetInventory(Action<Inventory> onSuccess, Action<string> onError = null)
         {
+            if (!PlayFabClientAPI.IsClientLoggedIn())
+            {
+                onError?.Invoke("not_logged_in");
+                return;
+            }
+
             PlayFabClientAPI.GetUserInventory(
                 new GetUserInventoryRequest(),
                 result =>

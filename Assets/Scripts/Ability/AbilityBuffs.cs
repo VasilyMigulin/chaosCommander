@@ -54,17 +54,23 @@ namespace Game.Core.Ability
         /// <summary>Добавить кост-модификатор карте (какой кост-компонент есть: золото/мана/HP). Переиспользуют StealToHand и др.</summary>
         public static void Add(EcsWorld world, int card, int delta, bool permanent)
         {
-            var g = world.GetPool<GoldCostComponent>();   if (g.Has(card)) { g.Get(card).AddModifier(delta, permanent); return; }
-            var m = world.GetPool<ManaCostComponent>();    if (m.Has(card)) { m.Get(card).AddModifier(delta, permanent); return; }
-            var h = world.GetPool<HealthCostComponent>();  if (h.Has(card)) { h.Get(card).AddModifier(delta, permanent); }
+            var g = world.GetPool<GoldCostComponent>();   if (g.Has(card)) { g.Get(card).AddModifier(delta, permanent); NotifyChanged(); return; }
+            var m = world.GetPool<ManaCostComponent>();    if (m.Has(card)) { m.Get(card).AddModifier(delta, permanent); NotifyChanged(); return; }
+            var h = world.GetPool<HealthCostComponent>();  if (h.Has(card)) { h.Get(card).AddModifier(delta, permanent); NotifyChanged(); }
         }
 
         static void Remove(EcsWorld world, int card, int delta)
         {
-            var g = world.GetPool<GoldCostComponent>();   if (g.Has(card)) { g.Get(card).RemoveModifier(delta); return; }
-            var m = world.GetPool<ManaCostComponent>();    if (m.Has(card)) { m.Get(card).RemoveModifier(delta); return; }
-            var h = world.GetPool<HealthCostComponent>();  if (h.Has(card)) { h.Get(card).RemoveModifier(delta); }
+            var g = world.GetPool<GoldCostComponent>();   if (g.Has(card)) { g.Get(card).RemoveModifier(delta); NotifyChanged(); return; }
+            var m = world.GetPool<ManaCostComponent>();    if (m.Has(card)) { m.Get(card).RemoveModifier(delta); NotifyChanged(); return; }
+            var h = world.GetPool<HealthCostComponent>();  if (h.Has(card)) { h.Get(card).RemoveModifier(delta); NotifyChanged(); }
         }
+
+        // Любое пер-карточное изменение коста → сигнал CardAffordabilitySystem пересчитать руку СРАЗУ
+        // (CardCostChangedEvent → окраска/панч на вьюхе). Без этого бафф коста карты УЖЕ В РУКЕ посреди
+        // хода ждал бы ближайшего «dirty»-триггера (смена ресурсов/границы хода) — обычно скоро, но не
+        // гарантированно в тот же момент. Событие то же, что у глобальной Гиперинфляции — пересчёт дёшев.
+        static void NotifyChanged() => Game.Core.Events.GameEventBus.Publish(new Game.Core.Events.CostModifierChangedEvent());
     }
 
     // === buff: маркер-компонент ===
@@ -176,5 +182,29 @@ namespace Game.Core.Ability
     public sealed class RevertBuffsEffect : EffectBase
     {
         public override void Apply(EcsWorld world, int cardEntity, int target) => AddBuffEffect.RevertAll(world, cardEntity);
+    }
+
+    // === class (OOP) === ПАССИВ «+X/+Y за каждую чару под вашим контролем» (Обжора: +2/+2 за чару).
+    // Не триггер-эффект: регистрирует BuffPerCharmComponent на сущности карты прямо в Init (способность
+    // инитится при создании карты на ОБОИХ клиентах → зеркально), дальше всё считает BuffPerCharmSystem
+    // реактивным диффом стека модификаторов (появилась/истекла чара — статы обновятся сами). В ассете
+    // кладётся в способность БЕЗ триггеров (Triggers пустой — резолвить нечего, Apply no-op) — напр. AbilityToSelf.
+    [Serializable]
+    public sealed class BuffPerCharmEffect : EffectBase
+    {
+        public int AttackPerCharm = 2;
+        public int HealthPerCharm = 2;
+
+        public override void Init(EcsWorld world, int cardEntity, int playerEntity)
+        {
+            base.Init(world, cardEntity, playerEntity);
+            var pool = world.GetPool<BuffPerCharmComponent>();
+            if (!pool.Has(cardEntity)) pool.Add(cardEntity);
+            ref var c = ref pool.Get(cardEntity);
+            c.AttackPerCharm = AttackPerCharm;
+            c.HealthPerCharm = HealthPerCharm;
+        }
+
+        public override void Apply(EcsWorld world, int cardEntity, int target) { }   // пассив — считает AuraRecalcSystem
     }
 }

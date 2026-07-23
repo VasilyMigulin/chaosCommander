@@ -13,7 +13,7 @@ namespace Game.Core.Ecs.Systems
     /// и тик в КОНЦЕ хода (по требованию — «уничтожается после окончания хода»). Тикает только активный
     /// клиент (TurnEndedEvent у него); пассив получит смерть снапшотом (TimerDeathNetEvent → ActionDeathData).
     /// </summary>
-    public sealed class CharmTimerTickSystem : IEcsInitSystem, IEcsRunSystem, System.IDisposable
+    public sealed class CharmTimerTickSystem : IEcsInitSystem, IEcsRunSystem, IEcsDestroySystem, System.IDisposable
     {
         readonly EcsFilterInject<Inc<CharmTimerComponent, BoardTag, OwnerComponent>> _filter = default;
         readonly EcsPoolInject<CharmTimerComponent> _timerPool = default;
@@ -24,6 +24,11 @@ namespace Game.Core.Ecs.Systems
         bool _subscribed;
 
         public void Init(IEcsSystems systems) => Subscribe();
+
+        // EcsSystems.Destroy() ищет IEcsDestroySystem, не System.IDisposable — без этого моста Dispose()
+        // фреймворк никогда не вызывал бы (см. EcsRunHandler/TutorialEcsHandler.Dispose → _allSystems.Destroy()).
+        public void Destroy(IEcsSystems systems) => Dispose();
+
         public void Dispose()
         {
             if (!_subscribed) return;
@@ -50,6 +55,8 @@ namespace Game.Core.Ecs.Systems
                 if (_ownerPool.Value.Get(entity).OwnerId != playerId) continue;
                 ref var t = ref _timerPool.Value.Get(entity);
                 t.TurnsRemaining--;
+                // ВРЕМЕННО (диагностика «Дупликатор умирает раньше срока»): тик каждого чар-таймера.
+                UnityEngine.Debug.Log($"[CharmTick] entity={entity} owner={playerId} remaining={t.TurnsRemaining} frame={UnityEngine.Time.frameCount}");
                 if (t.TurnsRemaining <= 0 && !_deadPool.Value.Has(entity))
                 {
                     _deadPool.Value.Add(entity);

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using PlayFab.ClientModels;
+using Game.Core.DeckBuilder;   // PlayerLibrary (та же сборка)
 
 namespace Game.Core.Backend
 {
@@ -11,10 +12,13 @@ namespace Game.Core.Backend
     /// </summary>
     public static class BoosterService
     {
-        [Serializable] public class OpenRequest { public string BoosterItemId; }
+        [Serializable] public class OpenRequest { public string BoosterItemId; public int Count = 1; }
 
-        /// <summary>Ответ открытия: результат + выданные карты (Reward.Cards) для показа.</summary>
-        [Serializable] public class OpenResponse : RewardResponse { }
+        /// <summary>Ответ открытия: результат + выданные карты (Reward.Cards) + сколько бустеров реально открыто.</summary>
+        [Serializable] public class OpenResponse : RewardResponse { public int Opened; }
+
+        /// <summary>Потолок мульти-открытия (должен совпадать с сервером MAX_OPEN_AT_ONCE).</summary>
+        public const int MaxOpenAtOnce = 5;
 
         /// <summary>Список бустеров в инвентаре игрока (сгруппировано item id → количество).</summary>
         public static void GetOwned(Action<Dictionary<string, int>> onSuccess, Action<string> onError = null)
@@ -34,8 +38,21 @@ namespace Game.Core.Backend
 
         /// <summary>Открыть один бустер. Ответ.Reward.Cards = выпавшие карты.</summary>
         public static void Open(string boosterItemId, Action<OpenResponse> onSuccess, Action<string> onError = null)
+            => Open(boosterItemId, 1, onSuccess, onError);
+
+        /// <summary>Открыть до count бустеров за раз (сервер откроет сколько есть, не больше MaxOpenAtOnce).
+        /// Reward.Cards — все выпавшие карты (агрегированы), Opened — сколько реально открыто.</summary>
+        public static void Open(string boosterItemId, int count, Action<OpenResponse> onSuccess, Action<string> onError = null)
             => FunctionService.Call<OpenRequest, OpenResponse>(
-                BackendConfig.Fn.OpenBooster, new OpenRequest { BoosterItemId = boosterItemId },
-                onSuccess, onError);
+                BackendConfig.Fn.OpenBooster, new OpenRequest { BoosterItemId = boosterItemId, Count = count },
+                r =>
+                {
+                    if (r != null && r.Success)
+                    {
+                        PlayerWallet.ApplyIfPresent(r.Wallet);
+                        PlayerLibrary.AddGranted(r.Reward?.Cards, BackendSession.Config);   // выпавшие карты → в библиотеку
+                    }
+                    onSuccess?.Invoke(r);
+                }, onError);
     }
 }

@@ -61,18 +61,21 @@ namespace AwesomeUI.Feature.Battle
         private void OnDisable() => Unsubscribe();
         private void OnDestroy() => Unsubscribe();
 
+        // SubscribePersistent, не Subscribe: объект persistent (DontDestroyOnLoad), OnEnable отрабатывает
+        // ОДИН раз за сессию — обычная подписка терялась бы навсегда после первого GameEventBus.Clear()
+        // (см. EcsRunHandler.Dispose при выходе из боя).
         private void Subscribe()
         {
             if (_subscribed) return;
             _subscribed = true;
-            GameEventBus.Subscribe<CardMillFromDeckUIEvent>(OnMill);
+            GameEventBus.SubscribePersistent<CardMillFromDeckUIEvent>(OnMill);
         }
 
         private void Unsubscribe()
         {
             if (!_subscribed) return;
             _subscribed = false;
-            GameEventBus.Unsubscribe<CardMillFromDeckUIEvent>(OnMill);
+            GameEventBus.UnsubscribePersistent<CardMillFromDeckUIEvent>(OnMill);
         }
 
         private void OnMill(CardMillFromDeckUIEvent evt)

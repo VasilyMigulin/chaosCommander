@@ -105,9 +105,21 @@ namespace Game.Core.States
             mm.OnStateChanged += OnMatchmakingStateChanged;
 
             // Персистентный хаб: статус и cancel переживут гибель MenuState при загрузке LobbyScene.
+            // Обработчик отмены перевешиваем ВСЕГДА (даже при уже идущем поиске) — вернувшийся на панель
+            // игрок должен уметь отменить ТЕКУЩИЙ поиск.
             MatchmakingUiHub.CancelHandler = CancelMatchmakingAndReturn;
-            MatchmakingUiHub.SetStatus(MatchmakingUiStatus.Searching);
 
+            // ИДЕМПОТЕНТНОСТЬ: поиск уже идёт (игрок ушёл с панели кнопкой «назад» и вернулся) — второй
+            // НЕ стартуем и статус НЕ перетираем: FindOpponentPanel сам подтянет текущее состояние из
+            // хаба (поллинг в Update). Раньше повторное нажатие ставило Searching поверх реального
+            // состояния и плодило пустые FindMatchAsync-вызовы.
+            if (mm.CurrentState != MatchmakingState.Idle)
+            {
+                Debug.Log($"[MenuState] StartMatchMaking: поиск уже активен (state={mm.CurrentState}) — повторный старт пропущен.");
+                return;
+            }
+
+            MatchmakingUiHub.SetStatus(MatchmakingUiStatus.Searching);
             sessionTask = mm.FindMatchAsync();
         }
 

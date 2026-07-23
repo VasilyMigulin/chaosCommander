@@ -18,7 +18,7 @@ namespace Game.Core.Ecs.Systems
     ///
     /// ActionIndex нумеруется в рамках одного хода и сбрасывается при TurnStartedEvent.
     /// </summary>
-    public sealed class CollectActionSystem : IEcsInitSystem, IEcsRunSystem, System.IDisposable
+    public sealed class CollectActionSystem : IEcsInitSystem, IEcsRunSystem, IEcsDestroySystem, System.IDisposable
     {
         readonly EcsWorldInject _world = default;
         readonly EcsCustomInject<PhotonRunHandler> _photon = default;
@@ -51,6 +51,10 @@ namespace Game.Core.Ecs.Systems
             GameEventBus.Subscribe<EndTurnNetEvent>(OnEndTurn);
             UnityEngine.Debug.Log("[Collect] init: subscribed");
         }
+
+        // EcsSystems.Destroy() ищет IEcsDestroySystem, не System.IDisposable — без этого моста Dispose()
+        // фреймворк никогда не вызывал бы (см. EcsRunHandler/TutorialEcsHandler.Dispose → _allSystems.Destroy()).
+        public void Destroy(IEcsSystems systems) => Dispose();
 
         public void Dispose()
         {

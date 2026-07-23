@@ -13,9 +13,12 @@ namespace AwesomeUI.Feature.Battle
     /// Под каждый результат — свой визуал (фон + misc-иконка вроде короны/черепа + подпись + тинт),
     /// настраивается в инспекторе (см. ResultVisual). Контейнеры наград/MMR зарезервированы (пока пустые).
     ///
-    /// Окно — дочернее у BattlePanel; SourcePanel.Init() авто-вызывает Init()/Dispose(),
-    /// поэтому подписки живут здесь и отдельной регистрации в BattlePanel не требуется
-    /// (тот же паттерн, что и PickupWindow).
+    /// BattleCanvas — persistent (DontDestroyOnLoad, см. UIModule.Initialize/UIHandler.InvokeCanvas): между
+    /// матчами объект не пересоздаётся, Init()/Dispose() второй раз не вызываются. А GameEventBus.Clear()
+    /// (см. EcsRunHandler.Dispose при выходе из боя) обнуляет ВСЮ шину целиком — подписки, сделанные в Init(),
+    /// пропадают навсегда после первого же матча. Поэтому подписки на события живут в OnInject()/Unject() —
+    /// их вызывает UIHandler.Inject()/Unject() НА КАЖДЫЙ матч (см. BattleState.Start → UIModule.Inject),
+    /// а не один раз за сессию (тот же паттерн, что уже использует BattlePanel).
     /// </summary>
     public class MatchResultWindow : SourceWindow
     {
@@ -52,7 +55,6 @@ namespace AwesomeUI.Feature.Battle
             base.Init();
             if (_canvasGroup == null) _canvasGroup = GetComponent<CanvasGroup>();
 
-            GameEventBus.Subscribe<MatchEndedEvent>(OnMatchEnded);
             if (_exitButton != null) _exitButton.onClick.AddListener(OnExit);
 
             // Награды/MMR пока скрыты (наполним в следующих итерациях).
@@ -66,11 +68,19 @@ namespace AwesomeUI.Feature.Battle
         public override void Dispose()
         {
             base.Dispose();
-            GameEventBus.Unsubscribe<MatchEndedEvent>(OnMatchEnded);
             if (_exitButton != null) _exitButton.onClick.RemoveListener(OnExit);
         }
 
-        public override void Unject() { }
+        public override void OnInject()
+        {
+            GameEventBus.Subscribe<MatchEndedEvent>(OnMatchEnded);
+            // Прячем попап результата ПРЕДЫДУЩЕГО матча сразу здесь — OnInject вызывается UIHandler'ом
+            // на КАЖДЫЙ матч (в отличие от Init(), который для persistent-объекта отработал только один раз).
+            _canvasGroup?.DOKill();
+            gameObject.SetActive(false);
+        }
+
+        public override void Unject() => GameEventBus.Unsubscribe<MatchEndedEvent>(OnMatchEnded);
 
         private void OnMatchEnded(MatchEndedEvent evt)
         {

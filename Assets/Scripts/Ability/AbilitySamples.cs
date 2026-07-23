@@ -74,6 +74,8 @@ namespace Game.Core.Ability
         EcsWorld _world;
         int _abilityEntity, _cardEntity, _playerEntity;
 
+        public bool AiDeathTrigger => true;   // хрип: при полезном эффекте ИИ нарывается на смерть (см. ITrigger)
+
         public void Init(EcsWorld world, int abilityEntity, int cardEntity, int playerEntity)
         {
             _world = world; _abilityEntity = abilityEntity; _cardEntity = cardEntity; _playerEntity = playerEntity;
@@ -83,6 +85,15 @@ namespace Game.Core.Ability
         void OnDied(CreatureDiedEvent e)
         {
             if (e.CardEntity != _cardEntity) return;                     // фильтр: это моя карта?
+
+            // Задачи: «сработал хрип». Публикуем ДО активного гейта Mark — чтобы засчитывалось и в ход
+            // противника (CreatureDiedEvent приходит на обоих клиентах; трекер фильтрует по своему LocalPlayerId).
+            var ownerPool = _world.GetPool<OwnerComponent>();
+            GameEventBus.Publish(new DeathrattleTrackedEvent
+            {
+                OwnerId = ownerPool.Has(_cardEntity) ? ownerPool.Get(_cardEntity).OwnerId : -1
+            });
+
             AbilityFire.Mark(_world, _abilityEntity, _cardEntity, _playerEntity, TriggerKeys.OnDie); // множитель
         }
 

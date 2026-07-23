@@ -40,6 +40,9 @@ namespace Game.Core.Ecs.Systems
         // Наступающий кризис: игрок с GoldBlockComponent не получает доход золота в начале хода.
         readonly EcsPoolInject<GoldBlockComponent> _goldBlockPool = default;
 
+        // Задачи: чары владельца на старте его хода («чары × ходов»).
+        readonly EcsFilterInject<Inc<CharmTag, BoardTag, OwnerComponent>, Exc<DeadTag>> _charms = default;
+
         public void Run(IEcsSystems systems)
         {
             foreach (var entity in _filter.Value)
@@ -112,6 +115,16 @@ namespace Game.Core.Ecs.Systems
                 }
 
                 GameEventBus.Publish(new TurnStartedEvent { ActivePlayerId = playerId, TurnNumber = start.TurnNumber });
+
+                // Задачи: на старте СВОЕГО хода считаем свои чары (каждая = +1 к «чары × ходов»).
+                if (isLocal)
+                {
+                    int charmCount = 0;
+                    foreach (var ch in _charms.Value)
+                        if (_ownerPool.Value.Get(ch).OwnerId == playerId) charmCount++;
+                    if (charmCount > 0)
+                        GameEventBus.Publish(new CharmsControlledTrackedEvent { OwnerId = playerId, Count = charmCount });
+                }
 
                 UnityEngine.Debug.Log($"[TurnStart] cascade for player={playerId} turn={start.TurnNumber} personal={start.PersonalTurnNumber}");
             }

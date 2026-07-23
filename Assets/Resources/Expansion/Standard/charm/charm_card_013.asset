@@ -40,7 +40,7 @@ MonoBehaviour:
         RuntimeAbilities:
         - rid: 2419359952424665179
         Archetypes: []
-        TurnsAlive: 3
+        TurnsAlive: 4
     - rid: 2419359952424665179
       type: {class: AbilityNonTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
@@ -56,6 +56,7 @@ MonoBehaviour:
           HitPrefab: {fileID: 0}
           ProjectileSpeed: 12
           MergeArea: 0
+          PlayCasterAnimation: 0
     - rid: 2419359952424665180
       type: {class: OnTurnStartTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
@@ -70,5 +71,6 @@ MonoBehaviour:
       data:
         ConditionRoot:
           rid: -2
+        SummonModifiers: []
         PoolAsset: {fileID: 11400000, guid: 87765c4149f1bb74c84cf368f57d4e37, type: 2}
         Pool: []

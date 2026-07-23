@@ -54,6 +54,16 @@ namespace AwesomeUI.Core
             _handler.Init();
             _isInitialized = true;
 
+            // Системная «назад» на Android по умолчанию ЗАКРЫВАЕТ активити (Unity логирует «Quit requested»
+            // → APP_CMD_DESTROY → процесс выходит с кодом 0). Со стороны это выглядит как краш: игра просто
+            // сворачивается с любого экрана. Отдаём кнопку нам — Unity будет только слать KeyCode.Escape,
+            // а навигацию делает BackGestureHandler → UIModule.Back(). На не-Android свойство игнорируется.
+            Input.backButtonLeavesApp = false;
+
+            // Глобальный обработчик жеста «назад» (Android hardware/gesture + iOS свайп-от-края).
+            if (instance.GetComponent<BackGestureHandler>() == null)
+                instance.AddComponent<BackGestureHandler>();
+
             Debug.Log("[AwesomeUI] Initialized successfully");
         }
          
@@ -138,6 +148,16 @@ namespace AwesomeUI.Core
             EnsureInitialized();
             _handler.CloseCanvas<T>(out var canvas);
             return canvas;
+        }
+
+        /// <summary>
+        /// Жест/кнопка «назад»: вернуться на предыдущую панель активного канваса.
+        /// false — если возвращаться некуда (корневой экран) — вызывающий может выйти из приложения.
+        /// </summary>
+        public static bool Back()
+        {
+            if (!_isInitialized) return false;
+            return _handler.BackActiveCanvas();
         }
 
         /// <summary>

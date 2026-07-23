@@ -21,8 +21,31 @@ namespace AwesomeUI.Core.Handler
         private List<SourceWindow> _windows = new();
         private List<SourceSlot> _slots = new();
 
+        [Tooltip("Глобальные конфиги (ScriptableObject), доступные ЛЮБОМУ UI-элементу через GetConfig<T>() — "
+                + "в т.ч. динамически создаваемым инстансам (напр. карточки в библиотеке/руке), которые не "
+                + "попадают в обычный [UIInject]-скан (тот берёт слепок иерархии ОДИН раз в Init()). "
+                + "UIHandler — persistent DontDestroyOnLoad-синглтон, поэтому это надёжнее Resources.Load "
+                + "(нет зависимости от точного пути в Resources/гонки с индексацией ассета).")]
+        [SerializeField] private UnityEngine.ScriptableObject[] _globalConfigs;
+
+        /// <summary>Найти глобальный конфиг нужного типа среди перетащенных в инспекторе UIHandler.
+        /// Null, если такого типа нет в списке — вызывающий сам решает, что делать (напр. no-op).</summary>
+        public T GetConfig<T>() where T : UnityEngine.Object
+        {
+            if (_globalConfigs == null) return null;
+            foreach (var c in _globalConfigs)
+                if (c is T match) return match;
+            return null;
+        }
+
         public void Init()
         {
+            // Пушим конфиги в статические свойства-получатели ОДИН раз при старте — сами получатели (напр.
+            // AwesomeUI.Core.Card.InterfaceConfig.Current) НЕ тянут отсюда данные сами: AwesomeUI.Core уже
+            // ссылается на AwesomeUI.Feature, а тот — на AwesomeUI.Core.Card, так что обратная ссылка
+            // Card→Handler/Core дала бы цикл сборок. Однонаправленно (Handler→Card) — безопасно.
+            AwesomeUI.Core.Card.InterfaceConfig.Current = GetConfig<AwesomeUI.Core.Card.InterfaceConfig>();
+
             _canvases = GetComponentsInChildren<SourceCanvas>(true).ToList();
             _panels = GetComponentsInChildren<SourcePanel>(true).ToList();
             _layouts = GetComponentsInChildren<SourceLayout>(true).ToList();
@@ -117,6 +140,14 @@ namespace AwesomeUI.Core.Handler
             canvas.CloseCanvas();
 
             return canvas != null;
+        }
+
+        /// <summary>Отдать «назад» активному (видимому) канвасу. false — если некуда/нет активного.</summary>
+        public bool BackActiveCanvas()
+        {
+            foreach (var c in _canvases)
+                if (c.IsOpen) return c.Back();
+            return false;
         }
 
         public virtual bool TryGetCanvas<T>(out T canvas) where T : SourceCanvas

@@ -1,7 +1,7 @@
 {
   "_comment": "Title Data key = 'boosterConfig'. Дроп-таблицы бустеров. Читает Azure Function OpenBooster. Веса редкостей в каждом слоте нормализуются на сервере. rarityPool: сервер выбирает случайную карту нужной редкости+экспеншена из каталога (по тегам rarity/expansion).",
   "booster_standard": {
-    "expansion": "Standard",
+    "expansion": "standard",
     "cardCount": 5,
     "slots": [
       { "weights": { "common": 0.80, "rare": 0.18, "epic": 0.02 } },
@@ -9,6 +9,17 @@
       { "weights": { "common": 0.75, "rare": 0.22, "epic": 0.03 } },
       { "weights": { "common": 0.70, "rare": 0.25, "epic": 0.05 } },
       { "weights": { "rare": 0.70, "epic": 0.24, "legendary": 0.05, "exotic": 0.01 } }
+    ]
+  },
+  "booster_premium": {
+    "expansion": "standard",
+    "cardCount": 5,
+    "slots": [
+      { "weights": { "common": 0.60, "rare": 0.32, "epic": 0.08 } },
+      { "weights": { "common": 0.55, "rare": 0.35, "epic": 0.10 } },
+      { "weights": { "common": 0.50, "rare": 0.38, "epic": 0.12 } },
+      { "weights": { "rare": 0.60, "epic": 0.34, "legendary": 0.06 } },
+      { "weights": { "epic": 0.55, "legendary": 0.35, "exotic": 0.10 } }
     ]
   }
 }

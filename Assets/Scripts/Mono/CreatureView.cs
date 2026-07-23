@@ -31,6 +31,10 @@ namespace Game.Core.Mono
         Coroutine _damageFlash;
         Camera _statsCam;   // кэш активной камеры для биллборда
 
+        // Выставляется в начале PlayDeath() — гейтит PlayHit() в SetStats() от гонки Hit/Death на одном
+        // Animator (см. комментарий в SetStats).
+        bool _isDying;
+
         Coroutine _attackFallback;
         Coroutine _deathFallback;
         Coroutine _abilityCastFallback;
@@ -43,6 +47,49 @@ namespace Game.Core.Mono
         static readonly int CastHash   = Animator.StringToHash("Cast");
 
         [SerializeField] float summonSeconds = 0.6f;   // длительность «окна призыва»: визуал + гейт до OnCast
+
+        [Header("VFX attach points (для SummonVfxSpec и будущих эффектов)")]
+        [Tooltip("Именованные точки атача VFX на модели (Body/Head/HandLeft/…). Не проставленная точка " +
+                 "фолбэчится на корень вью. Root добавлять не нужно — это сам transform.")]
+        [SerializeField] List<VfxAttachPoint> _vfxAttachPoints = new();
+
+        [Serializable]
+        public struct VfxAttachPoint
+        {
+            public Game.Core.Shared.Interface.CreatureAttachPoint Point;
+            public Transform Transform;
+        }
+
+        /// <summary>Transform точки атача (Body/Head/…); фолбэк — корень вью, если точка не проставлена.</summary>
+        public Transform GetAttachPoint(Game.Core.Shared.Interface.CreatureAttachPoint point)
+        {
+            if (point != Game.Core.Shared.Interface.CreatureAttachPoint.Root && _vfxAttachPoints != null)
+                foreach (var p in _vfxAttachPoints)
+                    if (p.Point == point && p.Transform != null) return p.Transform;
+            return transform;
+        }
+
+        /// <summary>Инстанс VFX (parent != null — следует за точкой атача). autoDestroy — прибить по времени
+        /// жизни частиц (как VfxPresenter.AutoDestroy); false — вызывающий гасит сам (follow-аура призыва).</summary>
+        GameObject SpawnVfxInstance(GameObject prefab, Vector3 pos, Transform parent, bool autoDestroy = true)
+        {
+            if (prefab == null) return null;
+            var go = parent != null
+                ? Instantiate(prefab, pos, Quaternion.identity, parent)
+                : Instantiate(prefab, pos, Quaternion.identity);
+            if (autoDestroy)
+            {
+                float life = 2.5f;
+                var ps = go.GetComponentInChildren<ParticleSystem>();
+                if (ps != null)
+                {
+                    var main = ps.main;
+                    life = main.duration + main.startLifetime.constantMax;
+                }
+                Destroy(go, life);
+            }
+            return go;
+        }
 
         [Header("Team tint (свои/чужие)")]
         [Tooltip("Оттенок СВОИХ существ (белый = натуральный цвет модели).")]
@@ -197,7 +244,11 @@ namespace Game.Core.Mono
             {
                 bool tookDamage = health < _lastHealth && _lastHealth != int.MinValue;
                 _healthText.text = health.ToString();
-                if (tookDamage) { FlashDamage(); PlayHit(); }   // реакция цели на удар (#3)
+                // Гонка Hit/Death на ОДНОМ Animator: в кадре смертельного удара DieSystem уже мог вызвать
+                // PlayDeath() (SetTrigger("Death")) РАНЬШЕ, чем CreatureStatsViewSystem дойдёт сюда и увидит
+                // упавшее HP — SetTrigger("Hit") поверх Death в том же кадре мешал переходу в Death (подтверждено
+                // логами: оба триггера ставились в один и тот же Time.frameCount). _isDying защищает от этого.
+                if (tookDamage && !_isDying) { FlashDamage(); PlayHit(); }   // реакция цели на удар (#3)
                 _lastHealth = health;
             }
             if (_attackText != null && attack != _lastAttack)
@@ -234,10 +285,9 @@ namespace Game.Core.Mono
 
         bool HasParam(int hash) => _animParams.Contains(hash);
 
-        private void OnMouseDown()
-        {
-            GameEventBus.Publish(new CellSelectedEvent { Row = _row, Col = _col, OwnerId = _ownerId });
-        }
+        // Hold-детект существа (OnMouseDown/OnMouseUp) убран отсюда — существа НЕкликабельны в этом проекте,
+        // клики ловит только CellView (у клетки свой коллайдер, она знает Row/Col/OwnerId). Тот же паттерн
+        // (короткий тап → CellSelectedEvent, удержание → CreatureHoldUIEvent) перенесён в CellView.cs.
 
         /// <summary>
         /// Плавно перемещает существо к позиции <paramref name="targetPos"/>,
@@ -298,11 +348,35 @@ namespace Game.Core.Mono
         }
 
         /// <summary>Анимация появления на столе (#2). Триггер аниматора "Summon" или «поп»-масштаб без клипа.
-        /// Держит IsSummoning на summonSeconds — это окно, после которого RunPendingOnCastSystem даёт OnCast.</summary>
-        public void PlaySummon()
+        /// Держит IsSummoning — окно, после которого RunPendingOnCastSystem даёт OnCast. Опциональная спека
+        /// vfx (SummonVfxSpec, авторится на CardCreatureModel) добавляет три фазы: Pre-эффект на клетке
+        /// (PreLeadSeconds &gt; 0 — существо скрыто, пока «открывается портал»; окно призыва удлиняется),
+        /// Resolve-эффект в точке атача существа, Finish-аккорд в конце (клетка/существо).</summary>
+        public void PlaySummon(Game.Core.Shared.Interface.SummonVfxSpec vfx = null)
         {
             IsSummoning = true;
 
+            if (_summonRoutine != null) StopCoroutine(_summonRoutine);
+            _summonRoutine = StartCoroutine(SummonFlow(vfx));
+        }
+
+        IEnumerator SummonFlow(Game.Core.Shared.Interface.SummonVfxSpec vfx)
+        {
+            Vector3 cellPos = transform.position;   // существо стоит на клетке — её позиция для Pre/Finish(Cell)
+
+            // ── Pre: эффект на клетке; существо опционально прячется, пока «открывается портал» ──
+            if (vfx?.PrePrefab != null) SpawnVfxInstance(vfx.PrePrefab, cellPos, null);
+            float pre = vfx != null ? Mathf.Max(0f, vfx.PreLeadSeconds) : 0f;
+            Vector3 prefabScale = transform.localScale;
+            if (pre > 0f)
+            {
+                transform.DOKill();
+                transform.localScale = prefabScale * 0.0001f;   // скрыто (SetActive нельзя — убил бы корутину)
+                yield return new WaitForSeconds(pre);
+                transform.localScale = prefabScale;
+            }
+
+            // ── Summon-анимация (как раньше) ──
             if (animator != null && HasParam(SummonHash))
             {
                 animator.SetTrigger(SummonHash);
@@ -311,18 +385,37 @@ namespace Game.Core.Mono
             {
                 // Нет клипа призыва — «поп»-появление из уменьшенного масштаба к масштабу префаба.
                 transform.DOKill();
-                Vector3 target = transform.localScale;   // масштаб префаба (не жёстко 1)
-                transform.localScale = target * 0.4f;
-                transform.DOScale(target, summonSeconds).SetEase(Ease.OutBack);
+                transform.localScale = prefabScale * 0.4f;
+                transform.DOScale(prefabScale, summonSeconds).SetEase(Ease.OutBack);
             }
 
-            if (_summonRoutine != null) StopCoroutine(_summonRoutine);
-            _summonRoutine = StartCoroutine(SummonGate());
-        }
+            // ── Resolve: эффект на существе (точка атача), с задержкой от старта анимации ──
+            GameObject resolveGo = null;
+            float elapsed = 0f;
+            if (vfx?.ResolvePrefab != null)
+            {
+                float delay = Mathf.Clamp(vfx.ResolveDelaySeconds, 0f, summonSeconds);
+                if (delay > 0f) yield return new WaitForSeconds(delay);
+                elapsed = delay;
+                var at = GetAttachPoint(vfx.ResolveAttach);
+                resolveGo = SpawnVfxInstance(vfx.ResolvePrefab, at.position, vfx.ResolveFollow ? at : null,
+                                             autoDestroy: !vfx.ResolveFollow);
+            }
 
-        IEnumerator SummonGate()
-        {
-            yield return new WaitForSeconds(summonSeconds);
+            if (summonSeconds - elapsed > 0f) yield return new WaitForSeconds(summonSeconds - elapsed);
+
+            // ── Finish: заключительный аккорд (клетка или существо) ──
+            if (vfx?.FinishPrefab != null)
+            {
+                Vector3 at = vfx.FinishAnchor == Game.Core.Shared.Interface.SummonVfxAnchor.Cell
+                    ? cellPos
+                    : GetAttachPoint(vfx.FinishAttach).position;
+                SpawnVfxInstance(vfx.FinishPrefab, at, null);
+            }
+
+            // Follow-аура жила всё окно призыва — гасим с небольшим запасом (частицы догаснут).
+            if (resolveGo != null) Destroy(resolveGo, 0.75f);
+
             IsSummoning = false;
             _summonRoutine = null;
         }
@@ -330,8 +423,9 @@ namespace Game.Core.Mono
         /// <summary>Драг-розыгрыш (#пайплайн-под-пальцем): существо появляется в мировой точке fromWorld
         /// (где было превью под пальцем) и плавно «въезжает» в клетку toWorld, играя анимацию Invoke.
         /// Без поп-масштаба (существо уже «целое» — оно материализовалось под пальцем). Держит IsSummoning
-        /// (гейт OnCast) на summonSeconds.</summary>
-        public void PlaySlideInvoke(Vector3 fromWorld, Vector3 toWorld)
+        /// (гейт OnCast) на summonSeconds. Спека vfx проигрывается БЕЗ Pre-фазы (существо уже видно
+        /// под пальцем — портал не имеет смысла), Resolve/Finish — как у PlaySummon.</summary>
+        public void PlaySlideInvoke(Vector3 fromWorld, Vector3 toWorld, Game.Core.Shared.Interface.SummonVfxSpec vfx = null)
         {
             IsSummoning = true;
 
@@ -343,7 +437,36 @@ namespace Game.Core.Mono
                 animator.SetTrigger(SummonHash);
 
             if (_summonRoutine != null) StopCoroutine(_summonRoutine);
-            _summonRoutine = StartCoroutine(SummonGate());
+            _summonRoutine = StartCoroutine(SlideInvokeGate(toWorld, vfx));
+        }
+
+        IEnumerator SlideInvokeGate(Vector3 cellPos, Game.Core.Shared.Interface.SummonVfxSpec vfx)
+        {
+            GameObject resolveGo = null;
+            float elapsed = 0f;
+            if (vfx?.ResolvePrefab != null)
+            {
+                float delay = Mathf.Clamp(vfx.ResolveDelaySeconds, 0f, summonSeconds);
+                if (delay > 0f) yield return new WaitForSeconds(delay);
+                elapsed = delay;
+                var at = GetAttachPoint(vfx.ResolveAttach);
+                resolveGo = SpawnVfxInstance(vfx.ResolvePrefab, at.position, vfx.ResolveFollow ? at : null,
+                                             autoDestroy: !vfx.ResolveFollow);
+            }
+
+            if (summonSeconds - elapsed > 0f) yield return new WaitForSeconds(summonSeconds - elapsed);
+
+            if (vfx?.FinishPrefab != null)
+            {
+                Vector3 at = vfx.FinishAnchor == Game.Core.Shared.Interface.SummonVfxAnchor.Cell
+                    ? cellPos
+                    : GetAttachPoint(vfx.FinishAttach).position;
+                SpawnVfxInstance(vfx.FinishPrefab, at, null);
+            }
+            if (resolveGo != null) Destroy(resolveGo, 0.75f);
+
+            IsSummoning = false;
+            _summonRoutine = null;
         }
 
         /// <summary>Есть ли у существа анимация каста способности (параметр "Cast" в аниматоре) — использует
@@ -399,6 +522,8 @@ namespace Game.Core.Mono
 
         public void PlayDeath()
         {
+            _isDying = true;   // ДО всего остального — гейтит PlayHit() из SetStats() в этом же кадре (см. SetStats)
+
             if (animator != null && HasParam(DeathHash))
             {
                 _currentFinish = HideAfterDeath;
@@ -453,6 +578,10 @@ namespace Game.Core.Mono
         /// способности/смерть, какая сейчас играет — только одна одновременно).</summary>
         public void OnFinishEvent()
         {
+            // ВРЕМЕННО: если этот лог появляется РАНЬШЕ лога "DeathFallback ТАЙМАУТ" — FinishEvent пришёл из
+            // клипа нормально (проблема не в анимации/событии). Если появляется ТОЛЬКО одновременно с таймаутом
+            // (~2 сек) — Animation Event из клипа не приходит вообще.
+            UnityEngine.Debug.Log($"[PlayDeath] {name} OnFinishEvent вызван (hasCallback={_currentFinish != null}), t={Time.unscaledTime:0.00}");
             var cb = _currentFinish;
             _currentFinish = null;
             cb?.Invoke();

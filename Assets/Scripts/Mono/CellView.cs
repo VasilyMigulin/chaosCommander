@@ -20,6 +20,25 @@ namespace Game.Core.Mono
 
         Color _baseColor;
 
+        // ── Удержание → карточка-инспектор существа на этой клетке (та же логика, что раньше ошибочно
+        // висела на CreatureView — существа НЕкликабельны в этом проекте, кликабельны только клетки, клетка
+        // сама знает Row/Col/OwnerId). Короткий тап (hold не сработал) — обычный CellSelectedEvent, как раньше,
+        // просто перенесённый с OnMouseDown на OnMouseUp, чтобы успеть отличить тап от удержания. ──
+        [SerializeField] float _holdThreshold = 0.45f;
+
+        bool _pressed;
+        bool _holdFired;
+        float _pressTime;
+
+        void Update()
+        {
+            if (!_pressed || _holdFired) return;
+            if (Time.unscaledTime - _pressTime < _holdThreshold) return;
+
+            _holdFired = true;
+            GameEventBus.Publish(new CreatureHoldUIEvent { Row = Row, Col = Col, OwnerId = OwnerId, Show = true });
+        }
+
         public void SetCoords(int row, int col, int ownerId)
         {
             Row = row;
@@ -59,13 +78,35 @@ namespace Game.Core.Mono
 
         void OnMouseDown()
         {
-            //UnityEngine.Debug.Log($"[CellView] OnMouseDown row={Row} col={Col} ownerId={OwnerId}");
+            _pressed = true;
+            _holdFired = false;
+            _pressTime = Time.unscaledTime;
+        }
+
+        // Короткий тап (hold не сработал) — обычный CellSelectedEvent (выбор/атака/движение), как раньше —
+        // просто перенесён с OnMouseDown на OnMouseUp. Если hold сработал — жест уже «использован»
+        // инспектором, обычный клик не шлём.
+        void OnMouseUp()
+        {
+            if (!_pressed) return;
+            _pressed = false;
+
+            if (_holdFired)
+            {
+                GameEventBus.Publish(new CreatureHoldUIEvent { Row = Row, Col = Col, OwnerId = OwnerId, Show = false });
+                return;
+            }
+
             GameEventBus.Publish(new CellSelectedEvent { Row = Row, Col = Col, OwnerId = OwnerId });
         }
 
-        void OnMouseEnter()
+        // Палец увели с клетки, не отпуская — считаем как отпускание, иначе удержание может «залипнуть».
+        void OnMouseExit()
         {
-            //UnityEngine.Debug.Log($"[CellView] OnMouseEnter row={Row} col={Col} ownerId={OwnerId}");
+            if (!_pressed) return;
+            _pressed = false;
+            if (_holdFired)
+                GameEventBus.Publish(new CreatureHoldUIEvent { Row = Row, Col = Col, OwnerId = OwnerId, Show = false });
         }
     }
 

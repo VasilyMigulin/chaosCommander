@@ -25,15 +25,15 @@ MonoBehaviour:
         Id: 91
         Name: "\u0411\u043B\u0430\u0433\u043E\u0433\u043E\u0432\u0435\u0439\u043D\u044B\u0439
           \u043F\u0440\u0438\u0445\u043E\u0434"
-        Description: "\u0412 \u0442\u0435\u0447\u0435\u043D\u0438\u0435 3 \u0445\u043E\u0434\u043E\u0432,
+        Description: "\u0412 \u0442\u0435\u0447\u0435\u043D\u0438\u0435 6 \u0445\u043E\u0434\u043E\u0432,
           \u0432 \u043D\u0430\u0447\u0430\u043B\u0435 \u0432\u0430\u0448\u0435\u0433\u043E
           \u0445\u043E\u0434\u0430, \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0430
           \u043F\u043E\u0434 \u0432\u0430\u0448\u0438\u043C \u043A\u043E\u043D\u0442\u0440\u043E\u043B\u0435\u043C
-          \u043F\u043E\u043B\u0443\u0447\u0430\u044E\u0442 +1/+2"
+          \u043F\u043E\u043B\u0443\u0447\u0430\u044E\u0442 +2/+3"
         Rarity: 3
         Element: 24
         ArtImage: {fileID: 0}
-        ExpansionId: 
+        ExpansionId: standard
         PlayCost: 1
         PlayCostAmount: 6
         IsToken: 0
@@ -42,7 +42,7 @@ MonoBehaviour:
         RuntimeAbilities:
         - rid: 1051486611725615255
         Archetypes: []
-        TurnsAlive: 3
+        TurnsAlive: 6
     - rid: 1051486611725615255
       type: {class: AbilityToField, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
@@ -57,6 +57,7 @@ MonoBehaviour:
           HitPrefab: {fileID: 0}
           ProjectileSpeed: 12
           MergeArea: 0
+          PlayCasterAnimation: 0
         Area: 0
         Zone: 0
         Filters:
@@ -76,8 +77,8 @@ MonoBehaviour:
     - rid: 1051486611725615258
       type: {class: BuffStat, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
-        Attack: 1
-        Health: 2
+        Attack: 2
+        Health: 3
         Speed: 0
         Permanent: 0
     - rid: 1051486611725615259

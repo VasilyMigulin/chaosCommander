@@ -54,14 +54,6 @@ namespace AwesomeUI.Feature.Battle
             _cardViews.ForEach(x => x.Init());
             if (_canvasGroup == null) _canvasGroup = GetComponent<CanvasGroup>();
 
-            GameEventBus.Subscribe<MulliganStartedEvent>(OnMulliganStarted);
-            GameEventBus.Subscribe<MulliganCardReplacedEvent>(OnCardReplaced);
-            GameEventBus.Subscribe<AllMulligansCompletedEvent>(OnAllMulligansCompleted);
-            GameEventBus.Subscribe<PreStartPhaseBeginUIEvent>(OnPreStartPhaseBegin);
-            // Открываемся не сразу по MulliganStarted (он в Init), а по началу фазы мулигана
-            // (RPC_StartGame, после VS-раскрытия) — чтобы VS-экран был ПЕРВЫМ, а мулиган после него.
-            GameEventBus.Subscribe<MulliganPhaseBeginUIEvent>(OnMulliganPhaseBegin);
-
             if (_confirmButton != null) _confirmButton.onClick.AddListener(OnConfirm);
             if (_skipButton != null) _skipButton.onClick.AddListener(OnSkip);
 
@@ -72,22 +64,48 @@ namespace AwesomeUI.Feature.Battle
         {
             base.Dispose();
 
+            if (_confirmButton != null) _confirmButton.onClick.RemoveListener(OnConfirm);
+            if (_skipButton != null) _skipButton.onClick.RemoveListener(OnSkip);
+        }
+
+        // BattleCanvas — persistent (DontDestroyOnLoad): между матчами объект не пересоздаётся, Init()/Dispose()
+        // второй раз не вызываются. А GameEventBus.Clear() (см. EcsRunHandler.Dispose при выходе из боя) обнуляет
+        // ВСЮ шину — подписки, сделанные в Init(), пропадают навсегда после первого же матча (мулиган просто
+        // переставал открываться на повторных боях). OnInject()/Unject() вызывает UIHandler НА КАЖДЫЙ матч
+        // (см. BattleState.Start → UIModule.Inject) — здесь подписки переживают любое число матчей подряд.
+        public override void OnInject()
+        {
+            GameEventBus.Subscribe<MulliganStartedEvent>(OnMulliganStarted);
+            GameEventBus.Subscribe<MulliganCardReplacedEvent>(OnCardReplaced);
+            GameEventBus.Subscribe<AllMulligansCompletedEvent>(OnAllMulligansCompleted);
+            GameEventBus.Subscribe<PreStartPhaseBeginUIEvent>(OnPreStartPhaseBegin);
+            // Открываемся не сразу по MulliganStarted, а по началу фазы мулигана (RPC_StartGame, после
+            // VS-раскрытия) — чтобы VS-экран был ПЕРВЫМ, а мулиган после него.
+            GameEventBus.Subscribe<MulliganPhaseBeginUIEvent>(OnMulliganPhaseBegin);
+
+            // Чистый старт нового матча: прячем себя и сбрасываем гейты открытия сразу, не дожидаясь
+            // PreStartPhaseBeginUIEvent — тот стреляет уже в конце матча.
+            OnClose();
+            _opened = false;
+            _phaseBegun = false;
+            _readyToOpen = false;
+
+            // Восстановить UI, «сломанный» прошлым матчем (окно persistent, само не пересоздаётся):
+            // OnConfirm() прячет обе кнопки (SetActive(false)), OnSkip()/AllMulligansCompleted оставляют
+            // interactable=false и включённую плашку ожидания — без этого сброса на втором матче окно
+            // мулигана открывалось без кнопок Confirm/Skip.
+            if (_confirmButton != null) { _confirmButton.gameObject.SetActive(true); _confirmButton.interactable = false; }
+            if (_skipButton != null)    { _skipButton.gameObject.SetActive(true);    _skipButton.interactable    = true; }
+            if (_waitingPanel != null)  _waitingPanel.SetActive(false);
+        }
+
+        public override void Unject()
+        {
             GameEventBus.Unsubscribe<MulliganStartedEvent>(OnMulliganStarted);
             GameEventBus.Unsubscribe<MulliganCardReplacedEvent>(OnCardReplaced);
             GameEventBus.Unsubscribe<AllMulligansCompletedEvent>(OnAllMulligansCompleted);
             GameEventBus.Unsubscribe<PreStartPhaseBeginUIEvent>(OnPreStartPhaseBegin);
             GameEventBus.Unsubscribe<MulliganPhaseBeginUIEvent>(OnMulliganPhaseBegin);
-
-            if (_confirmButton != null) _confirmButton.onClick.RemoveListener(OnConfirm);
-            if (_skipButton != null) _skipButton.onClick.RemoveListener(OnSkip);
-        }
-
-        public override void OnInject()
-        {
-        }
-
-        public override void Unject()
-        {
         }
 
         // ── Event handlers ────────────────────────────────────────────────────
@@ -103,6 +121,15 @@ namespace AwesomeUI.Feature.Battle
         {
             // Хост начал PreStart — закрываем мулиган
             OnClose();
+
+            // BattleCanvas — persistent (DontDestroyOnLoad, см. UIModule/UIHandler.InvokeCanvas): окно
+            // не пересоздаётся между матчами, Init() второй раз не вызывается. Без сброса этих трёх флагов
+            // OpenNow() навсегда выходил бы по гварду _opened=true с ПЕРВОГО мулигана — окно мулигана
+            // просто не открывалось бы ни на одном следующем матче (то же семейство бага, что и у
+            // MatchResultWindow с застрявшим попапом результата).
+            _opened = false;
+            _phaseBegun = false;
+            _readyToOpen = false;
         }
 
         private void OnMulliganStarted(MulliganStartedEvent evt)

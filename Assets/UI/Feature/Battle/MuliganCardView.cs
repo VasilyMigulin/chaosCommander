@@ -40,6 +40,9 @@ namespace AwesomeUI.Feature.Battle
                 ApplyVisualData(visualData.Value);
 
             SetSelected(false);
+            // Окно persistent: после Confirm/Skip прошлого матча слот остался Lock() (interactable=false) —
+            // без явного Unlock на реванше карты мулигана были некликабельны.
+            Unlock();
             gameObject.SetActive(true);
 
             transform.localScale = Vector3.zero;

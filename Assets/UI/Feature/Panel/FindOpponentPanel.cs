@@ -30,59 +30,62 @@ namespace AwesomeUI.Feature
         [SerializeField] private float _flavorInterval = 2.5f;
         [Tooltip("Длительность fade при смене фразы.")]
         [SerializeField] private float _flavorFade = 0.3f;
-        // Фразы поиска держим в КОДЕ (static readonly), НЕ в SerializeField: сериализованный массив на
-        // префабе перекрывал новые дефолты — в инспекторе застревал старый короткий список.
-        static readonly string[] SearchingPhrases =
+        // Фразы держим в КОДЕ (static readonly), НЕ в SerializeField: сериализованный массив на префабе
+        // перекрывал новые дефолты — в инспекторе застревал старый короткий список.
+        // Каждая фраза = (ключ локализации, RU-фолбэк). EN-шутки в card_text.csv — это АДАПТАЦИЯ, а не
+        // перевод: часть русских острот в лоб не работает (см. ui.mm.flavor.*).
+        static readonly (string Key, string Ru)[] SearchingPhrases =
         {
-            "Ищем с кем подраться…",
-            "Ищем лоха…",
-            "Забиваем стрелку…",
-            "Готовим кулаки…",
-            "Заряжаемся на позитив…",
-            "Сканируем сервера на наличие жертв…",
-            "Зависли в ожидании…",
-            "Подбираем соперника по интеллекту… снижаем планку",
-            "Ищем достойного… ну или хоть кого-нибудь",
-            "Ждём смельчака…",
-            "Прочёсываем подворотни сервера…",
-            "Точим когти…",
-            "Разминаем костяшки…",
-            "Пакуем понты…",
-            "Ищем соперника с амбициями и без шансов…",
-            "Готовим отмазки на случай проигрыша…",
-            "Ищем добровольца на роль проигравшего…",
-            "Кто-то же должен проиграть… и это не мы",
-            "Ищем того, кто не забоится…",
-            "Зовём на разборки…",
-            "Готовим арену к побоищу…",
-            "Ищем жертву по объявлению…",
-            "Ставим на кон твоё эго…",
-            "Прогреваем скамейку запасных лохов…",
-            "Проверяем сервер на наличие храбрецов…",
-            "Ищем оппонента… а вдруг повезёт не тебе",
-            "Собираем секундантов…",
-            "Договариваемся о правилах… которых не будет",
-            "Ищем того, кому не жалко нервов…",
-            "Ищем спарринг-грушу…",
-            "Подбираем клоуна для твоего цирка…",
-            "Заряжаем сарказм…",
-            "Ищем оппонента с завышенной самооценкой…",
-            "Ищем того, кто ещё верит в свою колоду…",
-            "Наливаем сопернику ложных надежд…",
-            "Готовим корону проигравшего…",
-            "Ищем, кого сегодня проучить…",
-            "Ищем героя дня… чтобы его уронить",
-            "Проверяем, кто сегодня без фарта…",
-            "Раздуваем щёки…",
-            "Ищем оппонента, пока не передумал…",
-            "Тралим сервер на слабаков…",
-            "Готовим место для твоего поражения…",
-            "Ищем, об кого потренироваться…",
+            ("ui.mm.flavor.01", "Ищем с кем подраться…"),
+            ("ui.mm.flavor.02", "Ищем лоха…"),
+            ("ui.mm.flavor.03", "Забиваем стрелку…"),
+            ("ui.mm.flavor.04", "Готовим кулаки…"),
+            ("ui.mm.flavor.05", "Заряжаемся на позитив…"),
+            ("ui.mm.flavor.06", "Сканируем сервера на наличие жертв…"),
+            ("ui.mm.flavor.07", "Зависли в ожидании…"),
+            ("ui.mm.flavor.08", "Подбираем соперника по интеллекту… снижаем планку"),
+            ("ui.mm.flavor.09", "Ищем достойного… ну или хоть кого-нибудь"),
+            ("ui.mm.flavor.10", "Ждём смельчака…"),
+            ("ui.mm.flavor.11", "Прочёсываем подворотни сервера…"),
+            ("ui.mm.flavor.12", "Точим когти…"),
+            ("ui.mm.flavor.13", "Разминаем костяшки…"),
+            ("ui.mm.flavor.14", "Пакуем понты…"),
+            ("ui.mm.flavor.15", "Ищем соперника с амбициями и без шансов…"),
+            ("ui.mm.flavor.16", "Готовим отмазки на случай проигрыша…"),
+            ("ui.mm.flavor.17", "Ищем добровольца на роль проигравшего…"),
+            ("ui.mm.flavor.18", "Кто-то же должен проиграть… и это не мы"),
+            ("ui.mm.flavor.19", "Ищем того, кто не забоится…"),
+            ("ui.mm.flavor.20", "Зовём на разборки…"),
+            ("ui.mm.flavor.21", "Готовим арену к побоищу…"),
+            ("ui.mm.flavor.22", "Ищем жертву по объявлению…"),
+            ("ui.mm.flavor.23", "Ставим на кон твоё эго…"),
+            ("ui.mm.flavor.24", "Прогреваем скамейку запасных лохов…"),
+            ("ui.mm.flavor.25", "Проверяем сервер на наличие храбрецов…"),
+            ("ui.mm.flavor.26", "Ищем оппонента… а вдруг повезёт не тебе"),
+            ("ui.mm.flavor.27", "Собираем секундантов…"),
+            ("ui.mm.flavor.28", "Договариваемся о правилах… которых не будет"),
+            ("ui.mm.flavor.29", "Ищем того, кому не жалко нервов…"),
+            ("ui.mm.flavor.30", "Ищем спарринг-грушу…"),
+            ("ui.mm.flavor.31", "Подбираем клоуна для твоего цирка…"),
+            ("ui.mm.flavor.32", "Заряжаем сарказм…"),
+            ("ui.mm.flavor.33", "Ищем оппонента с завышенной самооценкой…"),
+            ("ui.mm.flavor.34", "Ищем того, кто ещё верит в свою колоду…"),
+            ("ui.mm.flavor.35", "Наливаем сопернику ложных надежд…"),
+            ("ui.mm.flavor.36", "Готовим корону проигравшего…"),
+            ("ui.mm.flavor.37", "Ищем, кого сегодня проучить…"),
+            ("ui.mm.flavor.38", "Ищем героя дня… чтобы его уронить"),
+            ("ui.mm.flavor.39", "Проверяем, кто сегодня без фарта…"),
+            ("ui.mm.flavor.40", "Раздуваем щёки…"),
+            ("ui.mm.flavor.41", "Ищем оппонента, пока не передумал…"),
+            ("ui.mm.flavor.42", "Тралим сервер на слабаков…"),
+            ("ui.mm.flavor.43", "Готовим место для твоего поражения…"),
+            ("ui.mm.flavor.44", "Ищем, об кого потренироваться…"),
         };
 
         CanvasGroup _statusCg;
         int  _flavorIndex = -1;
         bool _searching;
+        MatchmakingUiStatus _applied = (MatchmakingUiStatus)(-1);   // что уже показано (−1 = ничего)
 
         // Крутёж-стейт (Update)
         enum Phase { Hold, FadeOut, FadeIn }
@@ -92,27 +95,28 @@ namespace AwesomeUI.Feature
         public override void OnInject()
         {
             base.OnInject();
-
-            _statusCg = EnsureGroup(_statusText);
             if (_cancelBtn != null) _cancelBtn.onClick.AddListener(OnCancel);
-            MatchmakingUiHub.StatusChanged += OnStatusChanged;   // персистентный источник (переживает гибель MenuState)
-
-            OnStatusChanged(MatchmakingUiHub.Current);
         }
 
-        void OnEnable()  => Debug.Log("[Flavor] FindOpponentPanel OnEnable (активна)");
-        void OnDisable() => Debug.Log("[Flavor] FindOpponentPanel OnDisable (деактивирована)");
-
-        void OnStatusChanged(MatchmakingUiStatus status)
+        void OnEnable()
         {
-            bool searching = status == MatchmakingUiStatus.Searching;
+            // Крутёж НЕ завязан на инжект-цикл: при загрузке LobbyScene UI переинжектится (Unject гасил
+            // _searching, а обратно его никто не взводил) — и фразы замирали ровно в лобби, при живом поиске.
+            // Теперь состояние сверяется с персистентным хабом в Update, а тут только поднимаем «с нуля».
+            _statusCg = EnsureGroup(_statusText);
+            _applied = (MatchmakingUiStatus)(-1);
+            _searching = false;
+        }
 
-            if (searching)
+        void ApplyStatus(MatchmakingUiStatus status)
+        {
+            _applied = status;
+
+            if (status == MatchmakingUiStatus.Searching)
             {
-                // ВАЖНО: НЕ перезапускать крутёж, если уже идёт. Photon-матчмейкинг при поиске гоняет
-                // состояния по кругу (SearchingSessions→Joining→WaitingForPlayers→ретрай…), каждое маппится
-                // в Searching → BeginFlavor на каждом событии мгновенно менял фразу и сбрасывал фазу фейда —
-                // текст «просто переключался» без анимации.
+                // НЕ перезапускаем крутёж, если он уже идёт: Photon при поиске гоняет состояния по кругу
+                // (SearchingSessions→Joining→WaitingForPlayers→ретрай…), все маппятся в Searching — иначе
+                // фраза менялась бы на каждом событии, сбрасывая фейд.
                 if (!_searching) { _searching = true; BeginFlavor(); }
                 return;
             }
@@ -140,6 +144,11 @@ namespace AwesomeUI.Feature
 
         void Update()
         {
+            // Статус тянем из персистентного хаба сами (а не только по событию): подписка живёт в инжект-
+            // цикле и рвётся при смене сцены, а поиск — нет. Поллинг раз в кадр дешевле, чем ловить это.
+            var status = MatchmakingUiHub.Current;
+            if (status != _applied) ApplyStatus(status);
+
             if (!_searching || _statusText == null || SearchingPhrases == null || SearchingPhrases.Length == 0)
                 return;
 
@@ -173,7 +182,9 @@ namespace AwesomeUI.Feature
         void ShowPhrase()
         {
             _flavorIndex = NextPhraseIndex();
-            _statusText.text = SearchingPhrases[_flavorIndex];
+            var phrase = SearchingPhrases[_flavorIndex];
+            // Резолвим на КАЖДОЙ смене фразы → смена языка подхватится прямо во время поиска.
+            _statusText.text = CardTextLocalization.GetText(phrase.Key, phrase.Ru);
         }
 
         int NextPhraseIndex()
@@ -208,14 +219,19 @@ namespace AwesomeUI.Feature
         void OnCancel()
         {
             _searching = false;
+            // Мгновенный отклик: сессия гасится асинхронно (EndSession + LoadScene) — статус ставим сразу,
+            // чтобы фразы поиска не крутились, пока идёт завершение.
+            SetStatusAlpha(1f);
+            SetStatus(MatchmakingUiStatus.Cancelled);
+            Debug.Log($"[FindOpponentPanel] Cancel: hubHandler={(MatchmakingUiHub.CancelHandler != null ? "есть" : "НЕТ")} status={MatchmakingUiHub.Current}");
             MatchmakingUiHub.Cancel();   // завершит сессию и вернёт в меню (персистентный обработчик, переживает лобби)
         }
 
         public override void Unject()
         {
-            _searching = false;
+            // _searching здесь НЕ гасим: панель переживает смену сцены (Menu→Lobby) и переинжект, а поиск
+            // при этом продолжается — сброс флага и останавливал крутёж. Update сам сверится с хабом.
             if (_cancelBtn != null) _cancelBtn.onClick.RemoveListener(OnCancel);
-            MatchmakingUiHub.StatusChanged -= OnStatusChanged;
         }
 
         public override void OnDipose()

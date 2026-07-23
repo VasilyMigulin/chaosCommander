@@ -19,6 +19,10 @@ namespace Game.Core.Model.Card.Creature
         /// <summary>Prefab spawned on the board when this creature enters play.</summary>
         public GameObject ViewPrefab;
 
+        /// <summary>Косметика ПОЯВЛЕНИЯ на столе (Pre-портал на клетке / Resolve-аура на существе /
+        /// Finish-аккорд) — эпичный вход лег/экзотов; см. SummonVfxSpec. Пустая спека — обычное появление.</summary>
+        public Game.Core.Shared.Interface.SummonVfxSpec SummonVfx;
+
         /// <summary>«Умрёт через N своих ходов» ВШИТОЕ в модель (Сорняк и пр. токены-времянки). 0 = бессрочно.
         /// Зеркало CardCharmModel.TurnsAlive. Компонент вешается на ините, но CreatureTimerTickSystem тикает
         /// только существ НА БОРДЕ (Inc BoardTag) — до выхода на поле таймер инертен. Синк смерти — готовый
@@ -56,6 +60,9 @@ namespace Game.Core.Model.Card.Creature
 
             if (TurnsAlive > 0)
                 world.GetPool<CreatureTimerComponent>().Add(entityCard).TurnsRemaining = TurnsAlive;
+
+            if (SummonVfx != null && SummonVfx.HasAny)
+                world.GetPool<SummonVfxComponent>().Add(entityCard).Spec = SummonVfx;
 
             if (world.GetPool<CardViewDataComponent>().Has(entityCard))
             {

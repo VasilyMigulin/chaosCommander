@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
   m_Name: spell_card_008
   m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
   CardData:
     rid: 1051486567619100758
   references:
@@ -23,7 +24,7 @@ MonoBehaviour:
         Id: 57
         Name: "\u0412\u0443\u0434\u0434\u0443-\u0431\u0443\u0434\u0434\u0443"
         Description: "\u0415\u0441\u043B\u0438 \u0432\u044B \u043F\u043E\u043B\u0443\u0447\u0438\u043B\u0438
-          \u043D\u0430 \u0441\u0432\u043E\u0435\u043C \u0445\u043E\u0434\u0443 15
+          \u043D\u0430 \u0441\u0432\u043E\u0435\u043C \u0445\u043E\u0434\u0443 12
           \u0443\u0440\u043E\u043D\u0430, \u0442\u043E \u0434\u043E \u043A\u043E\u043D\u0446\u0430
           \u043C\u0430\u0442\u0447\u0430, \u043F\u043E\u043B\u0443\u0447\u0430\u044F
           \u0443\u0440\u043E\u043D \u0432 \u0441\u0432\u043E\u0439 \u0445\u043E\u0434,
@@ -36,6 +37,7 @@ MonoBehaviour:
         PlayCost: 1
         PlayCostAmount: 6
         IsToken: 0
+        ShowAsLinked: 0
         MulliganStartingHand: 0
         MulliganUnlimitedReplace: 0
         RuntimeAbilities:
@@ -57,6 +59,7 @@ MonoBehaviour:
           HitPrefab: {fileID: 0}
           ProjectileSpeed: 12
           MergeArea: 0
+          PlayCasterAnimation: 0
     - rid: 1051486567619100760
       type: {class: SpawnCharmTokenEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
@@ -93,7 +96,7 @@ MonoBehaviour:
       type: {class: TakeDamageCondition, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
         Scope: 0
-        Threshold: 10
+        Threshold: 12
     - rid: 1051486567619100779
       type: {class: Condition, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
@@ -104,4 +107,4 @@ MonoBehaviour:
       type: {class: TakeDamageCondition, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
         Scope: 0
-        Threshold: 10
+        Threshold: 12

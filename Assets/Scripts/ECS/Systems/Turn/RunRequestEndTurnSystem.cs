@@ -9,7 +9,7 @@ namespace Game.Core.Ecs.Systems
     /// Принимает UI/дев-запрос завершить ход (RequestEndTurnUIEvent) и навешивает EndTurnRequestEvent
     /// на ЛОКАЛЬНОГО активного игрока (дальше — EndTurnRequestSystem). Это ручной аналог таймера хода.
     /// </summary>
-    public sealed class RunRequestEndTurnSystem : IEcsInitSystem, IEcsRunSystem, System.IDisposable
+    public sealed class RunRequestEndTurnSystem : IEcsInitSystem, IEcsRunSystem, IEcsDestroySystem, System.IDisposable
     {
         readonly EcsPoolInject<EndTurnRequestEvent> _reqPool = default;
         readonly EcsPoolInject<PlayerComponent> _playerPool = default;
@@ -18,6 +18,10 @@ namespace Game.Core.Ecs.Systems
         bool _requested;
 
         public void Init(IEcsSystems systems) => GameEventBus.Subscribe<RequestEndTurnUIEvent>(OnRequest);
+
+        // EcsSystems.Destroy() ищет IEcsDestroySystem, не System.IDisposable — без этого моста Dispose()
+        // фреймворк никогда не вызывал бы (см. EcsRunHandler/TutorialEcsHandler.Dispose → _allSystems.Destroy()).
+        public void Destroy(IEcsSystems systems) => Dispose();
         public void Dispose() => GameEventBus.Unsubscribe<RequestEndTurnUIEvent>(OnRequest);
         void OnRequest(RequestEndTurnUIEvent _) => _requested = true;
 

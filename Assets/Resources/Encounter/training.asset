@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 94fdf3306b821744da4c1a68d4e68c38, type: 3}
+  m_Name: training
+  m_EditorClassIdentifier: Game.Core.Configs::Game.Core.Configs.PveEncounterConfig
+  EncounterName: "\u041F\u0440\u043E\u0442\u0438\u0432\u043D\u0438\u043A"
+  Commander: {fileID: 11400000, guid: 449e446e847cf2b4bb8d38281c9fff8a, type: 2}
+  Cards:
+  - Card: {fileID: 11400000, guid: 9295d834f4825c846b2b4695bb0324bb, type: 2}
+    Count: 4
+  - Card: {fileID: 11400000, guid: ea8add9e652383c4eb968943b0632d87, type: 2}
+    Count: 2
+  - Card: {fileID: 11400000, guid: 78e7564369b04154b910edc21d709a60, type: 2}
+    Count: 3
+  - Card: {fileID: 11400000, guid: 9b8640256c2513a4fac0547dfcef26fb, type: 2}
+    Count: 3
+  - Card: {fileID: 11400000, guid: 4a55e233ae87a2842b0c6444495a27ac, type: 2}
+    Count: 4
+  - Card: {fileID: 11400000, guid: 56f55f59b4f0891429516d29bf85fb21, type: 2}
+    Count: 4
+  StartingHand: 4
+  Health: 30
+  ActionInterval: 0.9

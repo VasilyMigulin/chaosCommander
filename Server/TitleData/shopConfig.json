@@ -1,0 +1,62 @@
+{
+  "_comment": "Title Data key = 'shopConfig'. Витрина магазина: читают CloudScript-хендлеры GetShop и BuyStoreItem. ЦЕНА ЖИВЁТ ТОЛЬКО ЗДЕСЬ — клиент присылает лишь itemId, поэтому подделать цену нельзя, а витрину можно менять удалённо, без обновления приложения. itemId ОБЯЗАН существовать в Catalog v1 (иначе GrantItemsToUser упадёт и покупка откатится с возвратом валюты).",
+  "_fields": {
+    "itemId": "id предмета в Catalog v1 (booster_* / avatar_*)",
+    "displayName": "подпись в витрине (можно ключ локализации — клиент прогонит через CardTextLocalization)",
+    "category": "booster | avatar | card — определяет, куда предмет попадёт в RewardBundle и как клиент покажет выдачу",
+    "priceCode": "GD (золото) | GM (самоцветы) — код Virtual Currency",
+    "priceAmount": "цена; 0 = бесплатно",
+    "quantity": "сколько штук выдать за одну покупку (по умолчанию 1) — так делаются наборы «×3»",
+    "unique": "true для durable (аватары): повторно купить нельзя, в витрине покажется «Куплено»",
+    "enabled": "false — временно убрать позицию из витрины, не удаляя её отсюда"
+  },
+
+  "entries": [
+    {
+      "itemId": "booster_standard",
+      "displayName": "Бустер «Standard»",
+      "category": "booster",
+      "priceCode": "GD",
+      "priceAmount": 150,
+      "quantity": 1,
+      "enabled": true
+    },
+    {
+      "itemId": "booster_standard",
+      "displayName": "Набор бустеров ×3",
+      "category": "booster",
+      "priceCode": "GD",
+      "priceAmount": 400,
+      "quantity": 3,
+      "enabled": false,
+      "_note": "ВЫКЛЮЧЕНО: два входа с одинаковым itemId ломают AlreadyOwned/поиск (findShopEntry берёт первый). Для набора заведи ОТДЕЛЬНЫЙ itemId в каталоге, напр. booster_standard_x3, и включи."
+    },
+    {
+      "itemId": "booster_premium",
+      "displayName": "Бустер «Премиум»",
+      "category": "booster",
+      "priceCode": "GM",
+      "priceAmount": 250,
+      "quantity": 1,
+      "enabled": true
+    },
+    {
+      "itemId": "avatar_prince",
+      "displayName": "Аватар «Шальной принц»",
+      "category": "avatar",
+      "priceCode": "GM",
+      "priceAmount": 60,
+      "unique": true,
+      "enabled": true
+    },
+    {
+      "itemId": "avatar_gnidalf",
+      "displayName": "Аватар «Гнидальф»",
+      "category": "avatar",
+      "priceCode": "GM",
+      "priceAmount": 80,
+      "unique": true,
+      "enabled": true
+    }
+  ]
+}

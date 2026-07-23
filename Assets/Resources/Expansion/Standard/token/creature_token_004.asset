@@ -24,12 +24,13 @@ MonoBehaviour:
         Name: "\u0412\u043E\u0438\u043D"
         Description: 
         Rarity: 0
-        Element: 0
+        Element: 48
         ArtImage: {fileID: 0}
-        ExpansionId: 
+        ExpansionId: standard
         PlayCost: 0
         PlayCostAmount: 1
         IsToken: 1
+        ShowAsLinked: 0
         MulliganStartingHand: 0
         MulliganUnlimitedReplace: 0
         RuntimeAbilities: []
@@ -37,5 +38,16 @@ MonoBehaviour:
         MaxHealth: 2
         Attack: 3
         Speed: 2
-        ViewPrefab: {fileID: 1046069417137952589, guid: f06aa6138ec1c4140ac9af21f0ddde7e, type: 3}
+        ViewPrefab: {fileID: 1046069417137952589, guid: 0a4455957a243a449ba135fd36e9714d, type: 3}
+        SummonVfx:
+          PrePrefab: {fileID: 0}
+          PreLeadSeconds: 0
+          ResolvePrefab: {fileID: 0}
+          ResolveAttach: 1
+          ResolveDelaySeconds: 0.1
+          ResolveFollow: 1
+          FinishPrefab: {fileID: 0}
+          FinishAnchor: 1
+          FinishAttach: 0
+        TurnsAlive: 0
         IsCommander: 0

@@ -199,4 +199,42 @@ namespace Game.Core.Ability
         public bool Match(EcsWorld world, int candidate, int casterCard, int casterPlayer)
             => Archetype != null && Archetype.Has(world, candidate);
     }
+
+    /// <summary>Цель ЕЩЁ НЕ получала tracked-бафф от ЭТОГО источника. ОБЩЕЕ ПРАВИЛО для ЛЮБОЙ реактивной
+    /// ауры (OnCreatureInvokedTrigger + tracked-бафф, напр. Селекционер/Начальник смены): без этого
+    /// фильтра эффект (AddBuffEffect{Tracked} ИЛИ легаси ApplyTrackedBuffEffect) сам молча скипает уже
+    /// забаффанную цель (идемпотентность на уровне эффекта), но таргетинг всё равно возвращает её в
+    /// Targets — способность выглядит «сработавшей» (играет каст-анимация) при КАЖДОМ чужом триггере,
+    /// хотя реально бафать уже некого. С этим фильтром в списке Filters таргетинг сам отсеивает уже
+    /// забаффанные цели → Targets пуст, когда бафать некого, и анимация не запускается (см.
+    /// RunResolveAbilityQueueSystem.hasTargets).
+    /// Проверяет ОБА варианта трекинга — новый (TrackedBuffsComponent, AddBuffEffect{Tracked}) и легаси
+    /// (AppliedBuffsComponent, ApplyTrackedBuffEffect) — так один и тот же фильтр годится для карт на
+    /// любом из двух эффектов, без миграции старых ассетов.</summary>
+    [Serializable]
+    public sealed class NotAlreadyTrackedTargetFilter : ITargetFilter
+    {
+        public bool Match(EcsWorld world, int candidate, int casterCard, int casterPlayer)
+        {
+            var trackedPool = world.GetPool<TrackedBuffsComponent>();
+            if (trackedPool.Has(casterCard))
+            {
+                var items = trackedPool.Get(casterCard).Items;
+                if (items != null)
+                    for (int i = 0; i < items.Count; i++)
+                        if (items[i].Target == candidate) return false;
+            }
+
+            var appliedPool = world.GetPool<AppliedBuffsComponent>();
+            if (appliedPool.Has(casterCard))
+            {
+                var records = appliedPool.Get(casterCard).Records;
+                if (records != null)
+                    for (int i = 0; i < records.Count; i++)
+                        if (records[i].Target == candidate) return false;
+            }
+
+            return true;
+        }
+    }
 }

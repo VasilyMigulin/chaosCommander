@@ -15,7 +15,18 @@ namespace Game.Core.States
     public class InitState : State, IInitStateContext
     {
         [Header("Testing")]
+        [Tooltip("ТЕСТ: пропустить вход через PlayFab — LoginCanvas открывается как обычно (выбор языка при " +
+                 "первом старте живёт там и сохраняется), но вместо формы логина/ожидания сети сразу " +
+                 "OnLoginSuccess с локальными данными (пресеты/тест-библиотека). Облако НЕ работает.")]
+        public bool SkipLoginForTesting;
+
         public CardInstanceData[] TestingLibrary;
+
+        [Tooltip("REVIEW-СБОРКА (для издателя): при ОБЫЧНОМ входе через облако разблокировать ВСЮ коллекцию " +
+                 "локально — в максимуме копий под лимиты колоды (комон 4/рарка 3/эпик 2/лега 1/экзот 1), чтобы " +
+                 "сразу собирать любые колоды. Бэкенд/PvP/экономика работают как обычно. В отличие от " +
+                 "TestingLibrary руками карты тащить не нужно — весь пул берётся из CardConfig. НЕ включай в прод!")]
+        public bool UnlockFullCollection;
 
         [Tooltip("Пресеты тест-колод (Create → Game → Deck Preset): собери несколько и переключай индексом ниже. " +
                  "Библиотека автоматически пополняется картами активного пресета.")]
@@ -35,17 +46,62 @@ namespace Game.Core.States
         public override void Start()
         {
             UIModule.Initialize();
-            UIModule.Open<LoginCanvas>();
-            UIModule.Inject(this, this);
 
-            // ЦИКЛ ПЕРВОГО ЗАХОДА: язык → туториал (сцена 4) → логин. Стейт НЕ знает панелей (слои!):
-            // выбор языка при первом запуске открывает сам UI (LoginPanel.OnInject → LanguageSelectPanel,
-            // связь через Service.FirstRunFlow). Здесь — только сценный роутинг в туториал.
-            if (Game.Core.Service.FirstRunFlow.LanguageChosen && !Game.Core.Service.FirstRunFlow.TutorialDone)
+            UIModule.Open<LoginCanvas>();
+            UIModule.Inject(this, this);   // инжектим ДО открытия: TitlePanel нужен _initContext
+
+            // ЗАСТАВКА — только когда цикл первого захода пройден ЦЕЛИКОМ (язык + туториал + ник).
+            // Иначе онбординг идёт без неё, в т.ч. при ВОЗВРАТЕ ИЗ ТУТОРИАЛА (сцена 0 стартует заново, и
+            // заставка вклинилась бы между туториалом и знакомством).
+            bool firstRunDone = Game.Core.Service.FirstRunFlow.LanguageChosen
+                                && Game.Core.Service.FirstRunFlow.TutorialDone
+                                && Game.Core.Service.FirstRunFlow.NameChosen;
+            if (!firstRunDone)
+            {
+                Debug.Log("[InitState] первый заход не завершён → заставку пропускаем, продолжаем онбординг");
+                OnContinue();
+                return;
+            }
+
+            // ЗАСТАВКА первой — открываем ЯВНО по id (не полагаемся на isOpenOnInit).
+            // ВАЖНО (префаб): у LoginPanel isOpenOnInit = FALSE. Иначе он откроется при Init канваса,
+            // его OnOpen дёрнет TriggerLogin (автологин/скип) — и заставку не увидишь.
+            // Нет TitlePanel в LoginCanvas → идём штатным пайплайном без заставки.
+            if (UIModule.Get<LoginCanvas>()?.OpenPanel("TitlePanel") == null)
+            {
+                Debug.LogWarning("[InitState] TitlePanel не найден в LoginCanvas — заставка пропущена.");
+                OnContinue();
+            }
+        }
+
+        /// <summary>
+        /// Стандартный пайплайн после заставки (Tap to continue). ЕДИНАЯ точка роутинга старта —
+        /// раньше это делал LoginCanvas.InvokeCanvas и перебивал заставку.
+        /// Порядок первого захода: язык → туториал → логин.
+        /// Панели открываем ПО ID (States не реферит Core.Panel — общение через IPanelController).
+        /// </summary>
+        public void OnContinue()
+        {
+            var canvas = UIModule.Get<LoginCanvas>();
+
+            // 1) Первый запуск: язык не выбран → панель языка (она сама продолжит на логин).
+            if (!Game.Core.Service.FirstRunFlow.LanguageChosen)
+            {
+                Debug.Log("[InitState] первый заход: язык не выбран → LanguageSelectPanel");
+                canvas?.OpenPanel("LanguageSelectPanel");
+                return;
+            }
+
+            // 2) Туториал не пройден → сцена туториала.
+            if (!Game.Core.Service.FirstRunFlow.TutorialDone)
             {
                 Debug.Log("[InitState] первый заход: туториал не пройден → TutorialScene");
                 SceneManager.LoadScene(4);   // TutorialScene
+                return;
             }
+
+            // 3) Логин: LoginPanel.OnOpen запустит автологин/скип (см. LoginPanel.TriggerLogin).
+            canvas?.OpenPanel("LoginPanel");
         }
 
         // ── IInitStateContext ────────────────────────────────────────────────
@@ -55,8 +111,27 @@ namespace Game.Core.States
         /// Если TestingLibrary заполнен — загружаем тестовую коллекцию и сохраняем в облако.
         /// Если нет — загружаем библиотеку и деки из облака.
         /// </summary>
+        /// <summary>Скип входа через PlayFab (тест-режим): читает LoginPanel — вместо формы логина и
+        /// сетевых вызовов сразу зовёт OnLoginSuccess. Выбор языка при первом старте не затрагивается.</summary>
+        public bool TestSkipLogin => SkipLoginForTesting;
+
         public void OnLoginSuccess()
         {
+            // Скип-режим: облачные пути (BackendSession/DeckStorage) без авторизации висели бы на сети —
+            // без пресета/тест-библиотеки просто уходим в меню с пустой коллекцией.
+            if (SkipLoginForTesting)
+            {
+                Debug.LogWarning("[InitState] SkipLoginForTesting: вход в PlayFab пропущен — облако недоступно, только локальные данные.");
+                if (ActivePreset() != null || (TestingLibrary != null && TestingLibrary.Length > 0))
+                    LoadTestingLibrary();
+                else
+                {
+                    Debug.LogWarning("[InitState] SkipLoginForTesting без пресета/тест-библиотеки: коллекция пустая.");
+                    GoToMenu();
+                }
+                return;
+            }
+
             // Тест-режим: задан пресет колоды ИЛИ тест-библиотека (пресета достаточно —
             // библиотека автоматически пополнится его картами).
             if (ActivePreset() != null || (TestingLibrary != null && TestingLibrary.Length > 0))
@@ -142,6 +217,10 @@ namespace Game.Core.States
             // Затем грузим колоды. Любой сбой не блокирует вход в меню (см. BackendSession).
             BackendSession.Initialize(CardConfig, onDone: () =>
             {
+                // REVIEW-СБОРКА: разблокировать всю коллекцию ПОВЕРХ реального инвентаря (после логина, до
+                // загрузки колод — чтобы Prune не срезал деки). Локально, сервер/владение не трогаем.
+                if (UnlockFullCollection) PlayerLibrary.FillFullCollection(CardConfig);
+
                 DeckStorage.LoadAll(
                     onSuccess: _ => GoToMenu(),
                     onError:   err =>

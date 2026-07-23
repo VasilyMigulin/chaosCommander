@@ -1,106 +1,296 @@
 fileFormatVersion: 2
 guid: ba1ba8fd78c888443a179b08f6d75ee3
 ModelImporter:
-  serializedVersion: 23
-  fileIDToRecycleName:
-    100000: Rig
-    100002: Rig1LLeg1
-    100004: Rig1LLeg2
-    100006: Rig1LLeg3
-    100008: Rig1LLegPlatform
-    100010: Rig1RLeg1
-    100012: Rig1RLeg2
-    100014: Rig1RLeg3
-    100016: Rig1RLegPlatform
-    100018: Rig2LLeg1
-    100020: Rig2LLeg2
-    100022: Rig2LLeg3
-    100024: Rig2LLegPlatform
-    100026: Rig2RLeg1
-    100028: Rig2RLeg2
-    100030: Rig2RLeg3
-    100032: Rig2RLegPlatform
-    100034: Rig3LLeg1
-    100036: Rig3LLeg2
-    100038: Rig3LLeg3
-    100040: Rig3LLegPlatform
-    100042: Rig3RLeg1
-    100044: Rig3RLeg2
-    100046: Rig3RLeg3
-    100048: Rig3RLegPlatform
-    100050: Rig4LLeg1
-    100052: Rig4LLeg2
-    100054: Rig4LLeg3
-    100056: Rig4LLegPlatform
-    100058: Rig4RLeg1
-    100060: Rig4RLeg2
-    100062: Rig4RLeg3
-    100064: Rig4RLegPlatform
-    100066: RigHead
-    100068: RigHeadGizmo
-    100070: RigJaw
-    100072: RigJawGizmo
-    100074: RigNeck
-    100076: RigPelvis
-    100078: RigPelvisGizmo
-    100080: RigRibcage
-    100082: RigRibcageGizmo
-    100084: RigSpine
-    100086: Spider
-    100088: //RootNode
-    400000: Rig
-    400002: Rig1LLeg1
-    400004: Rig1LLeg2
-    400006: Rig1LLeg3
-    400008: Rig1LLegPlatform
-    400010: Rig1RLeg1
-    400012: Rig1RLeg2
-    400014: Rig1RLeg3
-    400016: Rig1RLegPlatform
-    400018: Rig2LLeg1
-    400020: Rig2LLeg2
-    400022: Rig2LLeg3
-    400024: Rig2LLegPlatform
-    400026: Rig2RLeg1
-    400028: Rig2RLeg2
-    400030: Rig2RLeg3
-    400032: Rig2RLegPlatform
-    400034: Rig3LLeg1
-    400036: Rig3LLeg2
-    400038: Rig3LLeg3
-    400040: Rig3LLegPlatform
-    400042: Rig3RLeg1
-    400044: Rig3RLeg2
-    400046: Rig3RLeg3
-    400048: Rig3RLegPlatform
-    400050: Rig4LLeg1
-    400052: Rig4LLeg2
-    400054: Rig4LLeg3
-    400056: Rig4LLegPlatform
-    400058: Rig4RLeg1
-    400060: Rig4RLeg2
-    400062: Rig4RLeg3
-    400064: Rig4RLegPlatform
-    400066: RigHead
-    400068: RigHeadGizmo
-    400070: RigJaw
-    400072: RigJawGizmo
-    400074: RigNeck
-    400076: RigPelvis
-    400078: RigPelvisGizmo
-    400080: RigRibcage
-    400082: RigRibcageGizmo
-    400084: RigSpine
-    400086: Spider
-    400088: //RootNode
-    2100000: 07 - Default
-    4300000: Spider
-    7400000: Take 001
-    9500000: //RootNode
-    13700000: Spider
+  serializedVersion: 24200
+  internalIDToNameTable:
+  - first:
+      1: 100000
+    second: Rig
+  - first:
+      1: 100002
+    second: Rig1LLeg1
+  - first:
+      1: 100004
+    second: Rig1LLeg2
+  - first:
+      1: 100006
+    second: Rig1LLeg3
+  - first:
+      1: 100008
+    second: Rig1LLegPlatform
+  - first:
+      1: 100010
+    second: Rig1RLeg1
+  - first:
+      1: 100012
+    second: Rig1RLeg2
+  - first:
+      1: 100014
+    second: Rig1RLeg3
+  - first:
+      1: 100016
+    second: Rig1RLegPlatform
+  - first:
+      1: 100018
+    second: Rig2LLeg1
+  - first:
+      1: 100020
+    second: Rig2LLeg2
+  - first:
+      1: 100022
+    second: Rig2LLeg3
+  - first:
+      1: 100024
+    second: Rig2LLegPlatform
+  - first:
+      1: 100026
+    second: Rig2RLeg1
+  - first:
+      1: 100028
+    second: Rig2RLeg2
+  - first:
+      1: 100030
+    second: Rig2RLeg3
+  - first:
+      1: 100032
+    second: Rig2RLegPlatform
+  - first:
+      1: 100034
+    second: Rig3LLeg1
+  - first:
+      1: 100036
+    second: Rig3LLeg2
+  - first:
+      1: 100038
+    second: Rig3LLeg3
+  - first:
+      1: 100040
+    second: Rig3LLegPlatform
+  - first:
+      1: 100042
+    second: Rig3RLeg1
+  - first:
+      1: 100044
+    second: Rig3RLeg2
+  - first:
+      1: 100046
+    second: Rig3RLeg3
+  - first:
+      1: 100048
+    second: Rig3RLegPlatform
+  - first:
+      1: 100050
+    second: Rig4LLeg1
+  - first:
+      1: 100052
+    second: Rig4LLeg2
+  - first:
+      1: 100054
+    second: Rig4LLeg3
+  - first:
+      1: 100056
+    second: Rig4LLegPlatform
+  - first:
+      1: 100058
+    second: Rig4RLeg1
+  - first:
+      1: 100060
+    second: Rig4RLeg2
+  - first:
+      1: 100062
+    second: Rig4RLeg3
+  - first:
+      1: 100064
+    second: Rig4RLegPlatform
+  - first:
+      1: 100066
+    second: RigHead
+  - first:
+      1: 100068
+    second: RigHeadGizmo
+  - first:
+      1: 100070
+    second: RigJaw
+  - first:
+      1: 100072
+    second: RigJawGizmo
+  - first:
+      1: 100074
+    second: RigNeck
+  - first:
+      1: 100076
+    second: RigPelvis
+  - first:
+      1: 100078
+    second: RigPelvisGizmo
+  - first:
+      1: 100080
+    second: RigRibcage
+  - first:
+      1: 100082
+    second: RigRibcageGizmo
+  - first:
+      1: 100084
+    second: RigSpine
+  - first:
+      1: 100086
+    second: Spider
+  - first:
+      1: 100088
+    second: //RootNode
+  - first:
+      4: 400000
+    second: Rig
+  - first:
+      4: 400002
+    second: Rig1LLeg1
+  - first:
+      4: 400004
+    second: Rig1LLeg2
+  - first:
+      4: 400006
+    second: Rig1LLeg3
+  - first:
+      4: 400008
+    second: Rig1LLegPlatform
+  - first:
+      4: 400010
+    second: Rig1RLeg1
+  - first:
+      4: 400012
+    second: Rig1RLeg2
+  - first:
+      4: 400014
+    second: Rig1RLeg3
+  - first:
+      4: 400016
+    second: Rig1RLegPlatform
+  - first:
+      4: 400018
+    second: Rig2LLeg1
+  - first:
+      4: 400020
+    second: Rig2LLeg2
+  - first:
+      4: 400022
+    second: Rig2LLeg3
+  - first:
+      4: 400024
+    second: Rig2LLegPlatform
+  - first:
+      4: 400026
+    second: Rig2RLeg1
+  - first:
+      4: 400028
+    second: Rig2RLeg2
+  - first:
+      4: 400030
+    second: Rig2RLeg3
+  - first:
+      4: 400032
+    second: Rig2RLegPlatform
+  - first:
+      4: 400034
+    second: Rig3LLeg1
+  - first:
+      4: 400036
+    second: Rig3LLeg2
+  - first:
+      4: 400038
+    second: Rig3LLeg3
+  - first:
+      4: 400040
+    second: Rig3LLegPlatform
+  - first:
+      4: 400042
+    second: Rig3RLeg1
+  - first:
+      4: 400044
+    second: Rig3RLeg2
+  - first:
+      4: 400046
+    second: Rig3RLeg3
+  - first:
+      4: 400048
+    second: Rig3RLegPlatform
+  - first:
+      4: 400050
+    second: Rig4LLeg1
+  - first:
+      4: 400052
+    second: Rig4LLeg2
+  - first:
+      4: 400054
+    second: Rig4LLeg3
+  - first:
+      4: 400056
+    second: Rig4LLegPlatform
+  - first:
+      4: 400058
+    second: Rig4RLeg1
+  - first:
+      4: 400060
+    second: Rig4RLeg2
+  - first:
+      4: 400062
+    second: Rig4RLeg3
+  - first:
+      4: 400064
+    second: Rig4RLegPlatform
+  - first:
+      4: 400066
+    second: RigHead
+  - first:
+      4: 400068
+    second: RigHeadGizmo
+  - first:
+      4: 400070
+    second: RigJaw
+  - first:
+      4: 400072
+    second: RigJawGizmo
+  - first:
+      4: 400074
+    second: RigNeck
+  - first:
+      4: 400076
+    second: RigPelvis
+  - first:
+      4: 400078
+    second: RigPelvisGizmo
+  - first:
+      4: 400080
+    second: RigRibcage
+  - first:
+      4: 400082
+    second: RigRibcageGizmo
+  - first:
+      4: 400084
+    second: RigSpine
+  - first:
+      4: 400086
+    second: Spider
+  - first:
+      4: 400088
+    second: //RootNode
+  - first:
+      21: 2100000
+    second: 07 - Default
+  - first:
+      43: 4300000
+    second: Spider
+  - first:
+      74: 7400000
+    second: Die
+  - first:
+      95: 9500000
+    second: //RootNode
+  - first:
+      137: 13700000
+    second: Spider
   externalObjects: {}
   materials:
-    importMaterials: 0
+    materialImportMode: 0
     materialName: 0
     materialSearch: 1
     materialLocation: 1
@@ -109,9 +299,8 @@ ModelImporter:
     bakeSimulation: 0
     resampleCurves: 1
     optimizeGameObjects: 0
+    removeConstantScaleCurves: 0
     motionNodeName: 
-    rigImportErrors: 
-    rigImportWarnings: 
     animationImportErrors: 
     animationImportWarnings: 
     animationRetargetingWarnings: 
@@ -125,7 +314,43 @@ ModelImporter:
     animationWrapMode: 0
     extraExposedTransformPaths: []
     extraUserProperties: []
-    clipAnimations: []
+    clipAnimations:
+    - serializedVersion: 16
+      name: Die
+      takeName: Take 001
+      internalID: 7400000
+      firstFrame: 0
+      lastFrame: 50
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 0
+      loopBlend: 0
+      loopBlendOrientation: 0
+      loopBlendPositionY: 0
+      loopBlendPositionXZ: 0
+      keepOriginalOrientation: 0
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 0
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events:
+      - time: 1
+        functionName: FinishEvent
+        data: 
+        objectReferenceParameter: {instanceID: 0}
+        floatParameter: 0
+        intParameter: 0
+        messageOptions: 0
+      transformMask: []
+      maskType: 3
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
     isReadable: 1
   meshes:
     lODScreenPercentages: []
@@ -133,25 +358,39 @@ ModelImporter:
     meshCompression: 0
     addColliders: 0
     useSRGBMaterialColor: 1
+    sortHierarchyByName: 1
+    importPhysicalCameras: 1
     importVisibility: 1
     importBlendShapes: 1
     importCameras: 1
     importLights: 1
+    nodeNameCollisionStrategy: 0
+    fileIdsGeneration: 1
     swapUVChannels: 0
     generateSecondaryUV: 0
     useFileUnits: 1
-    optimizeMeshForGPU: 1
     keepQuads: 0
     weldVertices: 1
+    bakeAxisConversion: 0
     preserveHierarchy: 0
+    skinWeightsMode: 0
+    maxBonesPerVertex: 4
+    minBoneWeight: 0.001
+    optimizeBones: 1
+    generateMeshLods: 0
+    meshLodGenerationFlags: 0
+    maximumMeshLod: -1
+    meshOptimizationFlags: -1
     indexFormat: 0
     secondaryUVAngleDistortion: 8
     secondaryUVAreaDistortion: 15.000001
     secondaryUVHardAngle: 88
+    secondaryUVMarginMethod: 0
+    secondaryUVMinLightmapResolution: 40
+    secondaryUVMinObjectScale: 1
     secondaryUVPackMargin: 4
     useFileScale: 1
-    previousCalculatedGlobalScale: 0.01
-    hasPreviousCalculatedGlobalScale: 1
+    strictVertexDataChecks: 0
   tangentSpace:
     normalSmoothAngle: 60
     normalImportMode: 0
@@ -160,10 +399,10 @@ ModelImporter:
     legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
     blendShapeNormalImportMode: 1
     normalSmoothingSource: 0
+  referencedClips: []
   importAnimation: 1
-  copyAvatar: 0
   humanDescription:
-    serializedVersion: 2
+    serializedVersion: 3
     human: []
     skeleton: []
     armTwist: 0.5
@@ -173,13 +412,19 @@ ModelImporter:
     armStretch: 0.05
     legStretch: 0.05
     feetSpacing: 0
+    globalScale: 1
     rootMotionBoneName: 
     hasTranslationDoF: 0
     hasExtraRoot: 0
     skeletonHasParents: 1
   lastHumanDescriptionAvatarSource: {instanceID: 0}
+  autoGenerateAvatarMappingIfUnspecified: 1
   animationType: 2
   humanoidOversampling: 1
+  avatarSetup: 1
+  addHumanoidExtraRootOnlyWhenUsingAvatar: 0
+  importBlendShapeDeformPercent: 0
+  remapMaterialsIfMaterialImportModeIsNone: 1
   additionalBone: 0
   userData: 
   assetBundleName: 

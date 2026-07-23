@@ -220,12 +220,19 @@ namespace Game.Core.Mono
                 if (kv.Key.owner == ownerId)
                     kv.Value.SetHighlight(CellHighlight.None);
             }
+            // Клетки аватаров живут в ОТДЕЛЬНОМ словаре — без этого подсветка цели на аватаре
+            // (Selected-таргетинг спелла) оставалась висеть после каста. None вернёт avatarColor
+            // (SetAvatarPlace перекрасил _baseColor).
+            if (_avatarCells.TryGetValue(ownerId, out var avatarCell))
+                avatarCell.SetHighlight(CellHighlight.None);
         }
 
-        /// <summary>Снять подсветку со ВСЕХ клеток обеих сторон.</summary>
+        /// <summary>Снять подсветку со ВСЕХ клеток обеих сторон (включая клетки аватаров).</summary>
         public void ClearAllHighlights()
         {
             foreach (var kv in _cellMap)
+                kv.Value.SetHighlight(CellHighlight.None);
+            foreach (var kv in _avatarCells)
                 kv.Value.SetHighlight(CellHighlight.None);
         }
     }

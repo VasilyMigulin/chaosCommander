@@ -33,6 +33,7 @@ MonoBehaviour:
         PlayCost: 1
         PlayCostAmount: 1
         IsToken: 0
+        ShowAsLinked: 1
         MulliganStartingHand: 0
         MulliganUnlimitedReplace: 0
         RuntimeAbilities:
@@ -53,6 +54,7 @@ MonoBehaviour:
           HitPrefab: {fileID: 0}
           ProjectileSpeed: 12
           MergeArea: 0
+          PlayCasterAnimation: 0
         Selection: 1
         Count: 1
         Zone: 0

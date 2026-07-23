@@ -54,8 +54,8 @@ namespace Game.Core.Ecs.Systems
                  
                 if (_deadPool.Value.Has(targetEntity)) continue;
 
-                int attackerOwner = _ownerPool.Value.Has(attackerEntity) ? _ownerPool.Value.Get(attackerEntity).OwnerId : -1;
-                int targetOwner   = _ownerPool.Value.Has(targetEntity)   ? _ownerPool.Value.Get(targetEntity).OwnerId   : -1;
+                int attackerOwner = PlayerIdOf(attackerEntity);
+                int targetOwner   = PlayerIdOf(targetEntity);
 
                 // Односторонний бой: урон наносит ТОЛЬКО атакующий, цель НЕ отвечает.
                 ApplyDamage(targetEntity, amount, attackerEntity, attackerOwner, targetOwner);
@@ -65,11 +65,24 @@ namespace Game.Core.Ecs.Systems
             foreach (var entity in _dmgFilter.Value)
             {
                 ref var dmg = ref _dmgPool.Value.Get(entity);
-                int srcOwner = _ownerPool.Value.Has(dmg.Attacker) ? _ownerPool.Value.Get(dmg.Attacker).OwnerId : -1;
-                int tgtOwner = _ownerPool.Value.Has(entity)       ? _ownerPool.Value.Get(entity).OwnerId       : -1;
+                int srcOwner = PlayerIdOf(dmg.Attacker);
+                int tgtOwner = PlayerIdOf(entity);
                 ApplyDamage(entity, dmg.Amount, dmg.Attacker, srcOwner, tgtOwner);
                 _dmgPool.Value.Del(entity);
             }
+        }
+
+        // PlayerId сущности как участника урона. У АВАТАРА игрока OwnerComponent НЕТ (только PlayerComponent),
+        // поэтому его надо брать из PlayerComponent — иначе урон игроку получал TargetPlayerId=-1, и трекер
+        // «нанёс себе на своём ходу» (Вуду-будду: Source==Target==текущий ход) не срабатывал НИКОГДА
+        // (напр. самоурон от Ритуального костра в начале хода не копился в PlayerDamageTakenOwnTurn).
+        // У карты/существа участник — владелец (OwnerComponent). Порядок проверок: сперва игрок, потом owner.
+        int PlayerIdOf(int entity)
+        {
+            if (entity < 0) return -1;
+            if (_playerPool.Value.Has(entity)) return _playerPool.Value.Get(entity).PlayerId;
+            if (_ownerPool.Value.Has(entity))  return _ownerPool.Value.Get(entity).OwnerId;
+            return -1;
         }
 
         void ApplyDamage(int entity, int amount, int sourceEntity, int sourcePlayerId, int targetPlayerId)

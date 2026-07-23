@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!221 &22100000
+AnimatorOverrideController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: FatherHiveAnimatorController
+  m_Controller: {fileID: 9100000, guid: 50adb1bf5b78359448dd1b585836cb6a, type: 2}
+  m_Clips:
+  - m_OriginalClip: {fileID: 1827226128182048838, guid: b83a3eef81ebb3d49957c6db8246c6bc, type: 3}
+    m_OverrideClip: {fileID: 7400000, guid: 3cd4561901648e24d9afa7d426394879, type: 3}
+  - m_OriginalClip: {fileID: 1827226128182048838, guid: 03059b39c5a4ce9429c5b8a8159bf5f3, type: 3}
+    m_OverrideClip: {fileID: 7400000, guid: d8a156421d167594b8d19a7c756f0aec, type: 3}
+  - m_OriginalClip: {fileID: 1827226128182048838, guid: 8833d96c40913ae4195ea073c2e2b689, type: 3}
+    m_OverrideClip: {fileID: 7400000, guid: 61c99b2a139c0604bb072e6f2ed4c892, type: 3}
+  - m_OriginalClip: {fileID: 1827226128182048838, guid: 8401525b31f09924988c7f67298a820b, type: 3}
+    m_OverrideClip: {fileID: 7400000, guid: 352209300182f4a4f846909251c7c035, type: 3}
+  - m_OriginalClip: {fileID: 1827226128182048838, guid: a62c5371b23e7344192e16444c26f083, type: 3}
+    m_OverrideClip: {fileID: 7400000, guid: cde168815af6cc943a8f2c95e75b7f8a, type: 3}
+  - m_OriginalClip: {fileID: 1827226128182048838, guid: fda285752cbfbdb4db22474f2495175a, type: 3}
+    m_OverrideClip: {fileID: 7400000, guid: 1eeb190e1d90c5b4b9c2a2b63cbf8b0f, type: 3}
+  - m_OriginalClip: {fileID: 1827226128182048838, guid: 970f088a40d247541b4814197ee91cb7, type: 3}
+    m_OverrideClip: {fileID: 7400000, guid: 6f4fafc1c2cfd2d4eaa14daa6158a6f4, type: 3}

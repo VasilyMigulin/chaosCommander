@@ -10,7 +10,7 @@ namespace Game.Core.Ecs.Systems
     /// В начале хода игрока — декрементит CreatureTimerComponent у существ под его контролем.
     /// При TurnsRemaining ≤ 0 вешает DeadTag (DieSystem отработает штатно).
     /// </summary>
-    public sealed class CreatureTimerTickSystem : IEcsInitSystem, IEcsRunSystem, System.IDisposable
+    public sealed class CreatureTimerTickSystem : IEcsInitSystem, IEcsRunSystem, IEcsDestroySystem, System.IDisposable
     {
         readonly EcsFilterInject<Inc<CreatureTimerComponent, BoardTag, OwnerComponent>> _filter = default;
         readonly EcsPoolInject<CreatureTimerComponent> _timerPool = default;
@@ -21,6 +21,11 @@ namespace Game.Core.Ecs.Systems
         bool _subscribed;
 
         public void Init(IEcsSystems systems) => Subscribe();
+
+        // EcsSystems.Destroy() ищет IEcsDestroySystem, не System.IDisposable — без этого моста Dispose()
+        // фреймворк никогда не вызывал бы (см. EcsRunHandler/TutorialEcsHandler.Dispose → _allSystems.Destroy()).
+        public void Destroy(IEcsSystems systems) => Dispose();
+
         public void Dispose()
         {
             if (!_subscribed) return;

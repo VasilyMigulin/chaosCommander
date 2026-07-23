@@ -41,6 +41,7 @@ MonoBehaviour:
         - rid: 1051486497689043141
         - rid: 1051486497689043143
         - rid: 1051486497689043144
+        - rid: 2419360061758898545
     - rid: 1051486497689043141
       type: {class: ArchetypeTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
@@ -74,6 +75,9 @@ MonoBehaviour:
     - rid: 1051486747143962738
       type: {class: WorkerArchetype, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
+    - rid: 2419360061758898545
+      type: {class: NotAlreadyTrackedTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
     - rid: 8072968609180155917
       type: {class: CardCreatureModel, ns: Game.Core.Model.Card.Creature, asm: Game.Core.Model.Card.Creature}
       data:
@@ -90,6 +94,7 @@ MonoBehaviour:
         PlayCost: 0
         PlayCostAmount: 3
         IsToken: 0
+        ShowAsLinked: 1
         MulliganStartingHand: 0
         MulliganUnlimitedReplace: 0
         RuntimeAbilities:
@@ -100,5 +105,15 @@ MonoBehaviour:
         Attack: 2
         Speed: 2
         ViewPrefab: {fileID: 8026686172653069236, guid: 5798755a323c0b14691fd7a672890171, type: 3}
+        SummonVfx:
+          PrePrefab: {fileID: 0}
+          PreLeadSeconds: 0
+          ResolvePrefab: {fileID: 0}
+          ResolveAttach: 1
+          ResolveDelaySeconds: 0.1
+          ResolveFollow: 1
+          FinishPrefab: {fileID: 0}
+          FinishAnchor: 1
+          FinishAttach: 0
         TurnsAlive: 0
         IsCommander: 0

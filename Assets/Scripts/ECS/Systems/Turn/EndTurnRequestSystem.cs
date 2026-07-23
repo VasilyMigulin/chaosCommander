@@ -48,6 +48,10 @@ namespace Game.Core.Ecs.Systems
         // #2: ждём гейт «призыв → OnCast» — иначе ранний End Turn хендофит ход до отложенного OnCast
         // (напр. SelfDestruct/деатрэттл Всадников) → его снапшот уехал бы после передачи хода.
         readonly EcsFilterInject<Inc<PendingOnCastComponent>> _pendingOnCast = default;
+        // Раскопка (DiscoverEffect) ещё не резолвнута — RunDiscoverSystem форсит случайный выбор на
+        // TurnEndedEvent (см. ForceResolveForEndedTurn), но это отдельная система/следующий тик; ждём, пока
+        // её запись реально уйдёт (без этого гейта Step B хендофил бы ход, пока discover-запрос ещё жив).
+        readonly EcsFilterInject<Inc<DiscoverRequestComponent>> _discoverPending = default;
 
         public void Run(IEcsSystems systems)
         {
@@ -149,6 +153,7 @@ namespace Game.Core.Ecs.Systems
             || _abilityQueued.Value.GetEntitiesCount()  > 0
             || _castRequest.Value.GetEntitiesCount()    > 0   // форс-плей: каст запрошен, ещё не разрезолвлен
             || _castInProgress.Value.GetEntitiesCount() > 0   // каст в процессе (до OnCast-способностей)
-            || _pendingOnCast.Value.GetEntitiesCount()  > 0;  // #2: призыв не «дозрел» до OnCast
+            || _pendingOnCast.Value.GetEntitiesCount()  > 0   // #2: призыв не «дозрел» до OnCast
+            || _discoverPending.Value.GetEntitiesCount() > 0; // раскопка не резолвнута (окно/форс-выбор)
     }
 }

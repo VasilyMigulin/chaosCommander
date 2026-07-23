@@ -38,7 +38,7 @@ namespace AwesomeUI.Feature
             // Возврат в меню: OpenPanel сам закроет SettingsPanel и откроет MainMenuPanel
             // (просто ClosePanel оставил бы пустой экран — остальные панели уже закрыты).
             if (_backBtn != null)
-                _backBtn.onClick.AddListener(() => _panelController.OpenPanel<MainMenuPanel>());
+                _backBtn.onClick.AddListener(() => _panelController.Back());
         }
 
         void BuildLanguageDropdown()

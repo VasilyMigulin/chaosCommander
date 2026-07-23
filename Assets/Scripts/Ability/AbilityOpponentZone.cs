@@ -49,6 +49,40 @@ namespace Game.Core.Ability
         }
     }
 
+    // === class (OOP) === Уничтожить цель-карту ИЗ КОЛОДЫ → кладбище («Голодный повар»/«Прикурить!»:
+    // «уничтожает существо в колоде»). target — карта в колоде (Random Zone=Deck + OpponentOwned +
+    // CardTypeTargetFilter{Creature} по вкусу карты). Аналог DiscardEffect, но для колоды. СИНК: цель едет
+    // в target-ключах, оба клиента жгут её. UI — CardMillFromDeckUIEvent (уже подписан MillNotificationView;
+    // событие было объявлено, но публикатора не имело).
+    [Serializable]
+    public sealed class MillFromDeckEffect : EffectBase
+    {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.HandDisruption;
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            if (target < 0) { UnityEngine.Debug.LogWarning("[Mill] target<0 → нет цели (Random не выбрал карту из колоды?)"); return; }
+            var deckTag = world.GetPool<DeckTag>();
+            if (!deckTag.Has(target)) { UnityEngine.Debug.LogWarning($"[Mill] target={target} НЕ в колоде → skip"); return; }   // только из колоды
+            if (world.GetPool<CommanderTag>().Has(target)) { UnityEngine.Debug.Log($"[Mill] target={target} — командир, неуязвим → skip"); return; }
+
+            // Визуал ДО снятия тегов — для уведомления «карта уничтожена из колоды».
+            var viewPool = world.GetPool<CardViewDataComponent>();
+            string cardName = viewPool.Has(target) ? viewPool.Get(target).CardName : "";
+            UnityEngine.Sprite icon = viewPool.Has(target) ? viewPool.Get(target).ArtImage : null;
+
+            var ownerPool = world.GetPool<OwnerComponent>();
+            if (ownerPool.Has(target)) ZoneListUtil.RemoveFromDeck(world, target, ownerPool.Get(target).OwnerId);
+            deckTag.Del(target);
+
+            var graveTag = world.GetPool<GraveTag>();
+            if (!graveTag.Has(target)) graveTag.Add(target);
+
+            UnityEngine.Debug.Log($"[Mill] уничтожаю из колоды target={target} name='{cardName}'");
+            GameEventBus.Publish(new CardMillFromDeckUIEvent { CardEntity = target, CardName = cardName, Icon = icon });
+        }
+    }
+
     // === class (OOP) === Похитить цель-карту из колоды оппонента в СВОЮ руку, удешевив на CostReduction
     // (Обнести хату). target — карта в колоде (Random Zone=Deck + OpponentOwned). Меняет владельца + теги
     // (toggle, клиент-относительно), кладёт в руку владельца источника, уменьшает кост-компонент (min 0).
@@ -88,6 +122,11 @@ namespace Game.Core.Ability
 
             // Скидка = перманентный кост-бафф (стек кост-компонента, переживает смерть/зоны).
             if (CostReduction != 0) BuffCost.Add(world, target, -CostReduction, permanent: true);
+
+            // ХС-семантика: способности украденной карты «служат» вору — без пере-привязки её эффекты
+            // при розыгрыше кредитовали бы СТАРОГО хозяина (PlayerEntity капчурится при Init), а триггеры
+            // начала/конца хода слушали бы его ход (см. AbilityOwnershipUtil).
+            AbilityOwnershipUtil.Rebind(world, target, PlayerEntity);
 
             GameEventBus.Publish(new CardDrawnEvent { CardEntity = target, PlayerId = PlayerEntity });
         }

@@ -3,11 +3,11 @@
   "rotation": { "weeklyDayUtc": 3, "hourUtc": 0 },
   "slots": { "common": 4, "rare": 3, "epic": 2, "legendary": 1, "exotic": 1 },
   "prices": {
-    "common":    { "code": "GD", "amount": 200 },
-    "rare":      { "code": "GD", "amount": 600 },
-    "epic":      { "code": "GD", "amount": 1500 },
-    "legendary": { "code": "GD", "amount": 4000 },
-    "exotic":    { "code": "GM", "amount": 150 }
+    "common":    { "code": "SC", "amount": 20 },
+    "rare":      { "code": "SC", "amount": 60 },
+    "epic":      { "code": "SC", "amount": 120 },
+    "legendary": { "code": "SC", "amount": 350 },
+    "exotic":    { "code": "SC", "amount": 700 }
   },
   "pools": {
     "common":    ["Standard_1", "Standard_2", "Standard_3", "Standard_4", "Standard_5", "Standard_6"],

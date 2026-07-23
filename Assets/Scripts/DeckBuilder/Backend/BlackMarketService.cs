@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Game.Core.DeckBuilder;   // PlayerLibrary (та же сборка)
 
 namespace Game.Core.Backend
 {
@@ -43,6 +44,14 @@ namespace Game.Core.Backend
         public static void Buy(string itemId, Action<RewardResponse> onSuccess, Action<string> onError = null)
             => FunctionService.Call<BuyRequest, RewardResponse>(
                 BackendConfig.Fn.BuyBlackMarket, new BuyRequest { ItemId = itemId },
-                resp => { PlayerWallet.ApplyIfPresent(resp?.Wallet); onSuccess?.Invoke(resp); }, onError);
+                resp =>
+                {
+                    // Кошелёк применяем всегда: сервер шлёт его и на отказах (напр. не хватило валюты).
+                    PlayerWallet.ApplyIfPresent(resp?.Wallet);
+                    // Купленную карту — в библиотеку, иначе коллекция обновится только при перезаходе.
+                    if (resp != null && resp.Success)
+                        PlayerLibrary.AddGranted(resp.Reward?.Cards, BackendSession.Config);
+                    onSuccess?.Invoke(resp);
+                }, onError);
     }
 }

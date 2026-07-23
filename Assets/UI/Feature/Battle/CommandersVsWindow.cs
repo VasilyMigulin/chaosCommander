@@ -65,9 +65,6 @@ namespace AwesomeUI.Feature.Battle
             _oppCg   = EnsureGroup(_opponentCommander);
             _vsCg    = _vsIcon != null ? EnsureGroup(_vsIcon) : null;
 
-            GameEventBus.Subscribe<CommandersRevealedUIEvent>(OnRevealed);
-            GameEventBus.Subscribe<MulliganPhaseBeginUIEvent>(OnMulliganPhaseBegin);
-
             gameObject.SetActive(false);
             return this;
         }
@@ -76,12 +73,24 @@ namespace AwesomeUI.Feature.Battle
         {
             base.Dispose();
             _intro?.Kill();
+        }
+
+        // BattleCanvas — persistent (DontDestroyOnLoad): между матчами объект не пересоздаётся, Init()/Dispose()
+        // второй раз не вызываются. А GameEventBus.Clear() (см. EcsRunHandler.Dispose при выходе из боя) обнуляет
+        // ВСЮ шину — подписки из Init() пропадали бы навсегда после первого же матча (VS-экран просто
+        // переставал бы появляться на повторных боях). OnInject()/Unject() вызывает UIHandler НА КАЖДЫЙ матч
+        // (см. BattleState.Start → UIModule.Inject) — здесь подписки переживают любое число матчей подряд.
+        public override void OnInject()
+        {
+            GameEventBus.Subscribe<CommandersRevealedUIEvent>(OnRevealed);
+            GameEventBus.Subscribe<MulliganPhaseBeginUIEvent>(OnMulliganPhaseBegin);
+        }
+
+        public override void Unject()
+        {
             GameEventBus.Unsubscribe<CommandersRevealedUIEvent>(OnRevealed);
             GameEventBus.Unsubscribe<MulliganPhaseBeginUIEvent>(OnMulliganPhaseBegin);
         }
-
-        public override void OnInject() { }
-        public override void Unject() { }
 
         private void OnRevealed(CommandersRevealedUIEvent e)
         {

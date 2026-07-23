@@ -111,7 +111,8 @@ namespace Game.Core.Photon
         // VS-раскрытие командиров перед мулиганом: каждый клиент шлёт своего командира (RPC_SubmitCommander),
         // хост собирает и рассылает RPC_RevealCommanders. Только идентичности (exp/id) — симуляция не трогается.
         private TaskCompletionSource<bool> _allCommandersTcs;
-        private readonly Dictionary<int, (string exp, int cardId)> _commanderSubmissions = new Dictionary<int, (string, int)>();
+        // + avatarId (косметика): едет тем же submit/reveal-каналом, что и командир.
+        private readonly Dictionary<int, (string exp, int cardId, string avatarId)> _commanderSubmissions = new Dictionary<int, (string, int, string)>();
         const int CommanderRevealMs = 3000;
 
         private bool _pipelineStarted = false;
@@ -245,10 +246,11 @@ namespace Game.Core.Photon
                 Debug.Log("[Pipeline][HOST] Step 3.5: waiting for both commanders...");
                 await Task.WhenAny(_allCommandersTcs.Task, Task.Delay(5000));
 
-                BuildRevealArgs(out int p1Id, out string p1Exp, out int p1CardId,
-                                out int p2Id, out string p2Exp, out int p2CardId);
+                BuildRevealArgs(out int p1Id, out string p1Exp, out int p1CardId, out string p1Avatar,
+                                out int p2Id, out string p2Exp, out int p2CardId, out string p2Avatar);
                 Debug.Log($"[Pipeline][HOST] Step 3.5: reveal commanders p1={p1Exp}:{p1CardId} p2={p2Exp}:{p2CardId}");
-                RPC_RevealCommanders(p1Id, p1Exp ?? string.Empty, p1CardId, p2Id, p2Exp ?? string.Empty, p2CardId);
+                RPC_RevealCommanders(p1Id, p1Exp ?? string.Empty, p1CardId, p1Avatar ?? string.Empty,
+                                     p2Id, p2Exp ?? string.Empty, p2CardId, p2Avatar ?? string.Empty);
 
                 // Дать игрокам разглядеть VS-экран, потом стартуем мулиган (VS скроется по MulliganStartedEvent).
                 await Task.Delay(CommanderRevealMs);
@@ -396,7 +398,9 @@ namespace Game.Core.Photon
                 Debug.LogWarning("[PhotonRunHandler] SubmitLocalCommander: локальный командир не найден");
                 return;
             }
-            RPC_SubmitCommander(playerId, exp ?? string.Empty, cardId);
+            // Косметический аватар берём из локальной экипировки (не из ECS) — синкаем оппоненту.
+            string avatarId = Game.Core.Service.EquippedAvatar.ItemId ?? string.Empty;
+            RPC_SubmitCommander(playerId, exp ?? string.Empty, cardId, avatarId);
         }
 
         bool TryGetLocalCommander(out int playerId, out string exp, out int cardId)
@@ -427,49 +431,54 @@ namespace Game.Core.Photon
         }
 
         [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-        public void RPC_SubmitCommander(int playerId, string exp, int cardId, RpcInfo info = default)
+        public void RPC_SubmitCommander(int playerId, string exp, int cardId, string avatarId, RpcInfo info = default)
         {
             if (!IsServer) return;
 
-            _commanderSubmissions[playerId] = (exp, cardId);
-            Debug.Log($"[PhotonRunHandler][HOST] Commander submitted: player={playerId} {exp}:{cardId} ({_commanderSubmissions.Count}/{_playerProgress.Count})");
+            _commanderSubmissions[playerId] = (exp, cardId, avatarId);
+            Debug.Log($"[PhotonRunHandler][HOST] Commander submitted: player={playerId} {exp}:{cardId} avatar='{avatarId}' ({_commanderSubmissions.Count}/{_playerProgress.Count})");
 
             if (_commanderSubmissions.Count >= _playerProgress.Count)
                 _allCommandersTcs?.TrySetResult(true);
         }
 
         [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-        public void RPC_RevealCommanders(int p1Id, string p1Exp, int p1CardId, int p2Id, string p2Exp, int p2CardId)
+        public void RPC_RevealCommanders(int p1Id, string p1Exp, int p1CardId, string p1Avatar,
+                                         int p2Id, string p2Exp, int p2CardId, string p2Avatar)
         {
             int localId = LocalPlayerId();
 
-            string localExp, oppExp;
+            string localExp, oppExp, localAvatar, oppAvatar;
             int localCard, oppCard;
             if (localId == p1Id)
             {
-                localExp = p1Exp; localCard = p1CardId; oppExp = p2Exp; oppCard = p2CardId;
+                localExp = p1Exp; localCard = p1CardId; localAvatar = p1Avatar;
+                oppExp   = p2Exp; oppCard   = p2CardId; oppAvatar   = p2Avatar;
             }
             else
             {
-                localExp = p2Exp; localCard = p2CardId; oppExp = p1Exp; oppCard = p1CardId;
+                localExp = p2Exp; localCard = p2CardId; localAvatar = p2Avatar;
+                oppExp   = p1Exp; oppCard   = p1CardId; oppAvatar   = p1Avatar;
             }
 
-            Debug.Log($"[VS] RPC_RevealCommanders on {(Runner.IsServer ? "HOST" : "CLIENT")}: localId={localId} local={localExp}:{localCard} opp={oppExp}:{oppCard} → publish CommandersRevealedUIEvent");
+            Debug.Log($"[VS] RPC_RevealCommanders on {(Runner.IsServer ? "HOST" : "CLIENT")}: localId={localId} local={localExp}:{localCard} opp={oppExp}:{oppCard} oppAvatar='{oppAvatar}' → publish CommandersRevealedUIEvent");
             GameEventBus.Publish(new CommandersRevealedUIEvent
             {
                 LocalExpansionId    = localExp,
                 LocalCardId         = localCard,
                 OpponentExpansionId = oppExp,
                 OpponentCardId      = oppCard,
+                LocalAvatarId       = localAvatar,
+                OpponentAvatarId    = oppAvatar,
             });
         }
 
-        void BuildRevealArgs(out int p1Id, out string p1Exp, out int p1CardId,
-                             out int p2Id, out string p2Exp, out int p2CardId)
+        void BuildRevealArgs(out int p1Id, out string p1Exp, out int p1CardId, out string p1Avatar,
+                             out int p2Id, out string p2Exp, out int p2CardId, out string p2Avatar)
         {
             p1Id = 1; p2Id = 2;
-            (p1Exp, p1CardId) = _commanderSubmissions.TryGetValue(1, out var a) ? (a.exp, a.cardId) : (string.Empty, -1);
-            (p2Exp, p2CardId) = _commanderSubmissions.TryGetValue(2, out var b) ? (b.exp, b.cardId) : (string.Empty, -1);
+            (p1Exp, p1CardId, p1Avatar) = _commanderSubmissions.TryGetValue(1, out var a) ? (a.exp, a.cardId, a.avatarId) : (string.Empty, -1, string.Empty);
+            (p2Exp, p2CardId, p2Avatar) = _commanderSubmissions.TryGetValue(2, out var b) ? (b.exp, b.cardId, b.avatarId) : (string.Empty, -1, string.Empty);
         }
          
         [Rpc(RpcSources.All, RpcTargets.StateAuthority)]

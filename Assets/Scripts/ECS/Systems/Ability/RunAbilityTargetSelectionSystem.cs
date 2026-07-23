@@ -47,8 +47,36 @@ namespace Game.Core.Ecs.Systems
         bool _highlightShown;
         int  _lastPending = -1;
 
+        bool _subscribed;
+        readonly System.Collections.Generic.Queue<int> _turnEnded = new System.Collections.Generic.Queue<int>();
+
         public void Run(IEcsSystems systems)
         {
+            if (!_subscribed)
+            {
+                _subscribed = true;
+                GameEventBus.Subscribe<TurnEndedEvent>(e => _turnEnded.Enqueue(e.ActivePlayerId));
+            }
+
+            // Ход закончился, а игрок ещё не выбрал цель способности (окно/подсветка доски открыты) — не
+            // должно зависать после EndTurn. Отменяем (способность не резолвится). НЕ форсим случайную цель:
+            // к этому месту доходят ТОЛЬКО OnCast-триггеры (см. AbilityResolveContext.TriggerKey — любой иной
+            // триггер уже форсит random до захода в Selected-ожидание), т.е. это ВСЕГДА карта, которую игрок
+            // играет сам прямо сейчас. TODO: возврат карты в руку + рефанд стоимости для спелла/чары (как у
+            // RunSelectCellBoardSystem.Cancel) — пока НЕ реализовано (тот же пробел, что уже был в ручной
+            // отмене ПКМ, см. Cancel ниже), карта уйдёт в кладбище/на борд без эффекта.
+            while (_turnEnded.Count > 0)
+            {
+                int playerId = _turnEnded.Dequeue();
+                foreach (var e in _pendingFilter.Value)
+                {
+                    int pe = _pendingPool.Value.Get(e).PlayerEntity;
+                    if (!_playerPool.Value.Has(pe) || _playerPool.Value.Get(pe).PlayerId != playerId) continue;
+                    Cancel(e);
+                    break;
+                }
+            }
+
             int ability = -1, playerEntity = -1;
             foreach (var e in _pendingFilter.Value)
             {

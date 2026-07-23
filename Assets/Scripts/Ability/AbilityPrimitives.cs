@@ -169,8 +169,12 @@ namespace Game.Core.Ability
         }
     }
 
-    // === class (OOP) === Цель-игрок теряет Amount золота (Штраф: AbilityToField на обоих игроков).
-    // В отличие от GainGoldEffect (всегда владелец), бьёт по ЦЕЛИ → годится и для оппонента.
+    // === class (OOP) === Цель-игрок теряет Amount золота (карта 53 «оба теряют»: AbilityToField на обоих
+    // игроков). В отличие от GainGoldEffect (всегда владелец), бьёт по ЦЕЛИ → годится и для оппонента.
+    // Отнимаем МАКСИМУМ (кламп 0), не Current: старт хода делает Current = Max (RunTurnStartSystem),
+    // поэтому потеря Current для НЕактивного игрока испарялась при переходе хода — эффект был осмыслен
+    // только против кастера. Удар по Max — честная потеря дохода для обоих: запас отрастает обратно
+    // обычным приростом (+1..N/ход, кап 10). Current заодно клампится к новому Max.
     [Serializable]
     public sealed class LoseGoldEffect : EffectBase
     {
@@ -182,7 +186,8 @@ namespace Game.Core.Ability
             var pool = world.GetPool<GoldComponent>();
             if (!pool.Has(target)) return;
             ref var g = ref pool.Get(target);
-            g.Current = Math.Max(0, g.Current - Amount);
+            g.Max     = Math.Max(0, g.Max - Amount);
+            g.Current = Math.Min(g.Current, g.Max);
             EffectUtil.RaiseResource(world, target, EnumService.ResourceType.Gold, g.Current, g.Max);
         }
     }

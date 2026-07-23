@@ -61,4 +61,42 @@ namespace Game.Core.Backend
     {
         public RewardBundle Reward = new RewardBundle();
     }
+
+    /// <summary>Запись «входящих» — новость/награда, выданная удалённо (показать при входе в игру).</summary>
+    [Serializable]
+    public class InboxEntry
+    {
+        public string Title;
+        public string Message;
+        public RewardBundle Reward = new RewardBundle();
+    }
+
+    [Serializable]
+    public class InboxResponse
+    {
+        public List<InboxEntry> Entries = new List<InboxEntry>();
+    }
+
+    /// <summary>Профиль игрока: шапка + статистика результатов (для PlayerProfilePanel).</summary>
+    [Serializable]
+    public class PlayerProfileData
+    {
+        // Шапка
+        public string Name;
+        public string Rank;
+        public int    Mmr;
+        public int    Level;
+        public float  Xp01;       // прогресс уровня 0..1
+
+        // Результаты
+        public int Wins;
+        public int Losses;
+        public int GamesPlayed;
+        public int AchievementsEarned;
+        public int AchievementsTotal;
+        public int BoostersOpened;
+        public int CardsCollected;
+
+        public int WinRatePercent => GamesPlayed > 0 ? (int)System.Math.Round(Wins * 100.0 / GamesPlayed) : 0;
+    }
 }

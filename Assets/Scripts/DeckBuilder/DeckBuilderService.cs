@@ -115,6 +115,12 @@ namespace Game.Core.DeckBuilder
             if (Commander == null)
                 return AddResult.NoCommander;
 
+            // Карта-командир НЕ может лежать в колоде ещё и как обычная легендарка. Сравниваем по
+            // ИДЕНТИЧНОСТИ (expansion+id), а не по ссылке: после реимпорта колоды командир — другой
+            // экземпляр CardModel (из CardConfig), и сравнение ссылок это пропускало (баг с дублем).
+            if (IsCommanderCard(card))
+                return AddResult.IsCommanderCard;
+
             if (checkColor)
             {
                 if (!IsColorAllowed(card))
@@ -162,7 +168,15 @@ namespace Game.Core.DeckBuilder
             return true;
         }
 
-        // ── Validation ─────────────────────────────────────────────────────── 
+        // ── Validation ───────────────────────────────────────────────────────
+
+        /// <summary>Это карта текущего командира? По ИДЕНТИЧНОСТИ (expansion+id), не по ссылке — чтобы
+        /// работало и после реимпорта колоды (командир из CardConfig — другой экземпляр). Ею редактор
+        /// прячет командира из библиотеки и запрещает класть его в колоду второй раз.</summary>
+        public bool IsCommanderCard(CardModel card)
+            => Commander != null && card != null
+               && card.ExpansionId == Commander.ExpansionId && card.Id == Commander.Id;
+
         public bool IsColorAllowed(CardModel card)
         {
             if (DebugFlags.IgnoreDeckColorRule) return true;   // тех-режим: собираем без правила цвета
@@ -204,6 +218,10 @@ namespace Game.Core.DeckBuilder
                 var inst = config.Get(entry.ExpansionId, entry.CardId);
                 if (inst?.CardData == null) continue;
 
+                // Санация: командир не должен лежать в колоде обычной картой (старый баг с дублем).
+                // Отсеиваем при загрузке — так уже испорченные колоды чинятся сами при первом открытии.
+                if (IsCommanderCard(inst.CardData)) continue;
+
                 string key = PlayerLibrary.MakeKey(entry.ExpansionId, entry.CardId);
                 _deckEntries[key] = new DeckCardEntry(inst.CardData, entry.Count);
             }
@@ -217,6 +235,7 @@ namespace Game.Core.DeckBuilder
             ExoticLimitReached,
             CopyLimitReached,
             NotEnoughCopies,
+            IsCommanderCard,   // это карта командира — в колоду обычной картой нельзя
         }
     }
 }

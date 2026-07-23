@@ -31,6 +31,7 @@ MonoBehaviour:
         PlayCost: 0
         PlayCostAmount: 0
         IsToken: 1
+        ShowAsLinked: 0
         MulliganStartingHand: 0
         MulliganUnlimitedReplace: 0
         RuntimeAbilities: []
@@ -38,6 +39,16 @@ MonoBehaviour:
         MaxHealth: 0
         Attack: 0
         Speed: 1
-        ViewPrefab: {fileID: 1046069417137952589, guid: f06aa6138ec1c4140ac9af21f0ddde7e, type: 3}
+        ViewPrefab: {fileID: 1046069417137952589, guid: e92287bc0602335409c494d0ea10fc8b, type: 3}
+        SummonVfx:
+          PrePrefab: {fileID: 0}
+          PreLeadSeconds: 0
+          ResolvePrefab: {fileID: 0}
+          ResolveAttach: 1
+          ResolveDelaySeconds: 0.1
+          ResolveFollow: 1
+          FinishPrefab: {fileID: 0}
+          FinishAnchor: 1
+          FinishAttach: 0
         TurnsAlive: 0
         IsCommander: 0

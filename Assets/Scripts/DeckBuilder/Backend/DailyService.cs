@@ -25,11 +25,27 @@ namespace Game.Core.Backend
         }
 
         [Serializable]
+        public class LoginDay
+        {
+            public int    Day;
+            // Награда КОМПАКТНО: ОДНА иконка + число, без текста. Иконку резолвим единообразно:
+            //   RewardCode ("GD"/"GM") → иконка валюты (InterfaceConfig);
+            //   иначе RewardItemId ("booster_standard"/"avatar_..."/карта) → InstanceData.Miniature.
+            // Отдельного «booster icon» нет — бустер это тот же предмет с миниатюрой.
+            public int    RewardAmount;    // сколько
+            public string RewardCode;      // валюта; пусто → предмет
+            public string RewardItemId;    // предмет; пусто → валюта
+            public bool   Claimed;
+            public bool   Today;
+        }
+
+        [Serializable]
         public class LoginRewardState
         {
             public int  StreakDay;        // текущий день серии (1..N)
             public bool Available;        // доступно к клейму сегодня
             public RewardBundle Today = new RewardBundle();
+            public List<LoginDay> Days = new List<LoginDay>();   // 7-дневная лента (может быть пустой)
         }
 
         [Serializable]
@@ -46,6 +62,8 @@ namespace Game.Core.Backend
 
         [Serializable] public class ClaimTaskRequest      { public string TaskId; }
         [Serializable] public class ReportProgressRequest { public string Type; public int Amount = 1; }
+        [Serializable] public class ProgressItem         { public string Type; public int Amount; }
+        [Serializable] public class ReportBatchRequest   { public List<ProgressItem> Items = new List<ProgressItem>(); }
 
         // ── Вызовы ───────────────────────────────────────────────────────────
 
@@ -70,5 +88,22 @@ namespace Game.Core.Backend
             Action onSuccess = null, Action<string> onError = null)
             => FunctionService.Call(BackendConfig.Fn.ReportProgress,
                 new ReportProgressRequest { Type = type, Amount = amount }, onSuccess, onError);
+
+        /// <summary>
+        /// Сообщить ПАЧКУ прогресса одним вызовом (сервер: один read-modify-write журнала). Нужно, когда в конце
+        /// матча копится несколько типов сразу — N одиночных ReportProgress гонялись бы за один ключ журнала
+        /// (параллельные read-modify-write затирают друг друга → потерянный прогресс). Пустой набор — no-op.
+        /// </summary>
+        public static void ReportProgressBatch(IEnumerable<KeyValuePair<string, int>> items,
+            Action onSuccess = null, Action<string> onError = null)
+        {
+            var req = new ReportBatchRequest();
+            if (items != null)
+                foreach (var kv in items)
+                    if (!string.IsNullOrEmpty(kv.Key) && kv.Value > 0)
+                        req.Items.Add(new ProgressItem { Type = kv.Key, Amount = kv.Value });
+            if (req.Items.Count == 0) { onSuccess?.Invoke(); return; }
+            FunctionService.Call(BackendConfig.Fn.ReportProgressBatch, req, onSuccess, onError);
+        }
     }
 }

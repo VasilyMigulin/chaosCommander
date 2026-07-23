@@ -11,7 +11,7 @@ namespace Game.Core.Ecs.Systems
     /// В конце хода игрока возвращает временную ману: списывает RefundAmount
     /// и удаляет TemporaryManaComponent.
     /// </summary>
-    public sealed class TemporaryManaRefundSystem : IEcsInitSystem, IEcsRunSystem, System.IDisposable
+    public sealed class TemporaryManaRefundSystem : IEcsInitSystem, IEcsRunSystem, IEcsDestroySystem, System.IDisposable
     {
         readonly EcsFilterInject<Inc<TemporaryManaComponent, PlayerComponent>> _filter = default;
         readonly EcsPoolInject<TemporaryManaComponent> _tempPool = default;
@@ -23,6 +23,11 @@ namespace Game.Core.Ecs.Systems
         bool _subscribed;
 
         public void Init(IEcsSystems systems) => Subscribe();
+
+        // EcsSystems.Destroy() ищет IEcsDestroySystem, не System.IDisposable — без этого моста Dispose()
+        // фреймворк никогда не вызывал бы (см. EcsRunHandler/TutorialEcsHandler.Dispose → _allSystems.Destroy()).
+        public void Destroy(IEcsSystems systems) => Dispose();
+
         public void Dispose()
         {
             if (!_subscribed) return;

@@ -9,7 +9,10 @@ namespace Game.Core.Backend
     /// Оркестратор инициализации бэкенда после логина. Последовательность:
     ///   1) синк серверного времени (ServerClock),
     ///   2) одноразовая миграция старой библиотеки в инвентарь (идемпотентно),
-    ///   3) загрузка инвентаря → PlayerLibrary + PlayerWallet.
+    ///   3) загрузка инвентаря → PlayerLibrary + PlayerWallet,
+    ///   4) загрузка колод (PlayFab UserData «player_decks») — ПОСЛЕ библиотеки: колода ссылается на
+    ///      карты, и панелям (DeckViewPanel/DeckBuildPanel) нужен уже наполненный PlayerLibrary.
+    ///      Колоды живут в облаке, а не локально, — иначе с нового устройства они бы пропали.
     ///
     /// Каждый шаг не роняет вход: при ошибке логируем и идём дальше (в оффлайн-режиме
     /// игрок хотя бы попадёт в меню). onDone вызывается всегда.
@@ -18,9 +21,14 @@ namespace Game.Core.Backend
     {
         public static bool Ready { get; private set; }
 
+        /// <summary>CardConfig текущей сессии — нужен, чтобы применять выданные сервером карты к библиотеке
+        /// (DevService/BoosterService/ShopService резолвят item id через него). Ставится в Initialize.</summary>
+        public static CardConfig Config { get; private set; }
+
         public static void Initialize(CardConfig config, Action onDone)
         {
             Ready = false;
+            Config = config;
 
             if (config == null)
             {
@@ -29,9 +37,10 @@ namespace Game.Core.Backend
                 return;
             }
 
+            Debug.Log("[BackendSession] Initialize → ServerClock.Sync…");
             ServerClock.Sync(
-                onDone: () => Migrate(config, onDone),
-                onError: _ => Migrate(config, onDone));   // время не критично для входа
+                onDone: () => { Debug.Log("[BackendSession] ServerClock OK → Migrate"); Migrate(config, onDone); },
+                onError: err => { Debug.LogWarning($"[BackendSession] ServerClock FAILED: {err} → Migrate всё равно"); Migrate(config, onDone); });
         }
 
         static void Migrate(CardConfig config, Action onDone)
@@ -52,11 +61,31 @@ namespace Game.Core.Backend
 
         static void LoadInventory(CardConfig config, Action onDone)
         {
+            Debug.Log("[BackendSession] LoadFromInventory…");
             PlayerLibrary.LoadFromInventory(config,
-                onSuccess: () => { Ready = true; onDone?.Invoke(); },
+                onSuccess: () => { Debug.Log($"[BackendSession] Inventory OK → карт в библиотеке: {PlayerLibrary.Entries.Count}"); Ready = true; LoadDecks(onDone); },
                 onError: err =>
                 {
                     Debug.LogWarning($"[BackendSession] LoadFromInventory failed: {err}");
+                    LoadDecks(onDone);   // без библиотеки колоды всё равно прогреем — панель покажет, чего не хватает
+                });
+        }
+
+        /// <summary>
+        /// Прогрев кеша колод. Панели грузят их и сами (DeckViewPanel.OnOpen), но так список открывается
+        /// сразу, а не с задержкой на сетевой вызов.
+        /// </summary>
+        static void LoadDecks(Action onDone)
+        {
+            DeckStorage.LoadAll(
+                onSuccess: decks =>
+                {
+                    Debug.Log($"[BackendSession] Колод загружено: {decks.Count}.");
+                    onDone?.Invoke();
+                },
+                onError: err =>
+                {
+                    Debug.LogWarning($"[BackendSession] LoadDecks failed: {err}");
                     onDone?.Invoke();
                 });
         }

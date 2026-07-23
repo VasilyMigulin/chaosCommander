@@ -19,7 +19,7 @@ namespace Game.Core.Ecs.Systems
     /// штатный канал урона, GameOverCheck сработает как обычно). В MP-режиме система пассивна.
     /// Регистрация: в _turnSystems после RunTurnStartSystem (действия — bus/компоненты, потребители позже в кадре).
     /// </summary>
-    public sealed class PveScriptedEventSystem : IEcsInitSystem, IEcsRunSystem, System.IDisposable
+    public sealed class PveScriptedEventSystem : IEcsInitSystem, IEcsRunSystem, IEcsDestroySystem, System.IDisposable
     {
         readonly EcsWorldInject _world = default;
         readonly EcsPoolInject<PlayerComponent> _playerPool = default;
@@ -38,6 +38,10 @@ namespace Game.Core.Ecs.Systems
             GameEventBus.Subscribe<TurnStartedEvent>(OnTurnStarted);
             _subscribed = true;
         }
+
+        // EcsSystems.Destroy() ищет IEcsDestroySystem, не System.IDisposable — без этого моста Dispose()
+        // фреймворк никогда не вызывал бы (см. EcsRunHandler/TutorialEcsHandler.Dispose → _allSystems.Destroy()).
+        public void Destroy(IEcsSystems systems) => Dispose();
 
         public void Dispose()
         {

@@ -20,7 +20,10 @@ namespace AwesomeUI.Feature
         {
             base.InvokeCanvas();
 
-            OpenPanel<MainMenuPanel>();
+            // Домашний экран меню = GamePanel (выбор режима PvP/PvE). MainMenuPanel удалён: профиль,
+            // настройки и выход живут в HUD (топ-бар), разделы — в нижней навигации.
+            // Открываем здесь, т.к. CloseCanvas закрывает все панели — при возврате в меню нужен «дом».
+            OpenPanel<GamePanel>();
         }
     }
 }

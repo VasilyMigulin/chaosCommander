@@ -6,6 +6,12 @@ namespace AwesomeUI.Core.Window
     {
         [SerializeField] protected bool IsOpenOnInit;
 
+        [Tooltip("Id окна для механизмов по id (напр. скрытие HUD). Пусто → имя класса.")]
+        [SerializeField] private string _windowId;
+
+        /// <summary>Id окна (пусто → имя класса). Аналог SourcePanel.PanelId — для поиска окна по id.</summary>
+        public string WindowId => string.IsNullOrEmpty(_windowId) ? GetType().Name : _windowId;
+
         public virtual SourceWindow Init()
         {
             gameObject.SetActive(IsOpenOnInit);

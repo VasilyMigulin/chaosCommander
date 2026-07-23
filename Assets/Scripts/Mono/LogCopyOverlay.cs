@@ -5,12 +5,18 @@ using UnityEngine;
 namespace Game.Core.Mono
 {
     /// <summary>
-    /// Дев-оверлей: ловит все логи Unity и даёт кнопки в ЛЕВОМ ВЕРХНЕМ углу для копирования их
-    /// в системный буфер обмена (работает в Editor и на Android/BlueStacks через
-    /// GUIUtility.systemCopyBuffer). Само-инициализируется — в сцену вешать не нужно.
+    /// Дев-оверлей: ловит все логи Unity и даёт кнопки для копирования их в системный буфер обмена
+    /// (работает в Editor и на Android/BlueStacks через GUIUtility.systemCopyBuffer). Плюс тех-действия
+    /// боя/онбординга (End Turn, Fill Res, ColorRule, PvE, 1stRun, Tut). Само-инициализируется —
+    /// в сцену вешать не нужно.
     ///
-    /// Кнопки: Copy (всё), Copy Err (только Warning/Error/Exception), Clear, Show/Hide (панель логов).
-    /// Отключить: задать DISABLE_LOG_OVERLAY в Scripting Define Symbols или удалить файл.
+    /// ВСЁ скрыто за ЕДИНОЙ кнопкой «DEV» (правый край экрана) — общий тумблер DebugFlags.DevOverlayOpen.
+    /// Пока закрыто, на экране только эта кнопка (не залепляет боевой/меню интерфейс). Тот же тумблер
+    /// открывает и DevCheatMenu (экономика) — одна кнопка на все дев-панели.
+    ///
+    /// Кнопки внутри: Copy (всё), Copy Err (Warning/Error/Exception), Clear, Show/Hide (панель логов),
+    /// End Turn, Fill Res, ColorRule, Copy Filt, PvE, 1stRun ✗, Tut ✓.
+    /// Отключить целиком: DISABLE_LOG_OVERLAY в Scripting Define Symbols или удалить файл.
     /// </summary>
     public sealed class LogCopyOverlay : MonoBehaviour
     {
@@ -95,8 +101,9 @@ namespace Game.Core.Mono
 
         void EnsureStyles()
         {
-            // Крупный масштаб под высокий DPI телефона/эмулятора.
-            _scale = Mathf.Max(1f, Screen.width / 1000f);
+            // Крупный масштаб под высокий DPI телефона/эмулятора. Базовый пол повыше — на узком портрете
+            // width/1000 давал scale=1 и кнопки/текст были мелкими.
+            _scale = Mathf.Max(1.15f, Screen.width / 900f);
 
             if (_btn == null)
             {
@@ -105,20 +112,47 @@ namespace Game.Core.Mono
                 _logStyle = new GUIStyle(GUI.skin.label) { richText = false, wordWrap = true };
                 _field = new GUIStyle(GUI.skin.textField);
             }
-            int fs = Mathf.RoundToInt(16 * _scale);
+            int fs = Mathf.RoundToInt(23 * _scale);   // крупнее — читаемо на телефоне
             _btn.fontSize = fs;
             _label.fontSize = fs;
             _field.fontSize = fs;
-            _logStyle.fontSize = Mathf.RoundToInt(13 * _scale);
+            _logStyle.fontSize = Mathf.RoundToInt(17 * _scale);
         }
+
+        // ── Flow-layout для дев-кнопок: текут слева-направо и ПЕРЕНОСЯТСЯ на новую строку, если не влезают
+        //    по ширине (на узком портрете раньше уезжали за край и были нечитаемы). ──
+        float _flowX, _flowY, _flowH, _flowPad, _flowMaxW;
+        void FlowBegin(float startY, float rowH, float pad)
+        { _flowX = pad; _flowY = startY; _flowH = rowH; _flowPad = pad; _flowMaxW = Screen.width - pad; }
+        void FlowWrap(float w) { if (_flowX > _flowPad && _flowX + w > _flowMaxW) { _flowX = _flowPad; _flowY += _flowH + _flowPad; } }
+        bool FlowButton(string label, float w)
+        { FlowWrap(w); bool hit = GUI.Button(new Rect(_flowX, _flowY, w, _flowH), label, _btn); _flowX += w + _flowPad; return hit; }
+        Rect FlowField(float w)
+        { FlowWrap(w); var r = new Rect(_flowX, _flowY, w, _flowH); _flowX += w + _flowPad; return r; }
+        float FlowBottom() => _flowY + _flowH;
 
         void OnGUI()
         {
+            // Дев-оверлей — только редактор/dev-билд/dev-аккаунт (isDev). Логи ловим всегда (OnLog), но
+            // кнопки/панель в релизе обычному игроку не рисуем.
+            if (!Game.Core.Service.DebugFlags.DevUiAllowed) return;
+
             EnsureStyles();
 
-            float h = 40 * _scale;
-            float pad = 6 * _scale;
-            float x = pad, y = pad;
+            // ДВА тумблера у ЛЕВОГО края, стопкой (на мобилке F2 нет). Раздельные — чтобы экономика и логи
+            // не открывались вместе и не перекрывались; лог-кнопки скрыты, пока не жмёшь LOG (случайно
+            // ColorRule/PvE не заденешь). Кнопки слева, окно экономики (DevCheatMenu) — справа, не мешают.
+            //   DEV → DevCheatMenu (валюта/бустеры/карты), LOG → этот оверлей (логи + бой/онбординг).
+            float tbw = 132 * _scale, tbh = 62 * _scale, tgp = 8 * _scale, tbx = 6 * _scale, tcy = Screen.height * 0.5f;
+            if (GUI.Button(new Rect(tbx, tcy - tbh - tgp, tbw, tbh), Game.Core.Service.DebugFlags.DevOverlayOpen ? "✕ DEV" : "DEV", _btn))
+                Game.Core.Service.DebugFlags.DevOverlayOpen = !Game.Core.Service.DebugFlags.DevOverlayOpen;
+            if (GUI.Button(new Rect(tbx, tcy + tgp, tbw, tbh), Game.Core.Service.DebugFlags.LogOverlayOpen ? "✕ LOG" : "LOG", _btn))
+                Game.Core.Service.DebugFlags.LogOverlayOpen = !Game.Core.Service.DebugFlags.LogOverlayOpen;
+
+            if (!Game.Core.Service.DebugFlags.LogOverlayOpen) return;
+
+            float h = 52 * _scale;   // крупнее — палец и читаемость на телефоне
+            float pad = 8 * _scale;
 
             int total, problems;
             lock (_lock)
@@ -128,78 +162,64 @@ namespace Game.Core.Mono
                 foreach (var e in _entries) if (e.Type != LogType.Log) problems++;
             }
 
-            float bw = 130 * _scale;
-            if (GUI.Button(new Rect(x, y, bw, h), $"Copy ({total})", _btn)) CopyToClipboard(false);
-            x += bw + pad;
-            if (GUI.Button(new Rect(x, y, bw, h), $"Copy Err ({problems})", _btn)) CopyToClipboard(true);
-            x += bw + pad;
-            if (GUI.Button(new Rect(x, y, 90 * _scale, h), "Clear", _btn))
-            {
-                lock (_lock) _entries.Clear();
-                Toast("Cleared");
-            }
-            x += 90 * _scale + pad;
-            if (GUI.Button(new Rect(x, y, 110 * _scale, h), _showPanel ? "Hide" : "Show", _btn))
-                _showPanel = !_showPanel;
-            x += 110 * _scale + pad;
+            FlowBegin(pad, h, pad);
+
+            if (FlowButton($"Copy ({total})",        200 * _scale)) CopyToClipboard(false);
+            if (FlowButton($"Copy Err ({problems})", 220 * _scale)) CopyToClipboard(true);
+            if (FlowButton("Clear",                  130 * _scale)) { lock (_lock) _entries.Clear(); Toast("Cleared"); }
+            if (FlowButton(_showPanel ? "Hide" : "Show", 150 * _scale)) _showPanel = !_showPanel;
             // Ручной конец хода (пока нет UI-кнопки): сработает только если локальный игрок активен.
-            if (GUI.Button(new Rect(x, y, 150 * _scale, h), "End Turn", _btn))
+            if (FlowButton("End Turn",               190 * _scale))
             {
                 Game.Core.Events.GameEventBus.Publish(new Game.Core.Events.RequestEndTurnUIEvent());
                 Toast("End Turn requested");
             }
-            x += 150 * _scale + pad;
             // Тех-чит: выдать локальному игроку максимум маны и золота.
-            if (GUI.Button(new Rect(x, y, 150 * _scale, h), "Fill Res", _btn))
+            if (FlowButton("Fill Res",               180 * _scale))
             {
                 Game.Core.Events.GameEventBus.Publish(new Game.Core.Events.DebugFillResourcesEvent());
                 Toast("Mana/Gold maxed");
             }
-            x += 150 * _scale + pad;
             // Тех-режим сборки колоды: игнорировать правило цвета.
             bool ignoreColor = Game.Core.Service.DebugFlags.IgnoreDeckColorRule;
-            if (GUI.Button(new Rect(x, y, 190 * _scale, h), ignoreColor ? "ColorRule: OFF" : "ColorRule: ON", _btn))
+            if (FlowButton(ignoreColor ? "ColorRule: OFF" : "ColorRule: ON", 250 * _scale))
             {
                 Game.Core.Service.DebugFlags.IgnoreDeckColorRule = !ignoreColor;
                 Toast($"Deck color rule {(!ignoreColor ? "ignored" : "enforced")}");
             }
-            // Второй ряд: фильтр-подстрока + копирование только совпавших строк + PvE.
-            // NB: первый ряд занимает ~99% ширины экрана (масштаб = width/1000) — восьмая кнопка
-            // уезжала за правый край и была невидима. Поэтому PvE живёт во ВТОРОМ ряду.
-            float y2 = y + h + pad;
-            _filter = GUI.TextField(new Rect(pad, y2, 260 * _scale, h), _filter ?? "", _field);
-            if (GUI.Button(new Rect(pad + 260 * _scale + pad, y2, 150 * _scale, h), "Copy Filt", _btn))
-                CopyToClipboard(false, _filter);
-            // PvE: бой против ИИ без сети (энкаунтер из Resources/{PveMode.EncounterPath}).
-            // Через шину → MenuState.StartPveBattle: тот сперва ЧИСТО гасит активный матчмейкинг
-            // (LoadScene посреди джоина оставлял оверлей поиска поверх боя). В бою события никто
-            // не слушает → кнопка там безвредна.
-            if (GUI.Button(new Rect(pad + 260 * _scale + pad + 150 * _scale + pad, y2, 110 * _scale, h), "PvE", _btn))
+            // Фильтр-подстрока + копирование только совпавших строк.
+            _filter = GUI.TextField(FlowField(300 * _scale), _filter ?? "", _field);
+            if (FlowButton("Copy Filt",              170 * _scale)) CopyToClipboard(false, _filter);
+            // PvE: бой против ИИ без сети (энкаунтер из Resources/{PveMode.EncounterPath}). Через шину →
+            // MenuState.StartPveBattle: тот сперва гасит активный матчмейкинг. В бою события никто не слушает.
+            if (FlowButton("PvE",                    130 * _scale))
             {
                 Toast($"PvE: запрошен бой (энкаунтер '{Game.Core.Service.PveMode.EncounterPath}')");
                 Game.Core.Events.GameEventBus.Publish(new Game.Core.Events.PveStartRequestedEvent());
             }
             // Сброс цикла первого захода (язык/туториал/стартовый набор) — для теста онбординга.
-            if (GUI.Button(new Rect(pad + 260 * _scale + pad + 150 * _scale + pad + 110 * _scale + pad, y2, 150 * _scale, h), "1stRun ✗", _btn))
+            if (FlowButton("1stRun ✗",               180 * _scale))
             {
                 Game.Core.Service.FirstRunFlow.ResetAll();
                 Toast("Флаги первого захода сброшены (язык/туториал/стартовый набор)");
             }
             // Пропуск туториала (дев): чтобы роутинг первого захода не уводил в TutorialScene.
-            if (GUI.Button(new Rect(pad + 260 * _scale + pad + 150 * _scale + pad + 110 * _scale + pad + 150 * _scale + pad, y2, 110 * _scale, h), "Tut ✓", _btn))
+            if (FlowButton("Tut ✓",                  150 * _scale))
             {
                 Game.Core.Service.FirstRunFlow.TutorialDone = true;
                 Toast("Туториал помечен пройденным");
             }
 
+            float bottom = FlowBottom();
+
             // Тост-подтверждение.
             if (_toast != null && Time.realtimeSinceStartup < _toastUntil)
-                GUI.Label(new Rect(pad, y2 + h + pad, Screen.width - pad * 2, h), _toast, _label);
+                GUI.Label(new Rect(pad, bottom + pad, Screen.width - pad * 2, h), _toast, _label);
 
             if (!_showPanel) return;
 
             // Панель с последними логами (read-only, скролл).
-            float panelY = y2 + h + pad + h;
+            float panelY = bottom + pad + h;
             float panelH = Screen.height - panelY - pad;
             float panelW = Screen.width - pad * 2;
             GUI.Box(new Rect(pad, panelY, panelW, panelH), GUIContent.none);

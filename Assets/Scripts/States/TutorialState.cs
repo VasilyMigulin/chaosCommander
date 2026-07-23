@@ -26,6 +26,7 @@ namespace Game.Core.States
         [SerializeField] private BoardView _boardView;
         [SerializeField] private CardConfig _cardConfig;
         [SerializeField] private PveEncounterConfig _tutorialEncounter;
+        [SerializeField] private DefaultAbilityVfxConfig _defaultAbilityVfxConfig;
 
         public TutorialEcsHandler EcsHandler { get; private set; }
 
@@ -66,7 +67,7 @@ namespace Game.Core.States
 
             try
             {
-                EcsHandler.Init(BoardView, _cardConfig);
+                EcsHandler.Init(BoardView, _cardConfig, _defaultAbilityVfxConfig);
                 Debug.Log("[TutorialState] EcsHandler.Init completed (туториал).");
             }
             catch (System.Exception e)
@@ -96,10 +97,16 @@ namespace Game.Core.States
             click.OwnerId = evt.OwnerId;
         }
 
-        // Выход из туториала (попап результата): на сцену логина. TutorialDone поставил директор при
-        // победе; при поражении роутинг InitState вернёт сюда снова.
+        // Выход из туториала (попап результата / поражение) = ОСОЗНАННЫЙ ОТКАЗ от обучения: ставим
+        // TutorialDone, иначе роутинг InitState видит «туториал не пройден» и возвращает игрока сюда же —
+        // получалась ловушка, из которой нельзя выйти, не победив.
         void OnExitToMenu(ExitToMenuRequestedEvent _)
         {
+            if (!Game.Core.Service.FirstRunFlow.TutorialDone)
+            {
+                Game.Core.Service.FirstRunFlow.TutorialDone = true;
+                Debug.Log("[Tutorial] выход без победы — обучение помечено пройденным (иначе петля роутинга)");
+            }
             RequestLoadingScene(0);
         }
 

@@ -32,10 +32,12 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<AbilityQueuedState>      _queuedPool = default;
         readonly EcsPoolInject<ActiveState>             _activePool = default;
         readonly EcsPoolInject<CardModelComponent>      _modelPool  = default;
+        readonly EcsPoolInject<PlayerComponent>         _playerPool = default;
 
         bool _subscribed;
         readonly Queue<CardPickChosenEvent>    _chosen    = new Queue<CardPickChosenEvent>();
         readonly Queue<CardPickCancelledEvent> _cancelled = new Queue<CardPickCancelledEvent>();
+        readonly Queue<int> _turnEnded = new Queue<int>();
 
         void Subscribe()
         {
@@ -43,11 +45,27 @@ namespace Game.Core.Ecs.Systems
             _subscribed = true;
             GameEventBus.Subscribe<CardPickChosenEvent>(e => _chosen.Enqueue(e));
             GameEventBus.Subscribe<CardPickCancelledEvent>(e => _cancelled.Enqueue(e));
+            GameEventBus.Subscribe<TurnEndedEvent>(e => _turnEnded.Enqueue(e.ActivePlayerId));
         }
 
         public void Run(IEcsSystems systems)
         {
             Subscribe();
+
+            // Ход закончился, а окно выбора (колода/рука/кладбище) ещё открыто — не должно зависать после
+            // EndTurn. Отменяем (способность не резолвится) — см. тот же комментарий в
+            // RunAbilityTargetSelectionSystem про OnCast-only и невозвращённую карту (TODO).
+            while (_turnEnded.Count > 0)
+            {
+                int playerId = _turnEnded.Dequeue();
+                foreach (var ability in _pendingFilter.Value)
+                {
+                    int pe = _pickPool.Value.Get(ability).PlayerEntity;
+                    if (!_playerPool.Value.Has(pe) || _playerPool.Value.Get(pe).PlayerId != playerId) continue;
+                    _pickPool.Value.Del(ability);
+                    break;
+                }
+            }
 
             // Предложить ещё не показанные пики (только в свой ход).
             foreach (var ability in _pendingFilter.Value)

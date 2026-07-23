@@ -108,6 +108,10 @@ namespace Game.Core.Ecs.Systems
                     {
                         ref var avatarViewComp = ref _avatarViewPool.Value.Add(entity);
                         avatarViewComp.View = avatarView.gameObject;
+
+                        // Косметика: локальному игроку ставим НАДЕТЫЙ аватар. Оппонента (сеть) подменит синк
+                        // по приезду его avatarId (RPC), ИИ в PvE — дефолт/энкаунтер.
+                        if (isLocalPlayer) ApplyEquippedAvatar(avatarView);
                     }
                 }
 
@@ -129,7 +133,8 @@ namespace Game.Core.Ecs.Systems
                 {
                     PlayerEntity = entity,
                     Side = side,
-                    IsLocalPlayer = isLocalPlayer
+                    IsLocalPlayer = isLocalPlayer,
+                    PlayerId = actorNumber
                 });
 
                 Debug.Log($"[InitLocalPlayerSystem] Player entity={entity} playerId={actorNumber} side={side} isLocal={isLocalPlayer}");
@@ -145,6 +150,18 @@ namespace Game.Core.Ecs.Systems
                     _boardView.Value.GetAvatarCell(side)?.gameObject.SetActive(false);
                 }
             }
+        }
+
+        // Косметика: подменить визуал аватара на НАДЕТЫЙ (EquippedAvatar → AvatarConfig → Prefab). Резолв тут
+        // (Ecs видит Configs/Instance), а AvatarPlayerView получает готовый GameObject — Mono не тянет Configs.
+        static void ApplyEquippedAvatar(Mono.AvatarPlayerView view)
+        {
+            if (view == null) return;
+            string itemId = Service.EquippedAvatar.ItemId;
+            if (string.IsNullOrEmpty(itemId)) return;   // не выбран → дефолт из префаба
+            var cfg = Configs.AvatarConfig.Instance;
+            var avatar = cfg != null ? cfg.Get(itemId) : null;
+            if (avatar != null && avatar.Prefab != null) view.SetAvatarVisual(avatar.Prefab);
         }
 
         // ── PvE: человек (PlayerId=1, side 1, Local) + ИИ (PlayerId=2, side 2, AiPlayerComponent). ──
@@ -185,7 +202,10 @@ namespace Game.Core.Ecs.Systems
             {
                 var avatarView = _boardView.Value.GetAvatarView(side);
                 if (avatarView != null)
+                {
                     _avatarViewPool.Value.Add(entity).View = avatarView.gameObject;
+                    if (isLocal) ApplyEquippedAvatar(avatarView);   // человеку — надетый аватар (ИИ — дефолт)
+                }
             }
 
             if (isLocal)
@@ -204,7 +224,8 @@ namespace Game.Core.Ecs.Systems
             {
                 PlayerEntity = entity,
                 Side = side,
-                IsLocalPlayer = isLocal
+                IsLocalPlayer = isLocal,
+                PlayerId = playerId
             });
 
             Debug.Log($"[InitLocalPlayerSystem] Player entity={entity} playerId={playerId} side={side} isLocal={isLocal} (PvE)");

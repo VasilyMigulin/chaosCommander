@@ -56,7 +56,7 @@ namespace AwesomeUI.Feature.DeckBuilder
             if (_commanderBadge != null) _commanderBadge.SetActive(isCommander);
 
             if (!isCommander && _counterText != null)
-                _counterText.text = $"x{_data.DeckCount}";
+                _counterText.text = $"X{_data.DeckCount}";
         }
 
         // Смена языка: пересобираем визуал (имя/описание) из модели и перерисовываем.
@@ -78,7 +78,7 @@ namespace AwesomeUI.Feature.DeckBuilder
 
         protected override void OnHoldTriggered()
         {
-            if (Model != null) CardInspectBus.Request(Model);
+            if (Model != null) CardInspectBus.RequestDustable(Model);   // из коллекции → с «Порвать»
         }
     }
 }

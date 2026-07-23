@@ -22,5 +22,11 @@ namespace Game.Core.DeckBuilder
         {
             OwnedCount += amount;
         }
+
+        public void RemoveCopies(int amount)
+        {
+            OwnedCount -= amount;
+            if (OwnedCount < 0) OwnedCount = 0;
+        }
     }
 }

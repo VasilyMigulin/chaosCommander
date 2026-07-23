@@ -3,6 +3,7 @@ namespace Game.Core.Ecs.Components
     /// <summary>Константы хода (заменяет InitTurnSystem.TurnDuration).</summary>
     public static class TurnConfig
     {
-        public const float TurnDuration = 20f;
+        /// <summary>Длительность хода, сек (1:20). Кнопка «Конец хода» завершает раньше; таймер — страховка.</summary>
+        public const float TurnDuration = 80f;
     }
 }

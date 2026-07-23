@@ -61,7 +61,13 @@ namespace Game.Core.Ability
             }
 
             // Косметическая VFX-спека (если задана) — резолв-система прочитает и опубликует событие.
-            if (Vfx != null && Vfx.Kind != VfxKind.None && Vfx.Prefab != null)
+            // ВАЖНО: компонент нужен, даже если нет Kind/Prefab — либо включён ТОЛЬКО PlayCasterAnimation
+            // (анимация каста без отдельного луча/снаряда/области), либо задан ТОЛЬКО HitPrefab (простая
+            // вспышка на цели без луча/области — напр. Голубой волшебник: мана себе, никакой геометрии не
+            // нужно). Иначе RunResolveAbilityQueueSystem.Run()/ResolveAbility (гейт `vfxPool.Has(first)`)
+            // никогда не увидит спеку → ни анимация каста, ни HitPrefab-вспышка не сработают НИКОГДА, даже
+            // если оба поля честно проставлены в инспекторе.
+            if (Vfx != null && (Vfx.PlayCasterAnimation || Vfx.HitPrefab != null || (Vfx.Kind != VfxKind.None && Vfx.Prefab != null)))
                 world.GetPool<AbilityVfxComponent>().Add(abilityEntity).Spec = Vfx;
 
             OnInit(world, abilityEntity);
@@ -74,6 +80,41 @@ namespace Game.Core.Ability
             foreach (var trigger in Triggers) trigger.Dispose();
             if (Effects != null) foreach (var effect in Effects) effect.Dispose();
             OnDispose();
+        }
+
+        /// <summary>ХС-семантика смены контроля (см. IAbility.Rebind): Dispose (отписка от шины) → очистка
+        /// компонентов ability-сущности (Init кладёт их через Add — повторный Init без очистки упал бы) →
+        /// Init с НОВЫМ playerEntity. Тот же инстанс → поля триггеров/условий (OnMatchStartTrigger._fired,
+        /// накопители) переживают пере-привязку.</summary>
+        public void Rebind(EcsWorld world, int abilityEntity, int cardEntity, int newPlayerEntity, int abilityIndex)
+        {
+            Dispose();
+            ClearAbilityEntity(world, abilityEntity);
+            Init(world, abilityEntity, cardEntity, newPlayerEntity, abilityIndex);
+        }
+
+        // Снять всё, что кладёт Init/OnInit + рантайм-марки срабатываний (протухшая метка со старым
+        // владельцем хуже потерянного файра; к моменту пере-привязки каскад осел — см. TempControlRevertSystem).
+        static void ClearAbilityEntity(EcsWorld world, int ae)
+        {
+            Del<AbilityOwnerComponent>(world, ae);
+            Del<AbilityRuleContainerComponent>(world, ae);
+            Del<AbilityEffectContainerComponent>(world, ae);
+            Del<AbilityTriggerContainerComponent>(world, ae);
+            Del<AbilityVfxComponent>(world, ae);
+            Del<AbilityTargetComponent>(world, ae);
+            Del<AbilityFieldComponent>(world, ae);
+            Del<AbilitySelfComponent>(world, ae);
+            Del<AbilityCastEvent>(world, ae);
+            Del<AbilityTriggerKeyComponent>(world, ae);
+            Del<TriggerSubjectComponent>(world, ae);
+            Del<PendingCastsComponent>(world, ae);
+        }
+
+        static void Del<T>(EcsWorld world, int ae) where T : struct
+        {
+            var pool = world.GetPool<T>();
+            if (pool.Has(ae)) pool.Del(ae);
         }
 
         // Подсветка «условие эффекта готово» (напр. Воображаемые друзья/Все самому: ConditionRoot →

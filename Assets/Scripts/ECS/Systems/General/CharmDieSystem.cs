@@ -22,11 +22,16 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<TokenTag> _tokenPool = default;
         readonly EcsPoolInject<BoardPositionComponent> _posPool = default;
         readonly EcsPoolInject<ViewRefComponent> _viewPool = default;
+        readonly EcsPoolInject<CharmTimerComponent> _timerDbgPool = default;   // ВРЕМЕННО: диагностика ранней смерти
 
         public void Run(IEcsSystems systems)
         {
             foreach (var entity in _filter.Value)
             {
+                // ВРЕМЕННО (диагностика «Дупликатор умирает раньше срока»): кто умер и с каким остатком таймера.
+                UnityEngine.Debug.Log($"[CharmDie] entity={entity} frame={UnityEngine.Time.frameCount} " +
+                    $"timer={(  _timerDbgPool.Value.Has(entity) ? _timerDbgPool.Value.Get(entity).TurnsRemaining.ToString() : "нет")}");
+
                 // Шина: OnDie чары + ревёрт аур, выданных этой чарой (ApplyTrackedBuffEffect слушает смерть источника).
                 GameEventBus.Publish(new CreatureDiedEvent { CardEntity = entity, KillerEntity = -1 });
 

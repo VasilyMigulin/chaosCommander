@@ -23,7 +23,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247286718464
-    m_Localized: 'At the start of turn: creatures you control gain +*1* Speed'
+    m_Localized: 'At the start of turn: your creatures gain +*1* Speed'
     m_Metadata:
       m_Items: []
   - m_Id: 247286718465
@@ -31,7 +31,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247286718466
-    m_Localized: Creatures you control gain +*2* Health
+    m_Localized: Your creatures gain +*2* Health
     m_Metadata:
       m_Items: []
   - m_Id: 247286718467
@@ -47,7 +47,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247286718470
-    m_Localized: At the start of turn, summons 2 Arena Fighters
+    m_Localized: 'At the start of turn: summon 2 Arena Fighters'
     m_Metadata:
       m_Items: []
   - m_Id: 247286718471
@@ -63,7 +63,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912769
-    m_Localized: 'When it expires: summons Dad 10/10'
+    m_Localized: 'When it expires: summon Dad 10/10'
     m_Metadata:
       m_Items: []
   - m_Id: 247290912770
@@ -79,7 +79,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912773
-    m_Localized: Creatures your opponent controls gain -*1* Speed
+    m_Localized: Enemy creatures gain -*1* Speed
     m_Metadata:
       m_Items: []
   - m_Id: 247290912774
@@ -87,7 +87,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912775
-    m_Localized: Creatures your opponent controls gain -*3* Attack
+    m_Localized: Enemy creatures gain -*3* Attack
     m_Metadata:
       m_Items: []
   - m_Id: 247290912776
@@ -95,7 +95,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912777
-    m_Localized: All creatures you control gain the yellow color
+    m_Localized: All your creatures gain the yellow color
     m_Metadata:
       m_Items: []
   - m_Id: 247290912778
@@ -103,7 +103,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912779
-    m_Localized: At the start of your turn, creatures you control gain +*1*/+*2*
+    m_Localized: At the start of your turn, your creatures gain +*2*/+*3*
     m_Metadata:
       m_Items: []
   - m_Id: 247290912780
@@ -135,7 +135,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912787
-    m_Localized: 'When played: fills the row with imps'
+    m_Localized: 'When played: fills your row with imps'
     m_Metadata:
       m_Items: []
   - m_Id: 247290912788
@@ -159,8 +159,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912793
-    m_Localized: 'When played: spends 2 mana to deal *3* damage to the opponent''s
-      creatures'
+    m_Localized: 'When played: spends 2 mana to deal *3* damage to enemy creatures'
     m_Metadata:
       m_Items: []
   - m_Id: 247290912794
@@ -189,7 +188,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912800
-    m_Localized: 'While you control: Laborers you control gain +*1*/+*2*'
+    m_Localized: 'While you control: your Laborers gain +*1*/+*2*'
     m_Metadata:
       m_Items: []
   - m_Id: 247290912801
@@ -197,7 +196,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912802
-    m_Localized: 'When played: shuffles 2 Laborers into your deck'
+    m_Localized: 'When played: shuffle 2 Laborers into your deck'
     m_Metadata:
       m_Items: []
   - m_Id: 247290912803
@@ -213,7 +212,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912806
-    m_Localized: 'When played: fills your hand with Arson'
+    m_Localized: 'When played: fill your hand with Arson'
     m_Metadata:
       m_Items: []
   - m_Id: 247290912807
@@ -221,7 +220,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912808
-    m_Localized: 'On death: fills the row with Satanists'
+    m_Localized: 'On death: fills your row with Satanists'
     m_Metadata:
       m_Items: []
   - m_Id: 247290912809
@@ -237,7 +236,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912812
-    m_Localized: 'When played: adds a copy of the last spell you played to your hand'
+    m_Localized: 'When played: add a copy of the last spell you played to your hand'
     m_Metadata:
       m_Items: []
   - m_Id: 247290912813
@@ -253,7 +252,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912816
-    m_Localized: 'When played: shuffles 2 Skeletons into your deck'
+    m_Localized: 'When played: shuffle 2 Skeletons into your deck'
     m_Metadata:
       m_Items: []
   - m_Id: 247290912817
@@ -294,8 +293,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912826
-    m_Localized: 'When played: destroys creatures your opponent controls that don''t
-      have the yellow color'
+    m_Localized: 'When played: destroys enemy creatures without the yellow color'
     m_Metadata:
       m_Items: []
   - m_Id: 247290912827
@@ -312,7 +310,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912830
-    m_Localized: 'When played: draws a random spell from your deck'
+    m_Localized: 'When played: draw a random spell from your deck'
     m_Metadata:
       m_Items: []
   - m_Id: 247290912831
@@ -328,7 +326,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912834
-    m_Localized: 'At the start of turn: summons 2 Bugs 1/1/3'
+    m_Localized: 'At the start of turn: summons 2 Spiders 1/1/3'
     m_Metadata:
       m_Items: []
   - m_Id: 247290912835
@@ -360,8 +358,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912842
-    m_Localized: 'When played: dies. On death: destroys the strongest creature your
-      opponent controls'
+    m_Localized: 'When played: dies. On death: destroys the strongest enemy creature'
     m_Metadata:
       m_Items: []
   - m_Id: 247290912843
@@ -377,7 +374,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912846
-    m_Localized: 'At the start of the match: take *3* damage, summons 4 Spiders 1/1/3'
+    m_Localized: 'At the start of the match: deals *3* damage to its owner, summons
+      4 Spiders 1/1/3'
     m_Metadata:
       m_Items: []
   - m_Id: 247290912847
@@ -403,7 +401,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912852
-    m_Localized: 'When played: summon the most expensive creature from your deck;
+    m_Localized: 'When played: summons the most expensive creature from your deck;
       it dies in *3* turns'
     m_Metadata:
       m_Items: []
@@ -420,7 +418,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912856
-    m_Localized: 'At the end of turn: all creatures you control gain +*1*/+*1*'
+    m_Localized: 'At the end of turn: your creatures gain +*1*/+*1*'
     m_Metadata:
       m_Items: []
   - m_Id: 247290912857
@@ -428,7 +426,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912858
-    m_Localized: 'On death: gives Water'
+    m_Localized: 'On death: add Water to your hand'
     m_Metadata:
       m_Items: []
   - m_Id: 247290912859
@@ -472,7 +470,7 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 247290912868
     m_Localized: 'At the start of the match: shuffle Boba into your deck. At the
-      end of turn: if you control Boba, deal *3* damage to the opponent'
+      end of turn: if you control Boba, deals *3* damage to the opponent'
     m_Metadata:
       m_Items: []
   - m_Id: 247290912869
@@ -480,7 +478,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912870
-    m_Localized: 'At the start of turn: you take *2* damage, summons a random Imp'
+    m_Localized: 'At the start of turn: deals *2* damage to its owner, summons a
+      random Imp'
     m_Metadata:
       m_Items: []
   - m_Id: 247290912871
@@ -488,7 +487,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912872
-    m_Localized: Take *3* damage, summons 2 Imps
+    m_Localized: Take *3* damage, summon 2 Imps
     m_Metadata:
       m_Items: []
   - m_Id: 247290912873
@@ -496,8 +495,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912874
-    m_Localized: Deals *2* damage to creatures without the yellow color; gain a random
-      yellow spell for each creature that died
+    m_Localized: Deal *2* damage to creatures without the yellow color, add a random
+      yellow spell to your hand for each creature that died
     m_Metadata:
       m_Items: []
   - m_Id: 247290912875
@@ -505,7 +504,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912876
-    m_Localized: Turns a creature into an Imp under your control
+    m_Localized: Turn a creature into your Imp
     m_Metadata:
       m_Items: []
   - m_Id: 247290912877
@@ -513,7 +512,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912878
-    m_Localized: Add 2 cards with the black, red, or blue color to your hand
+    m_Localized: Add 2 black, red, or blue cards to your hand
     m_Metadata:
       m_Items: []
   - m_Id: 247290912879
@@ -521,7 +520,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912880
-    m_Localized: Destroys a creature your opponent controls
+    m_Localized: Destroy an enemy creature
     m_Metadata:
       m_Items: []
   - m_Id: 247290912881
@@ -537,8 +536,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912884
-    m_Localized: Summons a Spider 1/1/3; repeats for each card with this name played
-      this match
+    m_Localized: Summon a Spider 1/1/3; repeats for each card with the same name
+      you played this match
     m_Metadata:
       m_Items: []
   - m_Id: 247290912885
@@ -546,7 +545,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912886
-    m_Localized: If you took 15 damage on your turn, then until the end of the match,
+    m_Localized: If you took 12 damage on your turn, then until the end of the match,
       damage you take on your turn is redirected to the opponent
     m_Metadata:
       m_Items: []
@@ -555,8 +554,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912888
-    m_Localized: Deal *2* damage to all creatures on the battlefield; shuffle a Stink
-      Cloud for each creature that died
+    m_Localized: Deal *2* damage to all creatures on the battlefield, shuffle a Stink
+      Cloud into the opponent's deck for each creature that died
     m_Metadata:
       m_Items: []
   - m_Id: 247290912889
@@ -580,8 +579,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912894
-    m_Localized: 'Applies to creatures your opponent controls: "On death: shuffle
-      1 Stink Cloud into the owner''s deck"'
+    m_Localized: "Apply to enemy creatures: \xABOn death: shuffle 1 Stink Cloud into
+      the owner's deck\xBB"
     m_Metadata:
       m_Items: []
   - m_Id: 247290912895
@@ -589,7 +588,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912896
-    m_Localized: Steals a random card from the opponent's deck; it costs 1 less
+    m_Localized: Steal a random card from the opponent's deck; it costs 1 less
     m_Metadata:
       m_Items: []
   - m_Id: 247290912897
@@ -605,7 +604,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912900
-    m_Localized: Summons 2 creatures costing 3 or less from the graveyard
+    m_Localized: Summon 2 creatures costing 3 or less from the graveyard
     m_Metadata:
       m_Items: []
   - m_Id: 247290912901
@@ -613,7 +612,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912902
-    m_Localized: Shuffles a creature into its owner's deck
+    m_Localized: Shuffle a creature into its owner's deck
     m_Metadata:
       m_Items: []
   - m_Id: 247290912903
@@ -621,7 +620,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912904
-    m_Localized: Shuffles all creatures into their owners' decks
+    m_Localized: Shuffle all creatures into their owners' decks
     m_Metadata:
       m_Items: []
   - m_Id: 247290912905
@@ -629,7 +628,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912906
-    m_Localized: Returns creatures to their owners' hands
+    m_Localized: Return all creatures to their owners' hands
     m_Metadata:
       m_Items: []
   - m_Id: 247290912907
@@ -637,7 +636,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912908
-    m_Localized: Casts 2 spells costing 3 or less
+    m_Localized: Cast 2 spells costing 3 or less
     m_Metadata:
       m_Items: []
   - m_Id: 247290912909
@@ -645,7 +644,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912910
-    m_Localized: Deals *3* damage to 3 random enemies
+    m_Localized: Deal *3* damage to 3 random enemies
     m_Metadata:
       m_Items: []
   - m_Id: 247290912911
@@ -653,7 +652,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912912
-    m_Localized: Deals *5* damage to all black creatures
+    m_Localized: Deal *5* damage to all black creatures
     m_Metadata:
       m_Items: []
   - m_Id: 247290912913
@@ -661,7 +660,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912914
-    m_Localized: Removes the yellow color from a creature and gives it black
+    m_Localized: Remove the yellow color from a creature and give it black
     m_Metadata:
       m_Items: []
   - m_Id: 247290912915
@@ -677,8 +676,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912918
-    m_Localized: Gives the chosen creature the yellow color and takes control of
-      it
+    m_Localized: Give the chosen creature the yellow color and take control of it
     m_Metadata:
       m_Items: []
   - m_Id: 247290912919
@@ -686,8 +684,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912920
-    m_Localized: Takes control of a creature your opponent controls; it dies in *3*
-      turns
+    m_Localized: Take control of an enemy creature; it dies in *3* turns
     m_Metadata:
       m_Items: []
   - m_Id: 247290912921
@@ -713,7 +710,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912926
-    m_Localized: Take control of ALL creatures your opponent controls for 3 turns
+    m_Localized: Take control of ALL enemy creatures for 3 turns
     m_Metadata:
       m_Items: []
   - m_Id: 247290912927
@@ -738,8 +735,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912932
-    m_Localized: Deals *5* damage to a creature your opponent controls and *2* damage
-      to nearby creatures your opponent controls
+    m_Localized: Deal *5* damage to an enemy creature and *2* damage to nearby enemy
+      creatures
     m_Metadata:
       m_Items: []
   - m_Id: 247290912933
@@ -747,8 +744,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912934
-    m_Localized: Deals *1* damage to a creature; if it dies, deals *5* damage to
-      its neighbors
+    m_Localized: Deal *1* damage to a creature; if it dies, deal *5* damage to its
+      neighbors
     m_Metadata:
       m_Items: []
   - m_Id: 247290912935
@@ -776,12 +773,12 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912941
-    m_Localized: 'At the end of turn: if you control Biba, deal *3* damage to the
+    m_Localized: 'At the end of turn: if you control Biba, deals *3* damage to the
       opponent'
     m_Metadata:
       m_Items: []
   - m_Id: 247290912942
-    m_Localized: Brood Bug
+    m_Localized: Brood Spider
     m_Metadata:
       m_Items: []
   - m_Id: 247290912943
@@ -801,7 +798,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912947
-    m_Localized: Gives *3* mana until end of turn
+    m_Localized: Gain *3* mana until end of turn
     m_Metadata:
       m_Items: []
   - m_Id: 247290912948
@@ -833,7 +830,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 12461313875970
-    m_Localized: Start
+    m_Localized: Play
     m_Metadata:
       m_Items: []
   - m_Id: 12461313875971
@@ -961,7 +958,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 219011542409216
-    m_Localized: 'When played: shuffle 1 Stink Cloud into the opponent''s deck'
+    m_Localized: 'When played: shuffles 1 Stink Cloud into the opponent''s deck'
     m_Metadata:
       m_Items: []
   - m_Id: 402261606916096
@@ -1017,7 +1014,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2812476587499521
-    m_Localized: "Searching for opponent\u2026"
+    m_Localized: "Finding an opponent\u2026"
     m_Metadata:
       m_Items: []
   - m_Id: 2812476587499522
@@ -1025,7 +1022,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2812476587499523
-    m_Localized: "Loading battle\u2026"
+    m_Localized: "Loading the battle\u2026"
     m_Metadata:
       m_Items: []
   - m_Id: 2812476587499524
@@ -1041,11 +1038,11 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2812476587499527
-    m_Localized: Pesky Bite
+    m_Localized: Annoying Bite
     m_Metadata:
       m_Items: []
   - m_Id: 2812476587499528
-    m_Localized: Deals *1* damage to the enemy for each card with the same name you
+    m_Localized: Deal *1* damage to an enemy for each card with the same name you
       played this match
     m_Metadata:
       m_Items: []
@@ -1054,7 +1051,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2812476587499530
-    m_Localized: 'When played: draw a card. On death: both players discard *1* card'
+    m_Localized: 'When played: draw a card. On death: both players discard 1 card
+      each'
     m_Metadata:
       m_Items: []
   - m_Id: 2812476587499531
@@ -1062,7 +1060,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2812476587499532
-    m_Localized: 'On death: fills the row with Sewer Rats'
+    m_Localized: 'On death: fills your row with Sewer Rats'
     m_Metadata:
       m_Items: []
   - m_Id: 2812476587499533
@@ -1070,16 +1068,16 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2812476587499534
-    m_Localized: 'At the start of turn: shuffles *1* Stinky Cloud into your opponent''s
+    m_Localized: 'At the start of turn: shuffle 1 Stink Cloud into the opponent''s
       deck'
     m_Metadata:
       m_Items: []
   - m_Id: 2812476587499535
-    m_Localized: Latent Worker
+    m_Localized: Latent Laborer
     m_Metadata:
       m_Items: []
   - m_Id: 2812476587499536
-    m_Localized: 'On death: shuffles a random Worker into your deck'
+    m_Localized: 'On death: shuffle a random Laborer into your deck'
     m_Metadata:
       m_Items: []
   - m_Id: 2812476587499537
@@ -1087,8 +1085,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2812476587499538
-    m_Localized: 'When played: fills the row with creatures from your deck costing
-      *2* or less'
+    m_Localized: 'When played: fills your row with creatures costing 2 or less from
+      your deck'
     m_Metadata:
       m_Items: []
   - m_Id: 2812476587499539
@@ -1096,7 +1094,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2812476587499540
-    m_Localized: 'At the start of turn: you take *3* damage, summons a random imp'
+    m_Localized: 'At the start of turn: take *3* damage, summon 1 random Imp'
     m_Metadata:
       m_Items: []
   - m_Id: 2812476587499541
@@ -1104,11 +1102,11 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2812476587499542
-    m_Localized: 'At the start of turn: both players take *1* damage'
+    m_Localized: At the start of turn, both players take *1* damage
     m_Metadata:
       m_Items: []
   - m_Id: 2812476587499543
-    m_Localized: Imp Bully
+    m_Localized: Bully Imp
     m_Metadata:
       m_Items: []
   - m_Id: 2812476587499544
@@ -1116,7 +1114,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2812476587499545
-    m_Localized: Pesky Weed
+    m_Localized: Annoying Weed
     m_Metadata:
       m_Items: []
   - m_Id: 2812476587499546
@@ -1128,7 +1126,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2812476587499548
-    m_Localized: Gives a friendly creature +*2*/+*2*
+    m_Localized: Give your creature +*2*/+*2*
     m_Metadata:
       m_Items: []
   - m_Id: 2812476587499549
@@ -1141,6 +1139,1460 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 2812476587499551
     m_Localized: Level
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893006520320
+    m_Localized: Mother Log
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600704
+    m_Localized: 'At the end of turn: summons Another Weed 1/1/2'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600705
+    m_Localized: Another Weed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600706
+    m_Localized: Rainy Season
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600707
+    m_Localized: 'At the start of turn: your creatures gain +*1*/+*1*'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600708
+    m_Localized: Overgrown Ivy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600709
+    m_Localized: 'When played: gains +*1*/+*1* for each Weed you summoned this match'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600710
+    m_Localized: Overrun with Weeds
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600711
+    m_Localized: Fill your row with Weeds 1/1/3; they die in *3* turns
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600712
+    m_Localized: Weed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600713
+    m_Localized: Breeder
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600714
+    m_Localized: 'While you control: your Weeds gain +*1*/+*2*'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600715
+    m_Localized: Harvest
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600716
+    m_Localized: Gain *1* gold for each creature you control
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600717
+    m_Localized: Camouflaged Druid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600718
+    m_Localized: 'When played: your creatures gain +*2* Health'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600719
+    m_Localized: Trinket Collector
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600720
+    m_Localized: 'When played: look at 3 green cards, add the chosen one to your
+      hand; it costs 2 less'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600721
+    m_Localized: Imaginary Friends
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600722
+    m_Localized: Summon an Imaginary Friend X/X/X, where X is the number of cards
+      with this name you've played; if you have another card with this name in hand,
+      play it
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600723
+    m_Localized: Imaginary Friend
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600724
+    m_Localized: Do It All Myself Again!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600725
+    m_Localized: If your deck has no creatures, then until the end of the match all
+      spells are cast twice
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600726
+    m_Localized: Spark
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600727
+    m_Localized: Deal *2* damage to a creature
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600728
+    m_Localized: Binge Reading
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600729
+    m_Localized: Draw *2* cards
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600730
+    m_Localized: Useful Notes
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600731
+    m_Localized: Add a copy of the last spell you played to your hand
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600732
+    m_Localized: Touchy Grimoire
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600733
+    m_Localized: "Summon a Grimoire 2/2/1 \xABOn death: draw *1* card\xBB"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600734
+    m_Localized: Grimoire
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600735
+    m_Localized: 'On death: draw *1* card'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600736
+    m_Localized: Finisher
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600737
+    m_Localized: Deal *1* damage to the opponent for each spell you played this match
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600738
+    m_Localized: Boring Lesson
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600739
+    m_Localized: 'At the end of turn: add a random spell to your hand'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600740
+    m_Localized: Dummy Book
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600741
+    m_Localized: Draw a card; if your deck has no creatures, draw another one
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600742
+    m_Localized: Untapped Spring
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600743
+    m_Localized: 'At the start of turn: gain *1* mana for each activation'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600744
+    m_Localized: "D\xE9j\xE0 Vu"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600745
+    m_Localized: Cast copies of all spells you played this match
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600746
+    m_Localized: Weed Patron Shaman
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600747
+    m_Localized: 'At the end of turn: deals *1* damage to a random enemy for each
+      creature you control'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600748
+    m_Localized: Feeding Time
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600749
+    m_Localized: Destroy your creature, summon 2 Spiders 1/1/3
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600750
+    m_Localized: Why Spiders
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600751
+    m_Localized: Deal *3* damage to enemy creatures, summon a Spider 1/1/3 for each
+      creature killed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600752
+    m_Localized: Second Try
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600753
+    m_Localized: Return a creature you control to your hand; it costs 2 less
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600754
+    m_Localized: Wild Summon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600755
+    m_Localized: Play a creature costing 5 or less from your deck
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600756
+    m_Localized: Uncontrolled Thicket
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600757
+    m_Localized: 'At the start of turn: summon a Weed 1/1/2; it dies in *3* turns'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600758
+    m_Localized: Master of Charms
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600759
+    m_Localized: 'When played: look at 3 charms, add the chosen one to your hand;
+      it costs 1 less for each time you''ve played this card'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600760
+    m_Localized: Judgment Hour
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600761
+    m_Localized: 'When it expires: deal *10* damage to ALL characters'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600762
+    m_Localized: Failed Prayer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600763
+    m_Localized: Each time a creature without the yellow color enters the battlefield,
+      it takes *3* damage
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600764
+    m_Localized: Bad Brew
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600765
+    m_Localized: 'When played: restore *12* health. At the start of turn: take *3*
+      damage'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600766
+    m_Localized: Soda Volcano
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600767
+    m_Localized: 'At the start of turn: deal *1* damage to all creatures on the battlefield
+      for each activation'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600768
+    m_Localized: First Aid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600769
+    m_Localized: Restore *3* health, shuffle 3 Another First Aid cards into your
+      deck
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600770
+    m_Localized: Another First Aid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600771
+    m_Localized: 'When drawn: restore *3* health'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600772
+    m_Localized: The Reckless Prince
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600773
+    m_Localized: Gnidalf the Unwashed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600774
+    m_Localized: Halt, who goes there! Oh, the prince... Halt anyway!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600775
+    m_Localized: Step aside, guard. I'm here for the princess. State business!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600776
+    m_Localized: Gnidalf dragged her to the swamps! But don't go there... it STINKS.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600777
+    m_Localized: Should have warmed up before the heroics, your highness.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600778
+    m_Localized: Achoo! Who dares enter my fragrant lair?!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600779
+    m_Localized: The princess is saved! Though now a long bath is in order...
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600780
+    m_Localized: Ha-ha! While you're busy here, I've slipped you a couple of my...
+      fragrances!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600781
+    m_Localized: Card acquired!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600782
+    m_Localized: Choose your language
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600783
+    m_Localized: 'Play a creature: drag a creature card from your hand onto your
+      front line. Not enough gold? Press End Turn.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600784
+    m_Localized: 'Great! Now move: click your creature, then an adjacent cell. Out
+      of actions? End Turn.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600785
+    m_Localized: 'Reach the enemy creature and attack: click your creature, then
+      the enemy on an adjacent cell.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600786
+    m_Localized: Mana acquired! Play a spell from your hand.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600787
+    m_Localized: Final blow! Reach the enemy back line and attack their avatar until
+      victory.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5340893094600788
+    m_Localized: "That's it, you're trained. It only gets worse from here \u2014
+      but more fun."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5344678172942336
+    m_Localized: Forest MILF
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5344678172942337
+    m_Localized: 'When played: restores *3* health and gives *3* mana'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624514355200
+    m_Localized: Hungry Cook
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881152
+    m_Localized: 'When played: destroys an enemy creature on the battlefield, in
+      hand, and in the deck'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881153
+    m_Localized: Glutton
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881154
+    m_Localized: Gains +*2*/+*2* for each charm you control
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881155
+    m_Localized: Mister Persistence
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881156
+    m_Localized: 'When played: casts all charms you played this match'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881157
+    m_Localized: Informer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881158
+    m_Localized: 'On death: summons the weakest creature from your deck'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881159
+    m_Localized: Light Up
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881160
+    m_Localized: Destroy a random enemy creature on the battlefield, in hand, and
+      in the deck
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881161
+    m_Localized: Extra Opportunity
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881162
+    m_Localized: Look at 3 spells, choose 1 and cast it, then shuffle 3 copies of
+      it into your deck
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881163
+    m_Localized: Working Miracles
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881164
+    m_Localized: 'At the start of turn: cast a random spell'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881165
+    m_Localized: Union Banner
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881166
+    m_Localized: Your creatures gain *+1* speed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881167
+    m_Localized: Evil Eye
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881168
+    m_Localized: 'At the start of turn: deals *1* damage to a random enemy creature'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881169
+    m_Localized: Shady Bookkeeping
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881170
+    m_Localized: 'At the start of turn: destroys a random card from the opponent''s
+      deck'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881171
+    m_Localized: High-Interest Loan
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881172
+    m_Localized: 'At the start of turn: gain *2* gold'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881173
+    m_Localized: Hex
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881174
+    m_Localized: 'At the start of turn: the opponent discards a random card'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881175
+    m_Localized: Duplicator
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881176
+    m_Localized: 'At the start of turn: shuffles a copy of a random card from your
+      hand into your deck'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881177
+    m_Localized: Recruitment
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881178
+    m_Localized: 'At the start of turn: summons the cheapest creature from your deck'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881179
+    m_Localized: Insurance
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5985624568881180
+    m_Localized: 'When you take damage during your turn: draw a card'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939655467008
+    m_Localized: Play
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187264
+    m_Localized: Boosters
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187265
+    m_Localized: Shop
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187266
+    m_Localized: Market
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187267
+    m_Localized: Journal
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187268
+    m_Localized: Auction
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187269
+    m_Localized: Ranked Battle
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187270
+    m_Localized: Campaign
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187271
+    m_Localized: Find
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187272
+    m_Localized: Play
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187273
+    m_Localized: Deck
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187274
+    m_Localized: Black Market
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187275
+    m_Localized: Rank
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187276
+    m_Localized: online
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187277
+    m_Localized: Quick Access
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187278
+    m_Localized: Season
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187279
+    m_Localized: Lv.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187280
+    m_Localized: Campaign
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187281
+    m_Localized: Battle
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187282
+    m_Localized: Reward
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187283
+    m_Localized: Play
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187284
+    m_Localized: Locked
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187285
+    m_Localized: Completed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187286
+    m_Localized: Buy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187287
+    m_Localized: Sell
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187288
+    m_Localized: Remove
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187289
+    m_Localized: Collect
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187290
+    m_Localized: Streak
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187291
+    m_Localized: Reward
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187292
+    m_Localized: Login Reward
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187293
+    m_Localized: Purchase
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187294
+    m_Localized: Not enough funds
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187295
+    m_Localized: Enter a price
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187296
+    m_Localized: Nothing here yet
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187297
+    m_Localized: Confirm
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187298
+    m_Localized: Cancel
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187299
+    m_Localized: Buy for {0} {1}?
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187300
+    m_Localized: List for {0} {1}?
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187301
+    m_Localized: Play games
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939714187302
+    m_Localized: Win games
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939718381568
+    m_Localized: Play cards
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939718381569
+    m_Localized: Open boosters
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939718381570
+    m_Localized: Tap to open
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939718381571
+    m_Localized: Worker
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939718381572
+    m_Localized: Archetype. Worker cards empower each other
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939718381573
+    m_Localized: Imp
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939718381574
+    m_Localized: Archetype. Imps are strong in numbers
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939718381575
+    m_Localized: Flora
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939718381576
+    m_Localized: Archetype. Plants sprout and multiply
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6181939718381577
+    m_Localized: Skip tutorial
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6183373272768512
+    m_Localized: Journal
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6401313490329600
+    m_Localized: Journal
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6401313557438464
+    m_Localized: Tasks
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6401313557438465
+    m_Localized: Login
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6401313557438466
+    m_Localized: Daily
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6401313557438467
+    m_Localized: Weekly
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6401313557438468
+    m_Localized: Achievements
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6401313557438469
+    m_Localized: Profile
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6401313557438470
+    m_Localized: Wins
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6401313557438471
+    m_Localized: Losses
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6401313557438472
+    m_Localized: Win rate
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6401313557438473
+    m_Localized: Games played
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6401313557438474
+    m_Localized: Achievements
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6401313557438475
+    m_Localized: Boosters opened
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6401313557438476
+    m_Localized: Cards collected
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6401313570021376
+    m_Localized: Second-Hand Heroes
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6401313570021377
+    m_Localized: Tap to continue
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057553027072
+    m_Localized: chapter {0} of {1}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057649496064
+    m_Localized: completed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690368
+    m_Localized: Related cards
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690369
+    m_Localized: Decks
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690370
+    m_Localized: Add deck
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690371
+    m_Localized: No decks built yet
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690372
+    m_Localized: "Delete deck \xAB{0}\xBB?"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690373
+    m_Localized: "You can't keep more than {0} decks \u2014 delete one first"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690374
+    m_Localized: "Deck \xAB{0}\xBB already exists \u2014 pick another name"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690375
+    m_Localized: Deck code copied
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690376
+    m_Localized: "Code from clipboard: \xAB{0}\xBB"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690377
+    m_Localized: Deck loaded from code
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690378
+    m_Localized: 'Deck partially built from code: {0} card(s) missing'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690379
+    m_Localized: 'Some cards didn''t load: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690380
+    m_Localized: "Looking for someone to punch\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690381
+    m_Localized: "Scouting for an easy mark\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690382
+    m_Localized: "Setting up the showdown\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690383
+    m_Localized: "Cracking our knuckles\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690384
+    m_Localized: "Charging up the good vibes\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690385
+    m_Localized: "Scanning the servers for victims\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690386
+    m_Localized: "Just hanging around\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690387
+    m_Localized: "Matching by intellect\u2026 lowering the bar"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690388
+    m_Localized: "Looking for a worthy foe\u2026 or literally anyone"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690389
+    m_Localized: "Waiting for a brave soul\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690390
+    m_Localized: "Combing the server's back alleys\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690391
+    m_Localized: "Sharpening our claws\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690392
+    m_Localized: "Warming up our fists\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690393
+    m_Localized: "Packing extra swagger\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690394
+    m_Localized: "Seeking a rival with big dreams and no chance\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690395
+    m_Localized: "Preparing excuses in case you lose\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690396
+    m_Localized: "Recruiting a volunteer for the loser role\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690397
+    m_Localized: "Someone has to lose\u2026 and it won't be us"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690398
+    m_Localized: "Looking for someone who won't chicken out\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690399
+    m_Localized: "Calling everyone out\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690400
+    m_Localized: "Prepping the arena for a beatdown\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690401
+    m_Localized: "Victim wanted \u2014 apply within\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690402
+    m_Localized: "Betting your ego on this one\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690403
+    m_Localized: "Warming up the bench of chumps\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690404
+    m_Localized: "Checking the server for brave souls\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690405
+    m_Localized: "Finding an opponent\u2026 maybe luck skips you today"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690406
+    m_Localized: "Gathering the seconds\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690407
+    m_Localized: "Agreeing on the rules\u2026 there will be none"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690408
+    m_Localized: "Looking for someone with nerves to spare\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690409
+    m_Localized: "Looking for a punching bag\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690410
+    m_Localized: "Booking a clown for your circus\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690411
+    m_Localized: "Loading sarcasm\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690412
+    m_Localized: "Seeking a rival with wildly inflated self-esteem\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690413
+    m_Localized: "Finding someone who still believes in their deck\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690414
+    m_Localized: "Pouring your rival a glass of false hope\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690415
+    m_Localized: "Polishing the loser's crown\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690416
+    m_Localized: "Picking today's victim for a lesson\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690417
+    m_Localized: "Finding the hero of the day\u2026 to knock them down"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690418
+    m_Localized: "Checking who's out of luck today\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690419
+    m_Localized: "Puffing up our chests\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690420
+    m_Localized: "Grabbing an opponent before they change their mind\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690421
+    m_Localized: "Trawling the server for weaklings\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690422
+    m_Localized: "Reserving a spot for your defeat\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6726057653690423
+    m_Localized: "Looking for someone to practise on\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6727656241356800
+    m_Localized: Copy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6727656279105536
+    m_Localized: Delete
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6727656279105537
+    m_Localized: Edit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6727656279105538
+    m_Localized: Save
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6727656279105539
+    m_Localized: Clear
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6733122736480256
+    m_Localized: Play with this
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6733122778423296
+    m_Localized: Active
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6733122778423297
+    m_Localized: "Playing with \xAB{0}\xBB"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6733122778423298
+    m_Localized: "Deck isn't finished \u2014 not battle-ready"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7582018962448384
+    m_Localized: The deck has cards you don't own
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7582019025362944
+    m_Localized: Not enough funds
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7582019025362945
+    m_Localized: Already owned
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7582019025362946
+    m_Localized: Item unavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7582019025362947
+    m_Localized: You don't own this item
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7582019025362948
+    m_Localized: Section temporarily unavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7582019025362949
+    m_Localized: "Couldn't grant the item \u2014 funds refunded"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7582019025362950
+    m_Localized: No connection to the server
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7582019025362951
+    m_Localized: Bad request
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7582019025362952
+    m_Localized: Dev functions are disabled
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7582019025362953
+    m_Localized: "\xABStandard\xBB booster"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7582019025362954
+    m_Localized: "\xABPremium\xBB booster"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7582019025362955
+    m_Localized: "\xABReckless Prince\xBB avatar"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7582019025362956
+    m_Localized: "\xABGnidalf\xBB avatar"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7626595249414144
+    m_Localized: Training
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7626595312328704
+    m_Localized: 1v1 battle vs AI
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7626595312328705
+    m_Localized: "That's the commander's card \u2014 already in the deck"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7626595316523008
+    m_Localized: Server unavailable. Check your internet connection.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7626595316523009
+    m_Localized: Make sure your VPN is working.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7626595316523010
+    m_Localized: Retry
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7633779744038912
+    m_Localized: Owned
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7633779794370560
+    m_Localized: Buckaroo
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7633779794370561
+    m_Localized: Trinket
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7642452184784896
+    m_Localized: Looks like someone robbed the shop. Come back later.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7667532814082048
+    m_Localized: Day {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7667532881190912
+    m_Localized: Resets in
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7903993614295040
+    m_Localized: d
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7903993685598208
+    m_Localized: Scraps
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7903993685598209
+    m_Localized: Shred
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7903993685598210
+    m_Localized: Sold
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7903993685598211
+    m_Localized: Completed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7903993685598212
+    m_Localized: Received
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721925574656
+    m_Localized: Bid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294912
+    m_Localized: Place bid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294913
+    m_Localized: Raise
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294914
+    m_Localized: Start
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294915
+    m_Localized: Seller
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294916
+    m_Localized: You're winning
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294917
+    m_Localized: Outbid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294918
+    m_Localized: No bids
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294919
+    m_Localized: Ended
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294920
+    m_Localized: List
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294921
+    m_Localized: 'Bids: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294922
+    m_Localized: Whoa, the market's about to burst with lots!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294923
+    m_Localized: "Market's full \u2014 wait for lots to close"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294924
+    m_Localized: Filled {0} / {1}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294925
+    m_Localized: You'll pay {0} {1}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294926
+    m_Localized: "Bid {0} \u2192 you'll pay {1} {2}?"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294927
+    m_Localized: List from {0} {1} for {2} min?
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294928
+    m_Localized: '{0}h {1:00}m'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294929
+    m_Localized: "Market's full \u2014 wait for lots to close"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294930
+    m_Localized: "Lot already has bids \u2014 can't cancel"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294931
+    m_Localized: Bid must beat the current one
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294932
+    m_Localized: This is your own lot
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721984294933
+    m_Localized: Lot already ended
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721988489216
+    m_Localized: This item can't be sold
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721988489217
+    m_Localized: Invalid currency
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721988489218
+    m_Localized: Bid below minimum
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721988489219
+    m_Localized: Lot not found
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7949721988489220
+    m_Localized: Not your lot
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7951154511077376
+    m_Localized: Browse
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7951154540437504
+    m_Localized: Mine
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7963797472927744
+    m_Localized: My lots
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7963797523259392
+    m_Localized: Sell
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668274851840
+    m_Localized: Let's get acquainted
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183488
+    m_Localized: Continue
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183489
+    m_Localized: Enter a nickname
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183490
+    m_Localized: Sign in with Google
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183491
+    m_Localized: Sign in with Apple
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183492
+    m_Localized: soon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183493
+    m_Localized: Nickname too short (min 3)
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183494
+    m_Localized: "That name isn't available \u2014 try another"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183495
+    m_Localized: "Couldn't set the nickname \u2014 try again"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183496
+    m_Localized: "Open \xD7{0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183497
+    m_Localized: End Turn
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183498
+    m_Localized: "Looking for a free seat\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183499
+    m_Localized: "Knocking on the server\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183500
+    m_Localized: "Waking up the admin\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183501
+    m_Localized: "Elbowing through the queue\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183502
+    m_Localized: "Dusting off the database\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183503
+    m_Localized: "Recounting your riches\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183504
+    m_Localized: "Checking your progress hasn't run off\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183505
+    m_Localized: "Digging your account out of the pile\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183506
+    m_Localized: "Talking the server into letting you in\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183507
+    m_Localized: "Putting the cards back in order\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183508
+    m_Localized: "Looking for somewhere to plug the server in\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8718668325183509
+    m_Localized: "Negotiating with the cloud\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8723275818459136
+    m_Localized: "This is your commander. Always on hand \u2014 deploy whenever you
+      feel like it. Get him killed and he's back next turn, sulking."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8723275856207872
+    m_Localized: "Gold. It's what puts creatures on the board. Each turn you get
+      more and it refills \u2014 hoarding is pointless, spending is a joy."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8723275856207873
+    m_Localized: "Drag a creature from your hand onto your front line. You can afford
+      it \u2014 don't be shy."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8723275856207874
+    m_Localized: "A creature has three numbers. Attack \u2014 how hard it hits. Health
+      \u2014 how much it takes. Speed \u2014 pay attention to this one."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8723275856207875
+    m_Localized: Speed means actions, not running. A step costs speed, so does a
+      hit. One attack per turn. It all refills at the start of your turn.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8723275856207876
+    m_Localized: 'Click your creature, then an adjacent cell. A step costs speed:
+      out of it? End your turn and it refills.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8723275856207877
+    m_Localized: 'Reach an enemy creature and hit it: click yours, then the enemy
+      next to it. Out of speed? End your turn and continue next one.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8723275856207878
+    m_Localized: "Mana dripped off the corpse. It pays for spells and charms. It
+      doesn't appear on its own \u2014 you harvest it from enemy creatures, or by
+      other tricks."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8723275856207879
+    m_Localized: "You've got mana \u2014 cast a spell. Spells have requirements:
+      no valid target, no cast."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8723275856207880
+    m_Localized: "There are also charms \u2014 permanent things, also paid in mana.
+      You can't hold more than five at once."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8723275856207881
+    m_Localized: Finale. Punch through to the enemy avatar and keep hitting. Out
+      of speed? End your turn.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8723275856207882
+    m_Localized: Next
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10032882314633216
+    m_Localized: All damage taken on your turn is reflected to the opponent
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10032882373353472
+    m_Localized: Buy {0} for {1} {2}?
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10032882373353473
+    m_Localized: Max
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10032882373353474
+    m_Localized: "Shred dupes (\xD7{0})"
     m_Metadata:
       m_Items: []
   references:

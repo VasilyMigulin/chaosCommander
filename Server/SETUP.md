@@ -20,11 +20,14 @@ CloudScript. Клиентский слой уже написан (`Assets/Script
    - `GD` — Gold,
    - `GM` — Gems.
    (Двухбуквенный код — ровно тот, что шлёт клиент/CloudScript.)
-2. **Каталог (карты)**:
-   - В Unity: `Tools → Backend → Export Card Catalog (JSON)` → `card_catalog.json` (все карты,
-     ItemId = `expansion_cardId`, теги rarity/expansion).
-   - Создай в **Catalog (v1)** предмет на каждую карту с этим **ItemId** и тегами (bulk-upload либо Admin API).
-   - Добавь в каталог: бустер `booster_standard`, аватары `avatar_*`.
+2. **Каталог (карты + бустеры + аватары)**:
+   - В Unity: `Tools → Backend → Export PlayFab Catalog v1 (upload-ready)` → `playfab_catalog_v1.json`.
+     Файл уже в формате Game Manager: карты (ItemId = `expansion_cardId`, теги rarity/expansion),
+     плюс `booster_standard`, `booster_premium`, `avatar_prince`, `avatar_gnidalf`.
+   - Game Manager → **Economy → Catalogs** → выбрать каталог `main` → **Upload Catalog** → этот файл.
+   - `IsStackable: false` менять НЕЛЬЗЯ: клиент считает копии карты как число ItemInstance с данным
+     ItemId. Со стековым предметом PlayFab схлопнет 4 копии в один инстанс, и в библиотеке будет 1 карта.
+   - (`Tools → Backend → Export Card Catalog (JSON)` — старый экспорт «для сверки», PlayFab его не примет.)
 3. **Секретный ключ** для CloudScript **не нужен** — `server.*` уже title-авторитетны внутри CloudScript.
 
 ---
@@ -33,10 +36,18 @@ CloudScript. Клиентский слой уже написан (`Assets/Script
 
 Залей ключи из `Server/TitleData/`:
 - `boosterConfig`     ← `boosterConfig.json`
+- `shopConfig`        ← `shopConfig.json`  ← **витрина магазина и цены**
 - `blackMarketConfig` ← `blackMarketConfig.json`
 - `taskConfig`        ← `taskConfig.json`
 - `cardPool`          ← сгенерируй: `Tools → Backend → Export Card Pool` → `cardPool.json`
   (пул для ролла бустеров: expansion → rarity → [itemId]).
+
+**Про `shopConfig`.** Цена живёт только здесь — клиент присылает в `BuyStoreItem` один `itemId`,
+всё остальное сервер берёт из этого конфига, поэтому цену нельзя подделать, а витрину можно менять
+удалённо без обновления приложения. Каждый `itemId` из витрины **обязан существовать в Catalog v1**
+(иначе `GrantItemsToUser` упадёт, и покупка откатится с возвратом валюты — деньги игрок не потеряет,
+но товар не получит). `displayName` можно писать сырым текстом или ключом локализации
+(`ui.shop.booster_standard` — такие ключи уже заведены в `card_text.csv`).
 
 ---
 
@@ -72,7 +83,7 @@ Game Manager → **Automation → Cloud Script → Revisions** → вставь 
 |---|---|---|
 | Фундамент | `MigrateLibrary` | ✅ |
 | Бустеры | `OpenBooster` | ✅ |
-| Магазин | `GetShop`, `BuyStoreItem` | ⏳ заготовка |
+| Магазин | `GetShop`, `BuyStoreItem` | ✅ (нужен Title Data `shopConfig`) |
 | Daily | `GetDailyState`, `ClaimLoginReward`, `ClaimTask`, `ReportTaskProgress` | ⏳ заготовка |
 | Чёрный рынок | `GetBlackMarket`, `BuyBlackMarketCard` | ⏳ заготовка |
 | Аукцион | `*AuctionListing*` | ⏳ заготовка |

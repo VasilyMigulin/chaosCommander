@@ -31,7 +31,7 @@ MonoBehaviour:
         Rarity: 2
         Element: 36
         ArtImage: {fileID: 0}
-        ExpansionId: 
+        ExpansionId: standard
         PlayCost: 1
         PlayCostAmount: 5
         IsToken: 0
@@ -40,7 +40,7 @@ MonoBehaviour:
         RuntimeAbilities:
         - rid: 1051486747143962726
         Archetypes: []
-        TurnsAlive: 3
+        TurnsAlive: 4
     - rid: 1051486747143962726
       type: {class: AbilityNonTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
@@ -55,6 +55,7 @@ MonoBehaviour:
           HitPrefab: {fileID: 0}
           ProjectileSpeed: 12
           MergeArea: 0
+          PlayCasterAnimation: 0
     - rid: 1051486747143962727
       type: {class: OnTurnStartTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 

@@ -12,5 +12,11 @@ namespace Game.Core.Instance.Card
         // ICreatable — идентичность карты для спавна через CreateCardEvent (sync-safe).
         public string ExpansionId => CardData != null ? CardData.ExpansionId : null;
         public int CardId => CardData != null ? CardData.Id : -1;
+
+        // Каталожный id карты: "{expansion}_{cardId}" (нижним регистром — см. инвариант). Общий контракт InstanceData.
+        public override string ItemId => CardData != null ? $"{ExpansionId}_{CardId}" : null;
+
+        // Миниатюра: заданная вручную, иначе арт карты (CardModel.ArtImage).
+        public override Sprite Miniature => _miniature != null ? _miniature : CardData?.ArtImage;
     }
 }

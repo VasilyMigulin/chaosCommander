@@ -53,8 +53,13 @@ namespace Game.Core.Ecs.Systems
         {
             if (_pending.Count == 0) return;
 
-            foreach (var evt in _pending)
-                ProcessEvent(evt);
+            // Индексный цикл, НЕ foreach: обработка события может публиковать НОВЫЕ CreateCardEvent
+            // синхронно (модификаторы материализации — ShuffleCopiesOfTargetEffect у «Дополнительной
+            // возможности» замешивает 3 копии выбранной карты → OnCreateCard дописывает _pending прямо
+            // во время обработки) — foreach кидал InvalidOperationException «Collection was modified».
+            // Дописанные события обрабатываются в этом же кадре, в порядке добавления.
+            for (int i = 0; i < _pending.Count; i++)
+                ProcessEvent(_pending[i]);
 
             _pending.Clear();
         }
@@ -148,7 +153,11 @@ namespace Game.Core.Ecs.Systems
             // финальные статы. Публикуется на обоих клиентах (ре-ран) → счётчики зеркальны; триггеры
             // гейтятся AbilityFire.Mark (симулирует только актив).
             if (eventComp.InBoard && _world.Value.GetPool<CreatureTag>().Has(cardEntity))
-                GameEventBus.Publish(new CreatureInvokedEvent { CardEntity = cardEntity, Generated = true });
+            {
+                var ownerPool = _world.Value.GetPool<OwnerComponent>();
+                GameEventBus.Publish(new CreatureInvokedEvent { CardEntity = cardEntity, Generated = true,
+                    OwnerId = ownerPool.Has(cardEntity) ? ownerPool.Get(cardEntity).OwnerId : -1 });
+            }
         }
 
         /// <summary>

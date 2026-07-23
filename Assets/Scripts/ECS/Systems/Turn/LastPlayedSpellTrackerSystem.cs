@@ -11,7 +11,7 @@ namespace Game.Core.Ecs.Systems
     /// Подписан на CardPlayedEvent: если карта — заклинание (CardType.Spell),
     /// обновляет LastPlayedSpellComponent у entity игрока.
     /// </summary>
-    public sealed class LastPlayedSpellTrackerSystem : IEcsInitSystem, IEcsRunSystem, System.IDisposable
+    public sealed class LastPlayedSpellTrackerSystem : IEcsInitSystem, IEcsRunSystem, IEcsDestroySystem, System.IDisposable
     {
         readonly EcsWorldInject _world = default;
         readonly EcsPoolInject<LastPlayedSpellComponent> _lastPool = default;
@@ -23,6 +23,11 @@ namespace Game.Core.Ecs.Systems
         bool _subscribed;
 
         public void Init(IEcsSystems systems) => Subscribe();
+
+        // EcsSystems.Destroy() ищет IEcsDestroySystem, не System.IDisposable — без этого моста Dispose()
+        // фреймворк никогда не вызывал бы (см. EcsRunHandler/TutorialEcsHandler.Dispose → _allSystems.Destroy()).
+        public void Destroy(IEcsSystems systems) => Dispose();
+
         public void Dispose()
         {
             if (!_subscribed) return;
