@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
   m_Name: spell_card_038
   m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
   CardData:
     rid: 2419359952424665300
   references:
@@ -35,11 +36,14 @@ MonoBehaviour:
         PlayCost: 1
         PlayCostAmount: 1
         IsToken: 0
-        MulliganStartingHand: 0
-        MulliganUnlimitedReplace: 0
+        ShowAsLinked: 0
+        HideAsLinked: 0
+        NonBattleAbilities: []
         RuntimeAbilities:
         - rid: 2419359952424665301
         Archetypes: []
+        TierSource: 0
+        Tiers: []
         RequiresTarget: 0
     - rid: 2419359952424665301
       type: {class: AbilityNonTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
@@ -49,12 +53,15 @@ MonoBehaviour:
         Rules: []
         Effects:
         - rid: 2419359952424665305
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
         Vfx:
           Kind: 0
           Prefab: {fileID: 0}
-          HitPrefab: {fileID: 0}
+          HitPrefab: {fileID: 119382, guid: 616e8b55bdab6694fabc34c4d1a168fb, type: 3}
           ProjectileSpeed: 12
           MergeArea: 0
+          PlayCasterAnimation: 0
     - rid: 2419359952424665302
       type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 

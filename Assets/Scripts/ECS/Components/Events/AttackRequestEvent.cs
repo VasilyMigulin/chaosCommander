@@ -6,5 +6,8 @@ namespace Game.Core.Ecs.Components
     public struct AttackRequestEvent
     {
         public int TargetEntity;
+
+        /// <summary>Бесплатная атака (Позвать стражу и т.п.): AttackSystem не проверяет и не тратит SpeedComponent.Remaining.</summary>
+        public bool Free;
     }
 }

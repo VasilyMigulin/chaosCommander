@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
   m_Name: charm_card_004
   m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
   CardData:
     rid: 1051486567619101071
   references:
@@ -26,7 +27,7 @@ MonoBehaviour:
         Name: "\u0412\u0435\u0440\u0431\u043E\u0432\u043A\u0430"
         Description: "\u0412 \u0442\u0435\u0447\u0435\u043D\u0438\u0435 3 \u0445\u043E\u0434\u043E\u0432.
           \u0412 \u043D\u0430\u0447\u0430\u043B\u0435 \u0445\u043E\u0434\u0430 \u043F\u0440\u0438\u0437\u044B\u0432\u0430\u0435\u0442
-          2 \u0411\u043E\u0439\u0446\u043E\u0432 \u043D\u0430 \u0430\u0440\u0435\u043D\u0435"
+          3 \u0411\u043E\u0439\u0446\u043E\u0432 \u043D\u0430 \u0430\u0440\u0435\u043D\u0435"
         Rarity: 2
         Element: 48
         ArtImage: {fileID: 0}
@@ -34,12 +35,16 @@ MonoBehaviour:
         PlayCost: 1
         PlayCostAmount: 7
         IsToken: 0
+        ShowAsLinked: 0
         MulliganStartingHand: 0
         MulliganUnlimitedReplace: 0
         RuntimeAbilities:
         - rid: 1051486567619101072
         Archetypes: []
-        TurnsAlive: 4
+        TierSource: 0
+        Tiers: []
+        TurnsAlive: 3
+        TickMoment: 1
     - rid: 1051486567619101072
       type: {class: AbilityNonTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
@@ -48,6 +53,8 @@ MonoBehaviour:
         Rules: []
         Effects:
         - rid: 1051486567619101074
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
         Vfx:
           Kind: 0
           Prefab: {fileID: 0}
@@ -64,5 +71,5 @@ MonoBehaviour:
         ConditionRoot:
           rid: -2
         SummonModifiers: []
-        MaxCount: 2
+        MaxCount: 3
         Source: {fileID: 11400000, guid: 78e7564369b04154b910edc21d709a60, type: 2}

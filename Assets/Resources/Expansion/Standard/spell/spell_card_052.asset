@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
   m_Name: spell_card_052
   m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
   CardData:
     rid: 2419359952424665636
   references:
@@ -30,15 +31,18 @@ MonoBehaviour:
         Rarity: 2
         Element: 6
         ArtImage: {fileID: 0}
-        ExpansionId: 
+        ExpansionId: standard
         PlayCost: 1
         PlayCostAmount: 4
         IsToken: 0
-        MulliganStartingHand: 0
-        MulliganUnlimitedReplace: 0
+        ShowAsLinked: 0
+        HideAsLinked: 0
+        NonBattleAbilities: []
         RuntimeAbilities:
         - rid: 2419359952424665637
         Archetypes: []
+        TierSource: 0
+        Tiers: []
         RequiresTarget: 0
     - rid: 2419359952424665637
       type: {class: AbilityToTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
@@ -47,12 +51,15 @@ MonoBehaviour:
         Rules: []
         Effects:
         - rid: 2419359952424665640
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
         Vfx:
           Kind: 0
           Prefab: {fileID: 0}
-          HitPrefab: {fileID: 0}
+          HitPrefab: {fileID: 119382, guid: 616e8b55bdab6694fabc34c4d1a168fb, type: 3}
           ProjectileSpeed: 12
           MergeArea: 0
+          PlayCasterAnimation: 0
         Selection: 0
         Count: 1
         Zone: 1
@@ -60,6 +67,7 @@ MonoBehaviour:
         Filters:
         - rid: 2419359952424665638
         - rid: 2419359952424665639
+        IncludeCommanderInZones: 0
     - rid: 2419359952424665638
       type: {class: CasterOwnedTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
@@ -68,7 +76,8 @@ MonoBehaviour:
       data:
         MaxCost: 5
     - rid: 2419359952424665640
-      type: {class: PlayCardFromZoneEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      type: {class: PlayTargetCardEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
         ConditionRoot:
           rid: -2
+        ForceRandomTarget: 0

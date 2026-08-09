@@ -35,7 +35,7 @@ namespace Game.Core.Ecs.Systems
                 ref var pos   = ref _posPool.Value.Get(entity);
                 ref var speed = ref _speedPool.Value.Get(entity);
 
-                if (speed.Remaining <= 0)
+                if (!req.Free && speed.Remaining <= 0)
                 {
                     _movePool.Value.Del(entity);
                     continue;
@@ -50,7 +50,7 @@ namespace Game.Core.Ecs.Systems
                 pos.Col = req.ToCol;
                 if (req.ToOwnerId != 0)
                     pos.OwnerId = req.ToOwnerId;
-                speed.Remaining--;
+                if (!req.Free) speed.Remaining--;
                 _movePool.Value.Del(entity);
 
                 // Целевая мировая позиция

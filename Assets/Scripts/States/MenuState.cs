@@ -29,6 +29,29 @@ namespace Game.Core.States
             Events.GameEventBus.Subscribe<Events.PveStartRequestedEvent>(OnPveStartRequested);
 
             GrantStarterPackIfNeeded();
+            TryResumeInterruptedMatch();
+        }
+
+        /// <summary>
+        /// РЕКОННЕКТ (фаза 2): приложение закрыли посреди сетевого боя — пробуем вернуться в тот же матч.
+        /// Меню не блокируем: не вышло (сессии нет / пир уже добил матч техпобедой) — игрок просто остаётся
+        /// в меню, а запись о матче чистится. Успех — ReconnectService грузит боевую сцену.
+        /// </summary>
+        async void TryResumeInterruptedMatch()
+        {
+            if (!Game.Core.Network.MatchSessionStore.HasActive) return;
+
+            Debug.Log("[MenuState] найден незавершённый сетевой матч — пробую реконнект…");
+
+            // Возврат занимает до минуты (хост держит слот убитого клиента до Fusion ConnectionTimeout),
+            // поэтому игроку нужно объяснить, почему меню «само что-то делает»: тост сразу + напоминания,
+            // пока ждём слот, + честный итог, если бой уже закончился без него.
+            NotifyService.Info(UIStrings.ReconnectResume);
+            bool resumed = await ReconnectService.TryResumeAsync(
+                onStillWaiting: () => NotifyService.Info(UIStrings.ReconnectWaiting));
+
+            if (!resumed) NotifyService.Warning(UIStrings.ReconnectFailed);
+            Debug.Log($"[MenuState] реконнект: {(resumed ? "успех — гружу бой" : "не вышло, остаёмся в меню")}");
         }
 
         /// <summary>
@@ -99,6 +122,14 @@ namespace Game.Core.States
 
         public void StartMatchMaking()
         {
+            // Идёт возврат в незавершённый матч (он стучится в комнату до минуты, пока хост не дропнет
+            // мёртвый слот). Новый поиск в это время дёргал бы StartSession поверх текущей попытки.
+            if (Game.Core.Network.ReconnectFlow.IsActive)
+            {
+                Debug.Log("[MenuState] StartMatchMaking: идёт восстановление прерванного матча — поиск не запускаю.");
+                return;
+            }
+
             var mm = PhotonInitializer.Instance.Matchmaking;
             // Транслируем состояния Photon-матчмейкинга в UI-статус для FindOpponentPanel.
             mm.OnStateChanged -= OnMatchmakingStateChanged;
@@ -125,12 +156,30 @@ namespace Game.Core.States
 
         public void CancelMatchMaking() => MatchmakingUiHub.Cancel();
 
-        // Статик (переживает гибель MenuState): завершаем сессию и возвращаемся в меню.
+        // Статик (переживает гибель MenuState): завершаем сессию и возвращаемся в меню. НЕУБИВАЕМО:
+        // исключение или зависание Runner.Shutdown не должны оставлять игрока в лимбе лобби («Отмена не
+        // работает после создания комнаты», 2026-07-29) — меню грузим В ЛЮБОМ СЛУЧАЕ, на завершение
+        // сессии даём максимум 5с (недобитый раннер доубьётся при следующем старте поиска — EndSession
+        // снимает ссылки в начале).
         static async void CancelMatchmakingAndReturn()
         {
-            var mm = PhotonInitializer.Instance?.Matchmaking;
-            if (mm != null)
-                await mm.CancelMatchmaking();
+            Debug.Log("[MenuState] CancelMatchmakingAndReturn: старт (EndSession + возврат в меню)");
+            try
+            {
+                var mm = PhotonInitializer.Instance?.Matchmaking;
+                if (mm != null)
+                {
+                    var cancel = mm.CancelMatchmaking();
+                    var finished = await System.Threading.Tasks.Task.WhenAny(
+                        cancel, System.Threading.Tasks.Task.Delay(5000));
+                    if (finished != cancel)
+                        Debug.LogWarning("[MenuState] CancelMatchmaking не завершился за 5с (Shutdown раннера завис?) — принудительный возврат в меню");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"[MenuState] CancelMatchmaking упал: {ex}");
+            }
 
             MatchmakingUiHub.Reset();
             UnityEngine.SceneManagement.SceneManager.LoadScene(1);   // MenuScene

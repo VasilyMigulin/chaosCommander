@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 94fdf3306b821744da4c1a68d4e68c38, type: 3}
+  m_Name: stolen_princess_encounter_001
+  m_EditorClassIdentifier: Game.Core.Configs::Game.Core.Configs.PveEncounterConfig
+  EncounterName: "\u041D\u0435\u043F\u043E\u0434\u043A\u0443\u043F\u043D\u044B\u0439
+    \u0441\u0442\u0440\u0430\u0436\u043D\u0438\u043A"
+  Commander: {fileID: 11400000, guid: dc8cd7d76ebd25e4f87efb1c0ae3f617, type: 2}
+  Cards:
+  - Card: {fileID: 11400000, guid: 62af00cfa4f08ea469e96ad7de17cda6, type: 2}
+    Count: 4
+  StartingHand: 4
+  Health: 30
+  PlayerDeck: {fileID: 11400000, guid: ae712d374f099b64391f79e2a6215be7, type: 2}
+  IntroLines: []
+  VictoryLines: []
+  DefeatLines: []
+  ScriptedEvents: []
+  RewardCards:
+  - Card: {fileID: 11400000, guid: 46457980a7a62a74bb3a7487cdb6e887, type: 2}
+    Count: 3
+  ActionInterval: 0.9

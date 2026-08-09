@@ -32,7 +32,13 @@ namespace AwesomeUI.Feature.Login
     ///     │    ├─ ContinueButton(Button)         ← _continueButton
     ///     │    ├─ GoogleButton  (Button)         ← _googleButton   (выключается кодом)
     ///     │    ├─ AppleButton   (Button)         ← _appleButton    (выключается кодом)
-    ///     │    └─ SoonNote      (GameObject)     ← _socialNote     («скоро», опц.)
+    ///     │    ├─ SoonNote      (GameObject)     ← _socialNote     («скоро», опц.)
+    ///     │    └─ HaveAccountBtn(Button)         ← _signInOpenButton («Уже есть аккаунт», опц.)
+    ///     ├─ SignInRoot      (GameObject) ← _signInRoot       (4) вход по почте — ЛЕГАСИ, опц.
+    ///     │    ├─ EmailInput    (TMP_InputField) ← _signInEmailInput
+    ///     │    ├─ PasswordInput (TMP_InputField) ← _signInPasswordInput (Content Type = Password)
+    ///     │    ├─ SubmitButton  (Button)         ← _signInSubmitButton
+    ///     │    └─ BackButton    (Button)         ← _signInBackButton
     ///     ├─ OfflineRoot     (GameObject) ← _offlineRoot      (3) нет связи, попытки исчерпаны
     ///     │    └─ RetryButton   (Button)         ← _retryButton
     ///     └─ FeedbackText    (TMP_Text)   ← _feedbackText     (ошибки: ник занят / нет связи)
@@ -65,6 +71,17 @@ namespace AwesomeUI.Feature.Login
         [SerializeField] Button         _appleButton;
         [Tooltip("Плашка «скоро» над соц-кнопками — показывается, пока соцвход выключен. Опц.")]
         [SerializeField] GameObject     _socialNote;
+
+        [Header("Вход по почте (легаси — для аккаунтов, заведённых на сайте)")]
+        [Tooltip("Кнопка «Уже есть аккаунт» на панели знакомства. Опц.")]
+        [SerializeField] Button         _signInOpenButton;
+        [Tooltip("Корень формы входа по почте. Опц.: без него вход по почте просто недоступен.")]
+        [SerializeField] GameObject     _signInRoot;
+        [SerializeField] TMP_InputField _signInEmailInput;
+        [Tooltip("Content Type = Password.")]
+        [SerializeField] TMP_InputField _signInPasswordInput;
+        [SerializeField] Button         _signInSubmitButton;
+        [SerializeField] Button         _signInBackButton;
 
         /// <summary>Вызывается после успешного входа (для внешних подписчиков).</summary>
         public event Action OnLoginSuccess;
@@ -117,6 +134,12 @@ namespace AwesomeUI.Feature.Login
             _retryButton?.onClick.AddListener(StartGuestLogin);
             _googleButton?.onClick.AddListener(OnGoogleClicked);
             _appleButton?.onClick.AddListener(OnAppleClicked);
+            _signInOpenButton?.onClick.AddListener(OpenSignIn);
+            _signInSubmitButton?.onClick.AddListener(OnSignInSubmit);
+            _signInBackButton?.onClick.AddListener(CloseSignIn);
+
+            // Вход по почте доступен, только если форма собрана в префабе.
+            if (_signInOpenButton != null) _signInOpenButton.gameObject.SetActive(_signInRoot != null);
 
             // Соцвход выключен до релиза: гасим кнопки, показываем «скоро».
             if (_googleButton != null) _googleButton.interactable = SocialEnabled;
@@ -127,6 +150,7 @@ namespace AwesomeUI.Feature.Login
             if (_connectRoot != null) _connectRoot.SetActive(false);
             if (_welcomeRoot != null) _welcomeRoot.SetActive(false);
             if (_offlineRoot != null) _offlineRoot.SetActive(false);
+            if (_signInRoot != null) _signInRoot.SetActive(false);
             ClearFeedback();
 
             // Логин НЕ стартуем в OnInject: канвас инжектит ВСЕ панели на старте (в т.ч. под заставкой).
@@ -204,6 +228,10 @@ namespace AwesomeUI.Feature.Login
             SetLoading(false);
             if (_offlineRoot != null) _offlineRoot.SetActive(false);
 
+            // Ник уже есть на сервере (аккаунт заводили на сайте или на другом устройстве) —
+            // знакомиться заново не нужно.
+            if (!string.IsNullOrEmpty(PlayFabService.DisplayName)) FirstRunFlow.NameChosen = true;
+
             // Первый запуск И собрана панель знакомства → «Давай знакомиться»; иначе (ник задан ИЛИ панели нет
             // в префабе) — сразу в меню. Гейт по _welcomeRoot != null: без собранного UI не блокируем вход.
             if (!FirstRunFlow.NameChosen && _welcomeRoot != null)
@@ -270,6 +298,94 @@ namespace AwesomeUI.Feature.Login
             else SceneManager.LoadScene(1);
         }
 
+        // ── Вход по почте (ЛЕГАСИ) ───────────────────────────────────────────────
+        // Основной путь входа — Google/Apple; почта нужна тем, кто завёл аккаунт на сайте.
+        // Работает только на панели знакомства, ДО загрузки инвентаря и колод: сменить аккаунт
+        // посреди сессии нельзя — данные уже прогружены под старого игрока.
+
+        void OpenSignIn()
+        {
+            if (_signInRoot == null) return;
+            ClearFeedback();
+            if (_welcomeRoot != null) _welcomeRoot.SetActive(false);
+            if (_signInEmailInput != null) _signInEmailInput.text = "";
+            if (_signInPasswordInput != null) _signInPasswordInput.text = "";
+            _signInRoot.SetActive(true);
+        }
+
+        void CloseSignIn()
+        {
+            if (_signInRoot != null) _signInRoot.SetActive(false);
+            ClearFeedback();
+            ShowWelcome();
+        }
+
+        void OnSignInSubmit()
+        {
+            if (_busy) return;
+            string email    = _signInEmailInput != null ? _signInEmailInput.text.Trim() : "";
+            string password = _signInPasswordInput != null ? _signInPasswordInput.text : "";
+            if (email.Length == 0 || password.Length == 0)
+            {
+                ShowFeedback(T("ui.signin.empty", "Введите почту и пароль"));
+                return;
+            }
+
+            _busy = true;
+            SetLoading(true);
+            ClearFeedback();
+
+            PlayFabService.LoginWithEmail(email, password,
+                onSuccess: LinkDeviceThenContinue,
+                onError:   err =>
+                {
+                    _busy = false;
+                    SetLoading(false);
+                    ShowFeedback(TranslateSignInError(err));
+                });
+        }
+
+        // Привязываем устройство к вошедшему аккаунту: со следующего запуска тихий вход по
+        // CustomId попадёт уже сюда. Сбой привязки НЕ блокирует вход — просто в следующий раз
+        // игроку придётся войти руками.
+        void LinkDeviceThenContinue()
+        {
+            PlayFabService.LinkCustomId(SystemInfo.deviceUniqueIdentifier, forceLink: true,
+                onSuccess: FinishSignIn,
+                onError:   err =>
+                {
+                    Debug.LogWarning($"[LoginPanel] Привязка устройства не удалась: {err}");
+                    FinishSignIn();
+                });
+        }
+
+        void FinishSignIn()
+        {
+            _busy = false;
+            if (_signInRoot != null) _signInRoot.SetActive(false);
+
+            if (!string.IsNullOrEmpty(PlayFabService.DisplayName))
+            {
+                FirstRunFlow.NameChosen = true;
+                Complete();                 // спиннер не гасим — впереди загрузка данных
+            }
+            else
+            {
+                SetLoading(false);
+                ShowWelcome();              // аккаунт есть, а ника нет — спросим
+            }
+        }
+
+        static string TranslateSignInError(string error)
+        {
+            if (!string.IsNullOrEmpty(error) &&
+                (error.IndexOf("password", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                 error.IndexOf("not found", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                 error.IndexOf("AccountNotFound", StringComparison.OrdinalIgnoreCase) >= 0))
+                return T("ui.signin.bad_credentials", "Неверная почта или пароль");
+            return T("ui.signin.failed", "Не удалось войти — попробуйте ещё раз");
+        }
+
         // ── Соцвход (заглушки до релиза) ─────────────────────────────────────────
         // Кнопки выключены (interactable=false), поэтому клики сюда не доходят. Оставлено готовым к релизу:
         // нужна нативная часть — получить serverAuthCode (Google) / identityToken (Apple) и передать в Link*.
@@ -283,6 +399,7 @@ namespace AwesomeUI.Feature.Login
             SetLoading(false);
             EndConnect();
             if (_welcomeRoot != null) _welcomeRoot.SetActive(false);
+            if (_signInRoot != null) _signInRoot.SetActive(false);
             ShowFeedback(OfflineMessage());
             if (_offlineRoot != null) _offlineRoot.SetActive(true);
             if (_retryButton != null) _retryButton.gameObject.SetActive(true);
@@ -373,12 +490,16 @@ namespace AwesomeUI.Feature.Login
             _retryButton?.onClick.RemoveListener(StartGuestLogin);
             _googleButton?.onClick.RemoveListener(OnGoogleClicked);
             _appleButton?.onClick.RemoveListener(OnAppleClicked);
+            _signInOpenButton?.onClick.RemoveListener(OpenSignIn);
+            _signInSubmitButton?.onClick.RemoveListener(OnSignInSubmit);
+            _signInBackButton?.onClick.RemoveListener(CloseSignIn);
         }
 
         void SetLoading(bool active)
         {
             if (_loadingOverlay != null) _loadingOverlay.SetActive(active);
             if (_continueButton != null) _continueButton.interactable = !active;
+            if (_signInSubmitButton != null) _signInSubmitButton.interactable = !active;
         }
 
         void ShowFeedback(string msg) { if (_feedbackText != null) _feedbackText.text = msg; }

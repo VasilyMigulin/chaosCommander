@@ -73,8 +73,13 @@ namespace Game.Core.Ability
     // === class (OOP) === Создать ОДИН СЛУЧАЙНЫЙ токен из пула на свободной клетке фронта (Фокус-покус через
     // RepeatEffect{Fixed=2}). Как GainRandomCardEffect, но на борд: АКТИВ роллит UnityEngine.Random + Record
     // в GeneratedCardChannel (едет в снапшоте способности), ПАССИВ берёт присланное (TryReplay) → та же карта.
-    // Клетку резервируем ДО ролла — если фронт полон, не роллим (иначе канал бы рассинхронился). Пул КУРИРУЕТ
-    // автор (напр. «существа ≤3») — рантайм-фильтра по цене нет (ICreatable не несёт стоимость).
+    // Клетку резервируем ДО ролла — если фронт полон, не роллим (иначе канал бы рассинхронился).
+    //
+    // «ЗА X» (FilterByCost): из пула берётся карта СТОИМОСТЬЮ X, где X — ЛЮБОЙ счётчик проекта
+    // (RepeatEffect.CountSource через общий AbilityCount.Resolve). «Попаданцы»: CostSource=SelfResolves →
+    // 1-я активация призывает за 1, 2-я за 2, 3-я за 3 — «улучшается с каждой активацией». Ровно за X в
+    // пуле нет → берётся ближайшее по цене (PoolUtil.PickByCost). Без флага — как раньше, любой из пула
+    // (пул курирует автор).
     [Serializable]
     [MovedFrom(true, sourceClassName: "SummonRandomTokenEffect")]
     public sealed class SpawnRandomCardOnBoardEffect : SpawnOnBoardEffect
@@ -83,6 +88,18 @@ namespace Game.Core.Ability
         public ScriptableObject PoolAsset;
         [Tooltip("Ручной пул ассетов CardInstanceData (если PoolAsset не задан).")]
         public List<ScriptableObject> Pool = new();
+
+        [Tooltip("Брать из пула карту ЗАДАННОЙ стоимости (иначе — любую случайную).")]
+        public bool FilterByCost = false;
+        [Tooltip("Откуда берётся стоимость X. Fixed → FixedCost; SelfResolves → номер активации (1,2,3… — " +
+                 "«улучшается с каждой активацией», Попаданцы); любой другой счётчик проекта тоже годится.")]
+        public RepeatEffect.CountSource CostSource = RepeatEffect.CountSource.Fixed;
+        [Tooltip("Стоимость для CostSource=Fixed.")]
+        public int FixedCost = 1;
+        [Tooltip("Для счётчиков по конкретной карте (MatchPlayedCard и т.п.).")]
+        public ScriptableObject CostCountCard;
+        [Tooltip("Для счётчика по архетипу (MatchArchetypeInvoked).")]
+        [SerializeReference] public ICreatureTag CostArchetype;
 
         public override void Apply(EcsWorld world, int cardEntity, int target)
         {
@@ -100,7 +117,12 @@ namespace Game.Core.Ability
             }
             else
             {
-                var pick = PoolUtil.Pick(PoolAsset, Pool);
+                // -1 = без учёта цены. Счётчик (SelfResolves и пр.) считает ОБЩИЙ AbilityCount — тот же,
+                // что у RepeatEffect, поэтому «за номер активации» ведёт себя как «Нечищенный источник».
+                int cost = FilterByCost
+                    ? AbilityCount.Resolve(world, PlayerEntity, cardEntity, CostSource, FixedCost, CostCountCard, CostArchetype)
+                    : -1;
+                var pick = PoolUtil.PickByCost(PoolAsset, Pool, cost);
                 if (pick == null) return;
                 exp = pick.ExpansionId; cardId = pick.CardId;
                 GeneratedCardChannel.Record(exp, cardId);

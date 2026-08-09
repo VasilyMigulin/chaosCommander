@@ -23,16 +23,33 @@ namespace AwesomeUI.Feature.DeckBuilder
         [Header("Commander")]
         [SerializeField] GameObject _commanderBadge;         // значок-метка командира
 
+        [Header("Sideboard")]
+        [Tooltip("Кнопка «редактировать отложенные» — загорается только у карты, которая объявляет свою " +
+                 "зону (Сказочник). Нажатие переводит список колоды в режим правки этой зоны.")]
+        [SerializeField] Button _editSideboardButton;
+
         public CardModel Model { get; private set; }
         public event System.Action<DeckCardView> OnRemoveRequested;
+
+        /// <summary>Нажата кнопка «редактировать отложенные».</summary>
+        public event System.Action<DeckCardView> OnEditSideboardRequested;
 
         DeckCardViewData _data;
 
         public override SourceSlot Init()
         {
             base.Init();
+            if (_editSideboardButton != null)
+            {
+                // Своя кнопка, а не общий клик по карте: клик по карте уже занят удалением из колоды,
+                // и вешать на него второе значение значило бы ломать привычное поведение остальных карт.
+                _editSideboardButton.onClick.RemoveListener(RaiseEditSideboard);
+                _editSideboardButton.onClick.AddListener(RaiseEditSideboard);
+            }
             return this;
         }
+
+        void RaiseEditSideboard() => OnEditSideboardRequested?.Invoke(this);
 
         public void SetData(DeckCardViewData data)
         {
@@ -57,6 +74,9 @@ namespace AwesomeUI.Feature.DeckBuilder
 
             if (!isCommander && _counterText != null)
                 _counterText.text = $"X{_data.DeckCount}";
+
+            if (_editSideboardButton != null)
+                _editSideboardButton.gameObject.SetActive(_data.HasSideboard);
         }
 
         // Смена языка: пересобираем визуал (имя/описание) из модели и перерисовываем.

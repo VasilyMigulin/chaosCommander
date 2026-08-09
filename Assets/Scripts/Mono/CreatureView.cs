@@ -158,6 +158,106 @@ namespace Game.Core.Mono
         }
 
         /// <summary>
+        /// Автоскейл (снимает ручную подгонку каждой модели под клетку): равномерно масштабирует существо
+        /// так, чтобы его рендер-баунды ЗАПОЛНИЛИ target по всем трём осям (min-fit — не сплющивая
+        /// пропорции модели, как маленькие, так и большие модели подгоняются под общий размер клетки).
+        /// target=null (у CellView не назначен _fitBounds) → автоскейл пропускается, масштаб как в префабе.
+        /// ВЫЗЫВАТЬ ДО PlaySummon/PlaySlideInvoke — они берут текущий transform.localScale как базу для
+        /// поп-анимации появления, и ДО SetOwnerFacing — баунды снимаются в Quaternion.identity, чтобы
+        /// поворот на 180° (владелец 2) не портил размер бокса для несимметричных моделей.
+        /// </summary>
+        public void FitToBounds(Bounds? target)
+        {
+            if (target == null) return;
+
+            Bounds? modelBounds = null;
+            var visualRoots = new HashSet<Transform>();
+
+            // Animator ЕЩЁ НИ РАЗУ не проэволюционировал на первом кадре после Instantiate — скелет стоит
+            // в сыром bind-pose из FBX (частый случай — T-поза с раскинутыми руками; у разных ассет-паков
+            // разная, у одной и той же на вид модели с разным риггингом ширина bind-pose может ощутимо
+            // отличаться). Меряем должны РЕАЛЬНУЮ дефолтную позу (Idle), а не то, что случайно запечено в
+            // префабе — форсим синхронную оценку контроллера ДО BakeMesh.
+            if (animator != null) animator.Update(0f);
+
+            // SkinnedMeshRenderer.bounds ДОВЕРЯТЬ НЕЛЬЗЯ: это импортные баунды меша (часто под весь диапазон
+            // анимации/скелета, иногда вообще заглушка из FBX) — модель на глаз мелкая, а .bounds отдаёт коробку
+            // в разы больше реальной, автоскейл от этого душит модель. BakeMesh печёт РЕАЛЬНУЮ позу здесь и
+            // сейчас (Idle-поза после Update(0f) выше) — баунды считаем от неё.
+            var bake = new Mesh();
+            foreach (var smr in GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                if (smr.sharedMesh == null) continue;
+                smr.BakeMesh(bake);   // вершины — в ЛОКАЛЬНОМ пространстве smr.transform
+                if (bake.vertexCount == 0) continue;
+                bake.RecalculateBounds();
+                Encapsulate(ref modelBounds, WorldBounds(bake.bounds, smr.transform));
+                var root = DirectChild(smr.transform);
+                if (root != null) visualRoots.Add(root);
+            }
+            Destroy(bake);
+
+            // Обычные (не скинутые) меши — оружие/пропсы и т.п.: .bounds у них уже корректные, анимацией не раздуты.
+            foreach (var mr in GetComponentsInChildren<MeshRenderer>(true))
+            {
+                if (mr.GetComponent<MeshFilter>()?.sharedMesh == null) continue;
+                Encapsulate(ref modelBounds, mr.bounds);
+                var root = DirectChild(mr.transform);
+                if (root != null) visualRoots.Add(root);
+            }
+
+            if (modelBounds == null || visualRoots.Count == 0) return;   // ни одного меша — нечего мерить, не трогаем масштаб
+
+            Vector3 size = modelBounds.Value.size;
+            if (size.x <= 0.0001f || size.y <= 0.0001f || size.z <= 0.0001f) return;   // вырожденные баунды — не трогаем
+
+            Vector3 box = target.Value.size;
+            float factor = Mathf.Min(box.x / size.x, Mathf.Min(box.y / size.y, box.z / size.z));
+            if (factor <= 0f || float.IsNaN(factor) || float.IsInfinity(factor)) return;
+
+            // Скейлим ТОЛЬКО визуальные поддеревья (там, где реально нашли меши) — НЕ корень CreatureView
+            // целиком. StatusHolder/AttackHolder/HealthHolder/SpeedHolder (стат-канвас) — прямые ДЕТИ ТОГО
+            // ЖЕ корня, что и модель (сиблинги, не потомки модели) — скейл root'а их тоже тянул, из-за чего
+            // «плашка» статов у существа плавала по размеру вместе с моделью (баг, поймал юзер).
+            foreach (var root in visualRoots)
+                root.localScale *= factor;
+        }
+
+        static void Encapsulate(ref Bounds? total, Bounds b)
+        {
+            if (total == null) total = b;
+            else { var t = total.Value; t.Encapsulate(b); total = t; }
+        }
+
+        // Ближайший предок node, который является ПРЯМЫМ ребёнком корня CreatureView (this.transform) —
+        // «поддерево модели» целиком, а не отдельная кость/меш внутри неё (скейлить нужно ЦЕЛИКОМ, иначе
+        // скелет/меши разъедутся друг относительно друга). null — рендерер висит прямо на корне (нет
+        // отдельного под-узла модели) — такой случай не трогаем, некуда изолировать скейл от StatusHolder.
+        Transform DirectChild(Transform node)
+        {
+            Transform t = node;
+            while (t.parent != null && t.parent != transform) t = t.parent;
+            return t.parent == transform ? t : null;
+        }
+
+        // BakeMesh отдаёт баунды в локальном пространстве smr.transform — переводим 8 углов бокса в мир
+        // (не просто TransformPoint(center)+масштаб extents: при повороте это дало бы неверный AABB).
+        static Bounds WorldBounds(Bounds local, Transform t)
+        {
+            Vector3 c = local.center, e = local.extents;
+            Bounds world = new Bounds(t.TransformPoint(c), Vector3.zero);
+            for (int i = 0; i < 8; i++)
+            {
+                Vector3 corner = c + new Vector3(
+                    (i & 1) == 0 ? -e.x : e.x,
+                    (i & 2) == 0 ? -e.y : e.y,
+                    (i & 4) == 0 ? -e.z : e.z);
+                world.Encapsulate(t.TransformPoint(corner));
+            }
+            return world;
+        }
+
+        /// <summary>
         /// Базовый разворот в покое: владелец 1 смотрит «вперёд» (+Z, на оппонента), владелец 2 —
         /// в противоположную сторону (180°). Применяется при спавне. Если базовая ориентация префаба
         /// иная — поменять угол здесь.
@@ -423,8 +523,11 @@ namespace Game.Core.Mono
         /// <summary>Драг-розыгрыш (#пайплайн-под-пальцем): существо появляется в мировой точке fromWorld
         /// (где было превью под пальцем) и плавно «въезжает» в клетку toWorld, играя анимацию Invoke.
         /// Без поп-масштаба (существо уже «целое» — оно материализовалось под пальцем). Держит IsSummoning
-        /// (гейт OnCast) на summonSeconds. Спека vfx проигрывается БЕЗ Pre-фазы (существо уже видно
-        /// под пальцем — портал не имеет смысла), Resolve/Finish — как у PlaySummon.</summary>
+        /// (гейт OnCast) на summonSeconds. Спека vfx: Pre играет СРАЗУ на клетке назначения, БЕЗ скрытия
+        /// существа (PreLeadSeconds игнорируется — оно уже видно под пальцем, прятать-открывать смысла нет,
+        /// но сам эффект — напр. дефолтная «пыль приземлился» — всё равно должен быть виден, иначе у обычных
+        /// существ БЕЗ кастомной SummonVfx VFX появления не проигрывается вообще). Resolve/Finish — как у
+        /// PlaySummon.</summary>
         public void PlaySlideInvoke(Vector3 fromWorld, Vector3 toWorld, Game.Core.Shared.Interface.SummonVfxSpec vfx = null)
         {
             IsSummoning = true;
@@ -432,6 +535,8 @@ namespace Game.Core.Mono
             transform.DOKill();
             transform.position = fromWorld;
             transform.DOMove(toWorld, 0.25f).SetEase(Ease.OutCubic);
+
+            if (vfx?.PrePrefab != null) SpawnVfxInstance(vfx.PrePrefab, toWorld, null);
 
             if (animator != null && HasParam(SummonHash))
                 animator.SetTrigger(SummonHash);

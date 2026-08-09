@@ -16,6 +16,10 @@ namespace Game.Core.Ecs.Systems
     /// (CardPickOfferedEvent → PickupWindow → CardPickChosenEvent), а не клики по доске. Гейзер кандидатов —
     /// TargetGather по зоне/фильтрам способности. Набрав Count → AbilityQueuedState{Targets}.
     ///
+    /// Окно — ОБЩИЙ ресурс на четыре канала пика, поэтому оффер публикуется только со слотом от
+    /// CardPickBrokerSystem, а выбор коррелируется по RequestId (не по entity карты-владельца: шину
+    /// слушают все каналы, а id живут в одном пространстве).
+    ///
     /// СИНК: окно показывается только на активе (AbilityPickPendingState ставится в таргетинге, который идёт
     /// только у активного). Выбранная цель уходит в Targets → ActionAbilityData.TargetEntityKeys, пассив
     /// берёт её из снапшота (не переспрашивает). Спец-канал не нужен.
@@ -37,7 +41,8 @@ namespace Game.Core.Ecs.Systems
         bool _subscribed;
         readonly Queue<CardPickChosenEvent>    _chosen    = new Queue<CardPickChosenEvent>();
         readonly Queue<CardPickCancelledEvent> _cancelled = new Queue<CardPickCancelledEvent>();
-        readonly Queue<int> _turnEnded = new Queue<int>();
+        readonly Queue<int>                    _expired   = new Queue<int>();
+        readonly List<int>                     _buffer    = new List<int>();
 
         void Subscribe()
         {
@@ -45,31 +50,31 @@ namespace Game.Core.Ecs.Systems
             _subscribed = true;
             GameEventBus.Subscribe<CardPickChosenEvent>(e => _chosen.Enqueue(e));
             GameEventBus.Subscribe<CardPickCancelledEvent>(e => _cancelled.Enqueue(e));
-            GameEventBus.Subscribe<TurnEndedEvent>(e => _turnEnded.Enqueue(e.ActivePlayerId));
+            // Момент истечения задаёт брокер (одно правило на все каналы пика); способ наш — отмена:
+            // недобранные цели означают, что способность не разыгрывается.
+            GameEventBus.Subscribe<CardPickExpiredEvent>(e => _expired.Enqueue(e.PlayerId));
         }
 
         public void Run(IEcsSystems systems)
         {
             Subscribe();
 
-            // Ход закончился, а окно выбора (колода/рука/кладбище) ещё открыто — не должно зависать после
-            // EndTurn. Отменяем (способность не резолвится) — см. тот же комментарий в
-            // RunAbilityTargetSelectionSystem про OnCast-only и невозвращённую карту (TODO).
-            while (_turnEnded.Count > 0)
-            {
-                int playerId = _turnEnded.Dequeue();
-                foreach (var ability in _pendingFilter.Value)
-                {
-                    int pe = _pickPool.Value.Get(ability).PlayerEntity;
-                    if (!_playerPool.Value.Has(pe) || _playerPool.Value.Get(pe).PlayerId != playerId) continue;
-                    _pickPool.Value.Del(ability);
-                    break;
-                }
-            }
+            Offer();
 
-            // Предложить ещё не показанные пики (только в свой ход).
-            foreach (var ability in _pendingFilter.Value)
+            while (_chosen.Count > 0)    ResolveChosen(_chosen.Dequeue());
+            while (_cancelled.Count > 0) ResolveCancelled(_cancelled.Dequeue());
+            while (_expired.Count > 0)   Expire(_expired.Dequeue());
+        }
+
+        // Предложить ещё не показанные пики (только в свой ход и только со слотом окна).
+        void Offer()
+        {
+            _buffer.Clear();
+            foreach (var ability in _pendingFilter.Value) _buffer.Add(ability);
+
+            foreach (var ability in _buffer)
             {
+                if (!_pickPool.Value.Has(ability)) continue;
                 ref var pp = ref _pickPool.Value.Get(ability);
                 if (pp.Offered) continue;
                 if (!_activePool.Value.Has(pp.PlayerEntity)) continue;
@@ -78,7 +83,10 @@ namespace Game.Core.Ecs.Systems
                 ref var tc    = ref _targetPool.Value.Get(ability);
 
                 var candidates = TargetGather.Gather(_world.Value, tc.Filters, owner.CardEntity, owner.PlayerEntity, null, tc.Zone);
-                if (candidates.Count == 0) { _pickPool.Value.Del(ability); continue; }   // фуззл
+                Exclude(candidates, pp.Chosen);            // уже выбранные повторно не показываем
+                if (candidates.Count == 0) { Release(ability); continue; }   // фуззл
+
+                if (!PickTicket.Ready(_world.Value, ability, ref pp.RequestId, pp.PlayerEntity)) continue;
 
                 // discover: показываем ОГРАНИЧЕННЫЙ случайный набор (OfferCount), а не все кандидаты —
                 // окно вмещает немного карт. Синкается только финальный выбор (через target-ключ).
@@ -87,25 +95,26 @@ namespace Game.Core.Ecs.Systems
                 pp.Offered = true;
                 GameEventBus.Publish(new CardPickOfferedEvent
                 {
-                    CastingCardEntity   = owner.CardEntity,   // корреляция (эхо в CardPickChosenEvent)
+                    RequestId           = pp.RequestId,
+                    CastingCardEntity   = owner.CardEntity,   // диагностика; корреляция — только по RequestId
                     PlayerEntity        = owner.PlayerEntity,
                     OfferedCardEntities = shown.ToArray(),
                     OfferedCardVisuals  = BuildVisuals(shown),
                     OfferedCount        = shown.Count,
+                    AllowCancel         = true,
                 });
             }
-
-            while (_chosen.Count > 0)    ResolveChosen(_chosen.Dequeue());
-            while (_cancelled.Count > 0) ResolveCancelled(_cancelled.Dequeue());
         }
 
         void ResolveChosen(CardPickChosenEvent e)
         {
+            if (e.RequestId == 0) return;
+
             foreach (var ability in _pendingFilter.Value)
             {
-                if (_ownerPool.Value.Get(ability).CardEntity != e.CastingCardEntity) continue;
-
                 ref var pp = ref _pickPool.Value.Get(ability);
+                if (pp.RequestId != e.RequestId) continue;
+
                 ref var tc = ref _targetPool.Value.Get(ability);
 
                 var chosen = pp.Chosen ?? Array.Empty<int>();
@@ -120,20 +129,59 @@ namespace Game.Core.Ecs.Systems
                 {
                     if (!_queuedPool.Value.Has(ability)) _queuedPool.Value.Add(ability);
                     _queuedPool.Value.Get(ability).Targets = next;
-                    _pickPool.Value.Del(ability);
+                    Release(ability);
+                    return;
                 }
+
+                // Нужно ещё целей (Count>1): отпускаем окно и встаём в очередь брокера заново — иначе
+                // после первого выбора запрос оставался с Offered=true и второе окно не показывалось
+                // никогда, а способность зависала до конца хода.
+                pp.Offered   = false;
+                pp.RequestId = 0;
+                PickTicket.Release(_world.Value, ability);
                 return;
             }
         }
 
         void ResolveCancelled(CardPickCancelledEvent e)
         {
+            if (e.RequestId == 0) return;
             foreach (var ability in _pendingFilter.Value)
             {
-                if (_ownerPool.Value.Get(ability).CardEntity != e.CastingCardEntity) continue;
-                _pickPool.Value.Del(ability);   // отмена → способность не разыграется
+                if (_pickPool.Value.Get(ability).RequestId != e.RequestId) continue;
+                Release(ability);   // отмена → способность не разыграется
                 return;
             }
+        }
+
+        // Ход закончился, а окно выбора (колода/рука/кладбище) ещё открыто — не должно зависать после
+        // EndTurn. Отменяем (способность не резолвится) — см. тот же комментарий в
+        // RunAbilityTargetSelectionSystem про OnCast-only и невозвращённую карту (TODO).
+        void Expire(int playerId)
+        {
+            _buffer.Clear();
+            foreach (var ability in _pendingFilter.Value)
+            {
+                int pe = _pickPool.Value.Get(ability).PlayerEntity;
+                if (_playerPool.Value.Has(pe) && _playerPool.Value.Get(pe).PlayerId == playerId) _buffer.Add(ability);
+            }
+
+            foreach (var ability in _buffer) Release(ability);
+        }
+
+        // Снять запрос вместе с талоном окна: сущность способности переживает пик, сам талон не исчезнет.
+        void Release(int ability)
+        {
+            if (_pickPool.Value.Has(ability)) _pickPool.Value.Del(ability);
+            PickTicket.Release(_world.Value, ability);
+        }
+
+        static void Exclude(List<int> src, int[] taken)
+        {
+            if (taken == null || taken.Length == 0) return;
+            for (int i = src.Count - 1; i >= 0; i--)
+                for (int j = 0; j < taken.Length; j++)
+                    if (src[i] == taken[j]) { src.RemoveAt(i); break; }
         }
 
         // discover: случайный поднабор размера n (n<=0 или >=всего → все). Только UI на активе → не синкаем.

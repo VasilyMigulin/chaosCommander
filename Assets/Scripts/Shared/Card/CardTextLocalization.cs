@@ -35,6 +35,8 @@ namespace Game.Core.Shared
         // ── Ключи локализации выводятся из идентичности карты — авторить ключи руками не нужно ──
         public static string NameKey(string expansionId, int cardId) => $"card.{expansionId}.{cardId}.name";
         public static string DescKey(string expansionId, int cardId) => $"card.{expansionId}.{cardId}.desc";
+        /// <summary>Описание УРОВНЯ карты-с-уровнями (0-based): свой текст на каждый уровень.</summary>
+        public static string TierDescKey(string expansionId, int cardId, int tier) => $"card.{expansionId}.{cardId}.tier.{tier}.desc";
 
         // ── Тип карты (плашка): встроенный RU/EN-фоллбэк + переопределение из таблицы по ключу type.* ──
         public static string TypeLabel(EnumService.CardType type)
@@ -49,6 +51,43 @@ namespace Game.Core.Shared
                 default:                            fallback = "";                              break;
             }
             return GetText("type." + type, fallback);
+        }
+
+        // ── Свойства (ICreatureProperty.Key → дефолтный ярлык-кейворд перед описанием) ──
+        // Встроенный RU/EN-фоллбэк + переопределение из таблицы по ключу property.<key>.label (как TypeLabel).
+        // Poisoned/«Ядовитый»: любой урон носителя навешивает статус «Отравлен» (PoisonComponent) на цель.
+        // Одно свойство — ключ Poisoned исторический (класс PoisonedProperty), EN-ярлык нарочно "Toxic",
+        // не "Poisoned" (put действия у самого носителя нет, страдает цель).
+        static readonly Dictionary<string, string> PropertyLabelsRu = new Dictionary<string, string>
+        {
+            ["DoubleAttack"]  = "Двойной удар",
+            ["Shielded"]      = "Защищённый",
+            ["Invulnerable"]  = "Неуязвимый",
+            ["Taunt"]         = "Защитник",
+            ["Poisoned"]      = "Ядовитый",
+            ["Retaliate"]     = "Ответочка",
+            ["Stealthed"]     = "Скрытый",
+        };
+        static readonly Dictionary<string, string> PropertyLabelsEn = new Dictionary<string, string>
+        {
+            ["DoubleAttack"]  = "Double Strike",
+            ["Shielded"]      = "Shield",
+            ["Invulnerable"]  = "Invulnerable",
+            ["Taunt"]         = "Guardian",
+            ["Poisoned"]      = "Toxic",
+            ["Retaliate"]     = "Retaliate",
+            ["Stealthed"]     = "Stealth",
+        };
+
+        /// <summary>Дефолтный ярлык свойства (Двойной удар/Защитник/...) по ICreatureProperty.Key.
+        /// Неизвестный ключ → сам ключ (лучше показать что-то, чем упасть на пустой ярлык).</summary>
+        public static string PropertyLabel(string propertyKey)
+        {
+            if (string.IsNullOrEmpty(propertyKey)) return string.Empty;
+            bool en = (Language ?? "ru").StartsWith("en");
+            var dict = en ? PropertyLabelsEn : PropertyLabelsRu;
+            string fallback = dict.TryGetValue(propertyKey, out var v) ? v : propertyKey;
+            return GetText("property." + propertyKey + ".label", fallback);
         }
 
         // ── Ключевые фразы, которые форматтер автоматически делает жирными (<b>…</b>) ──

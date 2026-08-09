@@ -28,6 +28,7 @@ namespace Game.Core.Ecs.Handlers
             // переживать в новый туториал-запуск).
             Game.Core.Ecs.Components.MatchState.Clear();
             Game.Core.Ecs.Components.CastMultiplierService.Clear();
+            Game.Core.Ecs.Components.CharmDurationBonusService.Clear();
 
             World = new EcsWorld();
 
@@ -48,7 +49,11 @@ namespace Game.Core.Ecs.Handlers
                 .Add(new MatchCounterTrackerSystem())
                 .Add(new LastPlayedSpellTrackerSystem())
                 .Add(new CreatureTimerTickSystem())
+                .Add(new RecurringDamageTickSystem())
+                .Add(new PoisonTickSystem())
+                .Add(new StealthTickSystem())
                 .Add(new CharmTimerTickSystem())
+                .Add(new BuffDurationTickSystem())
                 .Add(new TemporaryManaRefundSystem())
                 .Add(new TempControlRevertSystem())
                 .Add(new RunRequestEndTurnSystem())
@@ -58,17 +63,23 @@ namespace Game.Core.Ecs.Handlers
             general
                 .Add(new CreateCardSystem())
                 .Add(new CardAffordabilitySystem())
+                .Add(new RunCardTargetPreviewSystem())
                 // Живые статы карт в руке → PlayCardView. Туториал отдельно УЧИТ читать атаку/здоровье/
                 // скорость, так что цифры на картах должны быть настоящими.
                 .Add(new HandCardStatsViewSystem())
+                // --- Арбитр ЕДИНСТВЕННОГО окна выбора карт: строго ДО всех продюсеров пика ---
+                .Add(new CardPickBrokerSystem())
                 .Add(new RunDrawReplacementSystem())
                 .Add(new RunDiscoverSystem())
+                .Add(new RunScrySystem())
                 .Add(new DrawCardSystem())
                 .Add(new HandUISystem())
                 .Add(new SpawnCreatureViewSystem())
                 .Add(new RunPendingOnCastSystem())
                 .Add(new TeamTintSystem())
                 .Add(new RunSelectCellSystem())
+                // «Бросается в атаку» (Позвать стражу): ForceSeekAttackTag → путь к ближайшему врагу.
+                .Add(new ForceSeekAttackSystem())
                 // Исполнение маршрута по шагам (PathMoveComponent → MoveRequestEvent/AttackRequestEvent).
                 // БЕЗ неё приказ «идти» ставит состояние движения, завершать его некому — существо стоит,
                 // ввод навсегда заблокирован («blocked: PathMove executing»), туториал уходит в софт-лок.
@@ -77,8 +88,11 @@ namespace Game.Core.Ecs.Handlers
                 .Add(new AttackSystem())
                 .Add(new ReflectDamageSystem())
                 .Add(new TakeDamageSystem())
+                .Add(new LethalHealthSystem())   // смерть по HP≤0 из НЕ-урона (дебафф/снятие HP-ауры)
                 .Add(new DieSystem())
                 .Add(new CharmDieSystem())
+                .Add(new RunTransformSystem())   // полиморф: мутация существа на месте
+                .Add(new PassiveAuraSystem())    // ауры «пока карта в руке/зоне»
                 .Add(new RunLeaveBoardSystem())
                 .Add(new RunCommanderCooldownSystem())
                 .Add(new GameOverCheckSystem())
@@ -171,6 +185,7 @@ namespace Game.Core.Ecs.Handlers
             _all.ForEach(s => s.Destroy());
             Game.Core.Events.GameEventBus.Clear();
             Game.Core.Ecs.Components.CastMultiplierService.Clear();
+            Game.Core.Ecs.Components.CharmDurationBonusService.Clear();
             Game.Core.Ecs.Components.MatchState.Clear();
             World.Destroy();
             World = null;

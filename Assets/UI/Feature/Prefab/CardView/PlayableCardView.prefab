@@ -457,6 +457,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
+--- !u!224 &5283628770053979301 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 3512475492248438534, guid: 18590e748cd6a6e428842617eed1d81b, type: 3}
+  m_PrefabInstance: {fileID: 8785935213858536355}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &5337996091625398559 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 3745225428481301180, guid: 18590e748cd6a6e428842617eed1d81b, type: 3}
@@ -528,13 +533,22 @@ MonoBehaviour:
   _attackText: {fileID: 2461044217938641542}
   _healthText: {fileID: 8871178683873642745}
   _speedText: {fileID: 5337996091625398559}
+  _tierBanner: {fileID: 0}
+  _tierText: {fileID: 0}
   _buffColor: {r: 0.35, g: 1, b: 0.35, a: 1}
   _debuffColor: {r: 1, g: 0.35, b: 0.35, a: 1}
   _statPunchScale: 0.35
   _statPunchDuration: 0.3
+  _punchTarget: {fileID: 5283628770053979301}
+  _cardPunchScale: 0.18
+  _cardPunchDuration: 0.35
+  _affectVfx: []
   _holdInspectEnabled: 1
   _holdThreshold: 0.45
   _returnDuration: 0.25
+  _zoomScale: 1.6
+  _zoomLift: 90
+  _zoomDuration: 0.15
 --- !u!114 &8871178683873642745 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 211998503917613914, guid: 18590e748cd6a6e428842617eed1d81b, type: 3}

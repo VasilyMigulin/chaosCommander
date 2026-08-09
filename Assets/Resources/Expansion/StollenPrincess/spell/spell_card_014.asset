@@ -1,0 +1,184 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: spell_card_014
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
+  CardData:
+    rid: 2425735989079048513
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 2425735989079048513
+      type: {class: CardSpellModel, ns: Game.Core.Model.Card.Spell, asm: Game.Core.Model.Card.Spell}
+      data:
+        Id: 61
+        Name: "\u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438\u0442\u044C \u0432\u0438\u043F-\u0433\u043E\u0441\u0442\u0435\u0439"
+        Description: 
+        Rarity: 2
+        Element: 16
+        ArtImage: {fileID: 0}
+        ExpansionId: stolen_princess
+        PlayCost: 1
+        PlayCostAmount: 2
+        IsToken: 0
+        ShowAsLinked: 0
+        HideAsLinked: 0
+        NonBattleAbilities: []
+        RuntimeAbilities: []
+        Archetypes: []
+        TierSource: 2
+        Tiers:
+        - rid: 2425735989079048514
+        - rid: 2425735989079048521
+        - rid: 2425735989079048529
+        RequiresTarget: 0
+    - rid: 2425735989079048514
+      type: {class: CardTier, ns: Game.Core.Model.Card, asm: Game.Core.Model.Card}
+      data:
+        Threshold: 0
+        Attack: 0
+        Health: 0
+        Speed: 0
+        PlayCost: 1
+        PlayCostAmount: 2
+        Abilities:
+        - rid: 2425735989079048515
+    - rid: 2425735989079048515
+      type: {class: AbilityNonTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 2425735989079048516
+        Rules: []
+        Effects:
+        - rid: 2425735989079048528
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 185366, guid: 2589c453adc70bf4b9d34509504d2d3f, type: 3}
+          ProjectileSpeed: 12
+          MergeArea: 0
+          PlayCasterAnimation: 0
+    - rid: 2425735989079048516
+      type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425735989079048521
+      type: {class: CardTier, ns: Game.Core.Model.Card, asm: Game.Core.Model.Card}
+      data:
+        Threshold: 4
+        Attack: 0
+        Health: 0
+        Speed: 0
+        PlayCost: 1
+        PlayCostAmount: 4
+        Abilities:
+        - rid: 2425735989079048522
+    - rid: 2425735989079048522
+      type: {class: AbilityNonTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 2425735989079048523
+        Rules: []
+        Effects:
+        - rid: 2425735989079048526
+        - rid: 2425735989079048527
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 185366, guid: 2589c453adc70bf4b9d34509504d2d3f, type: 3}
+          ProjectileSpeed: 12
+          MergeArea: 0
+          PlayCasterAnimation: 0
+    - rid: 2425735989079048523
+      type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425735989079048526
+      type: {class: SpawnCardOnBoardEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        SummonModifiers: []
+        Source: {fileID: 11400000, guid: d682aff2a57dfd34198a07657aed6e5c, type: 2}
+    - rid: 2425735989079048527
+      type: {class: SpawnCardOnBoardEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        SummonModifiers: []
+        Source: {fileID: 11400000, guid: 17e8b408121a6ce49bfca901aeb53245, type: 2}
+    - rid: 2425735989079048528
+      type: {class: SpawnCardOnBoardEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        SummonModifiers: []
+        Source: {fileID: 11400000, guid: d682aff2a57dfd34198a07657aed6e5c, type: 2}
+    - rid: 2425735989079048529
+      type: {class: CardTier, ns: Game.Core.Model.Card, asm: Game.Core.Model.Card}
+      data:
+        Threshold: 8
+        Attack: 8
+        Health: 8
+        Speed: 2
+        PlayCost: 1
+        PlayCostAmount: 8
+        Abilities:
+        - rid: 2425735989079048531
+    - rid: 2425735989079048531
+      type: {class: AbilityNonTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 2425735989079048532
+        Rules: []
+        Effects:
+        - rid: 2425735989079048533
+        - rid: 2425735989079048534
+        - rid: 2425735989079048535
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 185366, guid: 2589c453adc70bf4b9d34509504d2d3f, type: 3}
+          ProjectileSpeed: 12
+          MergeArea: 0
+          PlayCasterAnimation: 0
+    - rid: 2425735989079048532
+      type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425735989079048533
+      type: {class: SpawnCardOnBoardEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        SummonModifiers: []
+        Source: {fileID: 11400000, guid: d682aff2a57dfd34198a07657aed6e5c, type: 2}
+    - rid: 2425735989079048534
+      type: {class: SpawnCardOnBoardEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        SummonModifiers: []
+        Source: {fileID: 11400000, guid: 17e8b408121a6ce49bfca901aeb53245, type: 2}
+    - rid: 2425735989079048535
+      type: {class: SpawnCardOnBoardEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        SummonModifiers: []
+        Source: {fileID: 11400000, guid: 4a06d9e8c0526ff49b834afbfc60e7a9, type: 2}

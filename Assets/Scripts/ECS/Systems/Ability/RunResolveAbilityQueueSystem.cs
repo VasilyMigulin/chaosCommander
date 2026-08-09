@@ -46,6 +46,7 @@ namespace Game.Core.Ecs.Systems
         readonly Queue<int> _castPointReached = new Queue<int>(); // CastEvent анимации кастера (ability-сущности)
         readonly Queue<int> _animFinished = new Queue<int>();     // FinishEvent анимации кастера (ability-сущности)
         bool _subscribed;
+        float _nextResolveAt;   // не берём следующую способность из очереди раньше этого времени (ActionPacing)
 
         public void Init(IEcsSystems systems) => Subscribe();
         public void Destroy(IEcsSystems systems)
@@ -67,6 +68,20 @@ namespace Game.Core.Ecs.Systems
             var world = systems.GetWorld();
             var pendingPool = world.GetPool<AbilityCastPendingComponent>();
             var animPendingPool = world.GetPool<AbilityAnimPendingComponent>();
+
+            // 0) ГРАНИЦА ОКНА ПРИЧИННОСТИ. Реакция наследует ключ последней отрезолвленной способности —
+            // но только пока каскад ИДЁТ. Очередь опустела → каскад закончился, и следующая реакция
+            // (напр. хрип существа, убитого обычной атакой) не должна цепляться к способности из прошлого
+            // каскада: её ключ со старой волной вклинил бы реакцию ПЕРЕД свежими активациями.
+            if (world.Filter<AbilityQueuedState>().End().GetEntitiesCount() == 0
+                && world.Filter<AbilityCastPendingComponent>().End().GetEntitiesCount() == 0
+                && world.Filter<AbilityAnimPendingComponent>().End().GetEntitiesCount() == 0)
+            {
+                // Записки о причине НА КАРТАХ тут НЕ трогаем: пиньята создаёт 10 карт разом, очередь
+                // между их розыгрышами опустевает, и зачистка здесь стёрла бы им родителя. Их снимает
+                // граница хода (CauseStamp.ClearAll в RunTurnStartSystem).
+                AbilityResolveContext.ClearCause();
+            }
 
             // 1) Приземлившиеся снаряды → применить отложенные эффекты.
             while (_arrived.Count > 0)
@@ -96,14 +111,34 @@ namespace Game.Core.Ecs.Systems
             if (world.Filter<AbilityCastPendingComponent>().End().GetEntitiesCount() > 0) return;
             if (world.Filter<AbilityAnimPendingComponent>().End().GetEntitiesCount()  > 0) return;
 
-            // 5) Обычный разбор очереди — одна способность за тик.
+            // 4b) Базовая пауза между соседними резолвами очереди: читаемость каскада эффектов + снапшоты
+            //     (AbilityResolvedNetEvent) не улетают пачкой в соседние кадры. Анимацию/снаряд не трогает
+            //     (те выше) — гейтит только «взять СЛЕДУЮЩУЮ» способность.
+            if (Time.time < _nextResolveAt) return;
+
+            // 5) Обычный разбор очереди — одна способность за тик. ПОРЯДОК (классика ККИ, требование юзера
+            //    2026-07-29): раньше брался «первый в фильтре» — после свап-удалений ecslite порядок
+            //    перемешивался, и каскад начала/конца хода резолвился хаотично («последний вышедший бил
+            //    первым»). Теперь выбираем МИНИМУМ по ключу (Wave — кадр постановки: волны FIFO;
+            //    внутри волны — порядок ВЫХОДА карты на стол (BoardEntryOrder, «первым вышел — первым
+            //    активировал»; карта не на столе/спелл = 0 → раньше реакций поля); затем AbilityIndex).
+            //    Сортировка только у АКТИВА — пассив реплеит его порядок из снапшотов.
             var queuedPool = world.GetPool<AbilityQueuedState>();
             var ownerPool  = world.GetPool<AbilityOwnerComponent>();
 
             int first = -1;
+            ActivationKey best = default;
             foreach (var entity in world.Filter<AbilityQueuedState>().Inc<AbilityOwnerComponent>().End())
-            { first = entity; break; }
+            {
+                ref var q = ref queuedPool.Get(entity);
+                if (first < 0 || q.Key.CompareTo(best) < 0) { first = entity; best = q.Key; }
+            }
             if (first < 0) return;
+
+            // Эта активация становится ПРИЧИНОЙ для реакций, которые она породит (хрип убитого встанет
+            // сразу за ней, а не в конец очереди). Ставим ДО применения эффектов и не чистим в finally:
+            // смерть от урона обрабатывается только в следующем кадре — см. AbilityResolveContext.
+            AbilityResolveContext.BeginResolve(best);
 
             // Анимация кастера (opt-in): если запрошена И у кастера реально есть параметр "Cast" —
             // откладываем резолв до CastEvent/FinishEvent. Иначе — мгновенно, как раньше.
@@ -220,6 +255,36 @@ namespace Game.Core.Ecs.Systems
             Debug.Log($"[Resolve] projectile launched ability={ability} targets={targets.Length} (ждём хит)");
         }
 
+        /// <summary>
+        /// Списать заряд лимита активаций (Ability.MaxActivationsPerTurn). Заряд ОБЩИЙ для всех способностей
+        /// карты с тем же LimitGroup: под капотом «если жёлтая — копия, иначе — добор» это две способности,
+        /// а для игрока — ОДНА, и «раз в ход» должно считаться суммарно (решение юзера 2026-07-30).
+        /// Group=0 (умолчание) = вся карта; разные номера — независимые лимиты внутри карты.
+        /// </summary>
+        static void SpendUseCharge(EcsWorld world, int abilityEntity, int cardEntity)
+        {
+            var limitPool = world.GetPool<AbilityUseLimitComponent>();
+            if (!limitPool.Has(abilityEntity)) return;
+            int group = limitPool.Get(abilityEntity).Group;
+
+            var containerPool = world.GetPool<AbilityContainerComponent>();
+            if (!containerPool.Has(cardEntity))
+            {
+                limitPool.Get(abilityEntity).UsedThisTurn++;
+                return;
+            }
+
+            var siblings = containerPool.Get(cardEntity).AbilityEntities;
+            if (siblings == null) { limitPool.Get(abilityEntity).UsedThisTurn++; return; }
+
+            foreach (var ae in siblings)
+            {
+                if (!limitPool.Has(ae)) continue;
+                ref var l = ref limitPool.Get(ae);
+                if (l.Group == group) l.UsedThisTurn++;   // общий счёт группы (одна «игровая» способность)
+            }
+        }
+
         // Прилёт снаряда (или форс по таймауту): снимаем pending, разблокируем инпут, применяем эффекты.
         void LandAndResolve(EcsWorld world, int ability)
         {
@@ -245,7 +310,25 @@ namespace Game.Core.Ecs.Systems
             ref var queued = ref queuedPool.Get(first);
             int[] targets = queued.Targets ?? Array.Empty<int>();
 
-            Debug.Log($"[Resolve] ability={first} card={caster} abilityIdx={abilityIndex} targets={targets.Length}");
+            // Цели пересобираем В МОМЕНТ РЕЗОЛВА (не замороженный снэпшот таргетинга) для ВСЕХ неинтерактивных
+            // выборов — Field / Random / Strongest / дешевейший. Иначе существо, ПРИЗВАННОЕ другой способностью
+            // РАНЬШЕ в этой же пачке (OnTurnStart: чара-призыв резолвится кадром раньше → CreateCardSystem уже
+            // поставил его на доску), не попало бы ни под бафф-по-области, ни в рулетку «случайному существу».
+            // Так соблюдается порядок: призыв раньше → существо учитывается; бафф/урон раньше → нет (его ещё нет).
+            // ТОЛЬКО на АКТИВЕ: пассив реплеит финальный набор целей по ключам (AbilityResolvedNetEvent) — пересбор
+            // у него дал бы рассинхрон. Selected/TriggerSubject/NonTarget/Self пересбор НЕ трогает (вернёт null).
+            if (TurnGate.IsLocalActive(world))
+            {
+                var recomputed = RunAbilityTargetingSystem.RecomputeNonInteractive(world, first);
+                if (recomputed != null) targets = recomputed;
+            }
+
+            // Ключ в логе — по нему порядок каскада читается прямо из консоли, без спец-сценария:
+            // корень выглядит как (волна,выход,индекс), следствие дописывает уровни через «·».
+            // Вложенность = отступ, поэтому дерево видно глазами (см. ActivationKey).
+            string indent = new string(' ', queuedPool.Get(first).Key.Depth * 2);
+            Debug.Log($"[Resolve] {indent}key={queuedPool.Get(first).Key} card={caster} "
+                    + $"abilityIdx={abilityIndex} targets={targets.Length}");
 
             // Скрэтч призванных за этот резолв (для синка модификаторов призыва).
             SummonScratch.Clear();
@@ -282,6 +365,10 @@ namespace Game.Core.Ecs.Systems
                     var effects = effectPool.Get(first).Effects;
                     if (effects != null)
                     {
+                        // Лимит активаций за ход: тратим заряд ТОЛЬКО на фактическом применении — холостой
+                        // файр (фильтры не дали целей) лимит не съедает. NonTarget/Self всегда имеют цель.
+                        if (targets.Length > 0) SpendUseCharge(world, first, caster);
+
                         // Caster-scoped эффекты (добор/золото/мана/кост владельцу) — РОВНО ОДИН раз за резолв,
                         // target = игрок-владелец. Иначе в мультицельной способности (Field/Random с N целями)
                         // они отработали бы N раз. Для NonTarget (target=[владелец]) результат тот же.
@@ -356,6 +443,8 @@ namespace Game.Core.Ecs.Systems
                 GeneratedExpansionIds = genExps,
                 GeneratedCardIds      = genIds,
             });
+
+            _nextResolveAt = Time.time + ActionPacing.GapSeconds;   // пауза перед следующей способностью очереди
         }
 
         // Универсальный индикатор триггера (как в HS: «черепок» на деатрэттле, «белая аура» на баттлкрае) —

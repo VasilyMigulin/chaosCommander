@@ -12,36 +12,46 @@ namespace Game.Core.Ability
     // призыва существующих (SummonEffect) и заполнения токенами/копиями (FillRowEffect).
     internal static class BoardFrontRow
     {
-        public const int FrontRow = 0;                       // owner-relative, как в RunSelectCellBoardSystem
+        // ГЕОМЕТРИЯ (owner-relative, как в RunSelectCellBoardSystem): ряд 0 — БЛИЖНИЙ к своему аватару
+        // (сюда призываются существа; историческое имя FrontRow сохранено — «фронт призыва»), ряд 1 —
+        // ДАЛЬНИЙ от аватара, примыкает к линии соприкосновения сторон (пересечение row1→row1 у ИИ).
+        public const int FrontRow = 0;
+        public const int FarRow   = 1;
         static readonly int[] ColOrder = { 2, 1, 3, 0, 4 };  // центр → влево → вправо → дальше
         const int BoardCols = 5;
 
         /// <summary>Свободные колонки фронт-ряда владельца, в порядке заполнения [2,1,3,0,4]. Исключает и
         /// фактически занятые (BoardPositionComponent), и зарезервированные в этом резолве (SummonScratch).</summary>
-        public static List<int> FreeCells(EcsWorld world, int ownerId)
+        public static List<int> FreeCells(EcsWorld world, int ownerId) => FreeCellsInRow(world, ownerId, FrontRow);
+
+        /// <summary>То же для ПРОИЗВОЛЬНОГО ряда стороны (FarRow — «заполните сторону», Королёвский сорняк).</summary>
+        public static List<int> FreeCellsInRow(EcsWorld world, int ownerId, int row)
         {
             var posPool = world.GetPool<BoardPositionComponent>();
             var occupied = new bool[BoardCols];
             foreach (var e in world.Filter<CreatureTag>().Inc<BoardTag>().Inc<BoardPositionComponent>().Exc<DeadTag>().End())
             {
                 ref var p = ref posPool.Get(e);
-                if (p.OwnerId != ownerId || p.Row != FrontRow) continue;
+                if (p.OwnerId != ownerId || p.Row != row) continue;
                 if (p.Col >= 0 && p.Col < BoardCols) occupied[p.Col] = true;
             }
             var free = new List<int>();
             foreach (var c in ColOrder)
-                if (!occupied[c] && !SummonScratch.IsCellClaimed(ownerId, c)) free.Add(c);
+                if (!occupied[c] && !SummonScratch.IsCellClaimed(ownerId, row, c)) free.Add(c);
             return free;
         }
 
         /// <summary>Взять первую свободную клетку фронта и СРАЗУ зарезервировать её на этот резолв
         /// (чтобы следующий спавн в том же резолве — напр. RepeatEffect — взял другую). -1 если фронт полон.</summary>
-        public static int ClaimFreeCell(EcsWorld world, int ownerId)
+        public static int ClaimFreeCell(EcsWorld world, int ownerId) => ClaimFreeCellInRow(world, ownerId, FrontRow);
+
+        /// <summary>То же для произвольного ряда (дальний — при заполнении всей стороны).</summary>
+        public static int ClaimFreeCellInRow(EcsWorld world, int ownerId, int row)
         {
-            var free = FreeCells(world, ownerId);
+            var free = FreeCellsInRow(world, ownerId, row);
             if (free.Count == 0) return -1;
             int col = free[0];
-            SummonScratch.ClaimCell(ownerId, col);
+            SummonScratch.ClaimCell(ownerId, row, col);
             return col;
         }
     }
@@ -82,6 +92,10 @@ namespace Game.Core.Ability
         /// умолч., без каскада); true = «разыграть» (Гомункул — нужна цепочка одноимённых).</summary>
         protected virtual bool SummonedFiresOwnCast => false;
 
+        /// <summary>true → когда ряд призыва (ближний к аватару) полон, призыв ПРОДОЛЖАЕТСЯ на дальний ряд
+        /// («заполните сторону», Королёвский сорняк). false (по умолч.) — только ряд призыва, как раньше.</summary>
+        protected virtual bool SummonToFarRowWhenFrontFull => false;
+
         public override void Init(EcsWorld world, int cardEntity, int playerEntity)
         {
             base.Init(world, cardEntity, playerEntity);
@@ -114,9 +128,15 @@ namespace Game.Core.Ability
             foreach (var summon in selected)
             {
                 if (summon < 0) continue;
-                int col = BoardFrontRow.ClaimFreeCell(world, ownerId);
-                if (col < 0) break;                                        // фронт заполнен
-                if (!PlaceSummon(world, cardEntity, summon, ownerId, col)) continue;
+                int row = BoardFrontRow.FrontRow;
+                int col = BoardFrontRow.ClaimFreeCellInRow(world, ownerId, row);
+                if (col < 0 && SummonToFarRowWhenFrontFull)                // ряд призыва полон → на дальний
+                {
+                    row = BoardFrontRow.FarRow;
+                    col = BoardFrontRow.ClaimFreeCellInRow(world, ownerId, row);
+                }
+                if (col < 0) break;                                        // сторона заполнена
+                if (!PlaceSummon(world, cardEntity, summon, ownerId, row, col)) continue;
                 ApplyModifiers(world, cardEntity, summon);
                 placed++;
             }
@@ -150,7 +170,7 @@ namespace Game.Core.Ability
         /// руку оппонента и не смог бы ВЫБРАТЬ, кого звать. КАВЕАТ: модификаторы призыва (бафф/таймер)
         /// применяются только на активе → к пассиву не доезжают (отдельный TODO синка модификаторов).
         /// </summary>
-        protected bool PlaceSummon(EcsWorld world, int sourceCard, int summonEntity, int ownerId, int col)
+        protected bool PlaceSummon(EcsWorld world, int sourceCard, int summonEntity, int ownerId, int row, int col)
         {
             // RunMoveCardToBoardSystem снимает DeckTag, но из DeckComponent.CardEntities не убирает — делаем сами.
             RemoveFromDeck(world, summonEntity, ownerId);
@@ -158,7 +178,7 @@ namespace Game.Core.Ability
             var movePool = world.GetPool<MoveCardToBoardEvent>();
             if (!movePool.Has(summonEntity)) movePool.Add(summonEntity);
             ref var move = ref movePool.Get(summonEntity);
-            move.Row = BoardFrontRow.FrontRow; move.Col = col; move.OwnerId = ownerId;
+            move.Row = row; move.Col = col; move.OwnerId = ownerId;
 
             // Призыв ≠ розыгрыш: по умолчанию призванный НЕ фейрит своё «при разыгрывании» (NotCast=true) —
             // иначе Работяга→Работяга уходил бы в каскад. «Разыграть» (Гомункул) переопределяет на true.
@@ -202,11 +222,17 @@ namespace Game.Core.Ability
         [Tooltip("Заполнить ВЕСЬ свободный фронт-ряд (Count игнорируется; берём столько, сколько влезет).")]
         public bool FillRow = false;
 
+        [Tooltip("Когда ряд призыва (ближний к аватару) полон — продолжить на ДАЛЬНИЙ ряд, у линии " +
+                 "соприкосновения («заполните сторону», Королёвский сорняк). Обычно вместе с FillRow.")]
+        public bool IncludeFarRow = false;
+
         [Tooltip("Только для Pick=Specific: ассет CardInstanceData призываемой карты (перетащить).")]
         public ScriptableObject Card;
 
         [Tooltip("Призывать только существ стоимостью ≤ MaxCost («всех дешевле X» = LeastExpensive+FillRow+MaxCost). 0 — без ограничения (default: старые ассеты не меняются).")]
         public int MaxCost = 0;
+
+        protected override bool SummonToFarRowWhenFrontFull => IncludeFarRow;
 
         protected override IEnumerable<int> SelectSummonEntities(EcsWorld world, int cardEntity)
         {
@@ -333,6 +359,23 @@ namespace Game.Core.Ability
                 yield return e;
                 if (++found >= Count) yield break;
             }
+        }
+    }
+
+    // === class (OOP) === Призыв САМОГО СЕБЯ (сущности-ИСТОЧНИКА) на борд — перемещает существующую карту, а
+    // НЕ создаёт токен (баффы/идентичность сохраняются). «Выгребной мусор»: на OnDiscard выходит на поле сам +
+    // копия (FillRowWithCopyOfSelf{1} СЛЕДУЮЩИМ эффектом — общий SummonScratch/ClaimFreeCell не даст им сесть
+    // на одну клетку). Источник может лежать в кладбище (после сброса): RunMoveCardToBoardSystem снимет
+    // GraveTag/DeadTag и восстановит существо. Тихий призыв (NotCast=true от SummonEffect) — своё «при
+    // разыгрывании» не фейрит. Гейт IsLocalActive + синк ActionCastData — как у всего summon-семейства.
+    [Serializable]
+    public sealed class SummonSelfEffect : SummonEffect
+    {
+        protected override IEnumerable<int> SelectSummonEntities(EcsWorld world, int cardEntity)
+        {
+            // Только существо и только если оно НЕ на борде (сброшено/в зоне) — иначе призывать нечего.
+            if (world.GetPool<CreatureTag>().Has(cardEntity) && !world.GetPool<BoardTag>().Has(cardEntity))
+                yield return cardEntity;
         }
     }
 

@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>Горе-герои — ведро-шлем с ценником</title>
+  <defs>
+    <clipPath id="frame"><rect width="512" height="512" rx="104"/></clipPath>
+  </defs>
+  <g clip-path="url(#frame)">
+    <rect width="512" height="512" fill="#F2A33C"/>
+
+    <!-- лучи -->
+    <g fill="#141018" opacity=".12">
+      <g transform="translate(256 256)">
+        <path d="M0 0 L 700 -84 L 700 84 Z"/>
+        <path d="M0 0 L 700 -84 L 700 84 Z" transform="rotate(45)"/>
+        <path d="M0 0 L 700 -84 L 700 84 Z" transform="rotate(90)"/>
+        <path d="M0 0 L 700 -84 L 700 84 Z" transform="rotate(135)"/>
+        <path d="M0 0 L 700 -84 L 700 84 Z" transform="rotate(180)"/>
+        <path d="M0 0 L 700 -84 L 700 84 Z" transform="rotate(225)"/>
+        <path d="M0 0 L 700 -84 L 700 84 Z" transform="rotate(270)"/>
+        <path d="M0 0 L 700 -84 L 700 84 Z" transform="rotate(315)"/>
+      </g>
+    </g>
+
+    <!-- дужка ведра, ставшая подбородочным ремнём -->
+    <path d="M146 384 Q256 498 366 384" fill="none" stroke="#141018"
+          stroke-width="22" stroke-linecap="round"/>
+
+    <!-- ведро, надетое кверху дном -->
+    <path d="M186 148 H326 L384 356 H128 Z" fill="#141018"/>
+    <rect x="112" y="346" width="288" height="48" rx="12" fill="#141018"/>
+
+    <!-- рёбра жёсткости: чтобы читалось именно ведро -->
+    <path d="M172 200 H340" stroke="#F2A33C" stroke-width="9" stroke-linecap="round"/>
+    <path d="M142 312 H370" stroke="#F2A33C" stroke-width="9" stroke-linecap="round"/>
+
+    <!-- вмятина слева: жизнь потрепала -->
+    <path d="M192 148 H232 L212 184 Z" fill="#F2A33C"/>
+
+    <!-- смотровая щель и глаза -->
+    <rect x="176" y="238" width="160" height="34" rx="8" fill="#F2A33C"/>
+    <circle cx="214" cy="255" r="11" fill="#141018"/>
+    <circle cx="298" cy="255" r="11" fill="#141018"/>
+
+    <!-- ценник -->
+    <g transform="rotate(-12 370 118)">
+      <path d="M300 82 H438 V154 H300 L270 118 Z" fill="#C24B33"
+            stroke="#141018" stroke-width="9" stroke-linejoin="round"/>
+      <circle cx="294" cy="118" r="9" fill="#141018"/>
+      <text x="372" y="137" font-family="Segoe UI, Arial, sans-serif" font-weight="900"
+            font-size="52" text-anchor="middle" fill="#EDE6DA">б/у</text>
+    </g>
+  </g>
+</svg>

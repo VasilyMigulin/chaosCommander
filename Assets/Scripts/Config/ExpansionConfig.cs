@@ -16,6 +16,11 @@ namespace Game.Core.Configs
         [KeyDropdown(KeyRegistry.SectionExpansion)]
         public string ExpansionId;
 
+        [Tooltip("Экспаншен ТОЛЬКО для стори-режима: карты резолвятся движком (config.Get — колоды/энкаунтеры/" +
+                 "владение), но НЕ попадают в коллекцию (PlayerLibrary.FillFullCollection их пропускает). " +
+                 "Для боссов и стори-эксклюзивных карт вне PvP. Бустеры и так их не выбьют (свой пул в Title Data).")]
+        public bool StoryOnly;
+
         public List<CardInstanceData> Cards = new List<CardInstanceData>();
 
         readonly Dictionary<int, CardInstanceData> _lookup = new Dictionary<int, CardInstanceData>();

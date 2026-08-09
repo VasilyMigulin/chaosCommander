@@ -20,7 +20,7 @@ namespace AwesomeUI.Feature
     ///
     /// Префаб:
     ///   Шапка:      _rankIcon (Image), _avatarImage (Image), _nameText, _mmrText, _rankText.
-    ///   Ресурсы:    _goldText, _gemsText, _scrapsText, _levelText, _xpFill  (в одном HorizontalLayoutGroup).
+    ///   Ресурсы:    _goldText, _gemsText, _scrapsText, _levelText, _xpSlider + _xpText  (в одном HorizontalLayoutGroup).
     ///   Достижения: _achievementsRoot (контейнер) + _achievementSlotPrefab (AchievementSlot), _achievementCount.
     ///   Доп.стата:  _statsRoot + _statRowPrefab (опц.).
     ///   State:      _loadingOverlay, _feedbackText.
@@ -40,7 +40,10 @@ namespace AwesomeUI.Feature
         [SerializeField] private TextMeshProUGUI _gemsText;
         [SerializeField] private TextMeshProUGUI _scrapsText;
         [SerializeField] private TextMeshProUGUI _levelText;
-        [SerializeField] private Image _xpFill;
+        [Tooltip("Слайдер прогресса опыта (Min Value 0 / Max Value 1). Поставь Interactable = false — это индикатор, не контрол.")]
+        [SerializeField] private Slider _xpSlider;
+        [Tooltip("Опыт числом рядом со слайдером в формате «45/100».")]
+        [SerializeField] private TextMeshProUGUI _xpText;
 
         [Header("Последние достижения (HorizontalLayoutGroup, заглушки)")]
         [SerializeField] private Transform _achievementsRoot;
@@ -90,11 +93,11 @@ namespace AwesomeUI.Feature
         {
             ClearAchievements();
             if (_achievementsRoot == null || _achievementSlotPrefab == null) return;
-            foreach (var a in AchievementPlaceholders.Recent(_achievementCount))
+            foreach (var title in AchievementPlaceholders.Recent(_achievementCount))
             {
                 var slot = Instantiate(_achievementSlotPrefab, _achievementsRoot);
                 slot.gameObject.SetActive(true);
-                slot.SetData(a.Title, null, a.Earned);
+                slot.SetData(title, null);
                 _achievements.Add(slot);
             }
         }
@@ -123,7 +126,13 @@ namespace AwesomeUI.Feature
 
             if (_nameText != null)  _nameText.text  = string.IsNullOrEmpty(d.Name) ? "Командир" : d.Name;
             if (_levelText != null) _levelText.text = $"{UIStrings.LevelShort} {d.Level}";
-            if (_xpFill != null)    _xpFill.fillAmount = Mathf.Clamp01(d.Xp01);
+
+            // Опыт: если сервер прислал абсолютные XpCurrent/XpMax — показываем их; иначе выводим долю Xp01
+            // как «N/100» (плейсхолдер, пока серверная XP-система не считает реальные числа).
+            int xpMax = d.XpMax > 0 ? d.XpMax : 100;
+            int xpCur = d.XpMax > 0 ? d.XpCurrent : Mathf.RoundToInt(Mathf.Clamp01(d.Xp01) * xpMax);
+            if (_xpSlider != null) _xpSlider.value = xpMax > 0 ? Mathf.Clamp01((float)xpCur / xpMax) : 0f;
+            if (_xpText != null)   _xpText.text = $"{xpCur}/{xpMax}";
 
             // Доп. статистика — только если в префабе есть контейнер+префаб строки.
             if (_statsRoot == null || _statRowPrefab == null) return;

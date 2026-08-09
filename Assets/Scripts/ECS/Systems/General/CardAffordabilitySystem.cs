@@ -26,8 +26,15 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<ActiveState>       _activePool    = default;
         readonly EcsPoolInject<CommanderTag>      _commanderTagPool = default;
         readonly EcsPoolInject<CommanderCooldownComponent> _commanderCdPool = default;
+        readonly EcsPoolInject<CharmTag>          _charmTagPool  = default;
 
         readonly EcsFilterInject<Inc<HandTag, OwnCardTag>> _handFilter = default;
+        readonly EcsFilterInject<Inc<CharmTag, BoardTag>>  _boardCharms = default;
+
+        // Максимум чар под контролем игрока — то же число, что и pre-cost гейт в RunCastRouterSystem
+        // (там — страховка «не списывать стоимость зря»; здесь — чтобы карта ВООБЩЕ не подсвечивалась
+        // играбельной и не перетаскивалась, а не отменялась уже после драга).
+        const int CharmLimit = 5;
 
         bool _resourceDirty;
 
@@ -46,7 +53,15 @@ namespace Game.Core.Ecs.Systems
             // Кулдаун командира влияет на доступность — пересчитываем на его установке/снятии.
             GameEventBus.Subscribe<CommanderOnCooldownUIEvent>(OnCommanderCooldownChanged);
             GameEventBus.Subscribe<CommanderCooldownExpiredUIEvent>(OnCommanderCooldownExpired);
+            // Лимит чар (5) меняется на розыгрыше чары (CardCastEvent — любой каст спелла/чары/существа,
+            // дешёвый пересчёт всей руки погоды не делает) и на смерти/истечении чары (CreatureDiedEvent —
+            // публикует и DieSystem, и CharmDieSystem). Другие чары в руке могли из-за этого стать (не)играбельны.
+            GameEventBus.Subscribe<CardCastEvent>(OnCharmCountMayChange);
+            GameEventBus.Subscribe<CreatureDiedEvent>(OnCharmCountMayChange);
         }
+
+        private void OnCharmCountMayChange(CardCastEvent _)     => _resourceDirty = true;
+        private void OnCharmCountMayChange(CreatureDiedEvent _) => _resourceDirty = true;
 
         private void OnResourceChanged(ResourceChangedEvent _)     => _resourceDirty = true;
         private void OnCardDrawn(CardDrawnEvent _)                  => _resourceDirty = true;
@@ -66,6 +81,20 @@ namespace Game.Core.Ecs.Systems
                 CardEntity   = cardEntity,
                 IsAffordable = IsAffordable(cardEntity),
             });
+            // Иконка/число коста для СВЕЖЕсозданной вьюхи: карта могла прийти в руку при висящем маркере
+            // альтернативной уплаты (иконка уплаты вместо ресурса) — SetCard ставит обычную по типу.
+            if (TryEffectiveCost(cardEntity, out int eff))
+                GameEventBus.Publish(new CardCostChangedEvent { CardEntity = cardEntity, EffectiveCost = eff, AltCostKind = AltKindOf(cardEntity) });
+        }
+
+        // Вид альтернативной уплаты владельца карты (-1 = обычная оплата) — для иконки коста в руке.
+        private int AltKindOf(int cardEntity)
+        {
+            if (!_ownerPool.Value.Has(cardEntity)) return -1;
+            int ownerEntity = FindPlayerEntity(_ownerPool.Value.Get(cardEntity).OwnerId);
+            if (ownerEntity < 0) return -1;
+            var altPool = _world.Value.GetPool<AltCostComponent>();
+            return altPool.Has(ownerEntity) ? (int)altPool.Get(ownerEntity).Kind : -1;
         }
 
         private void OnAbilityReady(AbilityReadyEvent evt)
@@ -103,7 +132,7 @@ namespace Game.Core.Ecs.Systems
                 });
 
                 if (TryEffectiveCost(cardEntity, out int eff))
-                    GameEventBus.Publish(new CardCostChangedEvent { CardEntity = cardEntity, EffectiveCost = eff });
+                    GameEventBus.Publish(new CardCostChangedEvent { CardEntity = cardEntity, EffectiveCost = eff, AltCostKind = AltKindOf(cardEntity) });
             }
         }
 
@@ -139,6 +168,20 @@ namespace Game.Core.Ecs.Systems
             // Компонент снимает RunTurnStartSystem на ходу доступности; здесь перечёт дёргают cooldown-события.
             if (_commanderTagPool.Value.Has(cardEntity) && _commanderCdPool.Value.Has(cardEntity)) return false;
 
+            // Лимит чар (5) — та же проверка, что pre-cost гейт в RunCastRouterSystem, но ЗДЕСЬ она не даёт
+            // карте вообще подсветиться зелёной/перетащиться, а не отменяет розыгрыш постфактум (юзер 2026-08-06:
+            // "лучше, чтобы вообще нельзя было").
+            if (_charmTagPool.Value.Has(cardEntity) && CharmCount(_ownerPool.Value.Get(cardEntity).OwnerId) >= CharmLimit)
+                return false;
+
+            // Маркер альтернативной уплаты (Букмекер и семейство): карта оплачивается НЕ ресурсом →
+            // играбельность = есть ли ЧЕМ платить (жертва для сброса/жертвы/милла; сама карта — не жертва
+            // своего сброса). DamageSelf играбельна всегда (суицид разрешён, HP не гейтим).
+            var altPool = _world.Value.GetPool<AltCostComponent>();
+            if (altPool.Has(ownerEntity))
+                return AltCostUtil.CanPay(_world.Value, altPool.Get(ownerEntity).Kind,
+                                          _ownerPool.Value.Get(cardEntity).OwnerId, cardEntity);
+
             if (_goldCostPool.Value.Has(cardEntity) && _goldPool.Value.Has(ownerEntity))
             {
                 ref var gold = ref _goldPool.Value.Get(ownerEntity);
@@ -153,6 +196,14 @@ namespace Game.Core.Ecs.Systems
 
             // Карта без стоимости — всегда доступна
             return true;
+        }
+
+        private int CharmCount(int ownerId)
+        {
+            int n = 0;
+            foreach (var e in _boardCharms.Value)
+                if (_ownerPool.Value.Has(e) && _ownerPool.Value.Get(e).OwnerId == ownerId) n++;
+            return n;
         }
 
         private int FindPlayerEntity(int playerId)
@@ -178,6 +229,8 @@ namespace Game.Core.Ecs.Systems
             GameEventBus.Unsubscribe<CostModifierChangedEvent>(OnCostModifierChanged);
             GameEventBus.Unsubscribe<CommanderOnCooldownUIEvent>(OnCommanderCooldownChanged);
             GameEventBus.Unsubscribe<CommanderCooldownExpiredUIEvent>(OnCommanderCooldownExpired);
+            GameEventBus.Unsubscribe<CardCastEvent>(OnCharmCountMayChange);
+            GameEventBus.Unsubscribe<CreatureDiedEvent>(OnCharmCountMayChange);
         }
     }
 }

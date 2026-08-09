@@ -1,5 +1,6 @@
 using Game.Core.Ecs.Components;
 using Game.Core.Events;
+using Game.Core.Mono;
 using Leopotam.EcsLite;
 using Leopotam.EcsLite.Di;
 using System.Collections.Generic;
@@ -14,6 +15,7 @@ namespace Game.Core.Ecs.Systems
     public sealed class HandUISystem : IEcsInitSystem, IEcsRunSystem, IEcsDestroySystem, System.IDisposable
     {
         readonly EcsWorldInject _world = default;
+        readonly EcsCustomInject<BoardView> _boardView = default;
         readonly EcsPoolInject<PlayerComponent>        _playerPool  = default;
         readonly EcsPoolInject<CardViewDataComponent>  _viewPool    = default;
         readonly EcsPoolInject<NetworkEntityComponent> _netKeyPool  = default;
@@ -52,11 +54,33 @@ namespace Game.Core.Ecs.Systems
 
                 int costAmount = EffectiveCost(cardEntity, playerEntity, view.CostAmount);
 
+                // Откуда карта визуально «прилетела»: FromWorld — уже готовая позиция (источник САМ ушёл с
+                // поля — баунс/командир, снимать её нужно было раньше, до этого события); иначе пробуем
+                // SourceEntity лениво (раскопка — кастер обычно ещё стоит на столе). Ни то ни другое —
+                // обычный добор, CardLayout летит со своей дефолтной точки. Проецируем В ЭКРАННЫЕ координаты
+                // ЗДЕСЬ (не в CardLayout): UI-сборка не референсит Mono/BattleCameraSelector, а мировая
+                // позиция сама по себе для неё бесполезна без камеры.
+                UnityEngine.Vector3? fromWorld = evt.FromWorld;
+                if (fromWorld == null && evt.SourceEntity is int src
+                    && EntityWorldPosUtil.TryGet(_world.Value, _boardView.Value, src, out var srcPos))
+                    fromWorld = srcPos;
+
+                UnityEngine.Vector2? fromScreen = null;
+                if (fromWorld.HasValue)
+                {
+                    var boardCam = Game.Core.Mono.BattleCameraSelector.ActiveCamera != null
+                        ? Game.Core.Mono.BattleCameraSelector.ActiveCamera
+                        : UnityEngine.Camera.main;
+                    if (boardCam != null)
+                        fromScreen = UnityEngine.RectTransformUtility.WorldToScreenPoint(boardCam, fromWorld.Value);
+                }
+
                 GameEventBus.Publish(new CardAddedToHandUIEvent
                 {
                     CardEntity  = cardEntity,
                     PlayerId    = _playerPool.Value.Get(playerEntity).PlayerId,
                     NetworkKey  = networkKey,
+                    FromScreen  = fromScreen,
                     Icon        = view.ArtImage,
                     CardType    = view.CardType,
                     Element     = view.Element,

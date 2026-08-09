@@ -117,8 +117,17 @@ namespace Game.Core.Ecs.Systems
                 }
                 case ChainStage.TargetingMode.Target:
                 {
-                    var list = TargetGather.Gather(world, filters, casterCard, casterPlayer, null);
-                    return PickRandom(list, stage.Count);   // Selected в цепочке пока не поддержан
+                    // Zone (Hand/Deck/Grave — «сбросить дешёвую из руки») + честь Selection (LeastExpensive и т.п.),
+                    // раньше цепочка всегда брала Board+Random. Selected/TriggerSubject в цепочке не поддержаны → Random.
+                    var list = TargetGather.Gather(world, filters, casterCard, casterPlayer, null, stage.Zone);
+                    switch (stage.Selection)
+                    {
+                        case TargetSelection.LeastExpensive: return RunAbilityTargetingSystem.PickByCost(world, list, stage.Count, mostExpensive: false);
+                        case TargetSelection.MostExpensive:  return RunAbilityTargetingSystem.PickByCost(world, list, stage.Count, mostExpensive: true);
+                        case TargetSelection.Strongest:      return RunAbilityTargetingSystem.PickStrongest(world, list, stage.Count);
+                        case TargetSelection.MostWounded:    return RunAbilityTargetingSystem.PickMostWounded(world, list, stage.Count);
+                        default:                             return PickRandom(list, stage.Count);
+                    }
                 }
                 default:
                     return new[] { casterPlayer };   // NonTarget

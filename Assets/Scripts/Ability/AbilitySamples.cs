@@ -22,12 +22,40 @@ namespace Game.Core.Ability
         // Если множитель > 1 (Временная петля), ставим PendingCastsComponent → способность разрешится N раз.
         // subjectEntity (опц.) — ВИНОВНИК срабатывания (OnCreatureInvoked → вышедшее существо): едет в
         // TriggerSubjectComponent для TargetSelection.TriggerSubject («Неудачная молитва»).
-        public static void Mark(EcsWorld world, int abilityEntity, int cardEntity, int playerEntity, string triggerKey = null, int subjectEntity = -1)
+        // isReaction — активация есть РЕАКЦИЯ на чужой резолв (ITrigger.IsReaction): встанет в очередь
+        // сразу за своей причиной, а не в конец (см. ActivationKey).
+        public static void Mark(EcsWorld world, int abilityEntity, int cardEntity, int playerEntity, string triggerKey = null, int subjectEntity = -1, bool isReaction = false)
         {
             // ВРЕМЕННО: видим, что триггер сработал и не загейчен ли пассивом.
             UnityEngine.Debug.Log($"[Mark] card={cardEntity} ability={abilityEntity} trigger={triggerKey ?? "?"} active={TurnGate.IsLocalActive(world)}");
             // Пассив не запускает триггеры — ability-флоу у него драйвит реплей снапшотов.
             if (!TurnGate.IsLocalActive(world)) return;
+
+            // Гейт уровня (карта-с-уровнями): способность уровня активна только когда карта на этом уровне.
+            // Уровень зеркален (источник золото зеркален) → гейт одинаков у обоих клиентов, спец-синка не нужно.
+            var gatePool = world.GetPool<AbilityTierGateComponent>();
+            if (gatePool.Has(abilityEntity))
+            {
+                var tierPool = world.GetPool<CardTierComponent>();
+                int cur = tierPool.Has(cardEntity) ? tierPool.Get(cardEntity).CurrentTier : 0;
+                if (gatePool.Get(abilityEntity).Tier != cur) return;   // не наш уровень — молчим
+            }
+
+            // ОБЩЕЕ ПРАВИЛО (юзер 2026-07-30): пока на карте КУЛДАУН (командир после гибели ждёт хода
+            // доступности), её способности НЕ РАБОТАЮТ — ни триггерные, ни ауры (см. PassiveAuraSystem /
+            // BuffPerCharmSystem). Иначе командир-аура «Шальной десница» продолжал бы светить из руки,
+            // будучи фактически выведенным из игры на ход.
+            if (world.GetPool<CommanderCooldownComponent>().Has(cardEntity)) return;
+
+            // Лимит активаций за ход (Ability.MaxActivationsPerTurn; 0 = безлимит → компонента нет).
+            // Считаются ФАКТИЧЕСКИЕ применения (инкремент в RunResolveAbilityQueueSystem), поэтому
+            // холостые срабатывания (фильтры не дали целей) лимит не тратят. Сброс — старт хода владельца.
+            var limitPool = world.GetPool<AbilityUseLimitComponent>();
+            if (limitPool.Has(abilityEntity))
+            {
+                ref var limit = ref limitPool.Get(abilityEntity);
+                if (limit.Max > 0 && limit.UsedThisTurn >= limit.Max) return;   // исчерпана до конца хода
+            }
 
             var pool = world.GetPool<AbilityCastEvent>();
             if (pool.Has(abilityEntity)) return;
@@ -39,6 +67,7 @@ namespace Game.Core.Ability
             var keyPool = world.GetPool<AbilityTriggerKeyComponent>();
             if (!keyPool.Has(abilityEntity)) keyPool.Add(abilityEntity);
             keyPool.Get(abilityEntity).Key = triggerKey;
+            keyPool.Get(abilityEntity).IsReaction = isReaction;   // порядок в очереди: реакция идёт за причиной
 
             // Виновник: ставим/перезаписываем; без виновника — снимаем (не протухает от прошлого файра).
             var subjPool = world.GetPool<TriggerSubjectComponent>();
@@ -59,6 +88,9 @@ namespace Game.Core.Ability
                 int casts = CastMultiplierService.Casts(ownerId, cardType, triggerKey);
                 if (casts > 1)
                 {
+                    // Заряд съедаемых источников тратится ЗДЕСЬ — один раз на СРАБАТЫВАНИЕ (не на каждый из
+                    // N внутренних резолв-повторов ниже, иначе съедаемый(2) сгорал бы за один же тройной каст).
+                    CastMultiplierService.ConsumeCharge(ownerId, cardType, triggerKey);
                     var cp = world.GetPool<PendingCastsComponent>();
                     if (!cp.Has(abilityEntity)) cp.Add(abilityEntity);
                     cp.Get(abilityEntity).Remaining = casts;
@@ -75,6 +107,7 @@ namespace Game.Core.Ability
         int _abilityEntity, _cardEntity, _playerEntity;
 
         public bool AiDeathTrigger => true;   // хрип: при полезном эффекте ИИ нарывается на смерть (см. ITrigger)
+        public bool IsReaction    => true;    // хрип встаёт сразу за добившей способностью (см. ActivationKey)
 
         public void Init(EcsWorld world, int abilityEntity, int cardEntity, int playerEntity)
         {
@@ -94,7 +127,8 @@ namespace Game.Core.Ability
                 OwnerId = ownerPool.Has(_cardEntity) ? ownerPool.Get(_cardEntity).OwnerId : -1
             });
 
-            AbilityFire.Mark(_world, _abilityEntity, _cardEntity, _playerEntity, TriggerKeys.OnDie); // множитель
+            AbilityFire.Mark(_world, _abilityEntity, _cardEntity, _playerEntity, TriggerKeys.OnDie,
+                             isReaction: IsReaction); // множитель + порядок в очереди
         }
 
         public void Dispose() => GameEventBus.UnsubscribeAll(this);
@@ -104,6 +138,8 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class OnCastTrigger : ITrigger
     {
+        public bool FiresOnCast => true;
+
         EcsWorld _world;
         int _abilityEntity, _cardEntity, _playerEntity;
 
@@ -117,6 +153,31 @@ namespace Game.Core.Ability
         {
             if (e.CardEntity != _cardEntity) return;
             AbilityFire.Mark(_world, _abilityEntity, _cardEntity, _playerEntity, TriggerKeys.OnCast); // множитель
+        }
+
+        public void Dispose() => GameEventBus.UnsubscribeAll(this);
+    }
+
+    // === class (OOP) === PUSH-триггер «При сбросе»: карту сбросили из руки в кладбище (DiscardEffect →
+    // CardDiscardedEvent). Тот же паттерн, что OnDieTrigger, но по событию сброса. «Выгребной мусор»:
+    // при сбросе выставляет себя+копию на поле (FillRowWithCopyOfSelf{2}). Гейт актив/пассив — в
+    // AbilityFire.Mark (пассив реплеит снапшот резолва).
+    [Serializable]
+    public sealed class OnDiscardTrigger : ITrigger
+    {
+        EcsWorld _world;
+        int _abilityEntity, _cardEntity, _playerEntity;
+
+        public void Init(EcsWorld world, int abilityEntity, int cardEntity, int playerEntity)
+        {
+            _world = world; _abilityEntity = abilityEntity; _cardEntity = cardEntity; _playerEntity = playerEntity;
+            GameEventBus.Subscribe<CardDiscardedEvent>(this, OnDiscarded);
+        }
+
+        void OnDiscarded(CardDiscardedEvent e)
+        {
+            if (e.CardEntity != _cardEntity) return;
+            AbilityFire.Mark(_world, _abilityEntity, _cardEntity, _playerEntity, TriggerKeys.OnDiscard);
         }
 
         public void Dispose() => GameEventBus.UnsubscribeAll(this);

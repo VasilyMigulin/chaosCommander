@@ -21,6 +21,9 @@ namespace Game.Core.Shared.Interface
         public TargetSelection Selection = TargetSelection.Random;
         public int Count = 1;
 
+        // Зона выбора целей: Board (существа/игроки) | Hand/Deck/Grave (карты в зоне). Для «сбросить из руки» — Hand.
+        public TargetZone Zone = TargetZone.Board;
+
         // Field-режим:
         public FieldArea Area = FieldArea.All;
 

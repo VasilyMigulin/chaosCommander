@@ -12,6 +12,7 @@ namespace Game.Core.Ability
         OnTurnEnd,     // конец хода
         OnCast,        // при разыгрывании (батлкрай)
         OnDie,         // предсмертный хрип (deathrattle)
+        OnDiscard,     // при сбросе карты из руки
     }
 
     /// <summary>
@@ -29,6 +30,7 @@ namespace Game.Core.Ability
         public const string OnTurnEnd   = "OnTurnEnd";
         public const string OnCast      = "OnCast";
         public const string OnDie       = "OnDie";
+        public const string OnDiscard   = "OnDiscard";
 
         /// <summary>Тип-часть составного ключа множителя ("*" / "Creature" / "Spell" / "Charm").</summary>
         public static string ScopeKey(MultiplierCardScope s) => s switch
@@ -45,6 +47,7 @@ namespace Game.Core.Ability
             TriggerKind.OnTurnEnd   => OnTurnEnd,
             TriggerKind.OnCast      => OnCast,
             TriggerKind.OnDie       => OnDie,
+            TriggerKind.OnDiscard   => OnDiscard,
             _ => null,
         };
     }

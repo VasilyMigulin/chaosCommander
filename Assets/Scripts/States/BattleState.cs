@@ -87,6 +87,20 @@ namespace Game.Core.States
             return _netLocalMap.TryGetValue(entity, out var key) ? key : null;
         }
 
+        /// <summary>Self-heal ресинк: снести из мап все записи КАРТ (их сущности пересозданы, старые
+        /// EcsPackedEntity протухли, а AddEntity из-за ContainsKey-гарда их бы не перезаписал), сохранив
+        /// записи игроков — их сущности живы. WorldResyncSystem зовёт перед пересозданием карт.</summary>
+        public void ResetCardEntityMaps()
+        {
+            bool keepPlayer   = _localKeyMap.TryGetValue(Game.Core.Service.EntityService.PLAYER_ENTITY, out var pPacked);
+            bool keepOpponent = _localKeyMap.TryGetValue(Game.Core.Service.EntityService.OPPONENT_ENTITY, out var oPacked);
+            _localKeyMap.Clear();
+            _netKeyMap.Clear();
+            _netLocalMap.Clear();
+            if (keepPlayer)   _localKeyMap[Game.Core.Service.EntityService.PLAYER_ENTITY]   = pPacked;
+            if (keepOpponent) _localKeyMap[Game.Core.Service.EntityService.OPPONENT_ENTITY] = oPacked;
+        }
+
         public bool TryGetPlayer(out int playerEntity)
         {
             return TryGetEntity("player", out playerEntity);
@@ -189,12 +203,25 @@ namespace Game.Core.States
 
             UIModule.Open<BattleCanvas>();
             UIModule.Inject(this, this, EcsHandler.World, _cardConfig);
-            FindFirstObjectByType<AwesomeUI.Feature.Battle.BattleLoadingOverlay>()?.Show();
+
+            // Лоадинг-оверлей гасится стартом мулигана (MulliganPhaseBeginUIEvent) — при реконнекте мулигана
+            // не будет, поэтому не показываем его вовсе: экран и так закроет фейд восстановления.
+            if (!Game.Core.Network.ReconnectFlow.IsActive)
+                FindFirstObjectByType<AwesomeUI.Feature.Battle.BattleLoadingOverlay>()?.Show();
 
             // Подписываемся на ECS-init триггер от сервера.
             GameEventBus.Subscribe<TriggerStateInitEvent>(OnTriggerStateInit);
             GameEventBus.Subscribe<CellSelectedEvent>(OnCellSelected);
             GameEventBus.Subscribe<ExitToMenuRequestedEvent>(OnExitToMenuRequested);
+
+            // РЕКОННЕКТ: пайплайн хоста одноразовый (_pipelineStarted) — ни RPC_TriggerStateInit, ни ответа
+            // на RPC_NotifySceneLoaded мы не дождёмся. Инициализируемся сами и стадии хоста не трогаем.
+            if (Game.Core.Network.ReconnectFlow.IsActive)
+            {
+                Debug.Log("[BattleState] РЕКОННЕКТ: инициализирую ECS локально (пайплайн хоста уже отработал).");
+                OnTriggerStateInit(default);
+                return;
+            }
 
             Debug.Log($"[BattleState][{(PhotonRunHandler.IsServer ? "HOST" : "CLIENT")}] Start(): subscribed to TriggerStateInitEvent. Calling RPC_NotifySceneLoaded.");
 
@@ -224,7 +251,9 @@ namespace Game.Core.States
             // RPC_TriggerStateInit, а Fusion теряет RPC, отправленные из обработчика RPC (пассив: эти RPC
             // не доходили до хоста → пайплайн вис на Step 3, VS-раскрытие не запускалось). Откладываем на
             // следующий кадр (Update, вне RPC-контекста).
-            _pendingStateReadyRpc = true;
+            // РЕКОННЕКТ: стадии пайплайна и VS-раскрытие пропускаем — бой давно идёт, а лишний
+            // NotifyStateReady сбил бы счётчики готовности у хоста.
+            _pendingStateReadyRpc = !Game.Core.Network.ReconnectFlow.IsActive;
         }
 
         // PvE: победа → локальная отметка прохождения уровня (StoryModePanel покажет «✓»).
@@ -254,7 +283,9 @@ namespace Game.Core.States
             else
             {
                 var deck = Game.Core.DeckBuilder.DeckStorage.GetActive();
-                if (deck != null && deck.Commander.CardId != 0)
+                // IsSet, а НЕ CardId != 0 — ноль валидный Id (Шальной принц), см. OwnedCardData.IsSet.
+                // Строкой ниже уже правили ЭТУ же ловушку в диагностике (localId >= 0), а сам гейт остался.
+                if (deck != null && deck.Commander.IsSet)
                 {
                     localExp = deck.Commander.ExpansionId;
                     localId  = deck.Commander.CardId;
@@ -267,7 +298,14 @@ namespace Game.Core.States
                 oppId  = encounter.Commander.CardId;
             }
 
-            if (localId > 0 && oppId > 0)
+            // ДИАГНОСТИКА пре-старта. localId/oppId инициализированы -1 = «не резолвнут»; >=0 = резолвнут
+            // (ВКЛЮЧАЯ Id 0 — первая карта экспаншена, напр. Шальной принц). Раньше проверка была >0, из-за
+            // чего командир с Id 0 не показывался в VS.
+            Debug.Log($"[BattleState][PVE] пре-старт: localExp={localExp} localId={localId} | oppExp={oppExp} oppId={oppId} "
+                    + $"| PlayerDeck={(encounter?.PlayerDeck != null)} cmd={(encounter?.PlayerDeck?.Commander != null)} "
+                    + $"| VS покажется={(localId >= 0 && oppId >= 0)}");
+
+            if (localId >= 0 && oppId >= 0)
             {
                 GameEventBus.Publish(new CommandersRevealedUIEvent
                 {
@@ -378,6 +416,7 @@ namespace Game.Core.States
             EcsHandler?.Dispose();
             MatchTracker.Shutdown();
             Game.Core.Service.PveMode.Reset();   // не тащим PvE-флаг в следующий (возможно MP) матч
+            Game.Core.Service.MatchIdentity.Clear();   // и идентичность матча (отчёт уже ушёл в MatchEndedEvent)
         }
 
         /// <summary>

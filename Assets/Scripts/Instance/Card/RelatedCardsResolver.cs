@@ -17,7 +17,9 @@ namespace Game.Core.Instance.Card
     /// внутри пулов) попадает в список, только если карта-кандидат — ТОКЕН (IsToken, показываются
     /// всегда) ИЛИ явно помечена CardModel.ShowAsLinked (обычные карты, порождаемые адресно).
     /// Обычные карты пулов без флага не показываются — иначе Фокус-покус вываливал бы весь пул.
-    /// Никаких эвристик по именам полей: решение целиком на флаге самой карты.
+    /// CardModel.HideAsLinked — обратный флаг, приоритетнее обоих: скрывает карту, даже если она
+    /// токен или помечена ShowAsLinked.
+    /// Никаких эвристик по именам полей: решение целиком на флагах самой карты.
     ///
     /// Как работает: обходит граф RuntimeAbilities рефлексией и собирает все ссылки на
     /// CardInstanceData (ICreatable) и пулы (ICardPool). Из CardInstanceData берётся уже готовый
@@ -52,11 +54,13 @@ namespace Game.Core.Instance.Card
             return result;
         }
 
-        // Единый фильтр показа: токен — всегда; обычная карта — только с явным флагом ShowAsLinked.
+        // Единый фильтр показа: токен — всегда; обычная карта — только с явным флагом ShowAsLinked;
+        // HideAsLinked приоритетнее обоих и скрывает карту в любом случае.
         static void Collect(ICreatable creatable, HashSet<(string, int)> seen, List<CardModel> result)
         {
             var model = (creatable as CardInstanceData)?.CardData;
             if (model == null) return;
+            if (model.HideAsLinked) return;
             if (!model.IsToken && !model.ShowAsLinked) return;
             if (seen.Add((model.ExpansionId, model.Id)))
                 result.Add(model);

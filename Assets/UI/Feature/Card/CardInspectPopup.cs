@@ -222,18 +222,83 @@ namespace AwesomeUI.Feature
                 if (v != null) Destroy(v.gameObject);
             _related.Clear();
 
+            int tierCount = source.Tiers != null ? source.Tiers.Count : 0;
             var cards = RelatedCardsResolver.Resolve(source);
-            // Нет связанных — гасим секцию целиком (заголовок+список); если секция в префабе не провязана,
-            // гасим хотя бы сам рут лэйаута, чтобы пустой контейнер не занимал место рядом с картой.
-            if (_relatedSection != null) _relatedSection.SetActive(cards.Count > 0);
-            else if (_relatedContent != null) _relatedContent.gameObject.SetActive(cards.Count > 0);
+            bool any = cards.Count > 0 || tierCount > 0;
+            // Нет связанных и уровней — гасим секцию целиком (заголовок+список); если секция в префабе не
+            // провязана, гасим хотя бы сам рут лэйаута, чтобы пустой контейнер не занимал место рядом с картой.
+            if (_relatedSection != null) _relatedSection.SetActive(any);
+            else if (_relatedContent != null) _relatedContent.gameObject.SetActive(any);
             if (_relatedContent == null || _relatedCardPrefab == null) return;
+
+            // Заголовок: карта только с уровнями → «Уровни карты»; есть и связанные — стандартный.
+            if (_relatedTitleText != null)
+                _relatedTitleText.text = (tierCount > 0 && cards.Count == 0)
+                    ? CardTextLocalization.GetText("ui.card.tiers", "Уровни карты")
+                    : UIStrings.RelatedCards;
+
+            BuildTierPreviews(source, tierCount);   // уровни ПЕРВЫМИ (это «про саму карту»), связанные ниже
 
             foreach (var model in cards)
             {
                 var view = Instantiate(_relatedCardPrefab, _relatedContent);
                 view.SetModel(model);
                 _related.Add(view);
+            }
+        }
+
+        // Карта-с-уровнями: каждый уровень — ПОЛНОЦЕННАЯ мини-карта в списке «связанных» (решение юзера
+        // 2026-07-29: тексты уровней некуда впихнуть в описание → показываем уровнями-картами): свои
+        // статы/кост/описание уровня (tier.N.desc), имя «Уровень N — от X маны/золота/трупов». Модель НЕ
+        // клонируется — собираем CardVisualData напрямую (SetVisual). Model у вьюхи null → hold-инспект
+        // мини-уровня безопасно молчит (OnHoldTriggered гейтится).
+        void BuildTierPreviews(CardModel source, int tierCount)
+        {
+            if (tierCount == 0) return;
+
+            var cardType = source.GetCardType();
+            bool isCreature = cardType == Game.Core.Service.EnumService.CardType.Creature;
+
+            for (int i = 0; i < tierCount; i++)
+            {
+                var t = source.Tiers[i];
+                if (t == null) continue;
+
+                string name = string.Format(CardTextLocalization.GetText("tier.preview.name", "Уровень {0}"), i + 1);
+                if (i > 0)
+                    name += " — " + string.Format(ThresholdFormat(source.TierSource), t.Threshold);
+
+                string descKey = CardTextLocalization.TierDescKey(source.ExpansionId, source.Id, i);
+                var visual = new CardVisualData
+                {
+                    CardName    = name,
+                    Description = CardDescriptionFormatter.Format(descKey, source.Description, cardType, 0, null),
+                    Icon        = source.ArtImage,
+                    Rarity      = source.Rarity,
+                    Element     = source.Element,
+                    CardType    = cardType,
+                    CostType    = t.PlayCost,
+                    CostAmount  = t.PlayCostAmount,
+                    IsCreature  = isCreature,
+                    Attack      = t.Attack,
+                    MaxHealth   = t.Health,
+                    Speed       = t.Speed,
+                };
+
+                var view = Instantiate(_relatedCardPrefab, _relatedContent);
+                view.SetVisual(visual);
+                _related.Add(view);
+            }
+        }
+
+        // Подпись порога уровня по источнику прокачки (TierSource).
+        static string ThresholdFormat(TierSource src)
+        {
+            switch (src)
+            {
+                case TierSource.ManaMax: return CardTextLocalization.GetText("tier.preview.thr.manamax", "от {0} маны");
+                case TierSource.Corpses: return CardTextLocalization.GetText("tier.preview.thr.corpses", "от {0} трупов");
+                default:                 return CardTextLocalization.GetText("tier.preview.thr.goldmax", "от {0} золота");
             }
         }
 

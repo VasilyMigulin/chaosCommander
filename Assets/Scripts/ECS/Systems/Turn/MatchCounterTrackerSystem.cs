@@ -47,6 +47,7 @@ namespace Game.Core.Ecs.Systems
             GameEventBus.Unsubscribe<CardGeneratedEvent>(OnGenerated);
             GameEventBus.Unsubscribe<CreatureInvokedEvent>(OnInvoked);
             GameEventBus.Unsubscribe<DamageTrackedEvent>(OnDamage);
+            GameEventBus.Unsubscribe<DeathTrackedEvent>(OnDeath);
             GameEventBus.Unsubscribe<TurnStartedEvent>(OnTurnStarted);
             _subscribed = false;
         }
@@ -59,6 +60,7 @@ namespace Game.Core.Ecs.Systems
             GameEventBus.Subscribe<CardGeneratedEvent>(OnGenerated);
             GameEventBus.Subscribe<CreatureInvokedEvent>(OnInvoked);
             GameEventBus.Subscribe<DamageTrackedEvent>(OnDamage);
+            GameEventBus.Subscribe<DeathTrackedEvent>(OnDeath);
             GameEventBus.Subscribe<TurnStartedEvent>(OnTurnStarted);
         }
 
@@ -71,6 +73,17 @@ namespace Game.Core.Ecs.Systems
         void OnInvoked(CreatureInvokedEvent e)=> TrackInvoked(e);
         void OnDamage(DamageTrackedEvent e)   => TrackDamage(e);
         void OnTurnStarted(TurnStartedEvent e)=> _currentTurnPlayerId = e.ActivePlayerId;
+
+        // Погиб ТОКЕН владельца → счётчик «трупов» (TierSource.Corpses): токены в кладбище не попадают
+        // (DieSystem шлёт их в Limbo), поэтому кладбищем их не посчитать. Событие публикуется в момент,
+        // когда TokenTag ещё на сущности (Limbo его не снимает). DieSystem шлёт на обоих клиентах → зеркально.
+        void OnDeath(DeathTrackedEvent e)
+        {
+            if (e.CreatureEntity < 0 || !_tokenPool.Value.Has(e.CreatureEntity)) return;   // только токены
+            int pe = FindPlayerEntity(e.OwnerId);
+            if (pe < 0) return;
+            Ensure(pe).TokensDied++;
+        }
 
         void TrackDamage(DamageTrackedEvent e)
         {

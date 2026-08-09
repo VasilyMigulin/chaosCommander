@@ -48,6 +48,14 @@ namespace Game.Core.Network
         /// <summary>Клетка для существа (row*5+col); -1 для заклинания/чар (без позиции).
         /// Цели способностей идут отдельно в ActionAbilityData.</summary>
         public int Cell { get; set; }
+
+        /// <summary>АЛЬТЕРНАТИВНАЯ УПЛАТА (семейство «Бесчестный букмекер»): -1 = обычная оплата;
+        /// иначе AltCostKind. Пассив зеркалит: тратит заряд маркера и повторяет уплату — урон
+        /// AltPaidAmount (DamageSelf) / жертвы по ключам AltPaidKeys (discard/sacrifice/mill).
+        /// Ставит CollectActionSystem из AltPaidComponent.</summary>
+        public int AltPaidKind { get; set; }
+        public int AltPaidAmount { get; set; }
+        public string[] AltPaidKeys { get; set; }
     }
 
     // ── CreatureMove: существо переместилось ──────────────────────────────────

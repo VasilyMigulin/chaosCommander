@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: creature_token_004
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
+  CardData:
+    rid: 2425735989079048520
+  references:
+    version: 2
+    RefIds:
+    - rid: 2425735989079048520
+      type: {class: CardCreatureModel, ns: Game.Core.Model.Card.Creature, asm: Game.Core.Model.Card.Creature}
+      data:
+        Id: 64
+        Name: "\u0423\u043B\u044C\u0442\u0440\u0430\u0432\u0438\u043F-\u0433\u043E\u0441\u0442\u044C"
+        Description: 
+        Rarity: 2
+        Element: 4
+        ArtImage: {fileID: 0}
+        ExpansionId: stolen_princess
+        PlayCost: 0
+        PlayCostAmount: 8
+        IsToken: 1
+        ShowAsLinked: 0
+        NonBattleAbilities: []
+        RuntimeAbilities: []
+        Archetypes: []
+        TierSource: 0
+        Tiers: []
+        MaxHealth: 8
+        Attack: 8
+        Speed: 2
+        ViewPrefab: {fileID: 1046069417137952589, guid: f06aa6138ec1c4140ac9af21f0ddde7e, type: 3}
+        SummonVfx:
+          PrePrefab: {fileID: 0}
+          PreLeadSeconds: 0
+          ResolvePrefab: {fileID: 0}
+          ResolveAttach: 1
+          ResolveDelaySeconds: 0.1
+          ResolveFollow: 1
+          FinishPrefab: {fileID: 0}
+          FinishAnchor: 1
+          FinishAttach: 0
+        TurnsAlive: 0
+        IsCommander: 0

@@ -26,6 +26,7 @@ MonoBehaviour:
   IncludeTokens: 0
   ExpansionId: 
   Cards:
+  - {fileID: 11400000, guid: 8951a762ba7a4ac418b6dbd3983f189d, type: 2}
   - {fileID: 11400000, guid: a2a71e563fd2cd64a964d0830f46ec6d, type: 2}
   - {fileID: 11400000, guid: 15971902f35f1e4478d3789efb0fe037, type: 2}
   - {fileID: 11400000, guid: 424d6351723d27b448780a6bacfdb5a7, type: 2}
@@ -33,7 +34,10 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 9b3f5612510fb3746b8516a53dbd0f34, type: 2}
   - {fileID: 11400000, guid: d69140d797b217546a363fcc7cb349c1, type: 2}
   - {fileID: 11400000, guid: 13e0d7a3e3cd14744b1049c586dd2e33, type: 2}
+  - {fileID: 11400000, guid: 9ad32f7ff7a92564ab2e02b3b5a8dd18, type: 2}
   - {fileID: 11400000, guid: fbe877a371c140e4c8e5b10d81cf1d83, type: 2}
+  - {fileID: 11400000, guid: aaa4b34d672110c42a54e5a9d66f769d, type: 2}
+  - {fileID: 11400000, guid: da5f4392f4313144aacb9759e2e95a00, type: 2}
   references:
     version: 2
     RefIds:

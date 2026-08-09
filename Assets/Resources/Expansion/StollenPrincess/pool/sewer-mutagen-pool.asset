@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b6336606c687b0341a9a2922c8a8d6b2, type: 3}
+  m_Name: sewer-mutagen-pool
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardPool
+  ColorMask: 0
+  FilterType: 1
+  Type: 0
+  FilterCost: 1
+  CostType: 0
+  MinCost: 0
+  MaxCost: 1
+  FilterRarity: 0
+  Rarity: 0
+  Archetype:
+    rid: -2
+  IncludeTokens: 0
+  ExpansionId: 
+  Cards:
+  - {fileID: 11400000, guid: 51848da2ec4618a4e9e7decf70ef81ef, type: 2}
+  - {fileID: 11400000, guid: 56f55f59b4f0891429516d29bf85fb21, type: 2}
+  - {fileID: 11400000, guid: 1a7467fa85e8e0d4c8f7eb91d0b91443, type: 2}
+  - {fileID: 11400000, guid: 8901c81045ac24e43ae6ba5f628b674a, type: 2}
+  - {fileID: 11400000, guid: 4fd7c9e3dcdd387498598b29b5db0f95, type: 2}
+  - {fileID: 11400000, guid: 15b386f313b55a34e86a7b4f66828688, type: 2}
+  - {fileID: 11400000, guid: 0225a5a9070e6324781ae43beff8e2c4, type: 2}
+  - {fileID: 11400000, guid: 35ab81c4255859f4ea822fc4d63bedcb, type: 2}
+  - {fileID: 11400000, guid: 9295d834f4825c846b2b4695bb0324bb, type: 2}
+  - {fileID: 11400000, guid: c0ddce2dd5c8d9f45bc7a0f7f13c4cc2, type: 2}
+  - {fileID: 11400000, guid: 4d637812ab9ce574596116830b59ac62, type: 2}
+  - {fileID: 11400000, guid: 4b3c11cbc870e084caf0f093099d83b2, type: 2}
+  - {fileID: 11400000, guid: f782c13faf86c3047a41cf53cfd79dda, type: 2}
+  - {fileID: 11400000, guid: 78076986f0e86b845ba847d655634377, type: 2}
+  - {fileID: 11400000, guid: 4a3ca03c930ad714c816a22ab0749089, type: 2}
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }

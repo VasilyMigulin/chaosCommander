@@ -111,8 +111,9 @@ namespace Game.Core.Photon
         // VS-раскрытие командиров перед мулиганом: каждый клиент шлёт своего командира (RPC_SubmitCommander),
         // хост собирает и рассылает RPC_RevealCommanders. Только идентичности (exp/id) — симуляция не трогается.
         private TaskCompletionSource<bool> _allCommandersTcs;
-        // + avatarId (косметика): едет тем же submit/reveal-каналом, что и командир.
-        private readonly Dictionary<int, (string exp, int cardId, string avatarId)> _commanderSubmissions = new Dictionary<int, (string, int, string)>();
+        // + avatarId (косметика) и playFabId (рейтинг: MatchIdentity для отчёта об исходе) —
+        // едут тем же submit/reveal-каналом, что и командир.
+        private readonly Dictionary<int, (string exp, int cardId, string avatarId, string playFabId)> _commanderSubmissions = new Dictionary<int, (string, int, string, string)>();
         const int CommanderRevealMs = 3000;
 
         private bool _pipelineStarted = false;
@@ -246,11 +247,14 @@ namespace Game.Core.Photon
                 Debug.Log("[Pipeline][HOST] Step 3.5: waiting for both commanders...");
                 await Task.WhenAny(_allCommandersTcs.Task, Task.Delay(5000));
 
-                BuildRevealArgs(out int p1Id, out string p1Exp, out int p1CardId, out string p1Avatar,
-                                out int p2Id, out string p2Exp, out int p2CardId, out string p2Avatar);
-                Debug.Log($"[Pipeline][HOST] Step 3.5: reveal commanders p1={p1Exp}:{p1CardId} p2={p2Exp}:{p2CardId}");
-                RPC_RevealCommanders(p1Id, p1Exp ?? string.Empty, p1CardId, p1Avatar ?? string.Empty,
-                                     p2Id, p2Exp ?? string.Empty, p2CardId, p2Avatar ?? string.Empty);
+                BuildRevealArgs(out int p1Id, out string p1Exp, out int p1CardId, out string p1Avatar, out string p1PlayFab,
+                                out int p2Id, out string p2Exp, out int p2CardId, out string p2Avatar, out string p2PlayFab);
+                // GUID матча для отчёта о рейтинге: имя комнаты переиспользуется между матчами и id не годится.
+                string matchGuid = Guid.NewGuid().ToString("N");
+                Debug.Log($"[Pipeline][HOST] Step 3.5: reveal commanders p1={p1Exp}:{p1CardId} p2={p2Exp}:{p2CardId} match={matchGuid}");
+                RPC_RevealCommanders(p1Id, p1Exp ?? string.Empty, p1CardId, p1Avatar ?? string.Empty, p1PlayFab ?? string.Empty,
+                                     p2Id, p2Exp ?? string.Empty, p2CardId, p2Avatar ?? string.Empty, p2PlayFab ?? string.Empty,
+                                     matchGuid);
 
                 // Дать игрокам разглядеть VS-экран, потом стартуем мулиган (VS скроется по MulliganStartedEvent).
                 await Task.Delay(CommanderRevealMs);
@@ -273,6 +277,13 @@ namespace Game.Core.Photon
             Debug.Log($"[PhotonRunHandler][{(Runner.IsServer ? "HOST" : "CLIENT")}] RPC_LoadGameScene received. LocalPlayer={Runner.LocalPlayer}");
             LoadGameScene();
         }
+
+        /// <summary>
+        /// РЕКОННЕКТ: вернувшийся грузит боевую сцену САМ. Пайплайн хоста одноразовый (_pipelineStarted),
+        /// RPC_LoadGameScene не буферизуется — вошедшему позже он никогда не придёт, и без этого входа он
+        /// навсегда остался бы в LobbyScene.
+        /// </summary>
+        public void LoadGameSceneForReconnect() => LoadGameScene();
 
         private void LoadGameScene()
         {
@@ -400,7 +411,9 @@ namespace Game.Core.Photon
             }
             // Косметический аватар берём из локальной экипировки (не из ECS) — синкаем оппоненту.
             string avatarId = Game.Core.Service.EquippedAvatar.ItemId ?? string.Empty;
-            RPC_SubmitCommander(playerId, exp ?? string.Empty, cardId, avatarId);
+            // PlayFabId — для отчёта о рейтинге (MatchIdentity); пуст до логина — рейтинг просто не отчитается.
+            string playFabId = Game.Core.Service.MatchIdentity.LocalPlayFabId ?? string.Empty;
+            RPC_SubmitCommander(playerId, exp ?? string.Empty, cardId, avatarId, playFabId);
         }
 
         bool TryGetLocalCommander(out int playerId, out string exp, out int cardId)
@@ -431,11 +444,11 @@ namespace Game.Core.Photon
         }
 
         [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-        public void RPC_SubmitCommander(int playerId, string exp, int cardId, string avatarId, RpcInfo info = default)
+        public void RPC_SubmitCommander(int playerId, string exp, int cardId, string avatarId, string playFabId, RpcInfo info = default)
         {
             if (!IsServer) return;
 
-            _commanderSubmissions[playerId] = (exp, cardId, avatarId);
+            _commanderSubmissions[playerId] = (exp, cardId, avatarId, playFabId);
             Debug.Log($"[PhotonRunHandler][HOST] Commander submitted: player={playerId} {exp}:{cardId} avatar='{avatarId}' ({_commanderSubmissions.Count}/{_playerProgress.Count})");
 
             if (_commanderSubmissions.Count >= _playerProgress.Count)
@@ -443,23 +456,29 @@ namespace Game.Core.Photon
         }
 
         [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-        public void RPC_RevealCommanders(int p1Id, string p1Exp, int p1CardId, string p1Avatar,
-                                         int p2Id, string p2Exp, int p2CardId, string p2Avatar)
+        public void RPC_RevealCommanders(int p1Id, string p1Exp, int p1CardId, string p1Avatar, string p1PlayFab,
+                                         int p2Id, string p2Exp, int p2CardId, string p2Avatar, string p2PlayFab,
+                                         string matchGuid)
         {
             int localId = LocalPlayerId();
 
-            string localExp, oppExp, localAvatar, oppAvatar;
+            string localExp, oppExp, localAvatar, oppAvatar, oppPlayFab;
             int localCard, oppCard;
             if (localId == p1Id)
             {
                 localExp = p1Exp; localCard = p1CardId; localAvatar = p1Avatar;
-                oppExp   = p2Exp; oppCard   = p2CardId; oppAvatar   = p2Avatar;
+                oppExp   = p2Exp; oppCard   = p2CardId; oppAvatar   = p2Avatar; oppPlayFab = p2PlayFab;
             }
             else
             {
                 localExp = p2Exp; localCard = p2CardId; localAvatar = p2Avatar;
-                oppExp   = p1Exp; oppCard   = p1CardId; oppAvatar   = p1Avatar;
+                oppExp   = p1Exp; oppCard   = p1CardId; oppAvatar   = p1Avatar; oppPlayFab = p1PlayFab;
             }
+
+            // Идентичность матча для отчёта о рейтинге. Соперник без PlayFabId (не залогинен/старый билд) —
+            // матч останется без отчёта (IsSet=false), это осознанный грейсфул.
+            if (!string.IsNullOrEmpty(matchGuid) && !string.IsNullOrEmpty(oppPlayFab))
+                Game.Core.Service.MatchIdentity.Set(matchGuid, oppPlayFab);
 
             Debug.Log($"[VS] RPC_RevealCommanders on {(Runner.IsServer ? "HOST" : "CLIENT")}: localId={localId} local={localExp}:{localCard} opp={oppExp}:{oppCard} oppAvatar='{oppAvatar}' → publish CommandersRevealedUIEvent");
             GameEventBus.Publish(new CommandersRevealedUIEvent
@@ -473,12 +492,12 @@ namespace Game.Core.Photon
             });
         }
 
-        void BuildRevealArgs(out int p1Id, out string p1Exp, out int p1CardId, out string p1Avatar,
-                             out int p2Id, out string p2Exp, out int p2CardId, out string p2Avatar)
+        void BuildRevealArgs(out int p1Id, out string p1Exp, out int p1CardId, out string p1Avatar, out string p1PlayFab,
+                             out int p2Id, out string p2Exp, out int p2CardId, out string p2Avatar, out string p2PlayFab)
         {
             p1Id = 1; p2Id = 2;
-            (p1Exp, p1CardId, p1Avatar) = _commanderSubmissions.TryGetValue(1, out var a) ? (a.exp, a.cardId, a.avatarId) : (string.Empty, -1, string.Empty);
-            (p2Exp, p2CardId, p2Avatar) = _commanderSubmissions.TryGetValue(2, out var b) ? (b.exp, b.cardId, b.avatarId) : (string.Empty, -1, string.Empty);
+            (p1Exp, p1CardId, p1Avatar, p1PlayFab) = _commanderSubmissions.TryGetValue(1, out var a) ? (a.exp, a.cardId, a.avatarId, a.playFabId) : (string.Empty, -1, string.Empty, string.Empty);
+            (p2Exp, p2CardId, p2Avatar, p2PlayFab) = _commanderSubmissions.TryGetValue(2, out var b) ? (b.exp, b.cardId, b.avatarId, b.playFabId) : (string.Empty, -1, string.Empty, string.Empty);
         }
          
         [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
@@ -814,7 +833,23 @@ namespace Game.Core.Photon
                 deckSyncComp.CommanderID = snapshot.Commander.CardId;
                 deckSyncComp.CommanderNetKey = snapshot.Commander.EntityKey;
 
-                Debug.Log($"[PhotonRunHandler] RPC_SyncDeckSnapshot received from player {fromPlayerId}: {snapshot.DeckCount} deck + {snapshot.HandCount} hand cards");
+                // Сайдборд. Массив может быть null (снапшот от клиента до этой версии) — тогда зоны просто нет.
+                int sideCount = snapshot.Sideboard != null ? snapshot.SideboardCount : 0;
+                var sideExpansionIds = new string[sideCount];
+                var sideCardIds = new int[sideCount];
+                var sideNetKeys = new string[sideCount];
+                for (int i = 0; i < sideCount; i++)
+                {
+                    sideExpansionIds[i] = snapshot.Sideboard[i].ExpansionId;
+                    sideCardIds[i] = snapshot.Sideboard[i].CardId;
+                    sideNetKeys[i] = snapshot.Sideboard[i].EntityKey;
+                }
+                deckSyncComp.SideboardExpansionIds = sideExpansionIds;
+                deckSyncComp.SideboardCardIds = sideCardIds;
+                deckSyncComp.SideboardNetworkKeys = sideNetKeys;
+                deckSyncComp.SideboardCount = sideCount;
+
+                Debug.Log($"[PhotonRunHandler] RPC_SyncDeckSnapshot received from player {fromPlayerId}: {snapshot.DeckCount} deck + {snapshot.HandCount} hand + {sideCount} sideboard cards");
             }
         }
 
@@ -867,7 +902,23 @@ namespace Game.Core.Photon
                 deckSyncComp.CommanderID = snapshot.Commander.CardId;
                 deckSyncComp.CommanderNetKey = snapshot.Commander.EntityKey;
 
-                Debug.Log($"[PhotonRunHandler] RPC_SyncDeckSnapshot received from player {fromPlayerId}: {snapshot.DeckCount} deck + {snapshot.HandCount} hand cards");
+                // Сайдборд. Массив может быть null (снапшот от клиента до этой версии) — тогда зоны просто нет.
+                int sideCount = snapshot.Sideboard != null ? snapshot.SideboardCount : 0;
+                var sideExpansionIds = new string[sideCount];
+                var sideCardIds = new int[sideCount];
+                var sideNetKeys = new string[sideCount];
+                for (int i = 0; i < sideCount; i++)
+                {
+                    sideExpansionIds[i] = snapshot.Sideboard[i].ExpansionId;
+                    sideCardIds[i] = snapshot.Sideboard[i].CardId;
+                    sideNetKeys[i] = snapshot.Sideboard[i].EntityKey;
+                }
+                deckSyncComp.SideboardExpansionIds = sideExpansionIds;
+                deckSyncComp.SideboardCardIds = sideCardIds;
+                deckSyncComp.SideboardNetworkKeys = sideNetKeys;
+                deckSyncComp.SideboardCount = sideCount;
+
+                Debug.Log($"[PhotonRunHandler] RPC_SyncDeckSnapshot received from player {fromPlayerId}: {snapshot.DeckCount} deck + {snapshot.HandCount} hand + {sideCount} sideboard cards");
             } 
         }
 
@@ -885,8 +936,158 @@ namespace Game.Core.Photon
             if (_state == null)
                 return;
 
+            NetHealth.NotePeerSignal();   // действие от пира = пир жив (watchdog)
+
             var snapshot = MemoryPackSerializer.Deserialize<IActionData>(data);
             ActionQueue.Enqueue(snapshot);
+        }
+
+        // ── Сетевое здоровье: heartbeat + чексумма границы хода ──────────────────────────────
+        // Оба клиента шлют лёгкий heartbeat раз в HeartbeatInterval — watchdog (NetConnectionWatchSystem)
+        // меряет тишину пира НЕЗАВИСИМО от потока действий (пассив в свой ход ничего не шлёт, а heartbeat идёт).
+        // InvokeLocal=false — свой сигнал себе не считаем (как у action-снапшота).
+
+        const float HeartbeatInterval = 3f;
+        float _nextHeartbeatAt;
+
+        void Update()
+        {
+            if (_state == null) return;                                  // бой не идёт
+            var runner = Runner;
+            if (runner == null || !runner.IsRunning) return;
+            if (UnityEngine.Time.unscaledTime < _nextHeartbeatAt) return;
+            _nextHeartbeatAt = UnityEngine.Time.unscaledTime + HeartbeatInterval;
+            try { RPC_Heartbeat(); }
+            catch (Exception) { /* сокет умирает — сигнал и так перестанет доходить, watchdog заметит */ }
+        }
+
+        [Rpc(RpcSources.All, RpcTargets.All, InvokeLocal = false)]
+        public void RPC_Heartbeat(RpcInfo info = default)
+        {
+            NetHealth.NotePeerSignal();
+        }
+
+        /// <summary>Отправить чексумму состояния на границе хода (TurnChecksumSystem). Безопасно при мёртвом сокете.</summary>
+        public void SendChecksum(int boundaryTurn, ulong hash)
+        {
+            var runner = Runner;
+            if (runner == null || !runner.IsRunning) return;
+            try { RPC_ReportChecksum(boundaryTurn, hash); }
+            catch (Exception e) { Debug.LogWarning($"[PhotonRunHandler] SendChecksum failed: {e.Message}"); }
+        }
+
+        [Rpc(RpcSources.All, RpcTargets.All, InvokeLocal = false)]
+        public void RPC_ReportChecksum(int boundaryTurn, ulong hash, RpcInfo info = default)
+        {
+            NetHealth.NotePeerSignal();
+            NetHealth.EnqueueChecksum(boundaryTurn, hash);
+        }
+
+        // ── Self-heal ресинк: запрос снэпшота мира + чанкованная передача (спека Docs/network/resync-spec.md) ──
+
+        /// <summary>Пассив просит актив прислать полный снэпшот мира (после детекта десинка).</summary>
+        public void RequestWorldResync()
+        {
+            var runner = Runner;
+            if (runner == null || !runner.IsRunning) return;
+            try { RPC_RequestWorldResync(); }
+            catch (Exception e) { Debug.LogWarning($"[PhotonRunHandler] RequestWorldResync failed: {e.Message}"); }
+        }
+
+        [Rpc(RpcSources.All, RpcTargets.All, InvokeLocal = false)]
+        public void RPC_RequestWorldResync(RpcInfo info = default)
+        {
+            NetHealth.NotePeerSignal();
+            ResyncBus.NoteSnapshotRequested();
+        }
+
+        /// <summary>Отправить снэпшот мира чанками (паттерн SendDeckSnapshotChunked, свой буфер сборки).</summary>
+        public void SendWorldSnapshotChunked(byte[] data, int chunkSize = 400)
+        {
+            var runner = Runner;
+            if (runner == null || !runner.IsRunning) return;
+            try
+            {
+                int totalChunks = (data.Length + chunkSize - 1) / chunkSize;
+                for (int i = 0; i < totalChunks; i++)
+                {
+                    int start = i * chunkSize;
+                    int length = Math.Min(chunkSize, data.Length - start);
+                    var chunk = new byte[length];
+                    Buffer.BlockCopy(data, start, chunk, 0, length);
+                    RPC_WorldSnapshotChunk(chunk, i, totalChunks);
+                }
+            }
+            catch (Exception e) { Debug.LogWarning($"[PhotonRunHandler] SendWorldSnapshot failed: {e.Message}"); }
+        }
+
+        [Rpc(RpcSources.All, RpcTargets.All, InvokeLocal = false)]
+        public void RPC_WorldSnapshotChunk(byte[] chunk, int chunkIndex, int totalChunks, RpcInfo info = default)
+        {
+            NetHealth.NotePeerSignal();
+
+            if (_resyncChunks == null || _resyncChunks.Length != totalChunks)
+            {
+                _resyncChunks = new byte[totalChunks][];
+                _resyncChunksReceived = 0;
+            }
+            if (_resyncChunks[chunkIndex] == null)
+            {
+                _resyncChunks[chunkIndex] = chunk;
+                _resyncChunksReceived++;
+            }
+            if (_resyncChunksReceived < totalChunks) return;
+
+            int totalLength = 0;
+            for (int i = 0; i < totalChunks; i++) totalLength += _resyncChunks[i].Length;
+            var fullData = new byte[totalLength];
+            int offset = 0;
+            for (int i = 0; i < totalChunks; i++)
+            {
+                Buffer.BlockCopy(_resyncChunks[i], 0, fullData, offset, _resyncChunks[i].Length);
+                offset += _resyncChunks[i].Length;
+            }
+            _resyncChunks = null;
+            _resyncChunksReceived = 0;
+
+            ResyncBus.DeliverSnapshot(fullData);
+        }
+
+        byte[][] _resyncChunks;
+        int _resyncChunksReceived;
+
+        // ── РЕКОННЕКТ (фаза 2): игрок закрыл приложение и вернулся ────────────────────
+        // Вернувшийся уже вошёл в ТУ ЖЕ комнату по имени (ReconnectService) и спрашивает разрешение
+        // продолжить. Отвечает ОСТАВШИЙСЯ: игроков двое, InvokeLocal=false → RPC приходит ровно ему.
+        // Он же авторитет состояния — подтвердив, отдаст полный снэпшот мира (WorldResyncSystem).
+        // Хост-специфики нет намеренно: вернуться может и клиент, и (если сессия уцелела) кто угодно.
+
+        [Rpc(RpcSources.All, RpcTargets.All, InvokeLocal = false)]
+        public void RPC_RequestReconnect(int gamePlayerId, RpcInfo info = default)
+        {
+            bool matchAlive = CurrentState == SessionState.GameStarted && !Game.Core.Ecs.Components.MatchState.IsOver;
+            Debug.Log($"[Reconnect][peer] запрос от игрока {gamePlayerId}: матч жив={matchAlive} (state={CurrentState})");
+
+            if (matchAlive)
+            {
+                // Пир снова на связи — снимаем «оппонент вышел», иначе watchdog закроет матч техпобедой.
+                NetHealth.NoteOpponentReturned();
+                // Замораживаем свой ввод: действия, сделанные между снятием снэпшота и его применением,
+                // потерялись бы (Apply на той стороне чистит ActionQueue) → мгновенный десинк.
+                ReconnectFlow.NoteOpponentRestoring();
+                GameEventBus.Publish(new InputBlockedEvent());
+            }
+
+            RPC_ReconnectGrant(gamePlayerId, matchAlive ? 1 : 0);
+        }
+
+        [Rpc(RpcSources.All, RpcTargets.All, InvokeLocal = false)]
+        public void RPC_ReconnectGrant(int gamePlayerId, int accepted, RpcInfo info = default)
+        {
+            if (!ReconnectFlow.IsActive) return;                        // мы не возвращаемся — ответ не нам
+            if (ReconnectFlow.Saved.MyPlayerId != gamePlayerId) return; // ответ про другого игрока
+            Debug.Log($"[Reconnect] пир ответил: {(accepted != 0 ? "ПРОДОЛЖАЕМ" : "отказ — матча уже нет")}");
+            ReconnectFlow.NoteGrant(accepted != 0);
         }
          
         [Rpc(RpcSources.All, RpcTargets.All)]

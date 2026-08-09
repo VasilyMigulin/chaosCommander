@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Game.Core.Ecs.Components;
 using Game.Core.Events;
@@ -41,9 +41,14 @@ namespace Game.Core.Ability
             => LeaveBoardUtil.Request(world, target, LeaveDestination.Deck);
     }
 
-    // === class (OOP) === Удалить цель-существо из игры безвозвратно (Низвести до атомов) → лимбо, без OnDie.
+    // === class (OOP) === RemoveEffect — «убрать существо из игры» (Красный подарок Санты; зачистка вражеского
+    // борда). Уводит цель в Limbo через LeaveBoardEvent — вне игры БЕЗ CreatureDiedEvent: OnDie/предсмертные
+    // хрипы НЕ срабатывают. Аура удаляемого гаснет сама (рабочие ауры реактивные — пересчёт от BoardTag
+    // источника; ушёл с борда → off). Стат-модификаторы снимает RunLeaveBoardSystem. По сути «уничтожение без
+    // предсмертного эффекта». Field-контейнер (AbilityToField) применит его к каждой цели → чистка стола.
+    // (бывш. BanishEffect — переименован; на ассеты не ссылался, сериализация не задета.)
     [Serializable]
-    public sealed class BanishEffect : EffectBase
+    public sealed class RemoveEffect : EffectBase
     {
         public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Removal;
         public override void Apply(EcsWorld world, int cardEntity, int target)
@@ -109,12 +114,17 @@ namespace Game.Core.Ability
 
         public override void Apply(EcsWorld world, int cardEntity, int target)
         {
-            if (target < 0 || !world.GetPool<CreatureTag>().Has(target)) return;
+            // Диагностика вместо тихих выходов: «Машина пропаганды» из раскопки в MP не давала контроль
+            // (2026-07-27), а причина не была видна в логах — каждый гейт теперь именуется.
+            if (target < 0 || !world.GetPool<CreatureTag>().Has(target))
+            { UnityEngine.Debug.LogWarning($"[TakeControl] card={cardEntity}: target={target} не существо → skip"); return; }
             var ownerPool = world.GetPool<OwnerComponent>();
-            if (!ownerPool.Has(target)) return;
+            if (!ownerPool.Has(target))
+            { UnityEngine.Debug.LogWarning($"[TakeControl] card={cardEntity}: target={target} без OwnerComponent → skip"); return; }
 
             var playerPool = world.GetPool<PlayerComponent>();
-            if (!playerPool.Has(PlayerEntity)) return;
+            if (!playerPool.Has(PlayerEntity))
+            { UnityEngine.Debug.LogWarning($"[TakeControl] card={cardEntity}: PlayerEntity={PlayerEntity} не игрок (битый Init эффекта — pool/resync-пересоздание?) → skip"); return; }
             int newOwnerId = playerPool.Get(PlayerEntity).PlayerId;
 
             int origOwnerId = ownerPool.Get(target).OwnerId;
@@ -170,34 +180,169 @@ namespace Game.Core.Ability
             // ХС-семантика: способности украденного «служат» новому владельцу — триггеры начала/конца
             // хода срабатывают на ЕГО ходу, бенефициар/таргетинг смотрят с его стороны (см. util).
             AbilityOwnershipUtil.Rebind(world, target, PlayerEntity);
+
+            UnityEngine.Debug.Log($"[TakeControl] card={cardEntity}: target={target} {origOwnerId}→{newOwnerId} temporary={Temporary}");
         }
     }
 
-    // === class (OOP) === Превратить цель-существо в существо из ассета под контролем владельца источника
-    // (Чертовщина → черт). Реализация: цель уходит из игры (лимбо), на свободную клетку фронта владельца
-    // создаётся новое существо (Generate, детерм. ключ → синк как обычная генерация). NB: новое существо
-    // встаёт на СВОЮ сторону (не на клетку цели) — упрощение позиции.
+    // === class (OOP) === ПОЛИМОРФ (переработан 2026-07-28): превратить цель-существо в существо из ассета
+    // НА МЕСТЕ — как Полиморф/Хекс в ХС. Сущность НЕ пересоздаётся: та же клетка, тот же NetworkEntityKey
+    // (внешние ссылки/синк живут), меняются модель/статы/кост/способности/архетипы/вьюха, баффы/дебаффы
+    // СГОРАЮТ. Мутацию выполняет RunTransformSystem по TransformCardEvent (у системы есть CardConfig —
+    // модель по идентичности ассета). TransferOwnership=true → превращённое существо переходит под контроль
+    // владельца ИСТОЧНИКА (Чертовщина: «чёрт под вашим контролем» — ВКЛЮЧИТЬ У ЕЁ АССЕТА!); false (умолч.) —
+    // остаётся владельцу цели (классический полиморф: враг остаётся с бараном).
+    // СИНК ДАРОМ: Apply ре-ранится на обоих клиентах → событие и мутация зеркальны.
     [Serializable]
     public sealed class TransformEffect : EffectBase
     {
         public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Removal;
         [Tooltip("Ассет CardInstanceData существа, в которое превращаем (перетащить).")]
         public ScriptableObject Source;
+        [Tooltip("true → превращённое существо переходит под контроль владельца ИСТОЧНИКА (Чертовщина); " +
+                 "false — остаётся у владельца цели (классический полиморф).")]
+        public bool TransferOwnership = false;
 
         public override void Apply(EcsWorld world, int cardEntity, int target)
         {
             if (target < 0 || !world.GetPool<CreatureTag>().Has(target)) return;
+            // Командир неполиморфим. ЛОГ обязателен: без него способность «резолвится и ничего не делает»,
+            // и по консоли не отличить «выбрали командира» от настоящей поломки (2026-08-01, Мастер
+            // трансмутаций). Чтобы командира вообще нельзя было выбрать — Not{CommanderTargetFilter} в Filters.
+            if (world.GetPool<CommanderTag>().Has(target))
+            {
+                UnityEngine.Debug.Log($"[Transform] target={target} — командир, неполиморфим → skip " +
+                                      "(добавь Not{{CommanderTargetFilter}} в Filters, чтобы его нельзя было выбрать)");
+                return;
+            }
             if (!(Source is ICreatable c)) return;
 
-            LeaveBoardUtil.Request(world, target, LeaveDestination.Limbo);   // исходное существо из игры
+            int newOwnerId = -1;
+            if (TransferOwnership)
+            {
+                var ownerPool = world.GetPool<OwnerComponent>();
+                if (ownerPool.Has(cardEntity)) newOwnerId = ownerPool.Get(cardEntity).OwnerId;
+            }
 
-            var ownerPool = world.GetPool<OwnerComponent>();
-            if (!ownerPool.Has(cardEntity)) return;
-            int ownerId = ownerPool.Get(cardEntity).OwnerId;
-            var free = BoardFrontRow.FreeCells(world, ownerId);
-            if (free.Count > 0)
-                GenerateCardEffect.SpawnToBoard(world, cardEntity, c.ExpansionId, c.CardId, BoardFrontRow.FrontRow, free[0]);
+            GameEventBus.Publish(new TransformCardEvent
+            {
+                TargetEntity = target,
+                ExpansionId  = c.ExpansionId,
+                CardId       = c.CardId,
+                NewOwnerId   = newOwnerId,
+            });
         }
+    }
+
+    // === class (OOP) === Превратить цель-существо в СЛУЧАЙНУЮ карту из ПУЛА (эволюция). Мутация НА МЕСТЕ —
+    // TransformCardEvent → RunTransformSystem (как TransformEffect). СИНК: ролл недетерминирован → актив
+    // роллит и пишет в GeneratedCardChannel (едет в снапшоте способности), пассив TryReplay берёт ту же
+    // идентичность (паттерн GainRandomCard/Фокус-покус).
+    [Serializable]
+    public sealed class TransformFromPoolEffect : EffectBase
+    {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Removal;
+        [Tooltip("Ассет CardPool (по критериям, напр. «все существа»). Если задан — берём из него, иначе из ручного Pool ниже.")]
+        public ScriptableObject PoolAsset;
+        [Tooltip("Ручной пул ассетов CardInstanceData (если PoolAsset не задан).")]
+        public List<ScriptableObject> Pool = new();
+        [Tooltip("true → превращённое существо переходит под контроль владельца ИСТОЧНИКА; " +
+                 "false — остаётся у владельца цели (классический полиморф).")]
+        public bool TransferOwnership = false;
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+            => TransformRoll.Apply(world, cardEntity, target, PoolAsset, Pool, cost: -1, TransferOwnership);
+    }
+
+    // === class (OOP) === Превратить цель-существо в случайную карту из пула СТОИМОСТЬЮ X («за X»).
+    // X — фиксированный Cost («Канализационный мутаген»: за 1) или, при CostFromTimesPlayed, число
+    // розыгрышей ЭТОЙ карты владельцем в матче, ВКЛЮЧАЯ текущий («Мастер трансмутаций»; счётчик
+    // MatchCounter.CountsByModelId — как Позвать рой, зеркален: трекер инкрементит синхронно на
+    // CardPlayedEvent, ДО резолва). Нет карт ровно за X → берём ближайшие по |Δстоимости| (не фуззлимся:
+    // «за 100» превратит в самое дорогое из пула). Остальное — как TransformFromPoolEffect.
+    [Serializable]
+    public sealed class TransformFromPoolWithCostEffect : EffectBase
+    {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Removal;
+        [Tooltip("Ассет CardPool (по критериям, напр. «все существа»). Если задан — берём из него, иначе из ручного Pool ниже.")]
+        public ScriptableObject PoolAsset;
+        [Tooltip("Ручной пул ассетов CardInstanceData (если PoolAsset не задан).")]
+        public List<ScriptableObject> Pool = new();
+        [Tooltip("true → превращённое существо переходит под контроль владельца ИСТОЧНИКА; " +
+                 "false — остаётся у владельца цели (классический полиморф).")]
+        public bool TransferOwnership = false;
+
+        [Tooltip("Целевая стоимость случайной карты («за X»). Игнорируется при CostFromTimesPlayed.")]
+        public int Cost = 1;
+        [Tooltip("X = сколько раз ЭТА карта разыграна владельцем в матче, включая текущий розыгрыш (Мастер трансмутаций).")]
+        public bool CostFromTimesPlayed = false;
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            int x = Cost;
+            if (CostFromTimesPlayed)
+            {
+                x = 1;   // счётчик не найден → минимум «за 1» (первый розыгрыш и так даёт 1)
+                var counters  = world.GetPool<MatchCounterComponent>();
+                var modelPool = world.GetPool<CardModelComponent>();
+                if (PlayerEntity >= 0 && counters.Has(PlayerEntity) && modelPool.Has(cardEntity))
+                {
+                    var counts = counters.Get(PlayerEntity).CountsByModelId;
+                    if (counts != null && counts.TryGetValue(modelPool.Get(cardEntity).ModelId, out int played) && played > 0)
+                        x = played;
+                }
+            }
+            TransformRoll.Apply(world, cardEntity, target, PoolAsset, Pool, x, TransferOwnership);
+        }
+    }
+
+    // === helper === общий ролл+мутация Transform-from-pool: фильтр по косту (cost >= 0 → карты ровно за X,
+    // нет таких → ближайшие по |Δcost|; random среди равных), синк ролла через GeneratedCardChannel,
+    // сама мутация — TransformCardEvent (RunTransformSystem, на месте, ключ/клетка сохраняются).
+    internal static class TransformRoll
+    {
+        public static void Apply(EcsWorld world, int cardEntity, int target,
+                                 ScriptableObject poolAsset, List<ScriptableObject> pool, int cost, bool transferOwnership)
+        {
+            if (target < 0 || !world.GetPool<CreatureTag>().Has(target)) return;
+            // Командир неполиморфим — и молчать об этом нельзя (см. TransformEffect). Выходим ДО ролла,
+            // поэтому GeneratedCardChannel не пишется: актив и пассив пропускают эффект одинаково, синк цел.
+            if (world.GetPool<CommanderTag>().Has(target))
+            {
+                UnityEngine.Debug.Log($"[Transform] target={target} — командир, неполиморфим → skip " +
+                                      "(добавь Not{{CommanderTargetFilter}} в Filters, чтобы его нельзя было выбрать)");
+                return;
+            }
+
+            string exp; int cardId;
+            if (GeneratedCardChannel.TryReplay(out exp, out cardId))
+            {
+                // пассив: присланная активом идентичность
+            }
+            else
+            {
+                var pick = PoolUtil.PickByCost(poolAsset, pool, cost);   // общий выбор «за X» (см. PoolUtil)
+                if (pick == null) return;
+                exp = pick.ExpansionId; cardId = pick.CardId;
+                GeneratedCardChannel.Record(exp, cardId);
+            }
+
+            int newOwnerId = -1;
+            if (transferOwnership)
+            {
+                var ownerPool = world.GetPool<OwnerComponent>();
+                if (ownerPool.Has(cardEntity)) newOwnerId = ownerPool.Get(cardEntity).OwnerId;
+            }
+
+            GameEventBus.Publish(new TransformCardEvent
+            {
+                TargetEntity = target,
+                ExpansionId  = exp,
+                CardId       = cardId,
+                NewOwnerId   = newOwnerId,
+            });
+        }
+
     }
 
     // === class (OOP) === УНИВЕРСАЛЬНО разыграть ЦЕЛЕВУЮ карту (target) БЕСПЛАТНО, где бы она ни лежала
@@ -222,6 +367,211 @@ namespace Game.Core.Ability
             if (!TurnGate.IsLocalActive(world)) return;   // форс-розыгрыш — активный; пассив реплеит снапшоты
             bool forceRandom = ForceRandomTarget || AbilityResolveContext.TriggerKey != TriggerKeys.OnCast;
             PlayCardUtil.Play(world, target, free: true, forceRandomTarget: forceRandom);
+        }
+    }
+
+    // === class (OOP) === Modifier для Discover: снять таймер жизни у чары-цели (Зачаровать матч: «выберите
+    // чару и разыграйте, её длительность продлевается до конца матча»). По контракту CardCharmModel 0
+    // таймеров = ПОСТОЯННАЯ чара — снятие CharmTimerComponent и есть «до конца матча». Не-чара / чара без
+    // таймера (TurnsAlive=0, уже постоянная) — no-op. Чара с FixedCharmDurationTag (CardCharmModel.FixTurns) —
+    // тоже no-op, длительность зафиксирована и «Зачаровать матч» её не трогает. Ставить в DiscoverEffect.Modifiers
+    // РЯДОМ с PlayTargetCardEffect (порядок между ними не важен — до первого тика таймера ещё как минимум ход).
+    [Serializable]
+    public sealed class MakeCharmPermanentEffect : EffectBase
+    {
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            if (target < 0) return;
+            if (world.GetPool<FixedCharmDurationTag>().Has(target)) return;
+            var timerPool = world.GetPool<CharmTimerComponent>();
+            if (timerPool.Has(target)) timerPool.Del(target);
+        }
+    }
+
+    // === class (OOP) === Modifier для Discover/генерации: скидка К СТОИМОСТИ выбранной карты, ТОЛЬКО ЕСЛИ
+    // её цвет содержит Color (Батюшка-барыга: «-2, если оно жёлтого цвета»). ConditionRoot тут не годится —
+    // резолвится ОДИН РАЗ при Init источника, до того как известна выбранная цель; цвет цели узнать раньше
+    // просто негде, поэтому смотрим его прямо в Apply. Permanent — переживает смерть/зоны, как обычный
+    // AddBuffEffect{BuffCost}.
+    [Serializable]
+    public sealed class DiscountIfColorEffect : EffectBase
+    {
+        public EnumService.Element Color = EnumService.Element.Yellow;
+        public int Delta = -2;
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            if (target < 0 || Delta == 0) return;
+            var pool = world.GetPool<CardModelComponent>();
+            if (!pool.Has(target) || (pool.Get(target).Element & Color) == 0) return;
+            BuffCost.Add(world, target, Delta, permanent: true);
+        }
+    }
+
+    // === class (OOP) === Modifier для Discover: ЗАПОМНИТЬ выбранную карту НА ИСТОЧНИКЕ (cardEntity) вместо
+    // того, чтобы класть её в руку (Королевский шут: «посмотрите 3 шутки и выберите 1» — выбранная не идёт
+    // в руку, а ждёт хрипа). Снимает HandTag с target СРАЗУ — тем же путём, что PlayTargetCardEffect у
+    // «Приглашения»/«Дополнительной возможности»: CreateCardSystem регистрирует карту в списке руки и шлёт
+    // CardDrawnEvent, ТОЛЬКО ЕСЛИ карта «всё ещё в заявленной зоне» (StillInDeclaredZone) — модификаторы
+    // discover'а прогоняются ДО этой проверки, так что уход HandTag здесь её надёжно отменяет: карта
+    // остаётся зоно-независимой сущностью (не рука/колода/кладбище), пока PlayRememberedCardEffect её не
+    // разыграет. Ставить в DiscoverEffect.Modifiers.
+    [Serializable]
+    public sealed class RememberCardForLaterPlayEffect : EffectBase
+    {
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            if (target < 0) return;
+
+            var rememberPool = world.GetPool<RememberedPlayTargetComponent>();
+            if (!rememberPool.Has(cardEntity)) rememberPool.Add(cardEntity);
+            rememberPool.Get(cardEntity).Entity = target;
+
+            var handTag = world.GetPool<HandTag>();
+            if (handTag.Has(target)) handTag.Del(target);
+        }
+    }
+
+    // === class (OOP) === Разыграть карту, запомненную RememberCardForLaterPlayEffect (free force-cast —
+    // ровно то же, что делает PlayTargetCardEffect с обычной целью). Вешать на OnDie ТОГО ЖЕ источника
+    // (Королевский шут: «при смерти разыграйте выбранную шутку»). Компонент снимается сразу — одноразово.
+    [Serializable]
+    public sealed class PlayRememberedCardEffect : EffectBase
+    {
+        [Tooltip("Форсить случайную цель у разыгранной карты (как Йогг-Сарон) — по умолчанию true: розыгрыш " +
+                 "идёт не от ручного OnCast игрока (хрип), интерактивное окно выбора цели тут не место.")]
+        public bool ForceRandomTarget = true;
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            if (!TurnGate.IsLocalActive(world)) return;   // форс-розыгрыш — активный; пассив реплеит снапшоты
+
+            var rememberPool = world.GetPool<RememberedPlayTargetComponent>();
+            if (!rememberPool.Has(cardEntity)) return;
+            int remembered = rememberPool.Get(cardEntity).Entity;
+            rememberPool.Del(cardEntity);
+
+            PlayCardUtil.Play(world, remembered, free: true, forceRandomTarget: ForceRandomTarget);
+        }
+    }
+
+    // === class (OOP) === Положить в РУКУ карту, запомненную RememberCardForLaterPlayEffect — вместо
+    // форс-каста (см. PlayRememberedCardEffect). Вешать на OnDie ТОГО ЖЕ источника (Контрабандист: «при
+    // смерти положите в руку выбранную карту»). Компонент снимается сразу — одноразово. Лимит руки —
+    // общее правило HandSpace (нет места → карта сгорает, как выбор дискавера в руку).
+    [Serializable]
+    public sealed class PutRememberedCardToHandEffect : EffectBase
+    {
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            var rememberPool = world.GetPool<RememberedPlayTargetComponent>();
+            if (!rememberPool.Has(cardEntity)) return;
+            int remembered = rememberPool.Get(cardEntity).Entity;
+            rememberPool.Del(cardEntity);
+            if (remembered < 0) return;
+
+            var ownerPool = world.GetPool<OwnerComponent>();
+            if (!ownerPool.Has(remembered)) return;
+            int playerEntity = ZoneListUtil.FindPlayerEntity(world, ownerPool.Get(remembered).OwnerId);
+            if (playerEntity < 0) return;
+
+            if (!HandSpace.HasRoom(world, playerEntity))
+            {
+                HandSpace.Burn(world, remembered, "Контрабандист: запомненная карта не влезла в руку");
+                return;
+            }
+
+            var handTag = world.GetPool<HandTag>();
+            if (!handTag.Has(remembered)) handTag.Add(remembered);
+            ZoneListUtil.AddToHand(world, remembered, playerEntity);
+
+            // SourceEntity = кастер (Контрабандист) — UI летит визуально от него/его трупа, а не «из-за края экрана».
+            GameEventBus.Publish(new CardDrawnEvent { CardEntity = remembered, PlayerId = playerEntity, SourceEntity = cardEntity });
+        }
+    }
+
+    // === class (OOP) === Разыграть ВЕРХНЮЮ карту колоды владельца (Шальной принц: «в начале хода разыграйте
+    // верхнюю карту колоды»). Верх = DeckComponent.CardEntities[0] — тот же конец, что берёт DrawCardSystem.
+    // Играется бесплатно через PlayCardUtil; ForceRandomTarget по умолч. true (розыгрыш идёт НЕ от ручного
+    // OnCast игрока — как Барабук/Йогг, окно ручного выбора цели не место). PlayCardUtil сам снимает карту с
+    // колоды. СИНК как у PlayTargetCardEffect: форсит активный (IsLocalActive), пассив — обычным каст-синком.
+    [Serializable]
+    public sealed class PlayTopDeckCardEffect : EffectBase
+    {
+        public bool ForceRandomTarget = true;
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            if (!TurnGate.IsLocalActive(world)) return;   // форс-розыгрыш — активный; пассив реплеит снапшоты
+            var ownerPool = world.GetPool<OwnerComponent>();
+            if (!ownerPool.Has(cardEntity)) return;
+            int ownerId = ownerPool.Get(cardEntity).OwnerId;
+
+            var pp = world.GetPool<PlayerComponent>();
+            var dp = world.GetPool<DeckComponent>();
+            int top = -1;
+            foreach (var pe in world.Filter<PlayerComponent>().Inc<DeckComponent>().End())
+            {
+                if (pp.Get(pe).PlayerId != ownerId) continue;
+                ref var deck = ref dp.Get(pe);
+                if (deck.CardEntities != null && deck.CardEntities.Count > 0) top = deck.CardEntities[0];
+                break;
+            }
+            if (top < 0) return;                          // колода пуста
+            PlayCardUtil.Play(world, top, free: true, forceRandomTarget: ForceRandomTarget);
+        }
+    }
+
+    // === class (OOP) === Замешать САМ ИСТОЧНИК из руки обратно в колоду и добрать замену (Распрекрасная
+    // принцесса: «в начале матча замешивается в колоду», даже если пережила мулиган и попала в стартовую руку).
+    // Работает ТОЛЬКО если источник в РУКЕ (иначе no-op: в колоде она и так). Двигает РЕАЛЬНУЮ карту (не копию,
+    // как ShuffleCopyOfSelfEffect): снимает HandTag→DeckTag, перекладывает в списках зон, шлёт UI-снятие из руки,
+    // добирает 1 (DrawReplacement). Кладём в КОНЕЦ колоды (детерминированно — порядок колоды и так тасован;
+    // важно, что не в top, иначе тут же вернётся). СИНК: ре-ран на ОБОИХ клиентах (инжект ActionAbilityData у
+    // пассива), как DrawCardEffect: зоны зеркальны по ключам, добор — с верха order-синхронной колоды, UI-события
+    // для чужого зеркала no-op. БЫВШИЙ гейт IsLocalActive здесь но-опил инжект у пассива → зеркало оппонента
+    // оставляло карту в руке (класс бага «Попойки», расхождение чексуммы H/D) — снят 2026-07-28.
+    [Serializable]
+    public sealed class ShuffleSelfIntoDeckEffect : EffectBase
+    {
+        public bool DrawReplacement = true;
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            var handTag = world.GetPool<HandTag>();
+            if (!handTag.Has(cardEntity)) return;         // не в руке → уже в колоде, ничего не делаем
+
+            var ownerPool = world.GetPool<OwnerComponent>();
+            int ownerId = ownerPool.Has(cardEntity) ? ownerPool.Get(cardEntity).OwnerId : -1;
+
+            // рука → колода (реальная карта)
+            handTag.Del(cardEntity);
+            ZoneListUtil.RemoveFromHand(world, cardEntity, ownerId);
+            GameEventBus.Publish(new CardRemovedFromHandUIEvent { CardEntity = cardEntity });
+
+            var deckTag = world.GetPool<DeckTag>();
+            if (!deckTag.Has(cardEntity)) deckTag.Add(cardEntity);
+
+            var pp = world.GetPool<PlayerComponent>();
+            var dp = world.GetPool<DeckComponent>();
+            int playerEntity = -1;
+            foreach (var pe in world.Filter<PlayerComponent>().Inc<DeckComponent>().End())
+            {
+                if (pp.Get(pe).PlayerId != ownerId) continue;
+                ref var deck = ref dp.Get(pe);
+                deck.CardEntities ??= new System.Collections.Generic.List<int>();
+                if (!deck.CardEntities.Contains(cardEntity)) deck.CardEntities.Add(cardEntity);
+                deck.Count = deck.CardEntities.Count;
+                playerEntity = pe;
+                break;
+            }
+
+            if (DrawReplacement && playerEntity >= 0)
+            {
+                var drawPool = world.GetPool<DrawCardEvent>();
+                if (!drawPool.Has(playerEntity)) drawPool.Add(playerEntity);
+                drawPool.Get(playerEntity).Count += 1;
+            }
         }
     }
 
@@ -284,6 +634,10 @@ namespace Game.Core.Ability
             var ownerPool = world.GetPool<OwnerComponent>();
             int ownerId = ownerPool.Has(card) ? ownerPool.Get(card).OwnerId : -1;
 
+            // Розыгрыш инициирован ЭФФЕКТОМ → пишем карте записку о причине: её способности встанут
+            // в очередь сразу за вызвавшей активацией. См. CausedByActivationComponent.
+            CauseStamp.Mark(world, card);
+
             if (forceRandomTarget)
             {
                 var frt = world.GetPool<ForceRandomTargetingComponent>();
@@ -293,7 +647,24 @@ namespace Game.Core.Ability
             var deckTag = world.GetPool<DeckTag>();
             var handTag = world.GetPool<HandTag>();
             var graveTag = world.GetPool<GraveTag>();
-            if (deckTag.Has(card))  { deckTag.Del(card);  ZoneListUtil.RemoveFromDeck(world, card, ownerId); }
+            if (deckTag.Has(card))
+            {
+                deckTag.Del(card);
+                ZoneListUtil.RemoveFromDeck(world, card, ownerId);
+
+                // Владелец эту карту В РУКЕ НЕ ВИДЕЛ — без показа розыгрыш «из ниоткуда» нечитаем.
+                // CardLayout выводит её той же дугой с зависанием, что и уничтожение из колоды
+                // (CardMillFromDeckUIEvent), но с VFX-развилкой «разыграна» (PlayShowcaseFx).
+                var viewPool = world.GetPool<CardViewDataComponent>();
+                GameEventBus.Publish(new CardPlayedFromDeckUIEvent
+                {
+                    CardEntity   = card,
+                    CardName     = viewPool.Has(card) ? viewPool.Get(card).CardName : "",
+                    Icon         = viewPool.Has(card) ? viewPool.Get(card).ArtImage : null,
+                    Visual       = viewPool.Has(card) ? viewPool.Get(card).ToVisual() : default,
+                    IsLocalOwner = world.GetPool<OwnCardTag>().Has(card),
+                });
+            }
             if (handTag.Has(card))
             {
                 handTag.Del(card);
@@ -335,3 +706,5 @@ namespace Game.Core.Ability
         }
     }
 }
+
+

@@ -22,6 +22,7 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<HandTag> _handTagPool = default;
         readonly EcsPoolInject<DeckTag> _deckTagPool = default;
         readonly EcsPoolInject<CardModelComponent> _cardModelPool = default;
+        readonly EcsPoolInject<CardViewDataComponent> _viewDataPool = default;   // запечённый визуал (имя/статы/арт) — как у боевых вьюх
         readonly EcsPoolInject<CommanderTag> _commanderTagPool = default;
         readonly EcsPoolInject<MulliganModifierComponent> _mulliganModPool = default;
         readonly EcsCustomInject<CardConfig> _cardConfig = default;
@@ -126,6 +127,13 @@ namespace Game.Core.Ecs.Systems
 
         CardVisualData GetVisualForCard(int cardEntity)
         {
+            // Берём ЗАПЕЧЁННЫЙ визуал сущности (CardModel.Init его пишет — имя/статы/стоимость/арт, уже с
+            // локализацией и форматтером), как боевые вьюхи. НЕ ре-резолвим через config.Get: стори-карты
+            // вне экспаншенов (ExpansionId пустой) он не находит → раньше мулиган показывал пустые карты.
+            if (_viewDataPool.Value.Has(cardEntity))
+                return CardVisualDataFactory.From(_viewDataPool.Value.Get(cardEntity));
+
+            // Фолбэк (нет запечённого компонента) — старый путь через каталог.
             if (!_cardModelPool.Value.Has(cardEntity)) return default;
             ref var model = ref _cardModelPool.Value.Get(cardEntity);
             var instance = _cardConfig.Value.Get(model.ExpansionId, model.ModelId);

@@ -1,0 +1,182 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: creature_card_032
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
+  CardData:
+    rid: 2425736124044673146
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 2425736124044673146
+      type: {class: CardCreatureModel, ns: Game.Core.Model.Card.Creature, asm: Game.Core.Model.Card.Creature}
+      data:
+        Id: 86
+        Name: "\u041A\u043E\u043C\u0430\u043D\u0434\u0443\u044E\u0449\u0438\u0439
+          \u043A\u043E\u0440\u043E\u043B\u0435\u0432\u0441\u043A\u043E\u0439 \u0433\u0432\u0430\u0440\u0434\u0438\u0435\u0439"
+        Description: "\u041F\u043E\u043A\u0430 \u043A\u043E\u043D\u0442\u0440\u043E\u043B\u0438\u0440\u0443\u0435\u0442\u0435:
+          \u0432\u0430\u0448\u0438 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0430
+          \u0442\u043E\u043A\u0435\u043D\u044B \u0438\u043C\u0435\u044E\u0442 \u0414\u0432\u043E\u0439\u043D\u043E\u0439
+          \u0443\u0434\u0430\u0440"
+        Rarity: 3
+        Element: 21
+        ArtImage: {fileID: 0}
+        ExpansionId: stolen_princess
+        PlayCost: 0
+        PlayCostAmount: 2
+        IsToken: 0
+        ShowAsLinked: 0
+        HideAsLinked: 0
+        NonBattleAbilities: []
+        RuntimeAbilities:
+        - rid: 2425736124044673147
+        - rid: 2425736124044673151
+        Archetypes: []
+        TierSource: 0
+        Tiers: []
+        MaxHealth: 2
+        Attack: 1
+        Speed: 4
+        Properties: []
+        ViewPrefab: {fileID: 1046069417137952589, guid: f06aa6138ec1c4140ac9af21f0ddde7e, type: 3}
+        SummonVfx:
+          PrePrefab: {fileID: 0}
+          PreLeadSeconds: 0
+          ResolvePrefab: {fileID: 0}
+          ResolveAttach: 1
+          ResolveDelaySeconds: 0.1
+          ResolveFollow: 1
+          FinishPrefab: {fileID: 0}
+          FinishAnchor: 1
+          FinishAttach: 0
+        TurnsAlive: 0
+        IsCommander: 0
+    - rid: 2425736124044673147
+      type: {class: AbilityToField, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 2425736124044673148
+        Rules: []
+        Effects:
+        - rid: 2425736124044673160
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 131758, guid: 8385b03242e9e7447b9f870756a377b1, type: 3}
+          ProjectileSpeed: 12
+          MergeArea: 0
+          PlayCasterAnimation: 0
+        Area: 0
+        Zone: 0
+        Filters:
+        - rid: 2425736124044673154
+        - rid: 2425736124044673155
+        - rid: 2425736124044673159
+        - rid: 2425736124044673168
+        IncludeCommanderInZones: 0
+    - rid: 2425736124044673148
+      type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736124044673151
+      type: {class: AbilityToTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 2425736124044673152
+        Rules: []
+        Effects:
+        - rid: 2425736124044673163
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 131758, guid: 8385b03242e9e7447b9f870756a377b1, type: 3}
+          ProjectileSpeed: 12
+          MergeArea: 0
+          PlayCasterAnimation: 0
+        Selection: 3
+        Count: 1
+        Zone: 0
+        OfferCount: 3
+        Filters:
+        - rid: 2425736124044673153
+        - rid: 2425736124044673156
+        - rid: 2425736124044673157
+        - rid: 2425736124044673167
+        IncludeCommanderInZones: 0
+    - rid: 2425736124044673152
+      type: {class: OnCreatureInvokedTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        AllowFromAnyZone: 0
+    - rid: 2425736124044673153
+      type: {class: AllyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736124044673154
+      type: {class: AllyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736124044673155
+      type: {class: NotAlreadyTrackedTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736124044673156
+      type: {class: NotAlreadyTrackedTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736124044673157
+      type: {class: NotSelfTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736124044673159
+      type: {class: NotSelfTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736124044673160
+      type: {class: AddBuffEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        Buff:
+          rid: 2425736124044673161
+        Tracked: 1
+        RevertOnSourceDeath: 1
+    - rid: 2425736124044673161
+      type: {class: PropertyBuff, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Property:
+          rid: 2425736124044673162
+    - rid: 2425736124044673162
+      type: {class: DoubleAttackProperty, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736124044673163
+      type: {class: AddBuffEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        Buff:
+          rid: 2425736124044673164
+        Tracked: 1
+        RevertOnSourceDeath: 1
+    - rid: 2425736124044673164
+      type: {class: PropertyBuff, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Property:
+          rid: 2425736124044673165
+    - rid: 2425736124044673165
+      type: {class: DoubleAttackProperty, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736124044673167
+      type: {class: TokenTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736124044673168
+      type: {class: TokenTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 

@@ -10,19 +10,39 @@ namespace Game.Core.Ecs.Systems
     {
         /// <param name="area">null → без ограничения по стороне (Target/Random, вся зона).</param>
         /// <param name="zone">Board (существа на поле + игроки) | Deck/Hand/Grave (карты в зоне, без игроков).</param>
+        /// <param name="includeCommanderInZones">В НЕ-Board зонах командир по умолчанию исключён — он
+        /// неуязвим к дискарду/миллу/похищению. Но для БЛАГОТВОРНЫХ выборок (аура «ваши существа в руке
+        /// получают +1/+1» — Шальной десница) он обязан попадать в цели: иначе командир-в-руке молча
+        /// не баффался, хотя на столе такая же аура его задевает. true → командира не отсекаем.</param>
         public static List<int> Gather(EcsWorld world, ITargetFilter[] filters,
                                        int casterCard, int casterPlayer, FieldArea? area,
-                                       TargetZone zone = TargetZone.Board)
+                                       TargetZone zone = TargetZone.Board,
+                                       bool includeCommanderInZones = false)
         {
             var result = new List<int>();
             int casterOwnerId = OwnerId(world, casterCard);
             var ownerPool = world.GetPool<OwnerComponent>();
 
+            // Any — объединение всех зон (карта имеет ровно один зональный тег → дублей нет). Правила
+            // каждой зоны сохраняются как есть (в не-Board зонах исключаются источник и командир).
+            if (zone == TargetZone.Any)
+            {
+                result.AddRange(Gather(world, filters, casterCard, casterPlayer, area, TargetZone.Board, includeCommanderInZones));
+                result.AddRange(Gather(world, filters, casterCard, casterPlayer, area, TargetZone.Hand,  includeCommanderInZones));
+                result.AddRange(Gather(world, filters, casterCard, casterPlayer, area, TargetZone.Deck,  includeCommanderInZones));
+                result.AddRange(Gather(world, filters, casterCard, casterPlayer, area, TargetZone.Grave, includeCommanderInZones));
+                return result;
+            }
+
             if (zone == TargetZone.Board)
             {
+                var stealthPool = world.GetPool<StealthComponent>();
                 foreach (var e in world.Filter<CreatureTag>().Inc<BoardTag>().Exc<DeadTag>().End())
                 {
                     int side = ownerPool.Has(e) ? ownerPool.Get(e).OwnerId : -1;
+                    // «Скрытый»: недоступен ВРАЖЕСКОМУ таргетингу (своя сторона по-прежнему может выбрать
+                    // свой скрытый существо — напр. лечащим спеллом).
+                    if (side != casterOwnerId && stealthPool.Has(e)) continue;
                     if (!AreaOk(area, side, casterOwnerId)) continue;
                     if (!FiltersOk(world, e, casterCard, casterPlayer, filters)) continue;
                     result.Add(e);
@@ -44,7 +64,7 @@ namespace Game.Core.Ecs.Systems
             foreach (var e in ZoneCards(world, zone))
             {
                 if (e == casterCard) continue;        // карта-источник не таргетит сама себя в зоне (иначе Random тратит пик впустую)
-                if (commanderPool.Has(e)) continue;   // командир неуязвим к дискарду/миллу/похищению из зоны
+                if (!includeCommanderInZones && commanderPool.Has(e)) continue;   // командир неуязвим к дискарду/миллу/похищению
                 int side = ownerPool.Has(e) ? ownerPool.Get(e).OwnerId : -1;
                 if (!AreaOk(area, side, casterOwnerId)) continue;
                 if (!FiltersOk(world, e, casterCard, casterPlayer, filters)) continue;
@@ -57,10 +77,11 @@ namespace Game.Core.Ecs.Systems
         {
             switch (zone)
             {
-                case TargetZone.Deck:  return world.Filter<DeckTag>().Inc<OwnerComponent>().End();
-                case TargetZone.Hand:  return world.Filter<HandTag>().Inc<OwnerComponent>().End();
-                case TargetZone.Grave: return world.Filter<GraveTag>().Inc<OwnerComponent>().End();
-                default:               return world.Filter<DeckTag>().Inc<OwnerComponent>().End();
+                case TargetZone.Deck:      return world.Filter<DeckTag>().Inc<OwnerComponent>().End();
+                case TargetZone.Hand:      return world.Filter<HandTag>().Inc<OwnerComponent>().End();
+                case TargetZone.Grave:     return world.Filter<GraveTag>().Inc<OwnerComponent>().End();
+                case TargetZone.Sideboard: return world.Filter<SideboardTag>().Inc<OwnerComponent>().End();
+                default:                   return world.Filter<DeckTag>().Inc<OwnerComponent>().End();
             }
         }
 

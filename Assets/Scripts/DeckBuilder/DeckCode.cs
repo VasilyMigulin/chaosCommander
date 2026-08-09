@@ -18,6 +18,14 @@ namespace Game.Core.DeckBuilder
     ///   varint N1         сколько карт лежит по 1 копии, дальше N1 × (индекс аддона, id карты)
     ///   varint N2         то же для 2 копий
     ///   varint Nn         прочие количества: Nn × (индекс аддона, id карты, количество)
+    ///   [ХВОСТ, опционально] varint Ns — сайдборд: Ns × (индекс аддона, id карты, количество)
+    ///
+    /// ХВОСТ и совместимость: сайдборд дописан В КОНЕЦ и читается, ТОЛЬКО если в потоке остались байты.
+    /// Поэтому Version НЕ бампался — и это осознанно: TryDecode отбрасывает код с чужой версией целиком,
+    /// то есть бамп разом обнулил бы все уже сохранённые колоды игроков (локальное зеркало и коды из
+    /// чатов). Со «хвостом» же: старый код → сайдборд пуст; новый код в старом клиенте → лишние байты
+    /// просто не дочитываются (декодер и так не требовал конца потока). Любое БУДУЩЕЕ поле добавлять
+    /// так же — только в хвост и только опционально.
     ///
     /// Карты (id аддона + id карты) — те же, что в OwnedCardData, поэтому код НЕ зависит от порядка
     /// карт в конфиге и не ломается при добавлении новых. Списки сортируются → одинаковая колода
@@ -70,9 +78,23 @@ namespace Game.Core.DeckBuilder
                 }
             }
 
+            // Сайдборд: аддоны регистрируем ДО записи таблицы аддонов, иначе индексы в хвосте
+            // ссылались бы на несуществующие строки.
+            var sideboard = new List<OwnedCardData>();
+            if (deck.Sideboard != null)
+            {
+                foreach (var card in deck.Sideboard)
+                {
+                    if (card.Count <= 0) continue;
+                    ExpIndex(card.ExpansionId);
+                    sideboard.Add(card);
+                }
+            }
+
             ones.Sort(CompareCards);
             twos.Sort(CompareCards);
             many.Sort(CompareCards);
+            sideboard.Sort(CompareCards);   // как и колода: одинаковый сайдборд → одинаковый код
 
             using var ms = new MemoryStream();
 
@@ -89,6 +111,11 @@ namespace Game.Core.DeckBuilder
             WriteBlock(ms, ones, expansions, withCount: false);
             WriteBlock(ms, twos, expansions, withCount: false);
             WriteBlock(ms, many, expansions, withCount: true);
+
+            // ХВОСТ: пустой сайдборд НЕ пишем вовсе — тогда колода без Сказочника даёт байт-в-байт тот же
+            // код, что и до этой правки (важно: коды уже разошлись по чатам и лежат в локальном зеркале).
+            if (sideboard.Count > 0)
+                WriteBlock(ms, sideboard, expansions, withCount: true);
 
             return Convert.ToBase64String(ms.ToArray());
         }
@@ -148,6 +175,12 @@ namespace Game.Core.DeckBuilder
                 if (!ReadBlock(ms, expansions, result.Cards, fixedCount: 1)) return false;
                 if (!ReadBlock(ms, expansions, result.Cards, fixedCount: 2)) return false;
                 if (!ReadBlock(ms, expansions, result.Cards, fixedCount: 0)) return false;
+
+                // ХВОСТ (сайдборд) — только если байты остались. Старый код заканчивается здесь, и это
+                // НЕ ошибка: колода просто без сайдборда. Битый хвост валит весь код, а не молча теряется —
+                // иначе игрок получил бы «колоду без отложенных карт» и не понял, почему.
+                if (ms.Position < ms.Length
+                    && !ReadBlock(ms, expansions, result.Sideboard, fixedCount: 0)) return false;
 
                 deck = result;
                 return true;

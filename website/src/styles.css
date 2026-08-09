@@ -1,0 +1,1593 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   ГОРЕ-ГЕРОИ · SECOND-HAND HEROES
+   Палитра и шрифты — из питча для издателя (Docs/pitch/chaos-commander-pitch.html):
+   фиолетово-чёрный грунт, янтарь/красный/зелёный, тяжёлый Segoe UI 900 + Consolas.
+   Подача — балаганный постер трэш-фэнтези: лучи, halftone, крен, стикеры.
+   Тема одна: постер не перекрашивается под систему.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Грунт и панели — из питча */
+  --void: #0b090e;
+  --bg: #141018;
+  --surface: #1e1826;
+  --surface2: #241c2e;
+  --line: #3a3145;
+
+  /* Чернила */
+  --ink: #ede6da;
+  --ink-dim: #a99fb0;
+
+  /* Акценты питча + их «раскалённые» тона (тот же хюс, выше светлота) */
+  --accent: #f2a33c;
+  --accent-hot: #ffc164;
+  --red: #c24b33;
+  --red-hot: #e4664a;
+  --green: #6fa65a;
+  --violet: #8a6fc0;
+
+  --font-display: 'Segoe UI', Roboto, -apple-system, Arial, sans-serif;
+  --font-body: 'Segoe UI', Roboto, -apple-system, Arial, sans-serif;
+  --font-mono: Consolas, 'Cascadia Mono', 'Roboto Mono', monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  background: var(--void);
+  /* Встроенные браузеры (Telegram, VK и прочие WebView) любят «подкручивать» кегль
+     сами — от этого верстка расползается. Запрещаем. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  /* hidden — фолбэк для старых движков; clip — для современных, он не делает body
+     скролл-контейнером и не ломает sticky-шапку. Порядок важен. */
+  overflow-x: hidden;
+  overflow-x: clip;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 16.5px;
+  line-height: 1.55;
+  color: var(--ink);
+  background: var(--void);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 900;
+  text-transform: uppercase;
+  line-height: 1;
+  margin: 0;
+  text-wrap: balance;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: var(--accent);
+}
+
+:focus-visible {
+  outline: 3px solid var(--accent-hot);
+  outline-offset: 3px;
+}
+
+.wrap {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+/* ── Фактуры: halftone, лучи, опасная лента ──────────────────────────────── */
+
+.halftone::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(237, 230, 218, 0.16) 1px, transparent 1.6px);
+  background-size: 7px 7px;
+  opacity: 0.5;
+  mix-blend-mode: overlay;
+}
+
+.hazard-rule {
+  height: 16px;
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--accent) 0 14px,
+    var(--void) 14px 28px
+  );
+  border-top: 2px solid var(--void);
+  border-bottom: 2px solid var(--void);
+}
+
+.hazard-rule-red {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--red) 0 14px,
+    var(--void) 14px 28px
+  );
+}
+
+/* ── Общая типографика секций ─────────────────────────────────────────────── */
+
+.eyebrow {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.28em;
+  color: var(--void);
+  background: var(--accent);
+  padding: 5px 11px 4px;
+  margin-bottom: 14px;
+  transform: rotate(-1.2deg);
+}
+
+.section-title {
+  font-size: clamp(30px, 5.4vw, 56px);
+  letter-spacing: -0.01em;
+  margin-bottom: 16px;
+  text-shadow: 3px 3px 0 var(--red);
+}
+
+/* Тень заголовка гуляет по акцентам питча — постер собран вручную, а не по сетке */
+.st-green {
+  text-shadow: 3px 3px 0 var(--green);
+}
+
+.st-violet {
+  text-shadow: 3px 3px 0 var(--violet);
+}
+
+.section-lead {
+  max-width: 60ch;
+  color: var(--ink-dim);
+  font-size: 16.5px;
+  margin-bottom: 38px;
+}
+
+.section-lead b {
+  color: var(--ink);
+}
+
+.section {
+  position: relative;
+  padding: 78px 0;
+}
+
+.section-alt {
+  background: var(--bg);
+}
+
+/* ── Кнопки и стикеры ─────────────────────────────────────────────────────── */
+
+.btn {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--void);
+  background: var(--accent);
+  border: 3px solid var(--void);
+  border-radius: 0;
+  padding: 13px 24px;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 5px 5px 0 var(--red);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+}
+
+.btn:hover {
+  background: var(--accent-hot);
+  transform: translate(-2px, -2px);
+  box-shadow: 8px 8px 0 var(--red);
+}
+
+.btn:active {
+  transform: translate(3px, 3px);
+  box-shadow: 2px 2px 0 var(--red);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: wait;
+  transform: none;
+  box-shadow: 5px 5px 0 var(--red);
+}
+
+.btn-ghost {
+  color: var(--ink);
+  background: var(--surface);
+  border-color: var(--accent);
+  box-shadow: 5px 5px 0 var(--void);
+}
+
+.btn-ghost:hover {
+  background: var(--surface2);
+  box-shadow: 8px 8px 0 var(--void);
+}
+
+.btn-small {
+  padding: 9px 15px;
+  font-size: 13px;
+  box-shadow: 4px 4px 0 var(--red);
+}
+
+.btn-small:hover {
+  box-shadow: 6px 6px 0 var(--red);
+}
+
+.btn-wide {
+  width: 100%;
+}
+
+.sticker {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink);
+  background: var(--red);
+  border: 2px solid var(--ink);
+  padding: 7px 13px 6px;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.55);
+}
+
+/* ── Шапка ────────────────────────────────────────────────────────────────── */
+
+.site-head {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--void);
+  border-bottom: 3px solid var(--accent);
+}
+
+.site-head-in {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 11px;
+  padding-bottom: 11px;
+}
+
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 23px;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--ink);
+  text-decoration: none;
+  text-shadow: 2px 2px 0 var(--red);
+}
+
+.wordmark span {
+  display: block;
+  margin-top: 3px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--accent);
+  text-shadow: none;
+}
+
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.site-nav a:not(.btn) {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  text-decoration: none;
+}
+
+.site-nav a:not(.btn):hover {
+  color: var(--accent-hot);
+}
+
+.lang-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--ink-dim);
+  background: transparent;
+  border: 2px solid var(--line);
+  padding: 6px 9px 5px;
+  cursor: pointer;
+}
+
+.lang-switch:hover {
+  border-color: var(--accent);
+}
+
+.lang-switch i {
+  font-style: normal;
+  opacity: 0.4;
+}
+
+.lang-switch .lang-on {
+  color: var(--accent);
+}
+
+/* На узком экране прячем только якоря лендинга — «Коллекция» и «Скачать» нужны всегда */
+@media (max-width: 680px) {
+  .site-nav .nav-anchor {
+    display: none;
+  }
+  .site-nav {
+    gap: 14px;
+  }
+}
+
+/* Телефон: шапка в две строки, иначе логотип + меню + кнопка не влезают в 360 px
+   и распирают всю страницу по горизонтали */
+@media (max-width: 560px) {
+  .site-head-in {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 9px;
+  }
+  .site-nav {
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .wordmark {
+    font-size: 19px;
+  }
+  .wordmark span {
+    font-size: 8px;
+    letter-spacing: 0.14em;
+  }
+  .site-nav .nav-link {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+  }
+  .lang-switch {
+    font-size: 10.5px;
+    padding: 5px 7px 4px;
+  }
+  .btn-small {
+    font-size: 11px;
+    padding: 8px 11px;
+  }
+}
+
+/* ── Герой: постер с лучами ───────────────────────────────────────────────── */
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  padding: 84px 0 74px;
+  text-align: center;
+  background: var(--bg);
+}
+
+/* Лучи из-за заголовка */
+.hero-rays {
+  position: absolute;
+  left: 50%;
+  top: 34%;
+  width: 190vmax;
+  height: 190vmax;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  background: repeating-conic-gradient(
+    from 0deg,
+    rgba(242, 163, 60, 0.16) 0deg 5deg,
+    transparent 5deg 11deg
+  );
+  -webkit-mask-image: radial-gradient(circle, #000 0%, transparent 46%);
+  mask-image: radial-gradient(circle, #000 0%, transparent 46%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero-rays {
+    animation: spin 120s linear infinite;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+.hero > .wrap {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-suits {
+  font-size: 20px;
+  letter-spacing: 0.7em;
+  color: var(--accent);
+  margin-bottom: 18px;
+}
+
+.hero .eyebrow {
+  transform: rotate(-1.5deg);
+}
+
+.hero-title-box {
+  position: relative;
+  display: inline-block;
+  padding: 0 10px;
+}
+
+.hero-title {
+  font-size: clamp(56px, 13vw, 148px);
+  letter-spacing: -0.035em;
+  color: var(--ink);
+  transform: rotate(-1.6deg);
+  text-shadow:
+    4px 4px 0 var(--red),
+    8px 8px 0 var(--void),
+    0 0 46px rgba(242, 163, 60, 0.28);
+}
+
+/* «SECOND-HAND HEROES» вдвое длиннее «Горе-героев» — кегль поменьше */
+.hero-title.is-en {
+  font-size: clamp(38px, 8.4vw, 94px);
+}
+
+.sticker-bu {
+  position: absolute;
+  top: -6px;
+  right: -58px;
+  font-size: 14px;
+  transform: rotate(13deg);
+}
+
+@media (max-width: 760px) {
+  .sticker-bu {
+    right: -8px;
+    top: -30px;
+  }
+}
+
+.hero-sub {
+  display: inline-block;
+  margin-top: 14px;
+  font-family: var(--font-mono);
+  font-size: clamp(14px, 2.4vw, 21px);
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--void);
+  background: var(--ink);
+  padding: 5px 14px 4px;
+  transform: rotate(0.8deg);
+}
+
+.hero-tag {
+  max-width: 54ch;
+  margin: 22px auto 0;
+  font-size: 18px;
+  color: var(--ink);
+}
+
+.hero-tag b {
+  color: var(--accent-hot);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 9px;
+  margin-top: 26px;
+}
+
+.chip {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: var(--surface);
+  border: 2px solid var(--line);
+  padding: 6px 12px 5px;
+}
+
+.chip:nth-child(2n) {
+  transform: rotate(-1.5deg);
+  border-color: var(--accent);
+}
+
+.chip:nth-child(3n) {
+  transform: rotate(1.5deg);
+  border-color: var(--green);
+}
+
+.cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start; /* иначе flex растянет соседнюю кнопку по высоте слота с подписью */
+  gap: 16px;
+  margin-top: 32px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero > .wrap > * {
+    animation: slam 0.5s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+  }
+  .hero > .wrap > *:nth-child(2) { animation-delay: 0.05s; }
+  .hero > .wrap > *:nth-child(3) { animation-delay: 0.1s; }
+  .hero > .wrap > *:nth-child(4) { animation-delay: 0.16s; }
+  .hero > .wrap > *:nth-child(5) { animation-delay: 0.22s; }
+  .hero > .wrap > *:nth-child(6) { animation-delay: 0.28s; }
+  .hero > .wrap > *:nth-child(7) { animation-delay: 0.34s; }
+}
+
+@keyframes slam {
+  from {
+    opacity: 0;
+    transform: scale(1.14) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ── Бегущая строка с названиями карт ─────────────────────────────────────── */
+
+.ticker {
+  overflow: hidden;
+  background: var(--accent);
+  border-top: 3px solid var(--void);
+  border-bottom: 3px solid var(--void);
+  padding: 8px 0;
+}
+
+.ticker-track {
+  display: flex;
+  gap: 26px;
+  width: max-content;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ticker-track {
+    animation: slide 46s linear infinite;
+  }
+}
+
+@keyframes slide {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.ticker-item {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--void);
+}
+
+.ticker-item::after {
+  content: ' ✦';
+  opacity: 0.55;
+}
+
+/* ── Фичи: нашлёпанные панели ─────────────────────────────────────────────── */
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(228px, 1fr));
+  gap: 20px;
+}
+
+.feature {
+  position: relative;
+  background: var(--surface);
+  border: 3px solid var(--void);
+  outline: 2px solid var(--line);
+  padding: 26px 22px 24px;
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.5);
+  transition: transform 0.15s ease;
+}
+
+.feature:nth-child(2n) {
+  transform: rotate(-1deg);
+}
+
+.feature:nth-child(3n) {
+  transform: rotate(1.2deg);
+}
+
+.feature:hover {
+  transform: rotate(0) translateY(-4px);
+}
+
+.feature-glyph {
+  position: absolute;
+  top: -18px;
+  left: 16px;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  color: var(--void);
+  background: var(--accent);
+  border: 3px solid var(--void);
+}
+
+.feature h3 {
+  font-size: 20px;
+  margin: 12px 0 9px;
+  color: var(--accent-hot);
+}
+
+.feature p {
+  color: var(--ink-dim);
+  font-size: 15px;
+}
+
+/* ── Кампания: розыскные листы ────────────────────────────────────────────── */
+
+.campaign-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 18px;
+}
+
+.fight {
+  position: relative;
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 16px;
+  align-items: start;
+  background: var(--surface);
+  border: 3px solid var(--void);
+  outline: 2px solid var(--line);
+  padding: 18px 18px 18px 16px;
+  box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.5);
+}
+
+.fight:nth-child(2n) {
+  transform: rotate(-0.7deg);
+}
+
+.fight:nth-child(3n) {
+  transform: rotate(0.7deg);
+}
+
+.fight-num {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 26px;
+  color: var(--void);
+  background: var(--accent);
+  border: 3px solid var(--void);
+  transform: rotate(-4deg);
+}
+
+.fight-boss {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--red-hot);
+}
+
+.fight-loc {
+  font-size: 21px;
+  margin: 3px 0 6px;
+}
+
+.fight-line {
+  color: var(--ink-dim);
+  font-size: 14.5px;
+}
+
+/* ── Карты (артов нет — типографские рамки) ──────────────────────────────── */
+
+.cards-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(186px, 1fr));
+  gap: 18px;
+}
+
+.cards-showcase {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: 800px;
+  gap: 22px;
+}
+
+@media (max-width: 580px) {
+  .cards-showcase {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.card-frame {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  aspect-ratio: 5 / 7;
+  padding: 15px 13px 17px;
+  background: var(--surface2);
+  border: 3px solid var(--void);
+  outline: 2px solid var(--rarity, var(--line));
+  box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.55);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cards-showcase .card-frame:nth-child(2n) {
+  transform: rotate(-1.6deg);
+}
+
+.cards-showcase .card-frame:nth-child(3n) {
+  transform: rotate(1.6deg);
+}
+
+.card-frame:hover {
+  transform: rotate(0) translateY(-6px);
+  box-shadow: 9px 9px 0 rgba(0, 0, 0, 0.6);
+  z-index: 2;
+}
+
+/* Полоса редкости сверху */
+.card-frame::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: var(--rarity, var(--line));
+}
+
+.card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 2px;
+}
+
+.card-cost {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 17px;
+  color: var(--void);
+  border: 3px solid var(--void);
+  font-variant-numeric: tabular-nums;
+}
+
+.card-type-glyph {
+  font-size: 17px;
+  color: var(--rarity, var(--ink-dim));
+}
+
+.card-name {
+  font-size: 15px;
+  line-height: 1.08;
+  text-align: center;
+  color: var(--ink);
+  margin-top: 2px;
+}
+
+.card-name-en {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  text-align: center;
+}
+
+.card-elems {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+}
+
+.elem-dot {
+  width: 11px;
+  height: 11px;
+  display: inline-block;
+  border: 2px solid var(--void);
+}
+
+.card-desc {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--ink-dim);
+  text-align: center;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-desc b {
+  color: var(--accent-hot);
+}
+
+.card-stats {
+  margin-top: auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: var(--void);
+  border: 2px solid var(--line);
+  padding: 6px 0 5px;
+}
+
+.stat {
+  text-align: center;
+}
+
+.stat b {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 19px;
+  line-height: 1.05;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.stat span {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.card-kind {
+  margin-top: auto;
+  padding: 7px 0 6px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  background: var(--void);
+  border: 2px solid var(--line);
+}
+
+.card--ghost {
+  opacity: 0.32;
+  filter: saturate(0.25);
+}
+
+.card--ghost:hover {
+  transform: none;
+  box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.55);
+}
+
+.card-count {
+  position: absolute;
+  right: -8px;
+  bottom: 16px;
+  transform: rotate(-8deg);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--red);
+  border: 2px solid var(--void);
+  padding: 2px 8px 1px;
+}
+
+.card-missing {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%) rotate(-4deg);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+/* ── Режимы ───────────────────────────────────────────────────────────────── */
+
+.modes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+  gap: 20px;
+}
+
+.mode {
+  position: relative;
+  background: var(--surface);
+  border: 3px solid var(--void);
+  outline: 2px solid var(--line);
+  padding: 22px 18px 18px;
+  box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.5);
+  transition: transform 0.15s ease;
+}
+
+.mode::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 7px;
+  background: var(--accent);
+}
+
+.mode:nth-child(2n) {
+  transform: rotate(-0.8deg);
+}
+
+.mode:nth-child(2n)::before {
+  background: var(--red);
+}
+
+.mode:nth-child(3n) {
+  transform: rotate(0.9deg);
+}
+
+.mode:nth-child(3n)::before {
+  background: var(--green);
+}
+
+.mode:hover {
+  transform: rotate(0) translateY(-4px);
+}
+
+.mode h3 {
+  font-size: 18px;
+  margin-bottom: 7px;
+}
+
+.mode p {
+  color: var(--ink-dim);
+  font-size: 14.5px;
+}
+
+/* ── Аддон: взрыв ─────────────────────────────────────────────────────────── */
+
+.addon-panel {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface);
+  border: 4px solid var(--accent);
+  padding: 44px 38px;
+  box-shadow: 8px 8px 0 var(--red);
+}
+
+.addon-panel::after {
+  content: '';
+  position: absolute;
+  right: -140px;
+  top: -140px;
+  width: 420px;
+  height: 420px;
+  background: repeating-conic-gradient(
+    from 0deg,
+    rgba(194, 75, 51, 0.35) 0deg 7deg,
+    transparent 7deg 15deg
+  );
+  pointer-events: none;
+}
+
+.addon-panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+.addon-panel {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 30px;
+}
+
+.addon-panel .section-lead {
+  margin-bottom: 0;
+}
+
+/* Баклажанос сидит в углу со взрывом — взрыв работает нимбом */
+.addon-mark {
+  width: clamp(140px, 16vw, 196px);
+  height: auto;
+  transform: rotate(3deg);
+}
+
+@media (max-width: 760px) {
+  .addon-panel {
+    grid-template-columns: 1fr;
+  }
+  .addon-mark {
+    justify-self: center;
+    width: 150px;
+  }
+}
+
+.sticker-soon {
+  position: absolute;
+  top: 18px;
+  right: 26px;
+  z-index: 2;
+  font-size: 13px;
+  transform: rotate(9deg);
+}
+
+/* ── Подвал ───────────────────────────────────────────────────────────────── */
+
+.site-foot-in {
+  padding-top: 32px;
+  padding-bottom: 44px;
+  text-align: center;
+  font-size: 14.5px;
+}
+
+.site-foot b {
+  font-family: var(--font-display);
+  font-weight: 900;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.foot-dim {
+  color: var(--ink-dim);
+  font-size: 13px;
+  margin-top: 7px;
+}
+
+/* ── Коллекция: хаос в хроме, порядок в сетке ─────────────────────────────── */
+
+.collection {
+  padding-top: 46px;
+  padding-bottom: 84px;
+  min-height: 62vh;
+}
+
+.coll-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.coll-sub {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.coll-sub b {
+  color: var(--accent-hot);
+  font-variant-numeric: tabular-nums;
+}
+
+.wallet {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.wallet-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  background: var(--surface);
+  border: 2px solid var(--line);
+  padding: 7px 13px 6px;
+}
+
+.wallet-chip b {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.profile-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 2px;
+  background: var(--line);
+  border: 3px solid var(--void);
+  outline: 2px solid var(--line);
+  margin-bottom: 28px;
+}
+
+.pstat {
+  text-align: center;
+  background: var(--surface);
+  padding: 16px 10px;
+}
+
+.pstat b {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 26px;
+  line-height: 1.05;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.pstat span {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.search {
+  font-family: var(--font-body);
+  font-size: 16px;
+  color: var(--ink);
+  background: var(--void);
+  border: 3px solid var(--line);
+  padding: 11px 14px;
+  max-width: 430px;
+  width: 100%;
+}
+
+.search:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.search::placeholder {
+  color: var(--ink-dim);
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip-btn {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  background: var(--surface);
+  border: 2px solid var(--line);
+  padding: 7px 12px 6px;
+  cursor: pointer;
+}
+
+.chip-btn:hover {
+  color: var(--ink);
+  border-color: var(--ink-dim);
+}
+
+.chip-btn[aria-pressed='true'] {
+  color: var(--void);
+  background: var(--chip-accent, var(--accent));
+  border-color: var(--void);
+}
+
+.owned-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  cursor: pointer;
+}
+
+.owned-toggle input {
+  accent-color: var(--accent);
+  width: 16px;
+  height: 16px;
+}
+
+.status-line {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  padding: 28px 0;
+}
+
+/* ── Логин ────────────────────────────────────────────────────────────────── */
+
+.login-card {
+  max-width: 450px;
+  margin: 52px auto;
+  background: var(--surface);
+  border: 4px solid var(--void);
+  outline: 2px solid var(--accent);
+  padding: 34px 32px 36px;
+  box-shadow: 9px 9px 0 var(--red);
+}
+
+.login-hint {
+  color: var(--ink-dim);
+  font-size: 14.5px;
+  margin-bottom: 22px;
+}
+
+.login-hint b {
+  color: var(--accent-hot);
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.tab {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  background: var(--void);
+  border: 2px solid var(--line);
+  padding: 11px 8px 10px;
+  cursor: pointer;
+}
+
+.tab-on {
+  color: var(--void);
+  background: var(--accent);
+  border-color: var(--void);
+}
+
+.login-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.login-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.login-card input {
+  font-family: var(--font-body);
+  font-size: 16px;
+  color: var(--ink);
+  background: var(--void);
+  border: 3px solid var(--line);
+  padding: 11px 13px;
+}
+
+.login-card input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.form-error {
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--red);
+  border: 2px solid var(--void);
+  padding: 10px 14px;
+}
+
+/* ── Соцвход ──────────────────────────────────────────────────────────────── */
+
+.social-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.social-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--ink);
+  background: var(--surface2);
+  border: 3px solid var(--line);
+  padding: 12px 10px;
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.social-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--void);
+}
+
+.social-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.social-glyph {
+  font-size: 17px;
+  font-weight: 900;
+  color: var(--accent);
+}
+
+.or-rule {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.or-rule::before,
+.or-rule::after {
+  content: '';
+  flex: 1;
+  height: 2px;
+  background: var(--line);
+}
+
+.link-btn {
+  display: block;
+  width: 100%;
+  margin-top: 16px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.link-btn:hover {
+  color: var(--accent-hot);
+}
+
+/* ── Скачивание APK ───────────────────────────────────────────────────────── */
+
+.download-slot {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+}
+
+.btn-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  background: var(--green);
+  box-shadow: 5px 5px 0 var(--void);
+}
+
+.btn-download:hover {
+  background: #82bb6b;
+  box-shadow: 8px 8px 0 var(--void);
+}
+
+.btn-small.btn-download {
+  box-shadow: 4px 4px 0 var(--void);
+}
+
+.btn-small.btn-download:hover {
+  box-shadow: 6px 6px 0 var(--void);
+}
+
+.dl-glyph {
+  font-size: 17px;
+  line-height: 1;
+}
+
+.btn-disabled {
+  background: var(--surface2);
+  color: var(--ink-dim);
+  border-color: var(--line);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.download-note {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.empty-nudge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  background: var(--surface);
+  border: 3px solid var(--void);
+  outline: 2px solid var(--green);
+  padding: 22px 24px;
+  margin-bottom: 26px;
+}
+
+.empty-nudge p {
+  max-width: 46ch;
+  font-size: 15px;
+  color: var(--ink-dim);
+}
+
+.empty-nudge b {
+  color: var(--ink);
+}
+
+/* ── 404 ──────────────────────────────────────────────────────────────────── */
+
+.notfound {
+  padding-top: 96px;
+  padding-bottom: 130px;
+  text-align: center;
+}
+
+.notfound .btn {
+  margin-top: 24px;
+}
+
+/* ── Телефон: общая подгонка ──────────────────────────────────────────────── */
+
+@media (max-width: 560px) {
+  .wrap {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .section {
+    padding: 54px 0;
+  }
+  .hero {
+    padding: 54px 0 50px;
+  }
+  .eyebrow {
+    letter-spacing: 0.16em;
+  }
+  .hero-suits {
+    letter-spacing: 0.45em;
+  }
+  .hero-sub {
+    letter-spacing: 0.18em;
+  }
+  .coll-head {
+    flex-wrap: wrap;
+  }
+  .login-card {
+    padding: 26px 20px 28px;
+    margin: 28px auto;
+  }
+  .social-btn {
+    font-size: 12.5px;
+    padding: 11px 6px;
+    gap: 6px;
+  }
+  .fight {
+    grid-template-columns: 44px 1fr;
+    gap: 12px;
+    padding: 15px;
+  }
+  .fight-num {
+    width: 42px;
+    height: 42px;
+    font-size: 21px;
+  }
+  .addon-panel {
+    padding: 30px 22px;
+  }
+  .card-count {
+    right: -4px;
+  }
+}
+
+/* ── Движение по вкусу зрителя ────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

@@ -140,6 +140,172 @@ namespace Game.Core.Ability
         public void Dispose() => GameEventBus.UnsubscribeAll(this);
     }
 
+    // === class (OOP) === Готово, пока ВСЕ карты владельца в КОЛОДЕ принадлежат архетипу (Королёвский
+    // сорняк: «если в вашей колоде одни сорняки»). Строго по тексту карты — только колода (в отличие от
+    // AllCardsHaveColorCondition, которому руку навязывает тайминг OnMatchStart); IncludeHand=true добавляет
+    // руку. Любая карта БЕЗ архетипа (в т.ч. спелл/чара — у них архетипов не бывает) ломает условие.
+    // Пустая колода → готово (vacuous true: «заполнить сторону из пустой колоды» всё равно no-op).
+    // Архетипы вешаются на ините сущности (CardModel.Init → ArchetypeTag.Apply) → видны и в колоде.
+    // Пересчёт на событиях состава зон (как соседи) + страховочно на старте хода. Теги зеркальны →
+    // IsReady одинаков на обоих клиентах.
+    [Serializable]
+    public sealed class AllCardsHaveArchetypeCondition : ICondition
+    {
+        [UnityEngine.SerializeReference] public Game.Core.Shared.Interface.ICreatureTag Archetype;
+        [UnityEngine.Tooltip("Проверять и РУКУ тоже (как у цветового условия). По умолч. только колода — по тексту карты.")]
+        public bool IncludeHand = false;
+
+        public bool IsReady { get; private set; }
+        public event Action Changed;
+
+        AbilityContext _ctx;
+
+        public void Init(AbilityContext ctx)
+        {
+            _ctx = ctx;
+            GameEventBus.Subscribe<CardDrawnEvent>(this, _ => Recompute());
+            GameEventBus.Subscribe<CardGeneratedEvent>(this, _ => Recompute());
+            GameEventBus.Subscribe<CardPlayedEvent>(this, _ => Recompute());
+            GameEventBus.Subscribe<CreatureInvokedEvent>(this, _ => Recompute());
+            GameEventBus.Subscribe<TurnStartedEvent>(this, _ => Recompute());
+            Recompute();
+        }
+
+        void Recompute()
+        {
+            int ownerId = RuleUtil.OwnerId(_ctx.World, _ctx.CardEntity);
+            bool now = ownerId >= 0 && Archetype != null
+                       && AllTagged<DeckTag>(ownerId)
+                       && (!IncludeHand || AllTagged<HandTag>(ownerId));
+            if (now == IsReady) return;
+            IsReady = now;
+            Changed?.Invoke();
+        }
+
+        bool AllTagged<TZone>(int ownerId) where TZone : struct
+        {
+            var world = _ctx.World;
+            var owner = world.GetPool<OwnerComponent>();
+            var commander = world.GetPool<CommanderTag>();
+            foreach (var e in world.Filter<TZone>().Inc<CardModelComponent>().Inc<OwnerComponent>().End())
+            {
+                if (owner.Get(e).OwnerId != ownerId) continue;
+                if (commander.Has(e)) continue;                  // командир — не из 20 карт колоды
+                if (!Archetype.Has(world, e)) return false;      // карта вне архетипа (спелл — всегда вне)
+            }
+            return true;
+        }
+
+        public void Dispose() => GameEventBus.UnsubscribeAll(this);
+    }
+
+    // === class (OOP) === Готово РОВНО на каждое Every-е срабатывание каста карты владельца (Волшебник Упс:
+    // «каждое 5-е заклинание» → Every=5, CardScope=Spell). Считает СВОИМ счётчиком (не делит состояние ни
+    // с каким триггером) — переиспользуемо с ЛЮБЫМ триггером/эффектом, который умеет ConditionRoot
+    // (EffectBase). Готовность НЕ «залипает»: она = «счётчик сейчас кратен Every» — как только приходит
+    // следующий подходящий каст (счётчик сдвигается на 1), готовность сама уходит до следующего кратного.
+    // Это и заменяет явный «сброс»: эффект-потребитель (SetTriggerMultiplierEffect{Charges=1}) успевает
+    // среагировать на резолве СРАЗУ после Every-го каста — до следующего подходящего каста готовность
+    // не гаснет, а гонки нет: счётчик и IsReady меняются синхронно, в момент CardCastEvent, тем же тиком,
+    // что и Mark() у триггера, который эту способность зовёт.
+    [Serializable]
+    public sealed class EveryNthCardCastCondition : ICondition
+    {
+        [UnityEngine.Tooltip("Каждое N-е подходящее срабатывание — готово.")]
+        public int Every = 5;
+        [UnityEngine.Tooltip("Считать только карты этого типа владельца (Any = любые).")]
+        public MultiplierCardScope CardScope = MultiplierCardScope.Any;
+
+        public bool IsReady { get; private set; }
+        public event Action Changed;
+
+        AbilityContext _ctx;
+        int _count;
+
+        public void Init(AbilityContext ctx)
+        {
+            _ctx = ctx;
+            GameEventBus.Subscribe<Game.Core.Events.CardCastEvent>(this, OnCast);
+        }
+
+        void OnCast(Game.Core.Events.CardCastEvent e)
+        {
+            if (Every <= 0) return;
+            var owner = _ctx.World.GetPool<OwnerComponent>();
+            if (!owner.Has(e.CardEntity) || !owner.Has(_ctx.CardEntity)) return;
+            if (owner.Get(e.CardEntity).OwnerId != owner.Get(_ctx.CardEntity).OwnerId) return;   // только СВОИ карты владельца
+
+            if (CardScope != MultiplierCardScope.Any)
+            {
+                var model = _ctx.World.GetPool<CardModelComponent>();
+                EnumService.CardType wanted = CardScope switch
+                {
+                    MultiplierCardScope.Creature => EnumService.CardType.Creature,
+                    MultiplierCardScope.Spell    => EnumService.CardType.Spell,
+                    MultiplierCardScope.Charm    => EnumService.CardType.Charm,
+                    _ => EnumService.CardType.Creature,
+                };
+                if (!model.Has(e.CardEntity) || model.Get(e.CardEntity).CardType != wanted) return;
+            }
+
+            _count++;
+            bool now = _count % Every == 0;
+            if (now == IsReady) return;
+            IsReady = now;
+            Changed?.Invoke();
+        }
+
+        public void Dispose() => GameEventBus.UnsubscribeAll(this);
+    }
+
+    // === class (OOP) === Готово, пока владелец КОНТРОЛИРУЕТ хотя бы одно существо архетипа НА ПОЛЕ (Без
+    // имени: «если вы контролируете Сорняк/Чёрта»). В отличие от AllCardsHaveArchetypeCondition (там —
+    // ВСЯ колода целиком) это про БОРД и «хотя бы один», без вырожденного true на пустой зоне: пустой борд
+    // = НЕ готово (не «сорняков нет, значит условие выполнено», а прямо противоположное по смыслу карты).
+    // Пересчёт на составе борда (выход/смерть существа) + страховочно на старте хода.
+    [Serializable]
+    public sealed class ControlsArchetypeOnBoardCondition : ICondition
+    {
+        [UnityEngine.SerializeReference] public Game.Core.Shared.Interface.ICreatureTag Archetype;
+
+        public bool IsReady { get; private set; }
+        public event Action Changed;
+
+        AbilityContext _ctx;
+
+        public void Init(AbilityContext ctx)
+        {
+            _ctx = ctx;
+            GameEventBus.Subscribe<CreatureInvokedEvent>(this, _ => Recompute());
+            GameEventBus.Subscribe<CreatureDiedEvent>(this, _ => Recompute());
+            GameEventBus.Subscribe<TurnStartedEvent>(this, _ => Recompute());
+            Recompute();
+        }
+
+        void Recompute()
+        {
+            int ownerId = RuleUtil.OwnerId(_ctx.World, _ctx.CardEntity);
+            bool now = ownerId >= 0 && Archetype != null && AnyOnBoard(ownerId);
+            if (now == IsReady) return;
+            IsReady = now;
+            Changed?.Invoke();
+        }
+
+        bool AnyOnBoard(int ownerId)
+        {
+            var world = _ctx.World;
+            var owner = world.GetPool<OwnerComponent>();
+            foreach (var e in world.Filter<BoardTag>().Inc<CreatureTag>().Exc<DeadTag>().End())
+            {
+                if (!owner.Has(e) || owner.Get(e).OwnerId != ownerId) continue;
+                if (Archetype.Has(world, e)) return true;
+            }
+            return false;
+        }
+
+        public void Dispose() => GameEventBus.UnsubscribeAll(this);
+    }
+
     /// <summary>Что считаем (относительно владельца способности). OwnPlayerOwnTurn — урон своему игроку «на
     /// своём ходу» (от себя, Source==Target). Прочее — суммарный урон игроку/существам своей/вражеской стороны.</summary>
     public enum DamageScope { OwnPlayerOwnTurn, OwnPlayer, OwnCreatures, EnemyPlayer, EnemyCreatures }

@@ -224,6 +224,7 @@ namespace Game.Core.DeckBuilder
             foreach (var exp in config.Expansions)
             {
                 if (exp == null || exp.Cards == null) continue;
+                if (exp.StoryOnly) continue;   // стори-экспаншен (боссы/стори-эксклюзив) — в коллекцию не идёт
                 foreach (var instance in exp.Cards)
                 {
                     if (instance == null || instance.CardData == null) continue;

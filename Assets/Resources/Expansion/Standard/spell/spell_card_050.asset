@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
   m_Name: spell_card_050
   m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
   CardData:
     rid: 2419359952424665621
   references:
@@ -33,15 +34,18 @@ MonoBehaviour:
         Rarity: 1
         Element: 5
         ArtImage: {fileID: 0}
-        ExpansionId: 
+        ExpansionId: standard
         PlayCost: 1
         PlayCostAmount: 5
         IsToken: 0
-        MulliganStartingHand: 0
-        MulliganUnlimitedReplace: 0
+        ShowAsLinked: 0
+        HideAsLinked: 0
+        NonBattleAbilities: []
         RuntimeAbilities:
         - rid: 2419359952424665622
         Archetypes: []
+        TierSource: 0
+        Tiers: []
         RequiresTarget: 0
     - rid: 2419359952424665622
       type: {class: AbilityChain, ns: Game.Core.Ability, asm: Game.Core.Ability}
@@ -50,16 +54,20 @@ MonoBehaviour:
         - rid: 2419359952424665623
         Rules: []
         Effects: []
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
         Vfx:
           Kind: 0
           Prefab: {fileID: 0}
-          HitPrefab: {fileID: 0}
+          HitPrefab: {fileID: 131758, guid: 8385b03242e9e7447b9f870756a377b1, type: 3}
           ProjectileSpeed: 12
           MergeArea: 0
+          PlayCasterAnimation: 0
         Stages:
         - Mode: 2
           Selection: 0
           Count: 1
+          Zone: 0
           Area: 0
           Filters:
           - rid: 2419359952424665624
@@ -68,6 +76,7 @@ MonoBehaviour:
         - Mode: 0
           Selection: 0
           Count: 1
+          Zone: 0
           Area: 0
           Filters: []
           Effects:
@@ -91,6 +100,7 @@ MonoBehaviour:
           rid: -2
         Source: 1
         FixedCount: 1
+        ShowCountInDescription: 0
         CountCard: {fileID: 0}
         Archetype:
           rid: -2

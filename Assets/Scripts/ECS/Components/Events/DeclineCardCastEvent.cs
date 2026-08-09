@@ -22,5 +22,6 @@ namespace Game.Core.Ecs.Components
         NotInHand = 7,
         NotOwnTurn = 8,
         RulesNotMet = 9,
+        NoAltCostPayment = 10,   // альтернативная уплата: нечем платить (нет карты для сброса/существа для жертвы/карт в колоде)
     }
 }

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>Горе-герои</title>
+  <!-- Упрощённое «ведро б/у»: без лучей и ценника, чтобы читалось на 16 px.
+       Полные версии иконки — Docs/branding/. -->
+  <rect width="512" height="512" rx="72" fill="#F2A33C"/>
+  <path d="M146 384 Q256 498 366 384" fill="none" stroke="#141018"
+        stroke-width="26" stroke-linecap="round"/>
+  <path d="M186 148 H326 L384 356 H128 Z" fill="#141018"/>
+  <rect x="112" y="346" width="288" height="48" rx="12" fill="#141018"/>
+  <path d="M172 200 H340" stroke="#F2A33C" stroke-width="11" stroke-linecap="round"/>
+  <path d="M142 312 H370" stroke="#F2A33C" stroke-width="11" stroke-linecap="round"/>
+  <path d="M192 148 H232 L212 184 Z" fill="#F2A33C"/>
+  <rect x="176" y="238" width="160" height="34" rx="8" fill="#F2A33C"/>
+  <circle cx="214" cy="255" r="12" fill="#141018"/>
+  <circle cx="298" cy="255" r="12" fill="#141018"/>
+</svg>

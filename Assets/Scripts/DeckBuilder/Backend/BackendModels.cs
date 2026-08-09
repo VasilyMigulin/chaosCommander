@@ -86,7 +86,9 @@ namespace Game.Core.Backend
         public string Rank;
         public int    Mmr;
         public int    Level;
-        public float  Xp01;       // прогресс уровня 0..1
+        public float  Xp01;       // прогресс уровня 0..1 (доля; клиент → слайдер)
+        public int    XpCurrent;  // опыт числом (0 = сервер ещё не считает → клиент выводит Xp01*100)
+        public int    XpMax;      // порог уровня (0 = нет данных → клиент берёт 100)
 
         // Результаты
         public int Wins;

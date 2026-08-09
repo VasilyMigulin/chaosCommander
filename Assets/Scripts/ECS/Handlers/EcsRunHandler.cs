@@ -40,6 +40,9 @@ namespace Game.Core.Ecs.Handlers
             // любая система успеет их прочитать.
             Game.Core.Ecs.Components.MatchState.Clear();
             Game.Core.Ecs.Components.CastMultiplierService.Clear();
+            Game.Core.Ecs.Components.CharmDurationBonusService.Clear();
+            Game.Core.Ecs.Components.AbilityResolveContext.ClearCause();   // причина реакций из прошлого матча
+            Game.Core.Events.PresentationLock.Clear();                     // замок анимации из прошлого матча
 
             World = new EcsWorld();
             _data = new EcsData();
@@ -62,16 +65,30 @@ namespace Game.Core.Ecs.Handlers
                 .Add(new RunMulliganSyncSystem())
                 ;
 
-            _initSystems
-                .Add(new InitPlayerSystem())
-                .Add(new InitDeckSystem())
-                .Add(new InitPveOpponentSystem())   // PvE: колода/рука/командир ИИ из энкаунтера (в MP — no-op)
-                .Add(new InitTurnSystem())
-                .Add(new InitMulliganSystem())
-                ;
+            // РЕКОННЕКТ: возвращаемся в ИДУЩИЙ бой — колоду не генерируем, руку не раздаём, мулиган не
+            // показываем. Эти системы создали бы вторую, «свою» реальность поверх той, что сейчас приедет
+            // снэпшотом мира от пира (WorldResyncSystem). Игроков поднимает InitPlayerSystem из
+            // MatchSessionStore, счётчик ходов — InitTurnSystem (нужен обоим путям).
+            bool reconnecting = Game.Core.Network.ReconnectFlow.IsActive;
+
+            _initSystems.Add(new InitPlayerSystem());
+            if (!reconnecting)
+            {
+                _initSystems
+                    .Add(new InitDeckSystem())
+                    .Add(new InitPveOpponentSystem())   // PvE: колода/рука/командир ИИ из энкаунтера (в MP — no-op)
+                    ;
+            }
+            _initSystems.Add(new InitTurnSystem());
+            if (!reconnecting) _initSystems.Add(new InitMulliganSystem());
 
             _turnSystems
                 .Add(new RunFirstTurnStartSystem())
+                .Add(new NetConnectionWatchSystem())    // MP: детект обрыва/тишины пира → окно ожидания → тех. результат (Init чистит NetHealth)
+                .Add(new MatchSessionPersistSystem())   // MP: персист комнаты/идентичности/ресурсов → реконнект после перезапуска
+
+                .Add(new TurnChecksumSystem())          // MP: чексумма зеркалируемого состояния на границе хода → детект десинка
+                .Add(new WorldResyncSystem())           // MP: self-heal — при десинке актив шлёт снэпшот мира, пассив пересобирается под фейдом
                 .Add(new HandDesyncCanarySystem())      // ВРЕМЕННО: лог руки/колоды по ключам на старте хода (диагностика дрейфа)
                 .Add(new RunTurnStartSystem())          // каскад начала хода: ресурсы/добор/OnTurnStart (по StartTurnState)
                 .Add(new PveScriptedEventSystem())      // PvE: скриптованные сюжет-события боя (в MP — no-op)
@@ -80,7 +97,11 @@ namespace Game.Core.Ecs.Handlers
                 .Add(new MatchCounterTrackerSystem())
                 .Add(new LastPlayedSpellTrackerSystem())
                 .Add(new CreatureTimerTickSystem())
+                .Add(new RecurringDamageTickSystem())   // Напустить саранчу: урон всем помеченным в конце хода
+                .Add(new PoisonTickSystem())   // «Ядовитый»: урон в конце хода ВЛАДЕЛЬЦА поражённого
+                .Add(new StealthTickSystem())   // «Скрытый»: декремент в начале хода владельца
                 .Add(new CharmTimerTickSystem())   // таймер жизни чар (тик в конце хода → DeadTag)
+                .Add(new BuffDurationTickSystem())   // авто-списывание AddBuffEffect{Duration>0} по (цель,бафф)
                 .Add(new TemporaryManaRefundSystem())
                 .Add(new TempControlRevertSystem())
                 .Add(new TurnTimerSystem())
@@ -88,6 +109,8 @@ namespace Game.Core.Ecs.Handlers
                 ;
 
             _generalSystems
+                // --- Синк начала ЧУЖОГО хода на пассиве: восстановить скорость/сброс атак чужих существ ---
+                .Add(new SyncOpponentTurnStartSystem())
                 // --- Косметика: аватар оппонента по синку (CommandersRevealedUIEvent) ---
                 .Add(new SyncOpponentAvatarSystem())
                 // --- Создание сущностей карт по CreateCardEvent ---
@@ -97,12 +120,18 @@ namespace Game.Core.Ecs.Handlers
                 .Add(new ReplayActionSystem())
                 // --- Доступность карт для UI ---
                 .Add(new CardAffordabilitySystem())
+                // --- Превью целей при удержании/отводе карты (синяя подсветка «готова к розыгрышу») ---
+                .Add(new RunCardTargetPreviewSystem())
                 // --- Живые статы карт руки (бафф/урон) → цвет/панч на PlayCardView ---
                 .Add(new HandCardStatsViewSystem())
-                // --- Замена добора (Адовый червь): перехват ПЕРЕД обычным добором ---
+                // --- Арбитр ЕДИНСТВЕННОГО окна выбора карт: строго ДО всех продюсеров пика ---
+                .Add(new CardPickBrokerSystem())
+                // --- Замена механики добора начала хода (Адовый червь): по DrawReplacementDueComponent ---
                 .Add(new RunDrawReplacementSystem())
                 // --- Раскопка-эффект (DiscoverEffect): окно выбора → карта в руку, синк через ActionCardPicked ---
                 .Add(new RunDiscoverSystem())
+                // --- Предсказание-эффект (ScryEffect): окно выбора → верх/низ колоды, тот же канал пика ---
+                .Add(new RunScrySystem())
                 // --- Добор + UI-трансляция ---
                 .Add(new DrawCardSystem())
                 .Add(new HandUISystem())
@@ -116,6 +145,8 @@ namespace Game.Core.Ecs.Handlers
                 // а его покадровый Value=Base затирал бы модификаторы. Легаси AuraSource/TargetMask не используются.
                 // --- Выбор/движение/атака существ на борде (input → PathMoveComponent) ---
                 .Add(new RunSelectCellSystem())
+                // --- «Бросается в атаку» (Позвать стражу): ForceSeekAttackTag → путь к ближайшему врагу ---
+                .Add(new ForceSeekAttackSystem())
                 // --- Исполнение маршрута по одному шагу (PathMoveComponent → MoveRequestEvent/AttackRequestEvent) ---
                 .Add(new RunPathMoveSystem())
                 // --- Движение существ ---
@@ -124,15 +155,23 @@ namespace Game.Core.Ecs.Handlers
                 .Add(new AttackSystem())
                 .Add(new ReflectDamageSystem())   // Вуду-будду: БЛОК урона владельцу на его ходу (до TakeDamage)
                 .Add(new TakeDamageSystem())
+                .Add(new LethalHealthSystem())   // смерть по HP≤0 из НЕ-урона (дебафф статов / снятие HP-ауры) → DeadTag
                 .Add(new DieSystem())
                 .Add(new CharmDieSystem())   // уничтожение чар с DeadTag (таймер истёк) → грав/лимбо + CreatureDiedEvent
+                .Add(new RunTransformSystem())   // полиморф (TransformCardEvent): мутация существа НА МЕСТЕ (после смертей — труп не полиморфим)
                 .Add(new BuffPerCharmSystem())   // Обжора: «+X/+Y за каждую чару» — дифф стека модификаторов (после смертей чар)
+                .Add(new PassiveAuraSystem())    // Шальной десница: аура «пока карта в руке/зоне» — событийный дифф целей
+                .Add(new CardTierSystem())   // Королевская пиньята: статы = абсолют текущего уровня (золото по порогам), дифф модификаторов
+                .Add(new CharmHandDurationPreviewSystem())   // Зачарованный: живое превью «N+бонус» у своих чар в руке
                 .Add(new RunLeaveBoardSystem())   // баунс/баниш/замешивание (LeaveBoardEvent) → рука/колода/грав/лимбо
                 .Add(new RunCommanderCooldownSystem())   // кулдаун командира на ЛЮБОЙ возврат в руку (смерть/баунс), а не только смерть
                 // --- Конец матча: HP игрока ≤ 0 после оседания каскада → победа/поражение/ничья ---
                 .Add(new GameOverCheckSystem())
                 // --- Отображение статов существ (HP/атака/скорость) в их CreatureView ---
                 .Add(new CreatureStatsViewSystem())
+                // --- Подсветка клеток «этим существом ещё можно походить» (слой 2 CellView; дифф набора).
+                //     ПОСЛЕ движения/атаки/смертей/баффов — иначе подсветка отставала бы на кадр. ---
+                .Add(new CellReadyHighlightSystem())
                 // --- Отображение HP/ресурсов игроков (аватар врага + панель локального) ---
                 .Add(new PlayerStatsViewSystem())
                 .Add(new CreatureInspectSystem())   // удержание на существе → карточка-инспектор (CardDetailUIEvent)
@@ -264,7 +303,10 @@ namespace Game.Core.Ecs.Handlers
             // Конец сессии: снимаем все подписки шины (триггеры/условия способностей).
             // Карта в игре не удаляется (сжигание = кладбище), поэтому пер-карта отписка не нужна.
             Game.Core.Events.GameEventBus.Clear();
-            Game.Core.Ecs.Components.CastMultiplierService.Clear();   // матч-множители частоты (Временная петля)
+            Game.Core.Ecs.Components.CastMultiplierService.Clear();
+            Game.Core.Ecs.Components.CharmDurationBonusService.Clear();
+            Game.Core.Ecs.Components.AbilityResolveContext.ClearCause();   // причина реакций из прошлого матча
+            Game.Core.Events.PresentationLock.Clear();                     // замок анимации из прошлого матча   // матч-множители частоты (Временная петля)
             Game.Core.Ecs.Components.MatchState.Clear();              // статус конца матча
 
             World.Destroy();

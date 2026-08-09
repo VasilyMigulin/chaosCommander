@@ -1,0 +1,115 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: creature_card_011
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
+  CardData:
+    rid: 2419360554740613148
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 2419360554740613148
+      type: {class: CardCreatureModel, ns: Game.Core.Model.Card.Creature, asm: Game.Core.Model.Card.Creature}
+      data:
+        Id: 26
+        Name: "\u041C\u0430\u0441\u0442\u0435\u0440 \u0442\u0440\u0430\u043D\u0441\u043C\u0443\u0442\u0430\u0446\u0438\u0439"
+        Description: "\u041F\u0440\u0438 \u0440\u0430\u0437\u044B\u0433\u0440\u044B\u0432\u0430\u043D\u0438\u0438:
+          \u043F\u0435\u0432\u0440\u0430\u0449\u0430\u0435\u0442 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u043E
+          \u0432 \u0441\u043B\u0443\u0447\u0430\u0439\u043D\u043E\u0435 \u0437\u0430
+          1"
+        Rarity: 3
+        Element: 37
+        ArtImage: {fileID: 0}
+        ExpansionId: stolen_princess
+        PlayCost: 0
+        PlayCostAmount: 2
+        IsToken: 0
+        ShowAsLinked: 0
+        MulliganStartingHand: 0
+        MulliganUnlimitedReplace: 0
+        RuntimeAbilities:
+        - rid: 2419360554740613149
+        Archetypes: []
+        TierSource: 0
+        Tiers: []
+        MaxHealth: 4
+        Attack: 2
+        Speed: 1
+        ViewPrefab: {fileID: 1046069417137952589, guid: f06aa6138ec1c4140ac9af21f0ddde7e, type: 3}
+        SummonVfx:
+          PrePrefab: {fileID: 0}
+          PreLeadSeconds: 0
+          ResolvePrefab: {fileID: 0}
+          ResolveAttach: 1
+          ResolveDelaySeconds: 0.1
+          ResolveFollow: 1
+          FinishPrefab: {fileID: 0}
+          FinishAnchor: 1
+          FinishAttach: 0
+        TurnsAlive: 0
+        IsCommander: 0
+    - rid: 2419360554740613149
+      type: {class: AbilityToTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 2419360554740613150
+        Rules: []
+        Effects:
+        - rid: 2419360554740613153
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 119382, guid: 616e8b55bdab6694fabc34c4d1a168fb, type: 3}
+          ProjectileSpeed: 12
+          MergeArea: 0
+          PlayCasterAnimation: 0
+        Selection: 1
+        Count: 1
+        Zone: 0
+        OfferCount: 3
+        Filters:
+        - rid: 2419360554740613151
+        - rid: 2419360554740613152
+        - rid: 2419360587178049724
+        IncludeCommanderInZones: 0
+    - rid: 2419360554740613150
+      type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2419360554740613151
+      type: {class: AllyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2419360554740613152
+      type: {class: EnemyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2419360554740613153
+      type: {class: TransformFromPoolWithCostEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        PoolAsset: {fileID: 11400000, guid: 4e5b8b8e0e9030d4ca8f43e80cd0ed8c, type: 2}
+        Pool: []
+        TransferOwnership: 0
+        Cost: 1
+        CostFromTimesPlayed: 1
+    - rid: 2419360587178049724
+      type: {class: NotTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Inner:
+          rid: 2419360587178049725
+    - rid: 2419360587178049725
+      type: {class: CommanderTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 

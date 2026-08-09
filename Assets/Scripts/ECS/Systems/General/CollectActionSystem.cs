@@ -104,7 +104,12 @@ namespace Game.Core.Ecs.Systems
 
         private void OnCardCast(CardCastEvent evt)
         {
-            if (!IsOwnCard(evt.CardEntity)) return;
+            // Гейт «я ли симулятор» (как OnAbilityResolved), а НЕ по владельцу карты: актив симулирует и
+            // форс-касты на ЗЕРКАЛЕ карт оппонента (Попойка: OnDrawForcePlay, когда добор оппонента случился
+            // в НАШ ход). IsOwnCard-гейт такой каст ТЕРЯЛ → у владельца-пассива карта оставалась в руке →
+            // расхождение рук/колод (десинки границ 21/23/24 от 2026-07-27). Эха нет: на пассиве
+            // CardCastEvent не публикуется вовсе (реплей размещает карты без него).
+            if (!TurnGate.IsLocalActive(_world.Value)) return;
             // СУЩЕСТВО синкает размещение через CreatureInvokedEvent (единый путь розыгрыш+призыв);
             // здесь — только заклинания/чары (они CreatureInvokedEvent не публикуют). Иначе у сыгранного
             // существа было бы ДВА ActionCastData (оно публикует и Cast, и Invoked).
@@ -119,7 +124,11 @@ namespace Game.Core.Ecs.Systems
             // Токены, созданные сразу на борд (FillRow/SpawnCardOnBoard): создание зеркально через детерм.
             // ре-ран generate-эффекта у обоих — ActionCastData дал бы ДУБЛЬ размещения у пассива.
             if (evt.Generated) return;
-            if (!IsOwnCard(evt.CardEntity)) return;
+            // Гейт «я ли симулятор» (см. OnCardCast): ловит и форс-розыгрыш существа с зеркала оппонента.
+            // Заодно убирает латентное эхо: ReplayCast на пассиве публикует CreatureInvokedEvent для
+            // трекинга — под старым IsOwnCard-гейтом НАША карта, форс-разыгранная симулятором, эхнулась бы
+            // обратно; IsLocalActive на пассиве всегда false → эха нет.
+            if (!TurnGate.IsLocalActive(_world.Value)) return;
             EnqueueCast(evt.CardEntity);
         }
 
@@ -133,15 +142,35 @@ namespace Game.Core.Ecs.Systems
                 cell = pos.Row * 5 + pos.Col;
             }
 
+            // Альтернативная уплата (Букмекер и семейство): роутер оставил на карте результат — передаём
+            // пассиву (-1 = обычная оплата ресурсом).
+            int altKind = -1, altAmount = 0;
+            string[] altKeys = null;
+            var altPaidPool = _world.Value.GetPool<AltPaidComponent>();
+            if (altPaidPool.Has(cardEntity))
+            {
+                ref var paid = ref altPaidPool.Get(cardEntity);
+                altKind = (int)paid.Kind; altAmount = paid.Amount; altKeys = paid.Keys;
+                altPaidPool.Del(cardEntity);
+            }
+
             Enqueue(new ActionCastData
             {
                 TurnNumber      = _currentTurnNumber,
                 ActionIndex     = _actionIndex++,
                 SourceEntityKey = GetNetKey(cardEntity),
                 Cell            = cell,
+                AltPaidKind     = altKind,
+                AltPaidAmount   = altAmount,
+                AltPaidKeys     = altKeys,
             });
         }
 
+        // ГЕЙТ-АУДИТ (2026-07-28, после бага «Попойки»): Move/Attack/TimerDeath ОСТАВЛЕНЫ на IsOwnCard —
+        // сегодня он эквивалентен «я симулятор» (двигают/атакуют только по инпуту своих существ; таймеры
+        // тикают только у владельца в его ход) и БЕЗОПАСНЕЕ при поздних анти-софтлок стрэгглерах (действие,
+        // доехавшее после снятия ActiveState, под IsLocalActive потерялось бы молча). Если появится эффект,
+        // гоняющий ЧУЖИХ существ через мув/атак-пайплайн (MoveRequestEvent/AttackRequestEvent), — пересмотреть.
         private void OnCreatureMoved(CreatureMovedEvent evt)
         {
             if (!IsOwnCard(evt.CreatureEntity)) return;
@@ -171,7 +200,14 @@ namespace Game.Core.Ecs.Systems
 
         private void OnCardPicked(CardPickResolvedNetEvent evt)
         {
-            if (!IsOwnCard(evt.CastingCardEntity)) return;
+            // Своя карта ИЛИ «я симулятор». IsOwnCard одного мало: раскопку ЧУЖОЙ карты, сработавшую в наш
+            // ход (хрип пиньяты оппонента разыграл его «Приглашение»), решает симулятор — под чистым
+            // IsOwnCard-гейтом его выбор не уехал бы владельцу, и у того запрос завис бы навсегда (та же
+            // семья, что фикс коллектора по Попойке). IsLocalActive одного тоже мало: форс-резолв раскопки
+            // на конце хода может пройти после снятия ActiveState — правда, EndTurnState ещё держится, так
+            // что гейт истинен, но оставляем IsOwnCard первым условием как более узкое и надёжное.
+            // Эха нет: пассив EmitResolved не публикует (реплей-ветка резолвит молча).
+            if (!IsOwnCard(evt.CastingCardEntity) && !TurnGate.IsLocalActive(_world.Value)) return;
 
             Enqueue(new ActionCardPickedData
             {

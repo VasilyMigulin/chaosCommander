@@ -645,6 +645,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5dcbf84dea4b8df4cb6d305670373d4e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: AwesomeUI.Core.Card::AwesomeUI.Core.Card.CardHighlightEffect
+--- !u!1 &2002600624292306627 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8806901778755311314, guid: 18590e748cd6a6e428842617eed1d81b, type: 3}
+  m_PrefabInstance: {fileID: 7057928046461601809}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &2143039361431869554 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 8957473669816242275, guid: 18590e748cd6a6e428842617eed1d81b, type: 3}
@@ -681,6 +686,17 @@ MonoBehaviour:
 --- !u!114 &4195181128035692852 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 6614252022287907109, guid: 18590e748cd6a6e428842617eed1d81b, type: 3}
+  m_PrefabInstance: {fileID: 7057928046461601809}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
+--- !u!114 &4294799693702894804 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6514735831582923973, guid: 18590e748cd6a6e428842617eed1d81b, type: 3}
   m_PrefabInstance: {fileID: 7057928046461601809}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 0}
@@ -793,13 +809,22 @@ MonoBehaviour:
   _attackText: {fileID: 4195181128035692852}
   _healthText: {fileID: 7134800969018129227}
   _speedText: {fileID: 5911953655287714477}
+  _tierBanner: {fileID: 2002600624292306627}
+  _tierText: {fileID: 4294799693702894804}
   _buffColor: {r: 0.35, g: 1, b: 0.35, a: 1}
   _debuffColor: {r: 1, g: 0.35, b: 0.35, a: 1}
   _statPunchScale: 0.35
   _statPunchDuration: 0.3
+  _punchTarget: {fileID: 5858090133108526871}
+  _cardPunchScale: 0.18
+  _cardPunchDuration: 0.35
+  _affectVfx: []
   _holdInspectEnabled: 1
   _holdThreshold: 0.45
   _returnDuration: 0.25
+  _zoomScale: 1.6
+  _zoomLift: 90
+  _zoomDuration: 0.15
   _cooldownOverlay: {fileID: 2421835623013312038}
   _cooldownText: {fileID: 6144284186254618898}
 --- !u!1 &8629489872709511408 stripped

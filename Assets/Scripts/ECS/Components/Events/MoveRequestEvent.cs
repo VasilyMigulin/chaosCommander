@@ -8,5 +8,8 @@ namespace Game.Core.Ecs.Components
         public int ToRow;
         public int ToCol;
         public int ToOwnerId;
+
+        /// <summary>Бесплатный ход (Позвать стражу и т.п.): MoveSystem не проверяет и не тратит SpeedComponent.Remaining.</summary>
+        public bool Free;
     }
 }

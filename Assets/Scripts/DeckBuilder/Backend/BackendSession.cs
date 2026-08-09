@@ -12,7 +12,9 @@ namespace Game.Core.Backend
     ///   3) загрузка инвентаря → PlayerLibrary + PlayerWallet,
     ///   4) загрузка колод (PlayFab UserData «player_decks») — ПОСЛЕ библиотеки: колода ссылается на
     ///      карты, и панелям (DeckViewPanel/DeckBuildPanel) нужен уже наполненный PlayerLibrary.
-    ///      Колоды живут в облаке, а не локально, — иначе с нового устройства они бы пропали.
+    ///      Колоды живут в облаке, а не локально, — иначе с нового устройства они бы пропали,
+    ///   5) серверный MMR → PlayerRating (RatingService.Fetch; заодно сервер лениво дорешивает
+    ///      зависшие отчёты матчей — rage-quit соперника).
     ///
     /// Каждый шаг не роняет вход: при ошибке логируем и идём дальше (в оффлайн-режиме
     /// игрок хотя бы попадёт в меню). onDone вызывается всегда.
@@ -29,6 +31,10 @@ namespace Game.Core.Backend
         {
             Ready = false;
             Config = config;
+
+            // Свой PlayFabId — в Service-мост: Photon (обмен идентичностью матча для рейтинга)
+            // не видит PlayFabService напрямую.
+            Service.MatchIdentity.LocalPlayFabId = PlayFabService.PlayFabId;
 
             if (config == null)
             {
@@ -81,12 +87,12 @@ namespace Game.Core.Backend
                 onSuccess: decks =>
                 {
                     Debug.Log($"[BackendSession] Колод загружено: {decks.Count}.");
-                    onDone?.Invoke();
+                    RatingService.Fetch(onDone);
                 },
                 onError: err =>
                 {
                     Debug.LogWarning($"[BackendSession] LoadDecks failed: {err}");
-                    onDone?.Invoke();
+                    RatingService.Fetch(onDone);
                 });
         }
     }

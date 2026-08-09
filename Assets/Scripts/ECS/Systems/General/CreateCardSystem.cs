@@ -27,6 +27,7 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<NetworkEntityComponent> _netKeyPool = default;
         readonly EcsPoolInject<DeckTag> _deckTagPool = default;
         readonly EcsPoolInject<HandTag> _handTagPool = default;
+        readonly EcsPoolInject<SideboardTag> _sideboardTagPool = default;   // «отложенные» (Сказочник)
         readonly EcsPoolInject<BoardTag> _boardTagPool = default;
         readonly EcsPoolInject<GraveTag> _graveTagPool = default;
         readonly EcsPoolInject<BoardPositionComponent> _boardPosPool = default;
@@ -45,6 +46,7 @@ namespace Game.Core.Ecs.Systems
         {
             GameEventBus.Subscribe<CreateCardEvent>(OnCreateCard);
             GeneratedModScratch.Clear();   // новый матч — стёртые ключи не должны цеплять чужие сущности
+            BoardEntryOrder.Clear();       // новый матч — счётчик порядка выхода на стол с нуля
         }
 
         void OnCreateCard(CreateCardEvent evt) => _pending.Add(evt);
@@ -99,6 +101,7 @@ namespace Game.Core.Ecs.Systems
             if (eventComp.InBoard)
             {
                 _boardTagPool.Value.Add(cardEntity);
+                BoardEntryOrder.Stamp(_world.Value, cardEntity);   // порядок выхода (токены прямо на борд)
                 ref var pos = ref _boardPosPool.Value.Add(cardEntity);
                 pos.Row = eventComp.BoardRow;
                 pos.Col = eventComp.BoardCol;
@@ -115,9 +118,22 @@ namespace Game.Core.Ecs.Systems
             {
                 _graveTagPool.Value.Add(cardEntity);
             }
+            else if (eventComp.InSideboard)
+            {
+                // Зеркало сайдборда оппонента (MP). Лимит руки тут ни при чём — это своя зона.
+                _sideboardTagPool.Value.Add(cardEntity);
+            }
             else if (eventComp.InHand)
             {
-                _handTagPool.Value.Add(cardEntity);
+                // Лимит руки: сгенерированная карта (копия/токен/награда дискавера) при полной руке СГОРАЕТ,
+                // а не лезет сверх лимита (иначе счётчик руки уезжает за максимум — семья багов «7 из 6»).
+                // Авто-каст исключение: такая карта в руке не задерживается, её тут же разыграет AutoCastSystem.
+                // Карта БЕЗ HandTag не пройдёт StillInDeclaredZone ниже → RegisterInZone её не добавит
+                // в список руки и не пришлёт CardDrawnEvent. Отдельный ранний выход не нужен.
+                if (!eventComp.AutoCast && !HandSpace.HasRoomForOwner(_world.Value, eventComp.OwnerId))
+                    HandSpace.Burn(_world.Value, cardEntity, "генерация в руку");
+                else
+                    _handTagPool.Value.Add(cardEntity);
             }
             else
             {
@@ -132,6 +148,11 @@ namespace Game.Core.Ecs.Systems
                 // ОТДЕЛЬНЫЙ флаг ForceRandomTarget (не всегда совпадает с AutoCast — см. CreateCardEvent).
                 if (!_autoCastPool.Value.Has(cardEntity)) _autoCastPool.Value.Add(cardEntity);
                 _autoCastPool.Value.Get(cardEntity).Free = true;
+
+                // Карта порождена эффектом и будет разыграна автоматически → она СЛЕДСТВИЕ текущей
+                // активации. Записку пишем ЗДЕСЬ, в момент порождения: разыграется она позже, по одной
+                // с пейсингом (пиньята создаёт 10 разом), и к тому времени глобальная причина уже стёрта.
+                CauseStamp.Mark(_world.Value, cardEntity);
                 if (eventComp.ForceRandomTarget && !_forceRandomPool.Value.Has(cardEntity)) _forceRandomPool.Value.Add(cardEntity);
             }
 
@@ -144,7 +165,12 @@ namespace Game.Core.Ecs.Systems
                     if (mod != null && mod.IsReady)
                         mod.Apply(_world.Value, modSource, cardEntity);
 
-            if (eventComp.RegisterInZoneList)
+            // Модификатор мог УВЕСТИ карту из заявленной зоны прямо здесь: «Дополнительная возможность»
+            // кладёт discover-выбор в руку с RegisterInZoneList=true, а её модификатор PlayTargetCardEffect
+            // тут же играет карту (снимает HandTag → AutoCast). Регистрировать в зоне и слать CardDrawnEvent
+            // ПОСЛЕ этого нельзя — иначе сыгранная карта повиснет в hand-list фантомом (в UI есть, HandTag нет →
+            // не разыгрывается). Регистрируем, только если карта всё ещё в заявленной зоне.
+            if (eventComp.RegisterInZoneList && StillInDeclaredZone(eventComp, cardEntity))
                 RegisterInZone(eventComp, cardEntity);
 
             // «Вышло на стол» и для СГЕНЕРИРОВАННЫХ на борд существ (FillRow/SpawnCardOnBoard) — реактивные
@@ -158,6 +184,27 @@ namespace Game.Core.Ecs.Systems
                 GameEventBus.Publish(new CreatureInvokedEvent { CardEntity = cardEntity, Generated = true,
                     OwnerId = ownerPool.Has(cardEntity) ? ownerPool.Get(cardEntity).OwnerId : -1 });
             }
+            // Чара, сгенерированная СРАЗУ на борд (SpawnCharmTokenEffect и т.п.) — своя «я появилась», раз
+            // InBoard-создание CardCastEvent не публикует вообще (см. CreatureInvokedEvent выше — та же
+            // причина, только для чар отдельное событие, чтобы не задевать OnCreatureInvokedTrigger других карт).
+            else if (eventComp.InBoard && _world.Value.GetPool<CharmTag>().Has(cardEntity))
+            {
+                var ownerPool = _world.Value.GetPool<OwnerComponent>();
+                GameEventBus.Publish(new CharmInvokedEvent { CardEntity = cardEntity,
+                    OwnerId = ownerPool.Has(cardEntity) ? ownerPool.Get(cardEntity).OwnerId : -1 });
+            }
+        }
+
+        /// <summary>
+        /// Карта всё ещё в той зоне, куда её создавали? Модификаторы генерации (PlayTargetCardEffect и т.п.)
+        /// могли увести её сразу при материализации — тогда регистрировать в списке зоны нельзя.
+        /// </summary>
+        bool StillInDeclaredZone(CreateCardEvent evt, int cardEntity)
+        {
+            if (evt.InHand)  return _handTagPool.Value.Has(cardEntity);
+            if (evt.InBoard) return _boardTagPool.Value.Has(cardEntity);
+            if (evt.InGrave) return _graveTagPool.Value.Has(cardEntity);
+            return _deckTagPool.Value.Has(cardEntity);   // колода (else-ветка зоны)
         }
 
         /// <summary>
@@ -178,7 +225,7 @@ namespace Game.Core.Ecs.Systems
                     hand.Count = hand.CardEntities.Count;
                 }
                 if (!evt.IsEnemy)   // у врага своя отрисовка руки — не дублируем
-                    GameEventBus.Publish(new CardDrawnEvent { CardEntity = cardEntity, PlayerId = pe });
+                    GameEventBus.Publish(new CardDrawnEvent { CardEntity = cardEntity, PlayerId = pe, SourceEntity = evt.SourceEntity });
             }
             else if (!evt.InBoard && !evt.InGrave)   // колода (else-ветка зоны)
             {

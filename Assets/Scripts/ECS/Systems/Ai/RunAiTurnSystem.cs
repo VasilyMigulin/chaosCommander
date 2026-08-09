@@ -81,6 +81,9 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<AttackRequestEvent> _attackPool = default;
         readonly EcsPoolInject<MovingTag> _movingPool = default;
         readonly EcsPoolInject<AttacksUsedComponent> _attacksUsedPool = default;
+        readonly EcsPoolInject<DoubleAttackTag> _doubleAttackPool = default;
+        readonly EcsPoolInject<TauntTag> _tauntPool = default;
+        readonly EcsPoolInject<StealthComponent> _stealthPool = default;
 
         // Размещение существа (карта ждёт клетку)
         readonly EcsFilterInject<Inc<PendingSelectCellState>> _pendingCell = default;
@@ -642,7 +645,7 @@ namespace Game.Core.Ecs.Systems
             {
                 if (_ownerPool.Value.Get(creature).OwnerId != ctx.AiId) continue;
                 if (_movingPool.Value.Has(creature)) continue;
-                if (AttacksUsed(creature) >= MaxAttacksPerTurn) continue;
+                if (AttacksUsed(creature) >= MaxAttacksFor(creature)) continue;
                 int remaining = _speedPool.Value.Get(creature).Remaining;
                 if (remaining <= 0) continue;
                 int atk = _attackValuePool.Value.Has(creature) ? _attackValuePool.Value.Get(creature).Value : 0;
@@ -758,7 +761,7 @@ namespace Game.Core.Ecs.Systems
                 if (_speedPool.Value.Get(creature).Remaining <= 0) continue;
 
                 ref var pos = ref _posPool.Value.Get(creature);
-                bool canAttack = AttacksUsed(creature) < MaxAttacksPerTurn;
+                bool canAttack = AttacksUsed(creature) < MaxAttacksFor(creature);
                 int myAtk = _attackValuePool.Value.Has(creature) ? _attackValuePool.Value.Get(creature).Value : 0;
                 int myHp  = _healthPool.Value.Has(creature) ? _healthPool.Value.Get(creature).Current : 1;
                 var temper = TemperOf(creature, ctx);
@@ -766,9 +769,13 @@ namespace Game.Core.Ecs.Systems
                 bool kamikaze = temper == Temper.Kamikaze;   // «при смерти» — нарывается
                 int threatHere = ThreatAt(ctx, pos.Row, pos.Col, pos.OwnerId);
 
+                // «Защитник»: рядом (без движения, текущая позиция) вражеский Защитник → атаковать можно
+                // только его. Проверяется здесь один раз на существо (позиция не меняется до следующего тика).
+                bool tauntBlocks = HasAdjacentEnemyTaunt(pos.Row, pos.Col, pos.OwnerId, ctx);
+
                 // Атака аватара: только с фронт-ряда человека (его row 0). Летал ловится раньше
                 // (TryLethalRush), здесь — обычный урон в лицо; чем ниже HP человека, тем ценнее.
-                if (canAttack && pos.OwnerId == ctx.HumanId && pos.Row == FrontRow && ctx.Human >= 0
+                if (canAttack && !tauntBlocks && pos.OwnerId == ctx.HumanId && pos.Row == FrontRow && ctx.Human >= 0
                     && !_attempted.Contains(AttemptKey(creature, Kind.Attack, ctx.Human)))
                 {
                     int faceScore = 22 + (ctx.HumanHp <= myAtk * 2 ? 6 : 0);   // «в двух ударах от летала» — дожимаем
@@ -782,8 +789,11 @@ namespace Game.Core.Ecs.Systems
 
                     if (occupant >= 0)
                     {
-                        // Враг на соседней клетке → оценка размена.
+                        // Враг на соседней клетке → оценка размена. «Скрытый» не выбирается вовсе; «Защитник»
+                        // рядом ограничивает выбор ИМ (tauntBlocks && occupant не Защитник → пропуск).
                         if (_ownerPool.Value.Get(occupant).OwnerId != ctx.AiId && canAttack
+                            && !_stealthPool.Value.Has(occupant)
+                            && (!tauntBlocks || _tauntPool.Value.Has(occupant))
                             && !_attempted.Contains(AttemptKey(creature, Kind.Attack, occupant)))
                         {
                             int tHp  = _healthPool.Value.Has(occupant) ? _healthPool.Value.Get(occupant).Current : 1;
@@ -803,6 +813,10 @@ namespace Game.Core.Ecs.Systems
                         }
                         continue;   // клетка занята — шаг невозможен
                     }
+
+                    // «Защитник» рядом (без движения) — существо не может уйти ни в какую сторону, только
+                    // атаковать его (или ничего): «нет других вариантов действия».
+                    if (tauntBlocks) continue;
 
                     // Свободная клетка → шаг, но ТОЛЬКО осмысленный (боковые «прогулки» ради прогулки
                     // давали блуждание туда-сюда — теперь база вбок/назад = 0/-10, шаг берётся, если у него
@@ -921,7 +935,7 @@ namespace Game.Core.Ecs.Systems
                 int ally = CreatureAt(nr, nc, no);
                 if (ally < 0 || ally == except) continue;
                 if (_ownerPool.Value.Get(ally).OwnerId != ctx.AiId) continue;
-                if (AttacksUsed(ally) >= MaxAttacksPerTurn) continue;
+                if (AttacksUsed(ally) >= MaxAttacksFor(ally)) continue;
                 if (_speedPool.Value.Get(ally).Remaining <= 0) continue;
                 sum += _attackValuePool.Value.Has(ally) ? _attackValuePool.Value.Get(ally).Value : 0;
             }
@@ -935,8 +949,20 @@ namespace Game.Core.Ecs.Systems
             {
                 int e = CreatureAt(nr, nc, no);
                 if (e < 0 || _ownerPool.Value.Get(e).OwnerId == ctx.AiId) continue;
+                if (_stealthPool.Value.Has(e)) continue;   // «Скрытый» не выбирается как цель
                 int hp = _healthPool.Value.Has(e) ? _healthPool.Value.Get(e).Current : 1;
                 if (myAtk >= hp) return true;
+            }
+            return false;
+        }
+
+        // «Защитник»: есть ли вражеский Защитник на клетке, СМЕЖНОЙ с (row,col,owner) — без движения.
+        bool HasAdjacentEnemyTaunt(int row, int col, int owner, in Ctx ctx)
+        {
+            foreach (var (nr, nc, no) in Neighbours(row, col, owner, ctx.AiId, ctx.HumanId))
+            {
+                int e = CreatureAt(nr, nc, no);
+                if (e >= 0 && _ownerPool.Value.Get(e).OwnerId != ctx.AiId && _tauntPool.Value.Has(e)) return true;
             }
             return false;
         }
@@ -985,6 +1011,9 @@ namespace Game.Core.Ecs.Systems
             => ((long)entity << 32) | ((long)kind << 28) | (uint)detail;
 
         int AttacksUsed(int e) => _attacksUsedPool.Value.Has(e) ? _attacksUsedPool.Value.Get(e).Value : 0;
+
+        // «Двойной удар» поднимает лимит атак за ход с 1 до 2 — как в RunSelectCellSystem/RunPathMoveSystem.
+        int MaxAttacksFor(int e) => MaxAttacksPerTurn + (_doubleAttackPool.Value.Has(e) ? 1 : 0);
 
         void MarkAttacked(int e)
         {

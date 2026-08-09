@@ -12,5 +12,12 @@ namespace Game.Core.Shared.Interface
         bool TryGetPlayerEntity(out int playerEntity);
         bool TryGetOpponentEntity(out int opponentEntity);
         string GetNetEntityKey(int entity);
+
+        /// <summary>
+        /// Self-heal ресинк: выкинуть из мап ВСЕ записи КАРТ (сущности снесены и пересоздаются с теми же
+        /// net-ключами), сохранив записи игроков (их сущности живы). Без этого AddEntity с ContainsKey-гардом
+        /// молча не перезапишет протухшие EcsPackedEntity. Дефолт — no-op (Tutorial и др. ресинк не используют).
+        /// </summary>
+        void ResetCardEntityMaps() { }
     }
 }

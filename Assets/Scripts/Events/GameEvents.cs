@@ -34,10 +34,33 @@ namespace Game.Core.Events
         public int TargetEntity; // entity target, -1 if none
     }
 
+    /// <summary>Карту руки отвели в драг (синяя подсветка «готова к розыгрышу», см. PlayCardView.
+    /// StartRealDrag) — Active=true просит подсветить на поле всех, кого заденет её OnCast-способность;
+    /// Active=false (отпустили/вернули/розыграли) снимает эту подсветку. Слушает RunCardTargetPreviewSystem.</summary>
+    public struct CardDragTargetPreviewEvent : IGameEvent
+    {
+        public int  CardEntity;
+        public bool Active;
+    }
+
     public struct CardDrawnEvent : IGameEvent
     {
         public int CardEntity;
         public int PlayerId;
+
+        /// <summary>Сущность-источник (кастер раскопки/копатель) — если карта пришла НЕ обычным добором.
+        /// Резолвится в мировую позицию ЛЕНИВО в HandUISystem: источник на момент трансляции обычно ещё
+        /// на столе (сам не уходит никуда). Nullable (а не -1 сентинел): подавляющее большинство мест,
+        /// публикующих это событие через object-initializer, поле вообще не трогают — default(int)=0 был бы
+        /// ВАЛИДНОЙ сущностью (entity 0) и подсовывал бы источник туда, где его нет. null у Nullable<T> —
+        /// честный «не задано» без риска зацепить чужую сущность.</summary>
+        public int? SourceEntity;
+
+        /// <summary>Мировая позиция, если её нужно снять СРАЗУ здесь: сама карта покидает поле (баунс/
+        /// смерть командира) — к моменту, когда HandUISystem дойдёт до трансляции, её BoardPositionComponent
+        /// уже снят, лениво через SourceEntity её не найти. null → пробуем SourceEntity, иначе обычная
+        /// анимация добора «из-за края экрана».</summary>
+        public UnityEngine.Vector3? FromWorld;
     }
 
     /// <summary>Локальный (turn-start) добор Count карт игроком-сущностью PlayerEntity. Шлёт DrawCardSystem
@@ -49,6 +72,19 @@ namespace Game.Core.Events
         /// <summary>Конкретные добранные сущности (локальные). Коллектор шлёт их ключи в ActionDrawData,
         /// пассив переносит в руку ИМЕННО эти карты по ключу (а не «верхние N» — иначе дрейф зеркала руки).</summary>
         public int[] DrawnEntities;
+    }
+
+    /// <summary>Полиморф (TransformEffect → RunTransformSystem): МУТИРОВАТЬ существо TargetEntity в карту
+    /// ExpansionId/CardId НА МЕСТЕ — та же сущность/клетка/NetworkEntityKey, меняются модель/статы/кост/
+    /// способности/архетипы/вьюха, баффы сгорают. NewOwnerId >= 0 → передать владение (Чертовщина: «чёрт под
+    /// вашим контролем»); -1 → владелец не меняется (классический полиморф). СИНК: эффект публикует на ОБОИХ
+    /// клиентах (ре-ран резолва), идентичность фиксирована ассетом → мутация зеркальна без спец-канала.</summary>
+    public struct TransformCardEvent : IGameEvent
+    {
+        public int    TargetEntity;
+        public string ExpansionId;
+        public int    CardId;
+        public int    NewOwnerId;
     }
 
     public struct CardDiedEvent : IGameEvent
@@ -100,11 +136,14 @@ namespace Game.Core.Events
     }
 
     /// <summary>UI: эффективная стоимость карты изменилась (модификатор стоимости — Гиперинфляция).
-    /// Шлёт CardAffordabilitySystem; ловит PlayCardView → обновляет число стоимости.</summary>
+    /// Шлёт CardAffordabilitySystem; ловит PlayCardView → обновляет число стоимости и иконку оплаты.</summary>
     public struct CardCostChangedEvent : IGameEvent
     {
         public int CardEntity;
         public int EffectiveCost;
+        /// <summary>Вид АЛЬТЕРНАТИВНОЙ уплаты владельца (AltCostKind, семейство «Бесчестный букмекер»):
+        /// -1 = обычная оплата ресурсом (иконка по типу коста); >=0 = иконка уплаты из InterfaceConfig.</summary>
+        public int AltCostKind;
     }
 
     /// <summary>Живые статы карты-СУЩЕСТВА в руке ЛОКАЛЬНОГО игрока изменились (бафф/дебафф/урон командиру) —
@@ -117,6 +156,10 @@ namespace Game.Core.Events
         public int Attack;
         public int MaxHealth;
         public int CurrentHealth;
+        /// <summary>Скорость (Max). Добавлена 2026-07-30 под ауры, баффающие скорость карт В РУКЕ
+        /// («Шальной десница»: +1 атаки и +1 СКОРОСТИ) — раньше канал вёз только атаку и HP,
+        /// и прибавка скорости на карточке руки не показывалась.</summary>
+        public int Speed;
         public bool Initial;
     }
 
@@ -143,9 +186,16 @@ namespace Game.Core.Events
         public Game.Core.Service.EnumService.Element  Element;
         public Game.Core.Service.EnumService.Rarity   Rarity;
         public string CardName;
-        public bool   IsCommander; 
+        public bool   IsCommander;
         public Game.Core.Shared.CardVisualData Visual;
-    } 
+
+        /// <summary>Экранная точка «источника» карты (раскопка/баунс/возврат командира) — HandUISystem уже
+        /// спроецировал мировую позицию через боевую камеру (CardDrawnEvent.FromWorld/SourceEntity). ЭКРАННАЯ,
+        /// а не мировая: UI-сборка НЕ референсит Mono/ECS (граница только через шину) — проекцию камерой
+        /// обязан сделать ECS-слой, UI здесь остаётся чистым RectTransformUtility.ScreenPointToLocalPoint.
+        /// null → обычный добор, CardLayout летит со своей дефолтной точки «из-за края экрана».</summary>
+        public UnityEngine.Vector2? FromScreen;
+    }
     public struct CardRemovedFromHandUIEvent : IGameEvent
     {
         public int CardEntity;
@@ -159,6 +209,44 @@ namespace Game.Core.Events
         public Game.Core.Shared.CardVisualData Visual;
     }
 
+    /// <summary>
+    /// На карту, лежащую В РУКЕ, применили эффект (Дупликатор скопировал её, удешевление, бафф и т.п.).
+    /// Чистая косметика: PlayCardView фильтрует по CardEntity и играет punch визуала карты + UI-VFX по Kind
+    /// (даёт понять, к КАКОЙ карте применился эффект). Публикуется через CardFeedbackUtil.MarkAffectedInHand —
+    /// только если карта действительно в руке (HandTag). Синк не нужен: эффекты применяются зеркально на
+    /// обоих клиентах, фидбэк проигрывается локально у владельца соответствующей вьюхи.
+    /// </summary>
+    public struct CardAffectedInHandUIEvent : IGameEvent
+    {
+        public int CardEntity;
+        public CardAffectKind Kind;
+    }
+
+    /// <summary>
+    /// У карты-с-уровнями сменился уровень (или первый показ). Публикует CardTierSystem. UI (PlayCardView)
+    /// фильтрует по CardEntity: показывает баннер уровня (Tier+1) и обновляет текст описания на уже
+    /// перерендеренный под активный уровень (ключ card.{exp}.{id}.tier.{N}.desc). Tier — 0-based индекс.
+    /// </summary>
+    public struct CardTierChangedUIEvent : IGameEvent
+    {
+        public int CardEntity;
+        public int Tier;
+        public string Description;   // готовое описание активного уровня (отформатировано)
+    }
+
+    /// <summary>
+    /// Живой перерендер описания карты БЕЗ смены уровня/баннера — сейчас только у чар в руке под
+    /// матчевый бонус длительности (Зачарованный/CharmDurationBonusService, см. CharmHandDurationPreviewSystem):
+    /// печатное «Действует N ходов» превращается в живое «N+бонус», пока карта ещё в руке (реальный
+    /// TurnsRemaining применяется отдельно, в момент розыгрыша — RunMoveCardToBoardSystem). UI (PlayCardView)
+    /// фильтрует по CardEntity и просто ставит текст (SetDescriptionLive), без баннера.
+    /// </summary>
+    public struct CardDescriptionChangedUIEvent : IGameEvent
+    {
+        public int CardEntity;
+        public string Description;
+    }
+
     /// <summary>Токен с OnDraw-форс-кастом (Вонючее облако) авто-разыгран сразу при доборе. Чистая косметика
     /// у владельца: CardLayout показывает пришедшую карту и проигрывает анимацию сброса («пришла → ушла»).
     /// Сама симуляция розыгрыша идёт отдельно (PlayCardUtil.Play). CardLayout берёт на себя удаление слота,
@@ -169,8 +257,9 @@ namespace Game.Core.Events
     }
 
     /// <summary>
-    /// Карта верхнего слоя колоды локального игрока ушла в кладбище (Mill).
-    /// UI должен на короткое время показать какую карту сожгли.
+    /// Карта уничтожена ПРЯМО В КОЛОДЕ (Mill) → кладбище. Показ разведён по владельцу:
+    /// СВОЯ карта (IsLocalOwner) — CardLayout выводит её полноценной картой по дуге с зависанием
+    /// («у вас уничтожили ЭТО»), чужая — компактный поп-ап MillNotificationView («вы сожгли ЭТО»).
     /// </summary>
     public struct CardMillFromDeckUIEvent : IGameEvent
     {
@@ -178,6 +267,22 @@ namespace Game.Core.Events
         public string CardName;
         public UnityEngine.Sprite Icon;
         public Game.Core.Shared.CardVisualData Visual;
+        public bool IsLocalOwner;   // колода ЛОКАЛЬНОГО игрока → крупный показ вместо поп-апа
+    }
+
+    /// <summary>
+    /// Карта разыграна ЭФФЕКТОМ прямо ИЗ КОЛОДЫ (PlayCardUtil: Гомункул/Барабук и т.п.) — владелец её
+    /// в руке не видел. CardLayout показывает той же дугой с зависанием, что и уничтожение из колоды,
+    /// но с другим видом развилки VFX (см. CardLayout.PlayShowcaseFx) — «разыграна», а не «сожжена».
+    /// Публикуется симулятором (актив); у пассива в MP зеркало едет реплеем со своим поп-апом.
+    /// </summary>
+    public struct CardPlayedFromDeckUIEvent : IGameEvent
+    {
+        public int CardEntity;
+        public string CardName;
+        public UnityEngine.Sprite Icon;
+        public Game.Core.Shared.CardVisualData Visual;
+        public bool IsLocalOwner;
     }
      
     public struct CommanderOnCooldownUIEvent : IGameEvent
@@ -211,6 +316,14 @@ namespace Game.Core.Events
     {
         public int CreatureEntity;
         public int Amount;
+    }
+
+    /// <summary>Здоровье существа изменилось НЕ уроном (дебафф/бафф статов, снятие/навешивание HP-модификатора).
+    /// Публикуют точки, меняющие HealthComponent модификаторами (BuffStatsEffect, BuffPerCharmSystem…).
+    /// LethalHealthSystem реагирует: если Current ≤ 0 → смерть (урон свою смерть разруливает в TakeDamageSystem).</summary>
+    public struct CreatureHealthChangedEvent : IGameEvent
+    {
+        public int CreatureEntity;
     }
 
     public struct AbilityActivatedEvent : IGameEvent
@@ -419,6 +532,75 @@ namespace Game.Core.Events
     /// (корректный дисконнект Photon + смена состояния) — обрабатывается на уровне States.</summary>
     public struct ExitToMenuRequestedEvent : IGameEvent { }
 
+    /// <summary>
+    /// Сервер рассчитал рейтинг за матч (Elo по взаимному подтверждению — MatchReportService).
+    /// MatchResultWindow показывает дельту на шаге рейтинга; MatchRewardsWindow — золото за матч.
+    /// </summary>
+    public struct RatingUpdatedEvent : IGameEvent
+    {
+        public int NewMmr;
+        public int Delta;
+        public string RewardCode;    // валюта награды за матч ("GD"); пусто → награды не было
+        public int    RewardAmount;
+    }
+
+    /// <summary>
+    /// Прогресс задач, накопленный ЗА ЭТОТ матч, отправлен на сервер (флеш TaskTrackingService).
+    /// Параллельные массивы type→amount (пустые — прогресса не было). MatchRewardsWindow фильтрует
+    /// по ним задачи из DailyService.GetState для секции «задачи за матч».
+    /// </summary>
+    public struct MatchTasksFlushedUIEvent : IGameEvent
+    {
+        public string[] Types;
+        public int[]    Amounts;
+    }
+
+    // ── Сетевое здоровье MP (NetConnectionWatchSystem / TurnChecksumSystem) ─────────────────
+
+    /// <summary>Вид проблемы соединения в MP-бою.</summary>
+    public enum ConnectionIssueKind
+    {
+        OpponentSilent = 0,   // сигналы от пира перестали приходить (heartbeat/действия), соединение формально живо
+        OpponentLeft   = 1,   // Fusion зафиксировал выход оппонента из сессии
+        ConnectionLost = 2,   // потеряно СВОЁ соединение с сервером
+    }
+
+    /// <summary>
+    /// Проблема соединения: UI показывает баннер «ожидание соперника / соединение потеряно» с обратным
+    /// отсчётом. Публикуется NetConnectionWatchSystem раз в секунду, пока проблема активна. По истечении
+    /// SecondsLeft матч закрывается техническим результатом (MatchEndedEvent).
+    /// </summary>
+    public struct ConnectionIssueUIEvent : IGameEvent
+    {
+        public ConnectionIssueKind Kind;
+        public int SecondsLeft;
+    }
+
+    /// <summary>Проблема соединения ушла (пир снова шлёт сигналы) — UI прячет баннер ожидания.</summary>
+    public struct ConnectionRestoredUIEvent : IGameEvent { }
+
+    /// <summary>
+    /// ДЕСИНК: чексуммы состояния мира на границе хода BoundaryTurn разошлись между клиентами
+    /// (TurnChecksumSystem). Триггер self-heal ресинка (WorldResyncSystem): пассив запрашивает у актива
+    /// полный снэпшот мира и применяет его под затемнением.
+    /// </summary>
+    public struct NetDesyncDetectedEvent : IGameEvent
+    {
+        public int   BoundaryTurn;
+        public ulong LocalHash;
+        public ulong RemoteHash;
+    }
+
+    /// <summary>
+    /// Затемнение экрана на время ресинка (как в HS при восстановлении соединения): Show=true — фейд в
+    /// чёрное с надписью «Синхронизация…» (под ним пересобирается мир, чтобы не было дёрганых телепортов),
+    /// Show=false — мир пересобран, плавное проявление. Публикует WorldResyncSystem, слушает ResyncFadeView.
+    /// </summary>
+    public struct WorldResyncUIEvent : IGameEvent
+    {
+        public bool Show;
+    }
+
     /// <summary>UI/дев-запрос «завершить ход» — система навесит EndTurnRequestEvent на локального активного.</summary>
     public struct RequestEndTurnUIEvent : IGameEvent { }
 
@@ -526,6 +708,11 @@ namespace Game.Core.Events
 
         public bool InHand;
 
+        /// <summary>Если true — карта создаётся в «отложенных» (сайдборд Сказочника), а не в колоде/руке.
+        /// Используется зеркалом MP: сущности сайдборда оппонента нужны, чтобы разрешались ключи, когда
+        /// владелец достанет карту раскопкой.</summary>
+        public bool InSideboard;
+
         /// <summary>Если true — сразу разместить на доске (см. BoardRow/BoardCol/BoardOwnerId).</summary>
         public bool InBoard;
         public int BoardRow;
@@ -551,6 +738,11 @@ namespace Game.Core.Events
         /// источник разыгрывается игроком интерактивно → цель порождённой карты тоже вправе выбрать игрок) или
         /// от иного триггера (не в интерактивном контексте → цель форсится случайно). См. GenerateCardEffect.Spawn.</summary>
         public bool ForceRandomTarget;
+
+        /// <summary>Сущность-источник (кастер) — пробрасывается в CardDrawnEvent.SourceEntity для InHand-создания
+        /// (раскопка из пула: карта ещё не существует на момент Apply, поэтому источник передаётся здесь, а не
+        /// через ленивый лукап SourceEntity в HandUISystem). null → обычная анимация добора «из-за края экрана».</summary>
+        public int? SourceEntity;
     }
     // ── Network turn coordination events ────────────────────────────────────
 
@@ -623,10 +815,23 @@ namespace Game.Core.Events
     /// <summary>
     /// Публикуется когда игроку нужно выбрать карту из предложенных (раскопка).
     /// UI подписывается и показывает панель выбора.
+    ///
+    /// Публиковать МОЖНО только получив слот у CardPickBrokerSystem (см. PickTicket.Ready): окно одно,
+    /// каналов несколько, и без арбитра они перебивали друг друга в одном кадре.
     /// </summary>
     public struct CardPickOfferedEvent : IGameEvent
     {
-        /// <summary>Entity карты которую разыгрывает игрок.</summary>
+        /// <summary>
+        /// Токен запроса (PickRequestId). Окно возвращает его эхом в Chosen/Cancelled — ИМЕННО по нему
+        /// продюсер узнаёт свой выбор.
+        ///
+        /// Раньше корреляция шла по CastingCardEntity, и это был сломанный контракт: для трёх каналов это
+        /// entity КАРТЫ, а для замены добора — entity ИГРОКА, при том что id живут в одном пространстве ECS
+        /// и событие уходит на общую шину всем каналам сразу.
+        /// </summary>
+        public int RequestId;
+
+        /// <summary>Entity карты которую разыгрывает игрок. Полезная нагрузка/диагностика, НЕ ключ корреляции.</summary>
         public int CastingCardEntity;
 
         /// <summary>Entity игрока-владельца.</summary>
@@ -640,6 +845,13 @@ namespace Game.Core.Events
 
         /// <summary>Количество предложенных карт.</summary>
         public int OfferedCount;
+
+        /// <summary>
+        /// Разрешена ли кнопка отмены. Пик бывает ОБЯЗАТЕЛЬНЫМ (замена добора «Адовый червь»: одну из трёх
+        /// обязан выбрать) — окно общее на все каналы, и всегда доступная отмена оставляла бы такой канал
+        /// с невыполненным pending, то есть с заглушенным добором до конца матча.
+        /// </summary>
+        public bool AllowCancel;
     }
 
     /// <summary>
@@ -648,7 +860,10 @@ namespace Game.Core.Events
     /// </summary>
     public struct CardPickChosenEvent : IGameEvent
     {
-        /// <summary>Entity карты которую разыгрывает игрок.</summary>
+        /// <summary>Эхо CardPickOfferedEvent.RequestId — ключ корреляции. Чужие токены продюсер игнорирует.</summary>
+        public int RequestId;
+
+        /// <summary>Entity карты которую разыгрывает игрок. Полезная нагрузка, НЕ ключ корреляции.</summary>
         public int CastingCardEntity;
 
         /// <summary>Entity выбранной игроком карты.</summary>
@@ -657,11 +872,27 @@ namespace Game.Core.Events
 
     /// <summary>
     /// Публикуется когда игрок отменил выбор (закрыл панель без выбора).
-    /// CardPickSelectionSystem снимает pending и возвращает карту в руку.
+    /// Продюсер снимает свой pending и освобождает окно.
     /// </summary>
     public struct CardPickCancelledEvent : IGameEvent
     {
+        /// <summary>Эхо CardPickOfferedEvent.RequestId — ключ корреляции.</summary>
+        public int RequestId;
+
         public int CastingCardEntity;
+    }
+
+    /// <summary>
+    /// Ход игрока закончился — все его незавершённые пики обязаны свернуться (окно не переживает конец
+    /// хода). Публикует CardPickBrokerSystem, по одному событию на конец хода.
+    ///
+    /// Момент задаёт брокер, СПОСОБ выбирает продюсер: раскопка и замена добора форсят случайный вариант
+    /// из предложенного (семантика Йогг-Сарона), выбор цели и пик перед кастом — отменяются.
+    /// Адресация по PlayerId (а не по талону), чтобы гасились и запросы, ещё не получавшие слот.
+    /// </summary>
+    public struct CardPickExpiredEvent : IGameEvent
+    {
+        public int PlayerId;
     }
 
     /// <summary>

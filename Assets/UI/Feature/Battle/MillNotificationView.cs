@@ -80,6 +80,10 @@ namespace AwesomeUI.Feature.Battle
 
         private void OnMill(CardMillFromDeckUIEvent evt)
         {
+            // СВОЮ уничтоженную карту показывает CardLayout полноценной картой (дуга с зависанием, как
+            // форс-каст) — поп-ап дублировал бы показ. Здесь остаются только карты оппонента («вы сожгли»).
+            if (evt.IsLocalOwner) return;
+
             _queue.Enqueue(evt);
             if (!_playing) StartCoroutine(PlayQueue());
         }

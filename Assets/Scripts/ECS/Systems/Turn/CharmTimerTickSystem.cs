@@ -8,10 +8,19 @@ namespace Game.Core.Ecs.Systems
 {
     // === class (ECS system) ===
     /// <summary>
-    /// В КОНЦЕ хода владельца декрементит CharmTimerComponent у его чар на поле. При TurnsRemaining ≤ 0
-    /// вешает DeadTag (CharmDieSystem уничтожит чару). Аналог CreatureTimerTickSystem, но: чары (не существа)
-    /// и тик в КОНЦЕ хода (по требованию — «уничтожается после окончания хода»). Тикает только активный
-    /// клиент (TurnEndedEvent у него); пассив получит смерть снапшотом (TimerDeathNetEvent → ActionDeathData).
+    /// Декрементит CharmTimerComponent у чар владельца на поле; при TurnsRemaining ≤ 0 вешает DeadTag
+    /// (CharmDieSystem уничтожит чару). МОМЕНТ тика задаёт сама чара (CardCharmModel.TickMoment →
+    /// CharmTimerComponent.Moment, решение юзера 2026-07-30):
+    ///   • TurnEnd (умолчание, прежнее поведение) — в конце хода владельца: «1» = до конца этого хода,
+    ///     «2» = переживёт ход оппонента. Годится для постоянных эффектов и «в конце хода».
+    ///   • TurnStart — в начале хода владельца: «1» = сработает ровно один раз в следующий свой ход.
+    ///     Чинит класс проблем, когда чара с эффектом «в начале хода» умирала в конце хода розыгрыша,
+    ///     не отработав НИ РАЗУ.
+    /// ПОРЯДОК при TurnStart безопасен: триггеры помечаются СИНХРОННО на публикации TurnStartedEvent
+    /// (AbilityFire.Mark), а тик кладётся в очередь и выполняется в Run — то есть эффект чары уже
+    /// поставлен в пайплайн и отрезолвится, даже если чара этим же тиком умирает.
+    /// Тикает только активный клиент (TurnStarted/TurnEnded у него); пассив получит смерть снапшотом
+    /// (TimerDeathNetEvent → ActionDeathData).
     /// </summary>
     public sealed class CharmTimerTickSystem : IEcsInitSystem, IEcsRunSystem, IEcsDestroySystem, System.IDisposable
     {
@@ -20,7 +29,7 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<OwnerComponent> _ownerPool = default;
         readonly EcsPoolInject<DeadTag> _deadPool = default;
 
-        readonly Queue<int> _pending = new Queue<int>();
+        readonly Queue<(int playerId, CharmTickMoment moment)> _pending = new();
         bool _subscribed;
 
         public void Init(IEcsSystems systems) => Subscribe();
@@ -33,30 +42,39 @@ namespace Game.Core.Ecs.Systems
         {
             if (!_subscribed) return;
             GameEventBus.Unsubscribe<TurnEndedEvent>(OnTurnEnded);
+            GameEventBus.Unsubscribe<TurnStartedEvent>(OnTurnStarted);
             _subscribed = false;
         }
+
         void Subscribe()
         {
             if (_subscribed) return;
             _subscribed = true;
             GameEventBus.Subscribe<TurnEndedEvent>(OnTurnEnded);
+            GameEventBus.Subscribe<TurnStartedEvent>(OnTurnStarted);
         }
-        void OnTurnEnded(TurnEndedEvent e) => _pending.Enqueue(e.ActivePlayerId);
+
+        void OnTurnEnded(TurnEndedEvent e)     => _pending.Enqueue((e.ActivePlayerId, CharmTickMoment.TurnEnd));
+        void OnTurnStarted(TurnStartedEvent e) => _pending.Enqueue((e.ActivePlayerId, CharmTickMoment.TurnStart));
 
         public void Run(IEcsSystems systems)
         {
-            while (_pending.Count > 0) Tick(_pending.Dequeue());
+            while (_pending.Count > 0)
+            {
+                var (playerId, moment) = _pending.Dequeue();
+                Tick(playerId, moment);
+            }
         }
 
-        void Tick(int playerId)
+        void Tick(int playerId, CharmTickMoment moment)
         {
             foreach (var entity in _filter.Value)
             {
                 if (_ownerPool.Value.Get(entity).OwnerId != playerId) continue;
                 ref var t = ref _timerPool.Value.Get(entity);
+                if (t.Moment != moment) continue;   // чара тикает в СВОЙ момент
+
                 t.TurnsRemaining--;
-                // ВРЕМЕННО (диагностика «Дупликатор умирает раньше срока»): тик каждого чар-таймера.
-                UnityEngine.Debug.Log($"[CharmTick] entity={entity} owner={playerId} remaining={t.TurnsRemaining} frame={UnityEngine.Time.frameCount}");
                 if (t.TurnsRemaining <= 0 && !_deadPool.Value.Has(entity))
                 {
                     _deadPool.Value.Add(entity);

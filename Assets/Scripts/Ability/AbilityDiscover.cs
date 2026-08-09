@@ -54,6 +54,11 @@ namespace Game.Core.Ability
                     mod?.Dispose();
         }
 
+        // Порядок раскопок в РАМКАХ одного резолва («Приглашение»: рука своя → рука оппонента): растёт
+        // на каждый Apply. Оба клиента ре-ранят эффекты в одном порядке → относительный Seq зеркален
+        // (абсолютное значение не важно, сравнивается только «кто раньше»).
+        static int _seqCounter;
+
         public override void Apply(EcsWorld world, int cardEntity, int target)
         {
             var ownerPool = world.GetPool<OwnerComponent>();
@@ -67,6 +72,7 @@ namespace Game.Core.Ability
             req.OwnerPlayerEntity = ownerPlayer;
             req.OwnerId           = ownerId;
             req.OfferCount        = OfferCount;
+            req.Seq               = ++_seqCounter;
             req.Dest              = Dest;
             req.TakeOwnership     = TakeOwnership;
             req.Modifiers         = (Modifiers != null && Modifiers.Count > 0) ? Modifiers.ToArray() : null;
@@ -129,6 +135,74 @@ namespace Game.Core.Ability
             }
             req.PoolExp    = exp.ToArray();
             req.PoolCardId = ids.ToArray();
+        }
+    }
+
+    // === class (OOP) === Раскопка из ИСТОРИИ последних разыгранных заклинаний владельца
+    // (RecentSpellsHistoryComponent — трекает LastPlayedSpellTrackerSystem), а не из статичного пула
+    // ассетов. «Посмотрите 3 последних разыгранных заклинания, выберите 1» (Батюшка-барыга). Терминал —
+    // FromPool: выбранное создаётся ЗАНОВО (своя копия сыгранного заклинания), а не воровство чужой
+    // сущности — как обычный GainRandomCardEffect/DiscoverFromPool.
+    [Serializable]
+    public sealed class DiscoverFromRecentSpellsEffect : DiscoverEffect
+    {
+        protected override void Configure(EcsWorld world, int cardEntity, ref DiscoverRequestComponent req)
+        {
+            req.FromPool = true;
+            var exp = new List<string>();
+            var ids = new List<int>();
+
+            var ownerPool = world.GetPool<OwnerComponent>();
+            int playerEntity = ownerPool.Has(cardEntity) ? ZoneListUtil.FindPlayerEntity(world, ownerPool.Get(cardEntity).OwnerId) : -1;
+            if (playerEntity >= 0)
+            {
+                var histPool = world.GetPool<RecentSpellsHistoryComponent>();
+                if (histPool.Has(playerEntity))
+                {
+                    ref var h = ref histPool.Get(playerEntity);
+                    if (h.ExpansionIds != null)
+                        for (int i = 0; i < h.ExpansionIds.Count; i++)
+                        {
+                            exp.Add(h.ExpansionIds[i]);
+                            ids.Add(h.ModelIds[i]);
+                        }
+                }
+            }
+
+            req.PoolExp    = exp.ToArray();
+            req.PoolCardId = ids.ToArray();
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // SCRY («предсказание») — NonTarget-эффект: посмотреть LookCount ВЕРХНИХ карт колоды, одну оставить
+    // наверх, остальные — в конец колоды (в исходном относительном порядке). Родственно DISCOVER (то же
+    // окно выбора — RunScrySystem), но НЕ перекладывает карту в другую зону и НЕ создаёт новую — переставляет
+    // то, что уже лежит в колоде. См. RunScrySystem.
+    // ─────────────────────────────────────────────────────────────────────────
+    [Serializable]
+    public sealed class ScryEffect : EffectBase
+    {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Draw;
+        public int LookCount = 3;
+
+        static int _seqCounter;
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            var ownerPool = world.GetPool<OwnerComponent>();
+            if (!ownerPool.Has(cardEntity)) return;
+            int ownerId = ownerPool.Get(cardEntity).OwnerId;
+            int ownerPlayer = ZoneListUtil.FindPlayerEntity(world, ownerId);
+            if (ownerPlayer < 0) return;
+
+            int e = world.NewEntity();
+            ref var req = ref world.GetPool<ScryRequestComponent>().Add(e);
+            req.SourceCardEntity  = cardEntity;
+            req.OwnerPlayerEntity = ownerPlayer;
+            req.OwnerId           = ownerId;
+            req.LookCount         = LookCount;
+            req.Seq               = ++_seqCounter;
         }
     }
 }

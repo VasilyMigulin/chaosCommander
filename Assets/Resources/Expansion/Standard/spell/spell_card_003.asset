@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
   m_Name: spell_card_003
   m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
   CardData:
     rid: 8072969059334357077
   references:
@@ -27,18 +28,23 @@ MonoBehaviour:
         Rules: []
         Effects:
         - rid: 1051486567619101039
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
         Vfx:
           Kind: 0
           Prefab: {fileID: 0}
-          HitPrefab: {fileID: 0}
+          HitPrefab: {fileID: 131758, guid: 8385b03242e9e7447b9f870756a377b1, type: 3}
           ProjectileSpeed: 12
           MergeArea: 0
+          PlayCasterAnimation: 0
         Selection: 1
         Count: 1
         Zone: 0
         OfferCount: 3
         Filters:
         - rid: 1051486567619101038
+        - rid: 2419360587178049726
+        IncludeCommanderInZones: 0
     - rid: 1051486567619101037
       type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
@@ -51,6 +57,15 @@ MonoBehaviour:
         ConditionRoot:
           rid: -2
         Source: {fileID: 11400000, guid: f782c13faf86c3047a41cf53cfd79dda, type: 2}
+        TransferOwnership: 1
+    - rid: 2419360587178049726
+      type: {class: NotTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Inner:
+          rid: 2419360587178049727
+    - rid: 2419360587178049727
+      type: {class: CommanderTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
     - rid: 8072969059334357077
       type: {class: CardSpellModel, ns: Game.Core.Model.Card.Spell, asm: Game.Core.Model.Card.Spell}
       data:
@@ -66,9 +81,12 @@ MonoBehaviour:
         PlayCost: 1
         PlayCostAmount: 3
         IsToken: 0
-        MulliganStartingHand: 0
-        MulliganUnlimitedReplace: 0
+        ShowAsLinked: 0
+        HideAsLinked: 0
+        NonBattleAbilities: []
         RuntimeAbilities:
         - rid: 1051486567619101036
         Archetypes: []
+        TierSource: 0
+        Tiers: []
         RequiresTarget: 0

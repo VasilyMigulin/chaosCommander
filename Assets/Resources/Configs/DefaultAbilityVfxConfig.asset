@@ -14,3 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Core.Configs::Game.Core.Configs.DefaultAbilityVfxConfig
   OnCastVfxPrefab: {fileID: 1212038522573524, guid: d773d301d86b3254180a6887af308eef, type: 3}
   OnDieVfxPrefab: {fileID: 153568, guid: cca79b260878071418290367024a6716, type: 3}
+  DefaultSummonVfxPrefab: {fileID: 194666, guid: 268f984e175944440bf68fb3d316673d, type: 3}

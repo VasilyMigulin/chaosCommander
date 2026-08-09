@@ -260,6 +260,41 @@ handlers.DevGrantExpansion = function (args, context) {
              Wallet: readWallet(currentPlayerId), Reward: reward, Granted: grantIds.length };
 };
 
+// ---- REVIEW-аккаунт (билд для издателя) -----------------------------------------
+// IsReviewBuild на клиенте зовёт это один раз после логина: помечаем аккаунт как ревью (тег "review_account" +
+// флаг с датой в UserReadOnlyData) и выдаём стартовые бустеры, чтобы издатель проверил открытие. Тег делает
+// такие аккаунты сегментируемыми в Game Manager → массовый сброс/удаление после ревью. Идемпотентно: повторный
+// вызов НЕ досыпает бустеры (тег переставляем всегда — не вредит). Коллекцию НЕ трогаем — её открывает клиент
+// локально (PlayerLibrary.FillFullCollection). Гейт — Title Data reviewSetup === "true" (включаешь на время
+// раздачи билда, потом выключаешь), чтобы обычный игрок не выдал себе 100 бустеров.
+var REVIEW_BOOSTER_ID = "booster_standard";
+var REVIEW_BOOSTER_COUNT = 100;
+
+function reviewSetupEnabled() {
+    var d = server.GetTitleData({ Keys: ["reviewSetup"] });
+    return d.Data && d.Data.reviewSetup === "true";
+}
+
+handlers.SetupReviewAccount = function (args, context) {
+    if (!reviewSetupEnabled()) return { Success: false, Reason: "review_disabled", BoostersGranted: 0 };
+    var playerId = currentPlayerId;
+
+    // тег для сегментации/чистки — ставим всегда (идемпотентно, не вредит)
+    try { server.AddPlayerTag({ PlayFabId: playerId, TagName: "review_account" }); } catch (e) {}
+
+    // бустеры выдаём ОДИН раз (по флагу reviewAccount) — иначе каждый вход досыпал бы ещё 100
+    var ro = server.GetUserReadOnlyData({ PlayFabId: playerId, Keys: ["reviewAccount"] });
+    if (ro.Data && ro.Data["reviewAccount"]) return { Success: true, Reason: "already_setup", BoostersGranted: 0 };
+
+    var ids = [];
+    for (var i = 0; i < REVIEW_BOOSTER_COUNT; i++) ids.push(REVIEW_BOOSTER_ID);
+    try { grantItems(playerId, ids); }
+    catch (e2) { return { Success: false, Reason: "grant_error: " + (e2 && e2.message ? e2.message : ("" + e2)), BoostersGranted: 0 }; }
+
+    server.UpdateUserReadOnlyData({ PlayFabId: playerId, Data: { "reviewAccount": (new Date()).toISOString() } });
+    return { Success: true, Reason: null, BoostersGranted: REVIEW_BOOSTER_COUNT };
+};
+
 // Сброс журнала (прогресс/клеймы/серия входа) — чтобы прогнать цикл заново.
 handlers.DevResetJournal = function (args, context) {
     if (!devEnabled()) return { Success: false, Reason: "dev_disabled" };
@@ -827,8 +862,8 @@ handlers.GetProfile = function (args, context) {
 
     return {
         Name: name,
-        Rank: "",                              // ранг/MMR сервер пока не считает (клиент берёт из PlayerRating)
-        Mmr: stats["mmr"] || 0,
+        Rank: "",                              // звание — клиентская косметика (PlayerRating.RankName)
+        Mmr: stats["mmr"] || 0,                // пишет ReportMatchResult (Elo по взаимному подтверждению)
         Level: 1,
         Xp01: 0,
         Wins: wins,
@@ -844,6 +879,280 @@ handlers.GetProfile = function (args, context) {
 handlers.GetInbox = function (args, context) {
     // Удалённых наград пока нет → пусто. Позже: читать UserInternalData "inbox", отдать и пометить показанным.
     return { Entries: [] };
+};
+
+// ---- Рейтинг (MMR, Elo) ---------------------------------------------------------
+// Авторитетного игрового сервера нет (P2P lockstep-replay) → исход шлют ОБА клиента, Elo
+// применяется только когда отчёты СОШЛИСЬ (win↔lose или draw↔draw + перекрёстная сверка id).
+// Хранилище — Shared Group Data "match_reports" (паттерн auction_house): каждый игрок пишет
+// СВОЙ ключ "rep:{matchId}:{playFabId}" (записи не затирают друг друга), итог — "done:{matchId}"
+// с новыми MMR обоих (повторный вызов идемпотентно отдаёт сохранённый результат).
+// Гонка одновременных отчётов (в Classic нет CAS): сужается клиентским джиттером (проигравший
+// шлёт с задержкой ~2с); если оба всё же не увидели друг друга (двойной Pending) — пару дорешает
+// maintainRatingGroup при следующем же вызове (клиент ретраит Report через ~3с).
+// Rage-quit (второй отчёт так и не пришёл): одиночный отчёт старше RATING_SINGLE_APPLY_MS
+// применяется односторонне тем же maintainRatingGroup (лениво, крон не нужен).
+
+var RATING_GROUP = "match_reports";
+var RATING_K = 32;
+var RATING_DEFAULT = 1000;
+var RATING_MIN = 1;
+var RATING_SINGLE_APPLY_MS = 10 * 60 * 1000;    // одиночный отчёт применяем через 10 минут
+var RATING_REPORT_TTL_MS = 24 * 60 * 60 * 1000; // done-записи старше суток чистим
+
+function ensureRatingGroup() {
+    try { server.CreateSharedGroup({ SharedGroupId: RATING_GROUP }); } catch (e) { /* уже создана */ }
+}
+
+function readRatingGroup() {
+    var res;
+    try { res = server.GetSharedGroupData({ SharedGroupId: RATING_GROUP }); }
+    catch (e) { ensureRatingGroup(); res = server.GetSharedGroupData({ SharedGroupId: RATING_GROUP }); }
+    return (res && res.Data) || {};
+}
+
+function readStats(playerId) {
+    var stats = {};
+    try {
+        var st = server.GetPlayerStatistics({ PlayFabId: playerId });
+        if (st && st.Statistics) for (var i = 0; i < st.Statistics.length; i++) stats[st.Statistics[i].StatisticName] = st.Statistics[i].Value;
+    } catch (e) { }
+    return stats;
+}
+
+function writeStats(playerId, dict) {
+    var list = [];
+    for (var k in dict) if (dict.hasOwnProperty(k)) list.push({ StatisticName: k, Value: dict[k] });
+    server.UpdatePlayerStatistics({ PlayFabId: playerId, Statistics: list });
+}
+
+function eloExpected(myMmr, oppMmr) { return 1 / (1 + Math.pow(10, (oppMmr - myMmr) / 400)); }
+
+// Золото за матч (обоим, по исходу). Конфиг — Title Data ratingConfig.matchReward, дефолты в коде.
+function matchRewardCfg() {
+    var c = getTitleJson("ratingConfig");
+    var r = (c && c.matchReward) || {};
+    return { code: r.code || "GD",
+             win:  (typeof r.win  === "number") ? r.win  : 25,
+             lose: (typeof r.lose === "number") ? r.lose : 10,
+             draw: (typeof r.draw === "number") ? r.draw : 15 };
+}
+function matchRewardFor(outcome, cfg) { return outcome === "win" ? cfg.win : (outcome === "lose" ? cfg.lose : cfg.draw); }
+
+// Применить расчёт матча паре: Elo + wins/losses + золото за матч ОБОИМ. aScore: 1 победа a,
+// 0 поражение a, 0.5 ничья. aStatsOpt/bStatsOpt — статы, если вызывающий их уже читал (экономия
+// API-вызовов). Возвращает { m: {id→newMmr}, r: {id→золото}, rc: код валюты }.
+function applyEloPair(aId, aScore, bId, aStatsOpt, bStatsOpt) {
+    var aStats = aStatsOpt || readStats(aId), bStats = bStatsOpt || readStats(bId);
+    var aMmr = aStats["mmr"] || RATING_DEFAULT, bMmr = bStats["mmr"] || RATING_DEFAULT;
+    var aNew = Math.max(RATING_MIN, Math.round(aMmr + RATING_K * (aScore - eloExpected(aMmr, bMmr))));
+    var bScore = 1 - aScore;
+    var bNew = Math.max(RATING_MIN, Math.round(bMmr + RATING_K * (bScore - eloExpected(bMmr, aMmr))));
+
+    var aUpd = { mmr: aNew }, bUpd = { mmr: bNew };
+    if (aScore === 1)      { aUpd.wins   = (aStats["wins"]   || 0) + 1; bUpd.losses = (bStats["losses"] || 0) + 1; }
+    else if (aScore === 0) { aUpd.losses = (aStats["losses"] || 0) + 1; bUpd.wins   = (bStats["wins"]   || 0) + 1; }
+    // ничья: только mmr (при разных рейтингах ожидание ≠ 0.5 — слабый подрастает)
+    writeStats(aId, aUpd);
+    writeStats(bId, bUpd);
+
+    // Золото за матч. Ошибка гранта не роняет расчёт (Elo уже записан) — просто нет награды в ответе.
+    var rcfg = matchRewardCfg();
+    var aOutcome = aScore === 1 ? "win" : (aScore === 0 ? "lose" : "draw");
+    var bOutcome = aScore === 1 ? "lose" : (aScore === 0 ? "win" : "draw");
+    var aRw = matchRewardFor(aOutcome, rcfg), bRw = matchRewardFor(bOutcome, rcfg);
+    try { if (aRw > 0) server.AddUserVirtualCurrency({ PlayFabId: aId, VirtualCurrency: rcfg.code, Amount: aRw }); } catch (eA) { aRw = 0; }
+    try { if (bRw > 0) server.AddUserVirtualCurrency({ PlayFabId: bId, VirtualCurrency: rcfg.code, Amount: bRw }); } catch (eB) { bRw = 0; }
+
+    var res = { m: {}, r: {}, rc: rcfg.code };
+    res.m[aId] = aNew; res.m[bId] = bNew;
+    res.r[aId] = aRw;  res.r[bId] = bRw;
+    return res;
+}
+
+function ratingDoneValue(mmrByPlayer, deltaByPlayer, rewardByPlayer, rewardCode, conflict) {
+    return JSON.stringify({ t: nowMs(), c: conflict ? 1 : 0,
+                            m: mmrByPlayer || {}, d: deltaByPlayer || {},
+                            r: rewardByPlayer || {}, rc: rewardCode || "" });
+}
+
+function parseRatingDone(raw) {
+    try { var v = JSON.parse(raw); return v && typeof v === "object" ? v : null; } catch (e) { return null; }
+}
+
+// Ленивое обслуживание группы (зовётся из Report/GetRating, ошибки глотает — уборка не роняет вызов):
+//   • матч с ДВУМЯ отчётами без done (оба словили Pending в гонке) → дорешать: сверка + Elo/конфликт;
+//   • одиночный отчёт старше порога (rage-quit соперника) → применить односторонне;
+//   • done старше TTL и осиротевшие/битые rep-ключи → удалить.
+// За вызов дорешивается максимум ОДИН матч — иначе упрёмся в лимит API-вызовов CloudScript.
+function maintainRatingGroup(data) {
+    try {
+        var now = nowMs(), key, parts;
+        var byMatch = {}, doneByMatch = {}, toRemove = [];
+
+        for (key in data) {
+            if (!data.hasOwnProperty(key)) continue;
+            parts = key.split(":");
+            if (parts[0] === "done" && parts.length === 2) {
+                var dv = parseRatingDone(data[key].Value);
+                doneByMatch[parts[1]] = dv;
+                if (!dv || now - (dv.t || 0) > RATING_REPORT_TTL_MS) toRemove.push(key);
+            } else if (parts[0] === "rep" && parts.length === 3) {
+                var rep = null;
+                try { rep = JSON.parse(data[key].Value); } catch (e) { rep = null; }
+                if (!rep || !rep.opp || !rep.o) { toRemove.push(key); continue; }
+                if (!byMatch[parts[1]]) byMatch[parts[1]] = [];
+                byMatch[parts[1]].push({ key: key, playerId: parts[2], rep: rep });
+            }
+        }
+
+        var resolvedOne = false, upd = {};
+        for (var mid in byMatch) {
+            if (!byMatch.hasOwnProperty(mid)) continue;
+            var reps = byMatch[mid];
+
+            // матч уже закрыт → rep-ключи осиротели
+            if (doneByMatch.hasOwnProperty(mid)) {
+                for (var r0 = 0; r0 < reps.length; r0++) toRemove.push(reps[r0].key);
+                continue;
+            }
+            if (resolvedOne) continue;
+
+            if (reps.length >= 2) {
+                // двойной Pending из гонки: сверяем первую пару
+                var a = reps[0], b = reps[1];
+                var pairConsistent = a.rep.opp === b.playerId && b.rep.opp === a.playerId &&
+                    ((a.rep.o === "win" && b.rep.o === "lose") ||
+                     (a.rep.o === "lose" && b.rep.o === "win") ||
+                     (a.rep.o === "draw" && b.rep.o === "draw"));
+                if (pairConsistent) {
+                    var beforeA = readStats(a.playerId), beforeB = readStats(b.playerId);
+                    var aScore = a.rep.o === "win" ? 1 : (a.rep.o === "lose" ? 0 : 0.5);
+                    var pair = applyEloPair(a.playerId, aScore, b.playerId, beforeA, beforeB);
+                    var deltas = {};
+                    deltas[a.playerId] = pair.m[a.playerId] - (beforeA["mmr"] || RATING_DEFAULT);
+                    deltas[b.playerId] = pair.m[b.playerId] - (beforeB["mmr"] || RATING_DEFAULT);
+                    upd["done:" + mid] = ratingDoneValue(pair.m, deltas, pair.r, pair.rc, false);
+                } else {
+                    upd["done:" + mid] = ratingDoneValue(null, null, null, null, true);
+                }
+                toRemove.push(a.key); toRemove.push(b.key);
+                resolvedOne = true;
+            } else if (reps.length === 1 && now - (reps[0].rep.t || 0) > RATING_SINGLE_APPLY_MS) {
+                // rage-quit: применяем единственный отчёт как есть
+                var solo = reps[0];
+                var beforeSolo = readStats(solo.playerId), beforeOppS = readStats(solo.rep.opp);
+                var soloScore = solo.rep.o === "win" ? 1 : (solo.rep.o === "lose" ? 0 : 0.5);
+                var pairSolo = applyEloPair(solo.playerId, soloScore, solo.rep.opp, beforeSolo, beforeOppS);
+                var deltasSolo = {};
+                deltasSolo[solo.playerId] = pairSolo.m[solo.playerId] - (beforeSolo["mmr"] || RATING_DEFAULT);
+                deltasSolo[solo.rep.opp] = pairSolo.m[solo.rep.opp] - (beforeOppS["mmr"] || RATING_DEFAULT);
+                upd["done:" + mid] = ratingDoneValue(pairSolo.m, deltasSolo, pairSolo.r, pairSolo.rc, false);
+                toRemove.push(solo.key);
+                resolvedOne = true;
+            }
+        }
+
+        var hasUpd = false;
+        for (var uk in upd) if (upd.hasOwnProperty(uk)) { hasUpd = true; break; }
+        if (hasUpd || toRemove.length > 0) {
+            var req = { SharedGroupId: RATING_GROUP };
+            if (hasUpd) req.Data = upd;
+            if (toRemove.length > 0) req.KeysToRemove = toRemove;
+            server.UpdateSharedGroupData(req);
+        }
+    } catch (eM) { /* уборка не должна ронять основной вызов */ }
+}
+
+handlers.ReportMatchResult = function (args, context) {
+    var me = currentPlayerId;
+    var matchId = args && args.MatchId;
+    var oppId = args && args.OpponentPlayFabId;
+    var outcome = args && args.Outcome;   // "win" / "lose" / "draw"
+    if (!matchId || !oppId || oppId === me ||
+        (outcome !== "win" && outcome !== "lose" && outcome !== "draw"))
+        return { Applied: false, Pending: false, Conflict: false, Reason: "bad_request", Mmr: 0, Delta: 0,
+                 RewardCode: "", RewardAmount: 0, Wallet: null };
+
+    var data = readRatingGroup();   // сам создаёт группу при первом обращении (catch внутри)
+
+    var myStats = readStats(me);
+    var myMmrBefore = myStats["mmr"] || RATING_DEFAULT;
+
+    // Матч уже рассчитан (ретрай/второй вызов после гонки) → идемпотентно отдать сохранённый итог.
+    var doneKey = "done:" + matchId;
+    if (data[doneKey]) {
+        var done = parseRatingDone(data[doneKey].Value);
+        if (done && done.c) return { Applied: false, Pending: false, Conflict: true, Reason: "conflict", Mmr: myMmrBefore, Delta: 0,
+                                     RewardCode: "", RewardAmount: 0, Wallet: null };
+        var savedMmr = done && done.m && done.m[me];
+        var savedDelta = (done && done.d && done.d[me]) || 0;
+        return { Applied: true, Pending: false, Conflict: false, Reason: null,
+                 Mmr: (typeof savedMmr === "number" ? savedMmr : myMmrBefore), Delta: savedDelta,
+                 RewardCode: (done && done.rc) || "", RewardAmount: (done && done.r && done.r[me]) || 0,
+                 Wallet: readWallet(me) };
+    }
+
+    var myKey = "rep:" + matchId + ":" + me;
+    var oppKey = "rep:" + matchId + ":" + oppId;
+
+    // Пишем свой отчёт (свой ключ — затирание чужого невозможно; повторная запись своего безвредна).
+    var updRep = {};
+    updRep[myKey] = JSON.stringify({ o: outcome, opp: oppId, t: nowMs() });
+    server.UpdateSharedGroupData({ SharedGroupId: RATING_GROUP, Data: updRep });
+
+    var oppRep = null;
+    if (data[oppKey]) { try { oppRep = JSON.parse(data[oppKey].Value); } catch (e) { oppRep = null; } }
+
+    if (!oppRep) {
+        maintainRatingGroup(data);   // попутная уборка/дорешивание чужих зависших пар
+        return { Applied: false, Pending: true, Conflict: false, Reason: null, Mmr: myMmrBefore, Delta: 0,
+                 RewardCode: "", RewardAmount: 0, Wallet: null };
+    }
+
+    // Перекрёстная сверка: его отчёт указывает на нас и комплементарен нашему.
+    var consistent = oppRep.opp === me &&
+        ((outcome === "win"  && oppRep.o === "lose") ||
+         (outcome === "lose" && oppRep.o === "win")  ||
+         (outcome === "draw" && oppRep.o === "draw"));
+
+    if (!consistent) {
+        var updConflict = {};
+        updConflict[doneKey] = ratingDoneValue(null, null, null, null, true);
+        server.UpdateSharedGroupData({ SharedGroupId: RATING_GROUP, Data: updConflict, KeysToRemove: [myKey, oppKey] });
+        return { Applied: false, Pending: false, Conflict: true, Reason: "conflict", Mmr: myMmrBefore, Delta: 0,
+                 RewardCode: "", RewardAmount: 0, Wallet: null };
+    }
+
+    // Сошлись → Elo + золото за матч, итоги в done (done нельзя писать раньше — в нём уже новые MMR;
+    // окно двойного применения в гонке сужают done-гейт на входе + клиентский джиттер проигравшего).
+    var oppStats = readStats(oppId);
+    var myScore = outcome === "win" ? 1 : (outcome === "lose" ? 0 : 0.5);
+    var pairNow = applyEloPair(me, myScore, oppId, myStats, oppStats);
+    var deltasPair = {};
+    deltasPair[me] = pairNow.m[me] - myMmrBefore;
+    deltasPair[oppId] = pairNow.m[oppId] - (oppStats["mmr"] || RATING_DEFAULT);
+    var updDone = {};
+    updDone[doneKey] = ratingDoneValue(pairNow.m, deltasPair, pairNow.r, pairNow.rc, false);
+    server.UpdateSharedGroupData({ SharedGroupId: RATING_GROUP, Data: updDone, KeysToRemove: [myKey, oppKey] });
+
+    return { Applied: true, Pending: false, Conflict: false, Reason: null, Mmr: pairNow.m[me], Delta: deltasPair[me],
+             RewardCode: pairNow.rc, RewardAmount: pairNow.r[me] || 0, Wallet: readWallet(me) };
+};
+
+handlers.GetRating = function (args, context) {
+    // Попутно дорешиваем зависшие матчи (rage-quit / двойной Pending) — до чтения своих статов,
+    // чтобы применённый здесь же результат сразу попал в ответ.
+    try { maintainRatingGroup(readRatingGroup()); } catch (e) { }
+    var stats = readStats(currentPlayerId);
+    return { Mmr: stats["mmr"] || RATING_DEFAULT, Wins: stats["wins"] || 0, Losses: stats["losses"] || 0 };
+};
+
+handlers.DevSetMmr = function (args, context) {
+    if (!devEnabled()) return { Success: false, Reason: "dev_disabled", Mmr: 0 };
+    var v = Math.max(RATING_MIN, Math.round((args && args.Mmr) || RATING_DEFAULT));
+    writeStats(currentPlayerId, { mmr: v });
+    return { Success: true, Reason: null, Mmr: v };
 };
 
 // ---- Аукцион (модель СТАВОК) ----------------------------------------------------

@@ -340,9 +340,14 @@ namespace Game.Core.Photon
             };
         }
 
+        // Живое ожидание оппонента — CancelMatchmaking будит его немедленно (иначе таск поиска висел
+        // до 5-минутного таймаута после отмены, держа sessionTask/подписки).
+        private TaskCompletionSource<MatchmakingResult> _waitPlayersTcs;
+
         private async Task<MatchmakingResult> WaitForPlayersAsync(bool isHost, string sessionName)
         {
             var tcs = new TaskCompletionSource<MatchmakingResult>();
+            _waitPlayersTcs = tcs;
 
             void OnPlayersReady(int currentCount, int targetCount)
             {
@@ -393,6 +398,7 @@ namespace Game.Core.Photon
             finally
             {
                 _photonInitializer.OnPlayersCountChanged -= OnPlayersReady;
+                if (_waitPlayersTcs == tcs) _waitPlayersTcs = null;
             }
         }
 
@@ -403,6 +409,7 @@ namespace Game.Core.Photon
 
             _isCancelled = true;
             _sessionListTcs?.TrySetCanceled();
+            _waitPlayersTcs?.TrySetResult(CancelledResult());   // разбудить ожидание оппонента сразу (_isCancelled вернёт CancelledResult)
             SetState(MatchmakingState.Cancelled);
 
             await _photonInitializer.EndSession();

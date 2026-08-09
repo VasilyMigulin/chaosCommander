@@ -2,6 +2,7 @@ using Leopotam.EcsLite;
 using Leopotam.EcsLite.Di;
 using Game.Core.Ecs.Components;
 using Game.Core.Events;
+using Game.Core.Mono;
 using UnityEngine;
 
 namespace Game.Core.Ecs.Systems
@@ -15,10 +16,13 @@ namespace Game.Core.Ecs.Systems
     /// </summary>
     public sealed class RunLeaveBoardSystem : IEcsRunSystem
     {
+        readonly EcsWorldInject _world = default;
+        readonly EcsCustomInject<BoardView> _boardView = default;
         readonly EcsFilterInject<Inc<LeaveBoardEvent>> _filter = default;
         readonly EcsPoolInject<LeaveBoardEvent> _leavePool = default;
         readonly EcsPoolInject<BoardTag> _boardPool = default;
         readonly EcsPoolInject<BoardPositionComponent> _posPool = default;
+        readonly EcsPoolInject<SelectTag> _selectPool = default;
         readonly EcsPoolInject<HandTag> _handTagPool = default;
         readonly EcsPoolInject<DeckTag> _deckTagPool = default;
         readonly EcsPoolInject<GraveTag> _graveTagPool = default;
@@ -35,19 +39,62 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<DeadTag> _deadPool = default;
         readonly EcsPoolInject<CommanderTag> _commanderPool = default;
         readonly EcsPoolInject<AttacksUsedComponent> _attacksUsedPool = default;
+        readonly EcsPoolInject<TokenTag> _tokenPool = default;            // токен при полной руке → лимбо, не кладбище
+        readonly EcsPoolInject<CardModelComponent> _modelPool = default;  // имя карты в логе
+        readonly EcsPoolInject<BoardEntryOrderComponent> _entryOrderPool = default;   // порядок выхода на стол
+        readonly EcsPoolInject<DieEvent> _diePool = default;              // хрипы при гибели «рука полна»
+
+        int EntrySeq(int entity)
+            => _entryOrderPool.Value.Has(entity) ? _entryOrderPool.Value.Get(entity).Seq : 0;
 
         readonly EcsFilterInject<Inc<PlayerComponent>> _players = default;
 
+        readonly System.Collections.Generic.List<int> _batch = new();
+
         public void Run(IEcsSystems systems)
         {
-            foreach (var entity in _filter.Value)
+            // ПОРЯДОК ухода с поля = порядок ВЫХОДА на стол («первым вышел — первым вернулся в руку»,
+            // требование юзера 2026-07-31). Массовый баунс («Призвать ураган») обрабатывает пачку за раз, а
+            // порядок ecslite-фильтра произвольный (свап-удаления) — без сортировки карты возвращались как
+            // попало, и при полной руке погибали НЕ те. Штамп — тот же BoardEntryOrderComponent, что задаёт
+            // очерёдность активаций способностей; нет штампа (карта не была на столе) → 0, уходит первой.
+            _batch.Clear();
+            foreach (var e in _filter.Value) _batch.Add(e);
+            _batch.Sort((a, b) => EntrySeq(a).CompareTo(EntrySeq(b)));
+
+            foreach (var entity in _batch)
             {
+                if (!_leavePool.Value.Has(entity)) continue;   // событие могло исчезнуть в этой же пачке
                 var dest = _leavePool.Value.Get(entity).Destination;
+
+                // Мировая позиция ДО зачистки ниже (BoardPositionComponent сейчас ещё на месте) — если карта
+                // едет в руку (баунс/командир), UI должен знать, ОТКУДА она визуально летит, а не с дефолтной
+                // точки «из-за края экрана» (см. HandUISystem/CardLayout). Для Deck/Grave/Limbo не нужна.
+                Vector3? fromWorld = null;
+                if (EntityWorldPosUtil.TryGet(_world.Value, _boardView.Value, entity, out var srcPos))
+                    fromWorld = srcPos;
 
                 // Командир НИКОГДА не уходит в колоду/кладбище/лимбо: любой уход с поля (баунс/замешать/баниш —
                 // Призвать ураган, Закопать заживо и т.п.) для командира = возврат в РУКУ (как при смерти).
                 // Иначе командир теряется в колоде/изгнании. КД смерти тут не вешаем (это не гибель).
                 if (_commanderPool.Value.Has(entity)) dest = LeaveDestination.Hand;
+
+                // Существо могло уйти с поля, будучи ВЫБРАННЫМ игроком для хода/атаки (баунс всей доски —
+                // «Призвать ураган» — не только атакующий/цели способности), RunSelectCellSystem держит его
+                // как selectedEntity и на следующий клик падает — BoardPositionComponent уже снята ниже.
+                // DieSystem подчищает SelectTag так же (см. ProcessDeath) — тот же класс бага для смерти.
+                if (_selectPool.Value.Has(entity))
+                {
+                    _selectPool.Value.Del(entity);
+                    GameEventBus.Publish(new CreatureDeselectedEvent());
+                    if (_boardView.Value != null)
+                    {
+                        _boardView.Value.ClearAllHighlights(1);
+                        _boardView.Value.ClearAllHighlights(2);
+                        _boardView.Value.GetAvatarCell(1)?.SetHighlight(CellHighlight.None);
+                        _boardView.Value.GetAvatarCell(2)?.SetHighlight(CellHighlight.None);
+                    }
+                }
 
                 // снять с текущей зоны (любой — Скелетон «при смерти→в руку» уже в кладбище через DieSystem)
                 if (_boardPool.Value.Has(entity))    _boardPool.Value.Del(entity);
@@ -66,14 +113,33 @@ namespace Game.Core.Ecs.Systems
                 switch (dest)
                 {
                     case LeaveDestination.Hand:
+                        // РУКА ПОЛНА → карта УНИЧТОЖАЕТСЯ (правило ХС для баунса; баг 2026-07-31: «Призвать
+                        // ураган» возвращал ВСЕХ, и в руке оказывалось 7 карт при лимите 6). Токен — в лимбо
+                        // (он и так не идёт на кладбище). CreatureDiedEvent НЕ публикуем: это не гибель на
+                        // поле, предсмертные хрипы не срабатывают (как в ХС — существо уже покинуло стол).
+                        // Командир — исключение: у него отдельный слот, он возвращается всегда.
+                        if (!_commanderPool.Value.Has(entity)
+                            && !HandSpace.HasRoomForOwner(_world.Value, OwnerIdOf(entity)))
+                        {
+                            HandSpace.Burn(_world.Value, entity, "баунс в полную руку");
+
+                            // ПРЕДСМЕРТНЫЕ ХРИПЫ СРАБАТЫВАЮТ (решение юзера 2026-07-31 — в ХС наоборот, там
+                            // такая карта гибнет молча). Существо реально погибло, поэтому шлём обычный
+                            // сигнал смерти: OnDie-способности + авто-ревёрт выданных им аур. DieEvent не
+                            // ставим — сущность уже вне борда, DieSystem её не обрабатывает.
+                            if (!_diePool.Value.Has(entity)) _diePool.Value.Add(entity);
+                            GameEventBus.Publish(new CreatureDiedEvent { CardEntity = entity, KillerEntity = -1 });
+                            break;
+                        }
+
                         ResetStats(entity);
                         if (!_handTagPool.Value.Has(entity)) _handTagPool.Value.Add(entity);
-                        AddToZoneList(entity, toHand: true);
+                        AddToZoneList(entity, toHand: true, fromWorld);
                         break;
                     case LeaveDestination.Deck:
                         ResetStats(entity);
                         if (!_deckTagPool.Value.Has(entity)) _deckTagPool.Value.Add(entity);
-                        AddToZoneList(entity, toHand: false);
+                        AddToZoneList(entity, toHand: false, fromWorld);
                         break;
                     case LeaveDestination.Grave:
                         if (!_graveTagPool.Value.Has(entity)) _graveTagPool.Value.Add(entity);
@@ -86,6 +152,9 @@ namespace Game.Core.Ecs.Systems
                 _leavePool.Value.Del(entity);
             }
         }
+
+        int OwnerIdOf(int entity)
+            => _ownerPool.Value.Has(entity) ? _ownerPool.Value.Get(entity).OwnerId : -1;
 
         void ResetStats(int entity)
         {
@@ -102,7 +171,7 @@ namespace Game.Core.Ecs.Systems
             if (_attacksUsedPool.Value.Has(entity)) _attacksUsedPool.Value.Get(entity).Value = 0;
         }
 
-        void AddToZoneList(int entity, bool toHand)
+        void AddToZoneList(int entity, bool toHand, Vector3? fromWorld = null)
         {
             if (!_ownerPool.Value.Has(entity)) return;
             int ownerId = _ownerPool.Value.Get(entity).OwnerId;
@@ -115,7 +184,9 @@ namespace Game.Core.Ecs.Systems
                     hand.CardEntities ??= new System.Collections.Generic.List<int>();
                     if (!hand.CardEntities.Contains(entity)) hand.CardEntities.Add(entity);
                     hand.Count = hand.CardEntities.Count;
-                    GameEventBus.Publish(new CardDrawnEvent { CardEntity = entity, PlayerId = pe });   // UI (для своего игрока)
+                    // UI (для своего игрока): FromWorld — снятая ДО зачистки позиция на столе (см. Run) —
+                    // карта летит в руку от своего места, а не из-за края экрана, как обычный добор.
+                    GameEventBus.Publish(new CardDrawnEvent { CardEntity = entity, PlayerId = pe, FromWorld = fromWorld });
                 }
                 else if (!toHand && _deckPool.Value.Has(pe))
                 {

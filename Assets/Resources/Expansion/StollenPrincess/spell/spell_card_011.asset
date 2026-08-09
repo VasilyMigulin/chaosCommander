@@ -1,0 +1,98 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: spell_card_011
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
+  CardData:
+    rid: 2419360554740613155
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 2419360554740613155
+      type: {class: CardSpellModel, ns: Game.Core.Model.Card.Spell, asm: Game.Core.Model.Card.Spell}
+      data:
+        Id: 27
+        Name: "\u041A\u0430\u043D\u0430\u043B\u043B\u0438\u0437\u0430\u0446\u0438\u043E\u043D\u043D\u044B\u0439
+          \u043C\u0443\u0442\u0430\u0433\u0435\u043D"
+        Description: "\u041F\u0440\u0435\u0432\u0440\u0430\u0449\u0430\u0435\u0442
+          \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u043E \u0432 \u0441\u043B\u0443\u0447\u0430\u0439\u043D\u043E\u0435
+          \u0437\u0430 1"
+        Rarity: 0
+        Element: 36
+        ArtImage: {fileID: 0}
+        ExpansionId: stolen_princess
+        PlayCost: 1
+        PlayCostAmount: 1
+        IsToken: 0
+        ShowAsLinked: 0
+        MulliganStartingHand: 0
+        MulliganUnlimitedReplace: 0
+        RuntimeAbilities:
+        - rid: 2419360554740613156
+        Archetypes: []
+        TierSource: 0
+        Tiers: []
+        RequiresTarget: 0
+    - rid: 2419360554740613156
+      type: {class: AbilityToTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 2419360554740613157
+        Rules: []
+        Effects:
+        - rid: 2419360554740613159
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 119382, guid: 616e8b55bdab6694fabc34c4d1a168fb, type: 3}
+          ProjectileSpeed: 12
+          MergeArea: 0
+          PlayCasterAnimation: 0
+        Selection: 1
+        Count: 1
+        Zone: 0
+        OfferCount: 3
+        Filters:
+        - rid: 2419360554740613160
+        - rid: 2419360554740613161
+        - rid: 2419360587178049722
+        IncludeCommanderInZones: 0
+    - rid: 2419360554740613157
+      type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2419360554740613159
+      type: {class: TransformFromPoolEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        PoolAsset: {fileID: 11400000, guid: 7e6a7a13733e81c419bb68d81c36616b, type: 2}
+        Pool: []
+        TransferOwnership: 0
+    - rid: 2419360554740613160
+      type: {class: AllyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2419360554740613161
+      type: {class: EnemyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2419360587178049722
+      type: {class: NotTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Inner:
+          rid: 2419360587178049723
+    - rid: 2419360587178049723
+      type: {class: CommanderTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 

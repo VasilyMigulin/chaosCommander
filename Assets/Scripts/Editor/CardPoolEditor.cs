@@ -27,11 +27,30 @@ namespace Game.Core.EditorTools
             using (new EditorGUILayout.HorizontalScope())
             {
                 if (GUILayout.Button("🔄 Rebuild — собрать карты по критериям", GUILayout.Height(28)))
-                    Rebuild(pool);
+                    { Rebuild(pool); AssetDatabase.SaveAssets(); }
             }
             EditorGUILayout.LabelField($"В пуле карт: {(pool.Cards != null ? pool.Cards.Count : 0)}", EditorStyles.miniBoldLabel);
         }
 
+        /// <summary>Пересобрать ВСЕ CardPool в проекте (Tools-меню или авто после регистрации карт). Один скан
+        /// всех CardInstanceData на пул — жать после добавления/переименования карт.</summary>
+        [MenuItem("Tools/Card Pools/Rebuild All Pools")]
+        public static void RebuildAllPools()
+        {
+            var guids = AssetDatabase.FindAssets("t:CardPool");
+            int n = 0;
+            foreach (var guid in guids)
+            {
+                var pool = AssetDatabase.LoadAssetAtPath<CardPool>(AssetDatabase.GUIDToAssetPath(guid));
+                if (pool == null) continue;
+                Rebuild(pool);
+                n++;
+            }
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[CardPool] Пересобрано пулов: {n}.");
+        }
+
+        // Собрать один пул (SaveAssets НЕ вызываем — батч RebuildAllPools/кнопка сохраняют разом).
         static void Rebuild(CardPool pool)
         {
             var list = new List<CardInstanceData>();
@@ -48,7 +67,6 @@ namespace Game.Core.EditorTools
             Undo.RecordObject(pool, "Rebuild CardPool");
             pool.Cards = list;
             EditorUtility.SetDirty(pool);
-            AssetDatabase.SaveAssets();
             Debug.Log($"[CardPool] '{pool.name}': собрано {list.Count} карт по критериям.");
         }
     }

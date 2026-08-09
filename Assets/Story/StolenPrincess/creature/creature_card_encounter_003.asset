@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: creature_card_encounter_003
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
+  CardData:
+    rid: 2419360282373260025
+  references:
+    version: 2
+    RefIds:
+    - rid: 2419360282373260025
+      type: {class: CardCreatureModel, ns: Game.Core.Model.Card.Creature, asm: Game.Core.Model.Card.Creature}
+      data:
+        Id: 0
+        Name: "\u0421\u043B\u0430\u0431\u043E\u0432\u043E\u043B\u044C\u043D\u044B\u0439
+          \u0441\u0442\u0440\u0430\u0436\u043D\u0438\u043A"
+        Description: "\u0421 \u043D\u0438\u043C \u043D\u0443\u0436\u043D\u043E \u0431\u044B\u0442\u044C
+          \u0430\u043A\u043A\u0443\u0440\u0430\u0442\u043D\u0435\u0435"
+        Rarity: 0
+        Element: 1
+        ArtImage: {fileID: 0}
+        ExpansionId: 
+        PlayCost: 0
+        PlayCostAmount: 1
+        IsToken: 0
+        ShowAsLinked: 0
+        MulliganStartingHand: 0
+        MulliganUnlimitedReplace: 0
+        RuntimeAbilities: []
+        Archetypes: []
+        MaxHealth: 2
+        Attack: 1
+        Speed: 2
+        ViewPrefab: {fileID: 1046069417137952589, guid: 0a4455957a243a449ba135fd36e9714d, type: 3}
+        SummonVfx:
+          PrePrefab: {fileID: 0}
+          PreLeadSeconds: 0
+          ResolvePrefab: {fileID: 0}
+          ResolveAttach: 1
+          ResolveDelaySeconds: 0.1
+          ResolveFollow: 1
+          FinishPrefab: {fileID: 0}
+          FinishAnchor: 1
+          FinishAttach: 0
+        TurnsAlive: 0
+        IsCommander: 0

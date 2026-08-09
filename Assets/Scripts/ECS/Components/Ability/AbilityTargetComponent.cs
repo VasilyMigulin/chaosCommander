@@ -15,5 +15,9 @@ namespace Game.Core.Ecs.Components
         public int OfferCount;         // сколько ПОКАЗАТЬ в окне для Selected из не-Board зон (discover; 0 = все валидные). Board/Random игнорируют.
         public TargetZone Zone;        // откуда брать кандидатов (Board по умолчанию)
         public ITargetFilter[] Filters;
+
+        /// <summary>Включать КОМАНДИРА в выборку из НЕ-Board зон (см. AbilityFieldComponent). По умолчанию
+        /// false — командир неуязвим к дискарду/миллу/краже; true — для благотворных выборок.</summary>
+        public bool IncludeCommanderInZones;
     }
 }

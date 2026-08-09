@@ -147,6 +147,7 @@ namespace AwesomeUI.Feature
                 onSuccess: state =>
                 {
                     SetLoading(false);
+                    ClearSlots(_browseSlots);   // наложение двух Refresh не должно задваивать лоты
                     _state = state;
                     if (state != null) _feePercent = state.FeePercent;
                     UpdateCapacity();
@@ -179,8 +180,10 @@ namespace AwesomeUI.Feature
                 onSuccess: state =>
                 {
                     SetLoading(false);
+                    ClearSlots(_mySlots);   // наложение двух RefreshMy (Changed от RemoveCard + явный вызов после листинга) → без дублей
                     _state = state;
                     if (state != null) _feePercent = state.FeePercent;
+                    UpdateCapacity();       // «Занято N/100» актуален и на вкладке «Мои» (раньше не обновлялся)
                     string myId = PlayFabService.PlayFabId;
                     if (state != null && state.Lots != null && _myListingsRoot != null && _listingSlotPrefab != null)
                         foreach (var lot in state.Lots)

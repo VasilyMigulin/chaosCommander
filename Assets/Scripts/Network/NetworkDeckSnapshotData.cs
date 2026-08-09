@@ -16,6 +16,13 @@ namespace Game.Core.Network
         public int DeckCount;
         public NetworkCardSnapshotEntry[] Hand;
         public int HandCount;
+
+        /// <summary>«Отложенные» (сайдборд Сказочника). Зеркало обязано знать их ключи: когда владелец
+        /// достанет карту раскопкой, пассив реплеит выбор ПО КЛЮЧУ — без этих сущностей ключ не резолвится
+        /// и зеркало разъезжается. Поле добавлено В КОНЕЦ структуры: MemoryPack читает поля по порядку,
+        /// так что старый клиент дочитает до HandCount и просто не увидит хвост.</summary>
+        public NetworkCardSnapshotEntry[] Sideboard;
+        public int SideboardCount;
     }
 
     [MemoryPackable]

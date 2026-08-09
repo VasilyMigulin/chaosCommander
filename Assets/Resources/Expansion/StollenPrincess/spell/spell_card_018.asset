@@ -1,0 +1,149 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: spell_card_018
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
+  CardData:
+    rid: 2425736101357158400
+  references:
+    version: 2
+    RefIds:
+    - rid: 2425736101357158400
+      type: {class: CardSpellModel, ns: Game.Core.Model.Card.Spell, asm: Game.Core.Model.Card.Spell}
+      data:
+        Id: 69
+        Name: "\u0411\u043E\u0433\u043E\u0443\u0433\u043E\u0434\u043D\u043E\u0435
+          \u0434\u0435\u043B\u043E"
+        Description: "\u041D\u0430\u043D\u0435\u0441\u0438\u0442\u0435 \u0432\u0441\u0435\u043C
+          \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0430\u043C 4 \u0443\u0440\u043E\u043D\u0430,
+          \u0435\u0441\u043B\u0438 \u0432 \u0432\u0430\u0448\u0435\u0439 \u043A\u043E\u043B\u043E\u0434\u0435
+          \u0432\u0441\u0435 \u043A\u0430\u0440\u0442\u044B \u0438\u043C\u0435\u044E\u0442
+          \u0436\u0435\u043B\u0442\u044B\u0439 \u0446\u0432\u0435\u0442 - \u043D\u0430\u043D\u0435\u0441\u0438\u0442\u0435
+          4 \u0443\u0440\u043E\u043D\u0430 \u0432\u0441\u0435\u043C \u0432\u0440\u0430\u0433\u0430\u043C"
+        Rarity: 1
+        Element: 24
+        ArtImage: {fileID: 0}
+        ExpansionId: stolen_princess
+        PlayCost: 1
+        PlayCostAmount: 5
+        IsToken: 0
+        ShowAsLinked: 0
+        NonBattleAbilities: []
+        RuntimeAbilities:
+        - rid: 2425736101357158401
+        - rid: 2425736101357158402
+        Archetypes: []
+        TierSource: 0
+        Tiers: []
+        RequiresTarget: 0
+    - rid: 2425736101357158401
+      type: {class: AbilityToField, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 2425736101357158410
+        Rules: []
+        Effects:
+        - rid: 2425736101357158405
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 185366, guid: 6dcff98dc6fbe6e4bbbdac7b196f0c5e, type: 3}
+          ProjectileSpeed: 12
+          MergeArea: 0
+          PlayCasterAnimation: 1
+        Area: 0
+        Zone: 0
+        Filters:
+        - rid: 2425736101357158403
+        - rid: 2425736101357158404
+        IncludeCommanderInZones: 0
+    - rid: 2425736101357158402
+      type: {class: AbilityToField, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 2425736101357158409
+        Rules: []
+        Effects:
+        - rid: 2425736101357158411
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 185366, guid: 6dcff98dc6fbe6e4bbbdac7b196f0c5e, type: 3}
+          ProjectileSpeed: 12
+          MergeArea: 0
+          PlayCasterAnimation: 1
+        Area: 0
+        Zone: 0
+        Filters:
+        - rid: 2425736101357158412
+        - rid: 2425736101357158413
+        IncludeCommanderInZones: 0
+    - rid: 2425736101357158403
+      type: {class: AllyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736101357158404
+      type: {class: EnemyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736101357158405
+      type: {class: DealDamageEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Amount: 4
+        ConditionRoot:
+          rid: 2425736101357158406
+    - rid: 2425736101357158406
+      type: {class: Condition, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Children:
+        - rid: 2425736101357158407
+        Op: 0
+    - rid: 2425736101357158407
+      type: {class: NotCondition, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Inner:
+          rid: 2425736101357158408
+    - rid: 2425736101357158408
+      type: {class: AllCardsHaveColorCondition, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Color: 8
+    - rid: 2425736101357158409
+      type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736101357158410
+      type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736101357158411
+      type: {class: DealDamageEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Amount: 4
+        ConditionRoot:
+          rid: 2425736101357158414
+    - rid: 2425736101357158412
+      type: {class: EnemyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736101357158413
+      type: {class: OpponentTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736101357158414
+      type: {class: Condition, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Children:
+        - rid: 2425736101357158415
+        Op: 0
+    - rid: 2425736101357158415
+      type: {class: AllCardsHaveColorCondition, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Color: 8

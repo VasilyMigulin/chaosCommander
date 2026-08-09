@@ -56,6 +56,7 @@ namespace Game.Core.Ecs.Systems
             // HP из энкаунтера
             ref var hp = ref _healthPool.Value.Get(aiEntity);
             hp.Max = encounter.Health;
+            hp.BaseMax = encounter.Health;   // без BaseMax RecalculateValue (DrainHealth и пр.) обнулит базу
             hp.Current = encounter.Health;
 
             // ── Колода ──

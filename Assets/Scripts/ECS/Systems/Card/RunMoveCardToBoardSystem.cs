@@ -14,6 +14,7 @@ namespace Game.Core.Ecs.Systems
     /// </summary>
     public sealed class RunMoveCardToBoardSystem : IEcsRunSystem
     {
+        readonly EcsWorldInject _world = default;
         readonly EcsFilterInject<Inc<MoveCardToBoardEvent>> _filter = default;
         readonly EcsPoolInject<MoveCardToBoardEvent>   _movePool     = default;
         readonly EcsPoolInject<HandTag>                _handTagPool  = default;
@@ -31,6 +32,10 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<ViewSpawnedTag>         _spawnedPool  = default;
         readonly EcsPoolInject<AttacksUsedComponent>   _attacksUsedPool = default;
         readonly EcsFilterInject<Inc<PlayerComponent, HandComponent>> _playerFilter = default;
+        readonly EcsPoolInject<CharmTag>                          _charmTagPool          = default;
+        readonly EcsPoolInject<CharmTimerComponent>               _charmTimerPool        = default;
+        readonly EcsPoolInject<CharmDurationBonusAppliedTag>      _charmBonusAppliedPool = default;
+        readonly EcsPoolInject<FixedCharmDurationTag>             _fixedDurationPool     = default;
 
         public void Run(IEcsSystems systems)
         {
@@ -75,12 +80,28 @@ namespace Game.Core.Ecs.Systems
                 }
 
                 if (!_boardTagPool.Value.Has(card)) _boardTagPool.Value.Add(card);
+                // Порядок выхода на стол («первым вышел — первым активировал»): штамп при КАЖДОМ выходе
+                // (воскрешение/повторный выход — новый штамп). Единая точка для кастов/призывов/чар/реплея.
+                BoardEntryOrder.Stamp(_world.Value, card);
 
                 if (move.Row != -1)
                 {
                     if (!_posPool.Value.Has(card)) _posPool.Value.Add(card);
                     ref var pos = ref _posPool.Value.Get(card);
                     pos.Row = move.Row; pos.Col = move.Col; pos.OwnerId = move.OwnerId;
+                }
+
+                // Разовый бонус длительности (Зачарованный): применяется ЗДЕСЬ, а не в CardCharmModel.OnInit —
+                // тот отрабатывает для карт стартовой колоды ОДИН РАЗ при старте матча, задолго до того, как
+                // Зачарованный вообще мог быть разыгран. Тег — защита от повторного начисления, если чару
+                // баунснули в руку и разыграли снова.
+                if (_charmTagPool.Value.Has(card) && _charmTimerPool.Value.Has(card)
+                    && !_charmBonusAppliedPool.Value.Has(card) && _ownerPool.Value.Has(card)
+                    && !_fixedDurationPool.Value.Has(card))
+                {
+                    _charmBonusAppliedPool.Value.Add(card);
+                    int bonus = CharmDurationBonusService.Get(_ownerPool.Value.Get(card).OwnerId);
+                    if (bonus != 0) _charmTimerPool.Value.Get(card).TurnsRemaining += bonus;
                 }
             }
         }

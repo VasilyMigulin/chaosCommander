@@ -50,6 +50,12 @@ namespace AwesomeUI.Feature.Battle
         [SerializeField] private TurnHintView  _turnHintView;
         [SerializeField] private EndTurnButtonView _endTurnButtonView;
 
+        [Header("Network")]
+        [Tooltip("Баннер проблем соединения (MP): «соперник не отвечает/отключился» + отсчёт до техрезультата.")]
+        [SerializeField] private ConnectionLostView _connectionLostView;
+        [Tooltip("Затемнение экрана на время self-heal ресинка (пересборка мира под фейдом).")]
+        [SerializeField] private ResyncFadeView _resyncFadeView;
+
         public override void Init(IPanelController panelController)
         {
             base.Init(panelController);
@@ -77,6 +83,12 @@ namespace AwesomeUI.Feature.Battle
 
             if (_endTurnButtonView == null)
                 _endTurnButtonView = GetComponentInChildren<EndTurnButtonView>(true);
+
+            if (_connectionLostView == null)
+                _connectionLostView = GetComponentInChildren<ConnectionLostView>(true);
+
+            if (_resyncFadeView == null)
+                _resyncFadeView = GetComponentInChildren<ResyncFadeView>(true);
 
             if (_resourceIndicators == null || _resourceIndicators.Count == 0)
             {
@@ -108,6 +120,8 @@ namespace AwesomeUI.Feature.Battle
             _turnTimerView?.OnInject();
             _turnHintView?.OnInject();
             _endTurnButtonView?.OnInject();
+            _connectionLostView?.OnInject();
+            _resyncFadeView?.OnInject();
 
             GameEventBus.Subscribe<OpponentCardPlayedUIEvent>(OnOpponentCardPlayed);
             GameEventBus.Subscribe<CardDetailUIEvent>(OnCardDetail);
@@ -133,6 +147,8 @@ namespace AwesomeUI.Feature.Battle
             _turnTimerView?.Unject();
             _turnHintView?.Unject();
             _endTurnButtonView?.Unject();
+            _connectionLostView?.Unject();
+            _resyncFadeView?.Unject();
         }
 
         public override void OnDipose()

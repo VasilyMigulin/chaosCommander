@@ -14,5 +14,8 @@ namespace Game.Core.Shared.Interface
     {
         string ExpansionId { get; }
         int CardId { get; }
+
+        /// <summary>Печатная стоимость карты — для роллов «случайная за X» (TransformFromPoolWithCost).</summary>
+        int PlayCostAmount { get; }
     }
 }

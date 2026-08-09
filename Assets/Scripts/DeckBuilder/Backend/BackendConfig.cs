@@ -52,14 +52,23 @@ namespace Game.Core.Backend
             // Распыление карты → Обрывки (по редкости)
             public const string DustCard         = "DustCard";
 
+            // Рейтинг (Elo по взаимному подтверждению исходов, см. RatingService)
+            public const string GetRating        = "GetRating";
+            public const string ReportMatchResult = "ReportMatchResult";
+
             // DEV (только под флагом devMode в Title Data)
             public const string DevGrantCurrency = "DevGrantCurrency";
             public const string DevGrantBooster  = "DevGrantBooster";
             public const string DevGrantCard     = "DevGrantCard";
             public const string DevGrantExpansion = "DevGrantExpansion";   // выдать всю коллекцию сета
+            public const string DevSetMmr        = "DevSetMmr";
             public const string DevResetJournal      = "DevResetJournal";
             public const string DevCompleteTasks     = "DevCompleteTasks";
             public const string DevResetBlackMarket  = "DevResetBlackMarket";
+
+            // REVIEW-билд для издателя: пометить аккаунт (тег review_account) + выдать стартовые бустеры.
+            // Серверный гейт — Title Data reviewSetup=true. См. InitState.IsReviewBuild.
+            public const string SetupReviewAccount   = "SetupReviewAccount";
 
             // Аукцион (модель ставок: лот на 1 час, единая валюта, победитель по дедлайну)
             public const string GetListings      = "GetAuctionListings";

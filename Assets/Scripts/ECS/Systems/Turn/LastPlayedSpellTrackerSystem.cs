@@ -15,6 +15,7 @@ namespace Game.Core.Ecs.Systems
     {
         readonly EcsWorldInject _world = default;
         readonly EcsPoolInject<LastPlayedSpellComponent> _lastPool = default;
+        readonly EcsPoolInject<RecentSpellsHistoryComponent> _historyPool = default;
         readonly EcsPoolInject<PlayerComponent> _playerPool = default;
         readonly EcsPoolInject<CardModelComponent> _modelPool = default;
         readonly EcsFilterInject<Inc<PlayerComponent>> _playerFilter = default;
@@ -64,6 +65,10 @@ namespace Game.Core.Ecs.Systems
             last.ExpansionId = m.ExpansionId;
             last.ModelId = m.ModelId;
             last.HasValue = true;
+
+            if (!_historyPool.Value.Has(playerEntity))
+                _historyPool.Value.Add(playerEntity);
+            _historyPool.Value.Get(playerEntity).Push(m.ExpansionId, m.ModelId);
         }
 
         int FindPlayer(int playerId)

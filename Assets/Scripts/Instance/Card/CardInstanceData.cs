@@ -12,6 +12,7 @@ namespace Game.Core.Instance.Card
         // ICreatable — идентичность карты для спавна через CreateCardEvent (sync-safe).
         public string ExpansionId => CardData != null ? CardData.ExpansionId : null;
         public int CardId => CardData != null ? CardData.Id : -1;
+        public int PlayCostAmount => CardData != null ? CardData.PlayCostAmount : 0;   // роллы «за X»
 
         // Каталожный id карты: "{expansion}_{cardId}" (нижним регистром — см. инвариант). Общий контракт InstanceData.
         public override string ItemId => CardData != null ? $"{ExpansionId}_{CardId}" : null;

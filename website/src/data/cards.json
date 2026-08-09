@@ -1,0 +1,3501 @@
+[
+ {
+  "id": 0,
+  "itemId": "standard_0",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 33,
+  "costType": "gold",
+  "cost": 1,
+  "atk": 1,
+  "hp": 2,
+  "spd": 1,
+  "name": {
+   "ru": "Чёрт",
+   "en": "Imp"
+  },
+  "desc": {
+   "ru": "В конце хода: наносит *1* урона случайному персонажу",
+   "en": "At the end of turn: deals *1* damage to a random character"
+  }
+ },
+ {
+  "id": 1,
+  "itemId": "standard_1",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 33,
+  "costType": "gold",
+  "cost": 2,
+  "atk": 2,
+  "hp": 3,
+  "spd": 1,
+  "name": {
+   "ru": "Старший чёрт",
+   "en": "Elder Imp"
+  },
+  "desc": {
+   "ru": "В конце хода: наносит *2* урона случайному персонажу",
+   "en": "At the end of turn: deals *2* damage to a random character"
+  }
+ },
+ {
+  "id": 2,
+  "itemId": "standard_2",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 2,
+  "element": 33,
+  "costType": "gold",
+  "cost": 4,
+  "atk": 3,
+  "hp": 4,
+  "spd": 2,
+  "name": {
+   "ru": "Главарь чёртов",
+   "en": "Imp Boss"
+  },
+  "desc": {
+   "ru": "В конце хода: уничтожает случайное существо",
+   "en": "At the end of turn: destroys a random creature"
+  }
+ },
+ {
+  "id": 3,
+  "itemId": "standard_3",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 33,
+  "costType": "gold",
+  "cost": 5,
+  "atk": 4,
+  "hp": 4,
+  "spd": 2,
+  "name": {
+   "ru": "Главарь преисподней",
+   "en": "Underworld Boss"
+  },
+  "desc": {
+   "ru": "При разыгрывании: заполняет вашу сторону чертями",
+   "en": "When played: fills your row with imps"
+  }
+ },
+ {
+  "id": 4,
+  "itemId": "standard_4",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": true,
+  "rarity": 3,
+  "element": 1,
+  "costType": "gold",
+  "cost": 2,
+  "atk": 1,
+  "hp": 2,
+  "spd": 2,
+  "name": {
+   "ru": "Грыз",
+   "en": "Gnaw"
+  },
+  "desc": {
+   "ru": "При разыгрывании: получает +*1*/+*1* за каждого чёрта, призванного вами в этом матче",
+   "en": "When played: gains +*1*/+*1* for each imp you summoned this match"
+  }
+ },
+ {
+  "id": 5,
+  "itemId": "standard_5",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 2,
+  "costType": "gold",
+  "cost": 2,
+  "atk": 1,
+  "hp": 3,
+  "spd": 1,
+  "name": {
+   "ru": "Голубой волшебник",
+   "en": "Blue Wizard"
+  },
+  "desc": {
+   "ru": "При разыгрывании: даёт *3* маны",
+   "en": "When played: gives *3* mana"
+  }
+ },
+ {
+  "id": 6,
+  "itemId": "standard_6",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 18,
+  "costType": "gold",
+  "cost": 2,
+  "atk": 2,
+  "hp": 3,
+  "spd": 1,
+  "name": {
+   "ru": "Неудачливый чародей",
+   "en": "Hapless Sorcerer"
+  },
+  "desc": {
+   "ru": "При разыгрывании: тратит 2 маны, чтобы нанести *3* урона существам оппонента",
+   "en": "When played: spends 2 mana to deal *3* damage to enemy creatures"
+  }
+ },
+ {
+  "id": 7,
+  "itemId": "standard_7",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 34,
+  "costType": "gold",
+  "cost": 3,
+  "atk": 1,
+  "hp": 4,
+  "spd": 1,
+  "name": {
+   "ru": "Старый колдун",
+   "en": "Old Warlock"
+  },
+  "desc": {
+   "ru": "При разыгрывании: замешивает 1 Вонючее облако в колоду оппонента",
+   "en": "When played: shuffles 1 Stink Cloud into the opponent's deck"
+  }
+ },
+ {
+  "id": 8,
+  "itemId": "standard_8",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 38,
+  "costType": "gold",
+  "cost": 7,
+  "atk": 3,
+  "hp": 5,
+  "spd": 2,
+  "name": {
+   "ru": "Гнидальф немытый",
+   "en": "Gnidalf the Unwashed"
+  },
+  "desc": {
+   "ru": "При разыгрывании: замешивает в колоду оппонента Вонючее облако за каждое замешанное вами в этом матче Вонючее облако",
+   "en": "When played: shuffles a Stink Cloud into the opponent's deck for each Stink Cloud you shuffled this match"
+  }
+ },
+ {
+  "id": 9,
+  "itemId": "standard_9",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 16,
+  "costType": "gold",
+  "cost": 1,
+  "atk": 1,
+  "hp": 2,
+  "spd": 1,
+  "name": {
+   "ru": "Работяга",
+   "en": "Laborer"
+  },
+  "desc": {
+   "ru": "При разыгрывании: призывает другого работягу из колоды",
+   "en": "When played: summons another Laborer from your deck"
+  }
+ },
+ {
+  "id": 10,
+  "itemId": "standard_10",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 2,
+  "element": 16,
+  "costType": "gold",
+  "cost": 3,
+  "atk": 2,
+  "hp": 4,
+  "spd": 2,
+  "name": {
+   "ru": "Начальник смены",
+   "en": "Shift Foreman"
+  },
+  "desc": {
+   "ru": "Пока контролируете: ваши работяги получают +*1*/+*2*",
+   "en": "While you control: your Laborers gain +*1*/+*2*"
+  }
+ },
+ {
+  "id": 11,
+  "itemId": "standard_11",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 52,
+  "costType": "gold",
+  "cost": 5,
+  "atk": 4,
+  "hp": 6,
+  "spd": 2,
+  "name": {
+   "ru": "Прораб",
+   "en": "Foreman"
+  },
+  "desc": {
+   "ru": "При разыгрывании: замешайте 2 Работяг в колоду",
+   "en": "When played: shuffle 2 Laborers into your deck"
+  }
+ },
+ {
+  "id": 12,
+  "itemId": "standard_12",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 16,
+  "costType": "gold",
+  "cost": 3,
+  "atk": 3,
+  "hp": 2,
+  "spd": 1,
+  "name": {
+   "ru": "Боец на арене",
+   "en": "Arena Fighter"
+  },
+  "desc": {
+   "ru": "В начале хода: получает +*1* к скорости",
+   "en": "At the start of turn: gains +*1* Speed"
+  }
+ },
+ {
+  "id": 13,
+  "itemId": "standard_13",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 35,
+  "costType": "gold",
+  "cost": 4,
+  "atk": 3,
+  "hp": 5,
+  "spd": 2,
+  "name": {
+   "ru": "Маг-пиромант",
+   "en": "Pyromancer Mage"
+  },
+  "desc": {
+   "ru": "При разыгрывании: заполните руку Поджогами",
+   "en": "When played: fill your hand with Arson"
+  }
+ },
+ {
+  "id": 14,
+  "itemId": "standard_14",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 35,
+  "costType": "gold",
+  "cost": 7,
+  "atk": 7,
+  "hp": 4,
+  "spd": 2,
+  "name": {
+   "ru": "Глава сатанистов",
+   "en": "Cult Leader"
+  },
+  "desc": {
+   "ru": "При смерти: заполняет вашу сторону Сатанистами",
+   "en": "On death: fills your row with Satanists"
+  }
+ },
+ {
+  "id": 15,
+  "itemId": "standard_15",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 3,
+  "costType": "gold",
+  "cost": 1,
+  "atk": 2,
+  "hp": 1,
+  "spd": 2,
+  "name": {
+   "ru": "Сатанист",
+   "en": "Satanist"
+  },
+  "desc": {
+   "ru": "При смерти: наносит *2* урона обоим игрокам",
+   "en": "On death: deals *2* damage to both players"
+  }
+ },
+ {
+  "id": 16,
+  "itemId": "standard_16",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 22,
+  "costType": "gold",
+  "cost": 4,
+  "atk": 3,
+  "hp": 5,
+  "spd": 1,
+  "name": {
+   "ru": "Начитанный волшебник Попадос",
+   "en": "Well-Read Wizard Popados"
+  },
+  "desc": {
+   "ru": "При разыгрывании: положите в руку копию последнего разыгранного вами заклинания",
+   "en": "When played: add a copy of the last spell you played to your hand"
+  }
+ },
+ {
+  "id": 17,
+  "itemId": "standard_17",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 34,
+  "costType": "gold",
+  "cost": 1,
+  "atk": 3,
+  "hp": 1,
+  "spd": 1,
+  "name": {
+   "ru": "Скелетон",
+   "en": "Skeleton"
+  },
+  "desc": {
+   "ru": "При смерти: возвращается в руку",
+   "en": "On death: returns to your hand"
+  }
+ },
+ {
+  "id": 18,
+  "itemId": "standard_18",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 38,
+  "costType": "gold",
+  "cost": 5,
+  "atk": 5,
+  "hp": 2,
+  "spd": 2,
+  "name": {
+   "ru": "Лич, скелетон-чародей",
+   "en": "Lich, Skeleton Sorcerer"
+  },
+  "desc": {
+   "ru": "При разыгрывании: замешайте в колоду 2 Скелетона",
+   "en": "When played: shuffle 2 Skeletons into your deck"
+  }
+ },
+ {
+  "id": 19,
+  "itemId": "standard_19",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 36,
+  "costType": "gold",
+  "cost": 3,
+  "atk": 2,
+  "hp": 4,
+  "spd": 1,
+  "name": {
+   "ru": "Свежий зомби",
+   "en": "Fresh Zombie"
+  },
+  "desc": {
+   "ru": "При разыгрывании: оппонент сбрасывает случайную карту",
+   "en": "When played: the opponent discards a random card"
+  }
+ },
+ {
+  "id": 20,
+  "itemId": "standard_20",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 38,
+  "costType": "gold",
+  "cost": 5,
+  "atk": 1,
+  "hp": 3,
+  "spd": 1,
+  "name": {
+   "ru": "Дерзкий расхититель гробниц",
+   "en": "Brazen Tomb Raider"
+  },
+  "desc": {
+   "ru": "Когда вы берёте карту: оппонент сбрасывает случайную карту",
+   "en": "When you draw a card: the opponent discards a random card"
+  }
+ },
+ {
+  "id": 21,
+  "itemId": "standard_21",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 37,
+  "costType": "gold",
+  "cost": 5,
+  "atk": 2,
+  "hp": 6,
+  "spd": 3,
+  "name": {
+   "ru": "Охотник за твоей головой",
+   "en": "Bounty Hunter"
+  },
+  "desc": {
+   "ru": "При разыгрывании: наносит *1* урона всем существам в колоде оппонента",
+   "en": "When played: deals *1* damage to all creatures in the opponent's deck"
+  }
+ },
+ {
+  "id": 22,
+  "itemId": "standard_22",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 22,
+  "costType": "gold",
+  "cost": 5,
+  "atk": 3,
+  "hp": 7,
+  "spd": 2,
+  "name": {
+   "ru": "Верховный волшебник Барабук",
+   "en": "Archmage Barabook"
+  },
+  "desc": {
+   "ru": "При разыгрывании: разыгрывает случайное заклинание из колоды за 3 и меньше",
+   "en": "When played: casts a random spell costing 3 or less from your deck"
+  }
+ },
+ {
+  "id": 23,
+  "itemId": "standard_23",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 28,
+  "costType": "gold",
+  "cost": 8,
+  "atk": 4,
+  "hp": 9,
+  "spd": 1,
+  "name": {
+   "ru": "Пресвятой Душ'Нила",
+   "en": "Holy Dushnila"
+  },
+  "desc": {
+   "ru": "При разыгрывании: уничтожает существ оппонента без жёлтого цвета",
+   "en": "When played: destroys enemy creatures without the yellow color"
+  }
+ },
+ {
+  "id": 24,
+  "itemId": "standard_24",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 44,
+  "costType": "gold",
+  "cost": 7,
+  "atk": 5,
+  "hp": 7,
+  "spd": 2,
+  "name": {
+   "ru": "Еретик попущенный",
+   "en": "Forsaken Heretic"
+  },
+  "desc": {
+   "ru": "В начале хода: получает контроль над случайным существом оппонента до конца хода",
+   "en": "At the start of turn: takes control of a random enemy creature until end of turn"
+  }
+ },
+ {
+  "id": 25,
+  "itemId": "standard_25",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 2,
+  "element": 18,
+  "costType": "gold",
+  "cost": 3,
+  "atk": 3,
+  "hp": 3,
+  "spd": 1,
+  "name": {
+   "ru": "Библиотекарь на смене",
+   "en": "Librarian on Duty"
+  },
+  "desc": {
+   "ru": "При разыгрывании: возьмите из колоды случайное заклинание",
+   "en": "When played: draw a random spell from your deck"
+  }
+ },
+ {
+  "id": 26,
+  "itemId": "standard_26",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 16,
+  "costType": "gold",
+  "cost": 1,
+  "atk": 1,
+  "hp": 2,
+  "spd": 1,
+  "name": {
+   "ru": "Шнырь",
+   "en": "Snitch"
+  },
+  "desc": {
+   "ru": "В конце хода: возьмите карту",
+   "en": "At the end of turn: draw a card"
+  }
+ },
+ {
+  "id": 27,
+  "itemId": "standard_27",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 36,
+  "costType": "gold",
+  "cost": 4,
+  "atk": 0,
+  "hp": 4,
+  "spd": 0,
+  "name": {
+   "ru": "Кладка",
+   "en": "Brood"
+  },
+  "desc": {
+   "ru": "В начале хода: призывает 2 Пауков 1/1/3",
+   "en": "At the start of turn: summons 2 Spiders 1/1/3"
+  }
+ },
+ {
+  "id": 28,
+  "itemId": "standard_28",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 38,
+  "costType": "gold",
+  "cost": 2,
+  "atk": 4,
+  "hp": 2,
+  "spd": 1,
+  "name": {
+   "ru": "Всадник Разложения",
+   "en": "Rider of Decay"
+  },
+  "desc": {
+   "ru": "При разыгрывании: погибает. При смерти: оппонент сбрасывает случайную карту",
+   "en": "When played: dies. On death: the opponent discards a random card"
+  }
+ },
+ {
+  "id": 29,
+  "itemId": "standard_29",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 37,
+  "costType": "gold",
+  "cost": 3,
+  "atk": 4,
+  "hp": 2,
+  "spd": 1,
+  "name": {
+   "ru": "Всадник Войны",
+   "en": "Rider of War"
+  },
+  "desc": {
+   "ru": "При разыгрывании: погибает. При смерти: призывает 2 Воина 3/2/2",
+   "en": "When played: dies. On death: summons 2 Warriors 3/2/2"
+  }
+ },
+ {
+  "id": 30,
+  "itemId": "standard_30",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 52,
+  "costType": "gold",
+  "cost": 2,
+  "atk": 4,
+  "hp": 2,
+  "spd": 1,
+  "name": {
+   "ru": "Всадник Голода",
+   "en": "Rider of Famine"
+  },
+  "desc": {
+   "ru": "При разыгрывании: погибает. При смерти: похищает у случайного врага *2* здоровья",
+   "en": "When played: dies. On death: steals *2* health from a random enemy"
+  }
+ },
+ {
+  "id": 31,
+  "itemId": "standard_31",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 49,
+  "costType": "gold",
+  "cost": 2,
+  "atk": 4,
+  "hp": 2,
+  "spd": 1,
+  "name": {
+   "ru": "Всадник Смерти",
+   "en": "Rider of Death"
+  },
+  "desc": {
+   "ru": "При разыгрывании: погибает. При смерти: уничтожает самое сильное существо оппонента",
+   "en": "When played: dies. On death: destroys the strongest enemy creature"
+  }
+ },
+ {
+  "id": 32,
+  "itemId": "standard_32",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 52,
+  "costType": "gold",
+  "cost": 3,
+  "atk": 5,
+  "hp": 2,
+  "spd": 2,
+  "name": {
+   "ru": "Токсичная мать",
+   "en": "Toxic Mother"
+  },
+  "desc": {
+   "ru": "При разыгрывании: наносит владельцу *3* урона, призывает 4 Павука 1/1/3",
+   "en": "When played: deals *3* damage to its owner, summons 4 Spiders 1/1/3"
+  }
+ },
+ {
+  "id": 33,
+  "itemId": "standard_33",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 36,
+  "costType": "gold",
+  "cost": 4,
+  "atk": 4,
+  "hp": 3,
+  "spd": 2,
+  "name": {
+   "ru": "Батя улья",
+   "en": "Hive Daddy"
+  },
+  "desc": {
+   "ru": "В начале матча: наносит владельцу *3* урона, призывает 4 Павука 1/1/3",
+   "en": "At the start of the match: deals *3* damage to its owner, summons 4 Spiders 1/1/3"
+  }
+ },
+ {
+  "id": 34,
+  "itemId": "standard_34",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 4,
+  "element": 8,
+  "costType": "gold",
+  "cost": 9,
+  "atk": 8,
+  "hp": 8,
+  "spd": 2,
+  "name": {
+   "ru": "Проповедник из качалки",
+   "en": "Gym Preacher"
+  },
+  "desc": {
+   "ru": "В начале матча: если все карты в вашей колоде жёлтого цвета, удваивает ваше здоровье",
+   "en": "At the start of the match: if all cards in your deck are yellow, doubles your health"
+  }
+ },
+ {
+  "id": 35,
+  "itemId": "standard_35",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 8,
+  "costType": "gold",
+  "cost": 3,
+  "atk": 3,
+  "hp": 4,
+  "spd": 1,
+  "name": {
+   "ru": "Очиститель",
+   "en": "Purifier"
+  },
+  "desc": {
+   "ru": "В конце хода: положите в руку случайное заклинание другого цвета",
+   "en": "At the end of turn: add a random spell of a different color to your hand"
+  }
+ },
+ {
+  "id": 36,
+  "itemId": "standard_36",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 8,
+  "costType": "gold",
+  "cost": 5,
+  "atk": 2,
+  "hp": 6,
+  "spd": 1,
+  "name": {
+   "ru": "Харизматичный священник",
+   "en": "Charismatic Priest"
+  },
+  "desc": {
+   "ru": "При разыгрывании: призывает самое дорогое существо из колоды, оно умрёт через *3* хода",
+   "en": "When played: summons the most expensive creature from your deck; it dies in *3* turns"
+  }
+ },
+ {
+  "id": 37,
+  "itemId": "standard_37",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 8,
+  "costType": "gold",
+  "cost": 4,
+  "atk": 1,
+  "hp": 4,
+  "spd": 1,
+  "name": {
+   "ru": "Патриарх",
+   "en": "Patriarch"
+  },
+  "desc": {
+   "ru": "При разыгрывании: существа в вашей колоде получают +*1*/+*1*",
+   "en": "When played: creatures in your deck gain +*1*/+*1*"
+  }
+ },
+ {
+  "id": 38,
+  "itemId": "standard_38",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 24,
+  "costType": "gold",
+  "cost": 4,
+  "atk": 3,
+  "hp": 5,
+  "spd": 3,
+  "name": {
+   "ru": "Тайный воздыхатель",
+   "en": "Secret Admirer"
+  },
+  "desc": {
+   "ru": "В конце хода: ваши существа получают +*1*/+*1*",
+   "en": "At the end of turn: your creatures gain +*1*/+*1*"
+  }
+ },
+ {
+  "id": 39,
+  "itemId": "standard_39",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 0,
+  "costType": "gold",
+  "cost": 1,
+  "atk": 1,
+  "hp": 3,
+  "spd": 2,
+  "name": {
+   "ru": "Водонос",
+   "en": "Water Carrier"
+  },
+  "desc": {
+   "ru": "При смерти: положите в руку Водицу",
+   "en": "On death: add Water to your hand"
+  }
+ },
+ {
+  "id": 40,
+  "itemId": "standard_40",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 2,
+  "element": 34,
+  "costType": "gold",
+  "cost": 2,
+  "atk": 3,
+  "hp": 3,
+  "spd": 2,
+  "name": {
+   "ru": "Магический гомункул",
+   "en": "Magic Homunculus"
+  },
+  "desc": {
+   "ru": "При разыгрывании: призывает существо с таким же названием. При смерти: замешайте копию в колоду",
+   "en": "When played: summons a creature with the same name. On death: shuffle a copy into your deck"
+  }
+ },
+ {
+  "id": 41,
+  "itemId": "standard_41",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 2,
+  "element": 33,
+  "costType": "mana",
+  "cost": 0,
+  "name": {
+   "ru": "Сатанинский круг",
+   "en": "Satanic Circle"
+  },
+  "desc": {
+   "ru": "Получите *3* урона, призовите 2 Чертей",
+   "en": "Take *3* damage, summon 2 Imps"
+  }
+ },
+ {
+  "id": 42,
+  "itemId": "standard_42",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 2,
+  "element": 8,
+  "costType": "mana",
+  "cost": 5,
+  "name": {
+   "ru": "Окропить святой водой",
+   "en": "Sprinkle Holy Water"
+  },
+  "desc": {
+   "ru": "Нанесите *2* урона существам без жёлтого цвета, положите в руку случайное заклинание жёлтого цвета за каждое погибшее существо",
+   "en": "Deal *2* damage to creatures without the yellow color, add a random yellow spell to your hand for each creature that died"
+  }
+ },
+ {
+  "id": 43,
+  "itemId": "standard_43",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 2,
+  "element": 1,
+  "costType": "mana",
+  "cost": 3,
+  "name": {
+   "ru": "Чертовщина",
+   "en": "Devilry"
+  },
+  "desc": {
+   "ru": "Превратите существо в вашего Чёрта",
+   "en": "Turn a creature into your Imp"
+  }
+ },
+ {
+  "id": 44,
+  "itemId": "standard_44",
+  "type": "spell",
+  "folder": "token",
+  "token": true,
+  "commander": false,
+  "rarity": 0,
+  "element": 0,
+  "costType": "mana",
+  "cost": 0,
+  "name": {
+   "ru": "Водица",
+   "en": "Water"
+  },
+  "desc": {
+   "ru": "Получите *3* маны до конца хода",
+   "en": "Gain *3* mana until end of turn"
+  }
+ },
+ {
+  "id": 45,
+  "itemId": "standard_45",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 37,
+  "costType": "gold",
+  "cost": 5,
+  "atk": 5,
+  "hp": 5,
+  "spd": 2,
+  "name": {
+   "ru": "Адовый червь",
+   "en": "Hell Worm"
+  },
+  "desc": {
+   "ru": "При разыгрывании: до конца матча, когда вы берёте карту в начале хода, посмотрите 3 верхние, выберите одну — уничтожьте её, а две другие возьмите",
+   "en": "When played: until the end of the match, when you draw at the start of turn, look at the top 3, choose one to destroy and draw the other two"
+  }
+ },
+ {
+  "id": 46,
+  "itemId": "standard_46",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 8,
+  "costType": "mana",
+  "cost": 2,
+  "name": {
+   "ru": "Очистить от скверны",
+   "en": "Cleanse the Filth"
+  },
+  "desc": {
+   "ru": "Положите в руку 2 карты чёрного, красного или синего цвета",
+   "en": "Add 2 black, red, or blue cards to your hand"
+  }
+ },
+ {
+  "id": 47,
+  "itemId": "standard_47",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 4,
+  "element": 48,
+  "costType": "gold",
+  "cost": 3,
+  "atk": 5,
+  "hp": 3,
+  "spd": 2,
+  "name": {
+   "ru": "Босс качалки Билли",
+   "en": "Gym Boss Billy"
+  },
+  "desc": {
+   "ru": "В начале матча: у вас всегда на выбор 4 карты и неограниченное число замен",
+   "en": "At the start of the match: you always mulligan 4 cards with unlimited replacements"
+  }
+ },
+ {
+  "id": 48,
+  "itemId": "standard_48",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 1,
+  "costType": "mana",
+  "cost": 4,
+  "name": {
+   "ru": "Уничтожить",
+   "en": "Destroy"
+  },
+  "desc": {
+   "ru": "Уничтожьте существо оппонента",
+   "en": "Destroy an enemy creature"
+  }
+ },
+ {
+  "id": 49,
+  "itemId": "standard_49",
+  "type": "creature",
+  "folder": "token",
+  "token": true,
+  "commander": false,
+  "rarity": 3,
+  "element": 48,
+  "costType": "gold",
+  "cost": 4,
+  "atk": 5,
+  "hp": 6,
+  "spd": 1,
+  "name": {
+   "ru": "Боба",
+   "en": "Boba"
+  },
+  "desc": {
+   "ru": "В конце хода: если контролируете Бибу, наносит оппоненту *3* урона",
+   "en": "At the end of turn: if you control Biba, deals *3* damage to the opponent"
+  }
+ },
+ {
+  "id": 50,
+  "itemId": "standard_50",
+  "type": "charm",
+  "folder": "charm",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 16,
+  "costType": "mana",
+  "cost": 2,
+  "name": {
+   "ru": "За работу!",
+   "en": "Get to Work!"
+  },
+  "desc": {
+   "ru": "В начале хода: ваши существа получают +*1* к скорости",
+   "en": "At the start of turn: your creatures gain +*1* Speed"
+  }
+ },
+ {
+  "id": 51,
+  "itemId": "standard_51",
+  "type": "creature",
+  "folder": "token",
+  "token": true,
+  "commander": false,
+  "rarity": 0,
+  "element": 36,
+  "costType": "gold",
+  "cost": 1,
+  "atk": 1,
+  "hp": 1,
+  "spd": 3,
+  "name": {
+   "ru": "Паук из кладки",
+   "en": "Brood Spider"
+  },
+  "desc": {
+   "ru": "",
+   "en": ""
+  }
+ },
+ {
+  "id": 52,
+  "itemId": "standard_52",
+  "type": "charm",
+  "folder": "charm",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 24,
+  "costType": "mana",
+  "cost": 3,
+  "name": {
+   "ru": "Молитва за здравие",
+   "en": "Prayer for Health"
+  },
+  "desc": {
+   "ru": "Ваши существа получают +*2* к здоровью",
+   "en": "Your creatures gain +*2* Health"
+  }
+ },
+ {
+  "id": 53,
+  "itemId": "standard_53",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 48,
+  "costType": "mana",
+  "cost": 1,
+  "name": {
+   "ru": "Штраф на предприятии",
+   "en": "Workplace Fine"
+  },
+  "desc": {
+   "ru": "Оба игрока теряют по *3* золота",
+   "en": "Both players lose *3* gold each"
+  }
+ },
+ {
+  "id": 54,
+  "itemId": "standard_54",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 36,
+  "costType": "mana",
+  "cost": 1,
+  "name": {
+   "ru": "Позвать рой",
+   "en": "Call the Swarm"
+  },
+  "desc": {
+   "ru": "Призовите Павука 1/1/3; эффект повторяется за каждую карту с таким же названием, разыгранную вами в этом матче",
+   "en": "Summon a Spider 1/1/3; repeats for each card with the same name you played this match"
+  }
+ },
+ {
+  "id": 55,
+  "itemId": "standard_55",
+  "type": "creature",
+  "folder": "token",
+  "token": true,
+  "commander": false,
+  "rarity": 0,
+  "element": 36,
+  "costType": "gold",
+  "cost": 1,
+  "atk": 1,
+  "hp": 1,
+  "spd": 3,
+  "name": {
+   "ru": "Павук",
+   "en": "Spider"
+  },
+  "desc": {
+   "ru": "",
+   "en": ""
+  }
+ },
+ {
+  "id": 56,
+  "itemId": "standard_56",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 2,
+  "element": 36,
+  "costType": "gold",
+  "cost": 3,
+  "atk": 4,
+  "hp": 4,
+  "spd": 2,
+  "name": {
+   "ru": "Бешеная бабка",
+   "en": "Mad Granny"
+  },
+  "desc": {
+   "ru": "При разыгрывании: уничтожает существо и занимает его место",
+   "en": "When played: destroys a creature and takes its place"
+  }
+ },
+ {
+  "id": 57,
+  "itemId": "standard_57",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 4,
+  "element": 33,
+  "costType": "mana",
+  "cost": 6,
+  "name": {
+   "ru": "Вудду-будду",
+   "en": "Voodoo-Boodoo"
+  },
+  "desc": {
+   "ru": "Если вы получили на своём ходу 12 урона, то до конца матча урон, получаемый вами в свой ход, перенаправляется оппоненту",
+   "en": "If you took 12 damage on your turn, then until the end of the match, damage you take on your turn is redirected to the opponent"
+  }
+ },
+ {
+  "id": 58,
+  "itemId": "standard_58",
+  "type": "charm",
+  "folder": "token",
+  "token": true,
+  "commander": false,
+  "rarity": 4,
+  "element": 0,
+  "costType": "mana",
+  "cost": 0,
+  "name": {
+   "ru": "Вудду-будду",
+   "en": "Voodoo-Boodoo"
+  },
+  "desc": {
+   "ru": "Весь полученный урон на Вашем ходу, отражается оппоненту",
+   "en": "All damage taken on your turn is reflected to the opponent"
+  }
+ },
+ {
+  "id": 59,
+  "itemId": "standard_59",
+  "type": "spell",
+  "folder": "token",
+  "token": true,
+  "commander": false,
+  "rarity": 0,
+  "element": 36,
+  "costType": "mana",
+  "cost": 0,
+  "name": {
+   "ru": "Вонючее облако",
+   "en": "Stink Cloud"
+  },
+  "desc": {
+   "ru": "При взятии: получите *1* урона за каждое взятое Вонючее облако",
+   "en": "When drawn: take *1* damage for each Stink Cloud you've drawn"
+  }
+ },
+ {
+  "id": 60,
+  "itemId": "standard_60",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 2,
+  "element": 36,
+  "costType": "mana",
+  "cost": 4,
+  "name": {
+   "ru": "Дать газу!",
+   "en": "Gas It Up!"
+  },
+  "desc": {
+   "ru": "Нанесите *2* урона всем существам на поле боя, замешайте Вонючее облако в колоду оппонента за каждое погибшее существо",
+   "en": "Deal *2* damage to all creatures on the battlefield, shuffle a Stink Cloud into the opponent's deck for each creature that died"
+  }
+ },
+ {
+  "id": 61,
+  "itemId": "standard_61",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 3,
+  "costType": "mana",
+  "cost": 1,
+  "name": {
+   "ru": "Поджог",
+   "en": "Arson"
+  },
+  "desc": {
+   "ru": "Нанесите *2* урона врагу",
+   "en": "Deal *2* damage to an enemy"
+  }
+ },
+ {
+  "id": 62,
+  "itemId": "standard_62",
+  "type": "creature",
+  "folder": "token",
+  "token": true,
+  "commander": false,
+  "rarity": 0,
+  "element": 48,
+  "costType": "gold",
+  "cost": 1,
+  "atk": 3,
+  "hp": 2,
+  "spd": 2,
+  "name": {
+   "ru": "Воин",
+   "en": "Warrior"
+  },
+  "desc": {
+   "ru": "",
+   "en": ""
+  }
+ },
+ {
+  "id": 63,
+  "itemId": "standard_63",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 48,
+  "costType": "gold",
+  "cost": 6,
+  "atk": 6,
+  "hp": 5,
+  "spd": 1,
+  "name": {
+   "ru": "Биба",
+   "en": "Biba"
+  },
+  "desc": {
+   "ru": "В начале матча: замешайте Бобу в колоду. В конце хода: если контролируете Бобу, наносит оппоненту *3* урона",
+   "en": "At the start of the match: shuffle Boba into your deck. At the end of turn: if you control Boba, deals *3* damage to the opponent"
+  }
+ },
+ {
+  "id": 64,
+  "itemId": "standard_64",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 2,
+  "element": 1,
+  "costType": "mana",
+  "cost": 0,
+  "name": {
+   "ru": "Дьявольский обряд",
+   "en": "Devil's Rite"
+  },
+  "desc": {
+   "ru": "Получите *3* урона, получите *5* маны",
+   "en": "Take *3* damage, gain *5* mana"
+  }
+ },
+ {
+  "id": 65,
+  "itemId": "standard_65",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 36,
+  "costType": "mana",
+  "cost": 5,
+  "name": {
+   "ru": "Газовое вздутие",
+   "en": "Gas Bloat"
+  },
+  "desc": {
+   "ru": "Наложите на существ оппонента эффект «При смерти: замешайте 1 Вонючее облако в колоду владельца»",
+   "en": "Apply to enemy creatures: «On death: shuffle 1 Stink Cloud into the owner's deck»"
+  }
+ },
+ {
+  "id": 66,
+  "itemId": "standard_66",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 48,
+  "costType": "mana",
+  "cost": 3,
+  "name": {
+   "ru": "Обнести хату",
+   "en": "Rob the House"
+  },
+  "desc": {
+   "ru": "Похитьте случайную карту из колоды оппонента, она станет на 1 дешевле",
+   "en": "Steal a random card from the opponent's deck; it costs 1 less"
+  }
+ },
+ {
+  "id": 67,
+  "itemId": "standard_67",
+  "type": "charm",
+  "folder": "charm",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 48,
+  "costType": "mana",
+  "cost": 4,
+  "name": {
+   "ru": "Наступающий кризис",
+   "en": "Looming Crisis"
+  },
+  "desc": {
+   "ru": "Оба игрока в начале хода не получают золото",
+   "en": "At the start of turn, both players gain no gold"
+  }
+ },
+ {
+  "id": 68,
+  "itemId": "standard_68",
+  "type": "charm",
+  "folder": "charm",
+  "token": false,
+  "commander": false,
+  "rarity": 2,
+  "element": 48,
+  "costType": "mana",
+  "cost": 7,
+  "name": {
+   "ru": "Вербовка",
+   "en": "Recruitment"
+  },
+  "desc": {
+   "ru": "В начале хода: призовите 2 Бойцов на арене",
+   "en": "At the start of turn: summon 2 Arena Fighters"
+  }
+ },
+ {
+  "id": 69,
+  "itemId": "standard_69",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 48,
+  "costType": "mana",
+  "cost": 1,
+  "name": {
+   "ru": "Грабёж!",
+   "en": "Robbery!"
+  },
+  "desc": {
+   "ru": "Получите *3* золота",
+   "en": "Gain *3* gold"
+  }
+ },
+ {
+  "id": 70,
+  "itemId": "standard_70",
+  "type": "charm",
+  "folder": "charm",
+  "token": false,
+  "commander": false,
+  "rarity": 2,
+  "element": 33,
+  "costType": "mana",
+  "cost": 2,
+  "name": {
+   "ru": "Долгий обряд",
+   "en": "Long Ritual"
+  },
+  "desc": {
+   "ru": "В начале хода: получите *3* урона и *2* маны",
+   "en": "At the start of turn: take *3* damage and gain *2* mana"
+  }
+ },
+ {
+  "id": 71,
+  "itemId": "standard_71",
+  "type": "charm",
+  "folder": "charm",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 36,
+  "costType": "mana",
+  "cost": 5,
+  "name": {
+   "ru": "Позвать батю",
+   "en": "Call Dad"
+  },
+  "desc": {
+   "ru": "По завершении: призовите Батю 10/10",
+   "en": "When it expires: summon Dad 10/10"
+  }
+ },
+ {
+  "id": 72,
+  "itemId": "standard_72",
+  "type": "creature",
+  "folder": "token",
+  "token": true,
+  "commander": false,
+  "rarity": 2,
+  "element": 32,
+  "costType": "gold",
+  "cost": 10,
+  "atk": 10,
+  "hp": 10,
+  "spd": 2,
+  "name": {
+   "ru": "Батя",
+   "en": "Dad"
+  },
+  "desc": {
+   "ru": "",
+   "en": ""
+  }
+ },
+ {
+  "id": 73,
+  "itemId": "standard_73",
+  "type": "charm",
+  "folder": "charm",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 35,
+  "costType": "mana",
+  "cost": 8,
+  "name": {
+   "ru": "Пожарище",
+   "en": "Conflagration"
+  },
+  "desc": {
+   "ru": "В начале хода: все получают по *2* урона",
+   "en": "At the start of turn, everyone takes *2* damage"
+  }
+ },
+ {
+  "id": 74,
+  "itemId": "standard_74",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 2,
+  "element": 34,
+  "costType": "mana",
+  "cost": 3,
+  "name": {
+   "ru": "Разгром кладбища",
+   "en": "Graveyard Raid"
+  },
+  "desc": {
+   "ru": "Призовите из кладбища 2 существа стоимостью 3 и меньше",
+   "en": "Summon 2 creatures costing 3 or less from the graveyard"
+  }
+ },
+ {
+  "id": 75,
+  "itemId": "standard_75",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 36,
+  "costType": "mana",
+  "cost": 3,
+  "name": {
+   "ru": "Закопать заживо",
+   "en": "Bury Alive"
+  },
+  "desc": {
+   "ru": "Замешайте существо в колоду владельца",
+   "en": "Shuffle a creature into its owner's deck"
+  }
+ },
+ {
+  "id": 76,
+  "itemId": "standard_76",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 36,
+  "costType": "mana",
+  "cost": 7,
+  "name": {
+   "ru": "Массовое захоронение",
+   "en": "Mass Burial"
+  },
+  "desc": {
+   "ru": "Замешайте всех существ в колоды их владельцев",
+   "en": "Shuffle all creatures into their owners' decks"
+  }
+ },
+ {
+  "id": 77,
+  "itemId": "standard_77",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 6,
+  "costType": "mana",
+  "cost": 6,
+  "name": {
+   "ru": "Призвать ураган",
+   "en": "Summon a Hurricane"
+  },
+  "desc": {
+   "ru": "Верните существ в руки их владельцев",
+   "en": "Return all creatures to their owners' hands"
+  }
+ },
+ {
+  "id": 78,
+  "itemId": "standard_78",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 2,
+  "element": 3,
+  "costType": "mana",
+  "cost": 2,
+  "name": {
+   "ru": "Фокус-покус",
+   "en": "Hocus-Pocus"
+  },
+  "desc": {
+   "ru": "Разыграйте 2 заклинания стоимостью 3 или меньше",
+   "en": "Cast 2 spells costing 3 or less"
+  }
+ },
+ {
+  "id": 79,
+  "itemId": "standard_79",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 2,
+  "costType": "mana",
+  "cost": 2,
+  "name": {
+   "ru": "Та самая цепная молния",
+   "en": "That Chain Lightning"
+  },
+  "desc": {
+   "ru": "Нанесите *3* урона 3 случайным врагам",
+   "en": "Deal *3* damage to 3 random enemies"
+  }
+ },
+ {
+  "id": 80,
+  "itemId": "standard_80",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 2,
+  "element": 8,
+  "costType": "mana",
+  "cost": 4,
+  "name": {
+   "ru": "Кара божественная",
+   "en": "Divine Punishment"
+  },
+  "desc": {
+   "ru": "Нанесите *5* урона всем существам чёрного цвета",
+   "en": "Deal *5* damage to all black creatures"
+  }
+ },
+ {
+  "id": 81,
+  "itemId": "standard_81",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 8,
+  "costType": "mana",
+  "cost": 5,
+  "name": {
+   "ru": "Отлучение",
+   "en": "Excommunication"
+  },
+  "desc": {
+   "ru": "Лишите существо жёлтого цвета и дайте чёрный",
+   "en": "Remove the yellow color from a creature and give it black"
+  }
+ },
+ {
+  "id": 82,
+  "itemId": "standard_82",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 8,
+  "costType": "mana",
+  "cost": 1,
+  "name": {
+   "ru": "Покайся",
+   "en": "Repent"
+  },
+  "desc": {
+   "ru": "Выбранное существо получает -*2* к атаке",
+   "en": "The chosen creature gains -*2* Attack"
+  }
+ },
+ {
+  "id": 83,
+  "itemId": "standard_83",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 2,
+  "element": 40,
+  "costType": "mana",
+  "cost": 4,
+  "name": {
+   "ru": "Обращение в веру",
+   "en": "Conversion"
+  },
+  "desc": {
+   "ru": "Дайте выбранному существу жёлтый цвет и заберите его под свой контроль",
+   "en": "Give the chosen creature the yellow color and take control of it"
+  }
+ },
+ {
+  "id": 84,
+  "itemId": "standard_84",
+  "type": "charm",
+  "folder": "charm",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 6,
+  "costType": "mana",
+  "cost": 5,
+  "name": {
+   "ru": "Плохая погода",
+   "en": "Bad Weather"
+  },
+  "desc": {
+   "ru": "Существа оппонента получают -*1* к скорости",
+   "en": "Enemy creatures gain -*1* Speed"
+  }
+ },
+ {
+  "id": 85,
+  "itemId": "standard_85",
+  "type": "charm",
+  "folder": "charm",
+  "token": false,
+  "commander": false,
+  "rarity": 4,
+  "element": 24,
+  "costType": "mana",
+  "cost": 9,
+  "name": {
+   "ru": "Великое отлучение",
+   "en": "Great Excommunication"
+  },
+  "desc": {
+   "ru": "Существа оппонента получают -*3* к атаке",
+   "en": "Enemy creatures gain -*3* Attack"
+  }
+ },
+ {
+  "id": 86,
+  "itemId": "standard_86",
+  "type": "charm",
+  "folder": "charm",
+  "token": false,
+  "commander": false,
+  "rarity": 4,
+  "element": 24,
+  "costType": "mana",
+  "cost": 9,
+  "name": {
+   "ru": "Великое обращение",
+   "en": "Great Conversion"
+  },
+  "desc": {
+   "ru": "Все ваши существа получают жёлтый цвет",
+   "en": "All your creatures gain the yellow color"
+  }
+ },
+ {
+  "id": 87,
+  "itemId": "standard_87",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 48,
+  "costType": "mana",
+  "cost": 3,
+  "name": {
+   "ru": "Облопошить",
+   "en": "Hoodwink"
+  },
+  "desc": {
+   "ru": "Получите контроль над существом оппонента, оно умрёт через *3* хода",
+   "en": "Take control of an enemy creature; it dies in *3* turns"
+  }
+ },
+ {
+  "id": 88,
+  "itemId": "standard_88",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 4,
+  "element": 2,
+  "costType": "mana",
+  "cost": 7,
+  "name": {
+   "ru": "Временная петля",
+   "en": "Time Loop"
+  },
+  "desc": {
+   "ru": "До конца матча ваши эффекты начала и конца хода срабатывают дважды",
+   "en": "Until the end of the match, your start- and end-of-turn effects trigger twice"
+  }
+ },
+ {
+  "id": 89,
+  "itemId": "standard_89",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 32,
+  "costType": "mana",
+  "cost": 0,
+  "name": {
+   "ru": "Мертвячая рука",
+   "en": "Dead Man's Hand"
+  },
+  "desc": {
+   "ru": "Получите *3* урона, посмотрите 3 карты из руки оппонента и сбросьте одну",
+   "en": "Take *3* damage, look at 3 cards in the opponent's hand and discard one"
+  }
+ },
+ {
+  "id": 90,
+  "itemId": "standard_90",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 4,
+  "element": 8,
+  "costType": "mana",
+  "cost": 10,
+  "name": {
+   "ru": "Машина пропаганды",
+   "en": "Propaganda Machine"
+  },
+  "desc": {
+   "ru": "Получите контроль над ВСЕМИ существами оппонента на 3 хода",
+   "en": "Take control of ALL enemy creatures for 3 turns"
+  }
+ },
+ {
+  "id": 91,
+  "itemId": "standard_91",
+  "type": "charm",
+  "folder": "charm",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 24,
+  "costType": "mana",
+  "cost": 6,
+  "name": {
+   "ru": "Благоговейный приход",
+   "en": "Reverent Arrival"
+  },
+  "desc": {
+   "ru": "В начале вашего хода ваши существа получают +*2*/+*3*",
+   "en": "At the start of your turn, your creatures gain +*2*/+*3*"
+  }
+ },
+ {
+  "id": 92,
+  "itemId": "standard_92",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 2,
+  "element": 2,
+  "costType": "mana",
+  "cost": 3,
+  "name": {
+   "ru": "Грядущий шторм",
+   "en": "Coming Storm"
+  },
+  "desc": {
+   "ru": "Нанесите оппоненту *5* урона; если в руке есть карта с таким же названием, разыграйте её",
+   "en": "Deal *5* damage to the opponent; if you have a card with the same name in hand, play it"
+  }
+ },
+ {
+  "id": 93,
+  "itemId": "standard_93",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 2,
+  "element": 2,
+  "costType": "mana",
+  "cost": 1,
+  "name": {
+   "ru": "Прилив сил",
+   "en": "Surge of Power"
+  },
+  "desc": {
+   "ru": "Получите *5* маны до конца хода",
+   "en": "Gain *5* mana until end of turn"
+  }
+ },
+ {
+  "id": 94,
+  "itemId": "standard_94",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 33,
+  "costType": "mana",
+  "cost": 4,
+  "name": {
+   "ru": "Бомбануть!",
+   "en": "Blow It Up!"
+  },
+  "desc": {
+   "ru": "Нанесите *5* урона существу оппонента и *2* урона ближайшим существам оппонента",
+   "en": "Deal *5* damage to an enemy creature and *2* damage to nearby enemy creatures"
+  }
+ },
+ {
+  "id": 95,
+  "itemId": "standard_95",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 3,
+  "costType": "mana",
+  "cost": 2,
+  "name": {
+   "ru": "Зажигалка",
+   "en": "Lighter"
+  },
+  "desc": {
+   "ru": "Нанесите *1* урона существу; если оно погибнет, нанесите соседям *5* урона",
+   "en": "Deal *1* damage to a creature; if it dies, deal *5* damage to its neighbors"
+  }
+ },
+ {
+  "id": 96,
+  "itemId": "standard_96",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 4,
+  "element": 34,
+  "costType": "mana",
+  "cost": 6,
+  "name": {
+   "ru": "Гиперинфляция",
+   "en": "Hyperinflation"
+  },
+  "desc": {
+   "ru": "До конца матча все карты стоят на 1 дороже",
+   "en": "Until the end of the match, all cards cost 1 more"
+  }
+ },
+ {
+  "id": 97,
+  "itemId": "standard_97",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 32,
+  "costType": "mana",
+  "cost": 3,
+  "name": {
+   "ru": "Подстава",
+   "en": "Setup"
+  },
+  "desc": {
+   "ru": "Замешайте в колоду оппонента 3 карты «Подстава»",
+   "en": "Shuffle 3 Setup cards into the opponent's deck"
+  }
+ },
+ {
+  "id": 98,
+  "itemId": "standard_98",
+  "type": "spell",
+  "folder": "token",
+  "token": true,
+  "commander": false,
+  "rarity": 0,
+  "element": 32,
+  "costType": "mana",
+  "cost": 0,
+  "name": {
+   "ru": "Подстава",
+   "en": "Setup"
+  },
+  "desc": {
+   "ru": "При взятии: сбросьте случайную карту",
+   "en": "When drawn: discard a random card"
+  }
+ },
+ {
+  "id": 99,
+  "itemId": "standard_99",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 33,
+  "costType": "gold",
+  "cost": 4,
+  "atk": 2,
+  "hp": 5,
+  "spd": 1,
+  "name": {
+   "ru": "Чёртов начальник",
+   "en": "Imp Overseer"
+  },
+  "desc": {
+   "ru": "В начале хода: наносит владельцу *2* урона, призывает случайного Чёрта",
+   "en": "At the start of turn: deals *2* damage to its owner, summons a random Imp"
+  }
+ },
+ {
+  "id": 100,
+  "itemId": "standard_100",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 34,
+  "costType": "mana",
+  "cost": 2,
+  "name": {
+   "ru": "Неудачная насмешка",
+   "en": "Failed Mockery"
+  },
+  "desc": {
+   "ru": "Оба игрока сбрасывают по 1 карте",
+   "en": "Both players discard 1 card each"
+  }
+ },
+ {
+  "id": 101,
+  "itemId": "standard_101",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 36,
+  "costType": "mana",
+  "cost": 1,
+  "name": {
+   "ru": "Надоедливый укус",
+   "en": "Annoying Bite"
+  },
+  "desc": {
+   "ru": "Нанесите *1* урона врагу за каждую карту с таким же названием, разыгранную вами в этом матче",
+   "en": "Deal *1* damage to an enemy for each card with the same name you played this match"
+  }
+ },
+ {
+  "id": 102,
+  "itemId": "standard_102",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 36,
+  "costType": "gold",
+  "cost": 1,
+  "atk": 1,
+  "hp": 1,
+  "spd": 3,
+  "name": {
+   "ru": "Канализационная крыса",
+   "en": "Sewer Rat"
+  },
+  "desc": {
+   "ru": "При разыгрывании: возьмите карту. При смерти: оба игрока сбрасывают по 1 карте",
+   "en": "When played: draw a card. On death: both players discard 1 card each"
+  }
+ },
+ {
+  "id": 103,
+  "itemId": "standard_103",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 52,
+  "costType": "gold",
+  "cost": 3,
+  "atk": 2,
+  "hp": 4,
+  "spd": 3,
+  "name": {
+   "ru": "Крысиный король",
+   "en": "Rat King"
+  },
+  "desc": {
+   "ru": "При смерти: заполняет вашу сторону Канализационными крысами",
+   "en": "On death: fills your row with Sewer Rats"
+  }
+ },
+ {
+  "id": 104,
+  "itemId": "standard_104",
+  "type": "charm",
+  "folder": "charm",
+  "token": false,
+  "commander": false,
+  "rarity": 2,
+  "element": 36,
+  "costType": "mana",
+  "cost": 5,
+  "name": {
+   "ru": "Вонючий туман",
+   "en": "Stinky Fog"
+  },
+  "desc": {
+   "ru": "В начале хода: замешайте 1 Вонючее облако в колоду оппонента",
+   "en": "At the start of turn: shuffle 1 Stink Cloud into the opponent's deck"
+  }
+ },
+ {
+  "id": 105,
+  "itemId": "standard_105",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 16,
+  "costType": "gold",
+  "cost": 4,
+  "atk": 3,
+  "hp": 4,
+  "spd": 1,
+  "name": {
+   "ru": "Латентный работяга",
+   "en": "Latent Laborer"
+  },
+  "desc": {
+   "ru": "При смерти: замешайте в колоду случайного работягу, если в колоде нет других работяг",
+   "en": "On death: shuffle a random Laborer into your deck, if there are no other Laborers in your deck"
+  }
+ },
+ {
+  "id": 106,
+  "itemId": "standard_106",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 2,
+  "element": 4,
+  "costType": "gold",
+  "cost": 3,
+  "atk": 1,
+  "hp": 3,
+  "spd": 1,
+  "name": {
+   "ru": "Хранительница рощи",
+   "en": "Grove Keeper"
+  },
+  "desc": {
+   "ru": "При разыгрывании: заполняет вашу сторону существами из колоды стоимостью 2 или меньше",
+   "en": "When played: fills your row with creatures costing 2 or less from your deck"
+  }
+ },
+ {
+  "id": 107,
+  "itemId": "standard_107",
+  "type": "charm",
+  "folder": "charm",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 1,
+  "costType": "mana",
+  "cost": 0,
+  "name": {
+   "ru": "Мракобесие",
+   "en": "Obscurantism"
+  },
+  "desc": {
+   "ru": "В начале хода: получите *3* урона, призовите 1 случайного чёрта",
+   "en": "At the start of turn: take *3* damage, summon 1 random Imp"
+  }
+ },
+ {
+  "id": 108,
+  "itemId": "standard_108",
+  "type": "charm",
+  "folder": "charm",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 1,
+  "costType": "mana",
+  "cost": 2,
+  "name": {
+   "ru": "Ритуальный костёр",
+   "en": "Ritual Bonfire"
+  },
+  "desc": {
+   "ru": "В начале хода: оба игрока получают по *1* урона",
+   "en": "At the start of turn, both players take *1* damage"
+  }
+ },
+ {
+  "id": 109,
+  "itemId": "standard_109",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 1,
+  "costType": "gold",
+  "cost": 1,
+  "atk": 1,
+  "hp": 2,
+  "spd": 2,
+  "name": {
+   "ru": "Чёрт-задира",
+   "en": "Bully Imp"
+  },
+  "desc": {
+   "ru": "При разыгрывании: наносит случайному персонажу *1* урона",
+   "en": "When played: deals *1* damage to a random character"
+  }
+ },
+ {
+  "id": 110,
+  "itemId": "standard_110",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 4,
+  "costType": "gold",
+  "cost": 1,
+  "atk": 0,
+  "hp": 3,
+  "spd": 1,
+  "name": {
+   "ru": "Надоедливый сорняк",
+   "en": "Annoying Weed"
+  },
+  "desc": {
+   "ru": "В начале хода: получает +*1*/+*1*",
+   "en": "At the start of turn: gains +*1*/+*1*"
+  }
+ },
+ {
+  "id": 111,
+  "itemId": "standard_111",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 4,
+  "costType": "mana",
+  "cost": 2,
+  "name": {
+   "ru": "Перегной",
+   "en": "Humus"
+  },
+  "desc": {
+   "ru": "Дайте вашему существу +*2*/+*2*",
+   "en": "Give your creature +*2*/+*2*"
+  }
+ },
+ {
+  "id": 112,
+  "itemId": "standard_112",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 2,
+  "element": 4,
+  "costType": "gold",
+  "cost": 5,
+  "atk": 1,
+  "hp": 8,
+  "spd": 1,
+  "name": {
+   "ru": "Матушка полено",
+   "en": "Mother Log"
+  },
+  "desc": {
+   "ru": "В конце хода: призывает Очередной сорняк 1/1/2",
+   "en": "At the end of turn: summons Another Weed 1/1/2"
+  }
+ },
+ {
+  "id": 113,
+  "itemId": "standard_113",
+  "type": "creature",
+  "folder": "token",
+  "token": true,
+  "commander": false,
+  "rarity": 0,
+  "element": 4,
+  "costType": "gold",
+  "cost": 1,
+  "atk": 1,
+  "hp": 1,
+  "spd": 2,
+  "name": {
+   "ru": "Очередной сорняк",
+   "en": "Another Weed"
+  },
+  "desc": {
+   "ru": "",
+   "en": ""
+  }
+ },
+ {
+  "id": 114,
+  "itemId": "standard_114",
+  "type": "charm",
+  "folder": "charm",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 4,
+  "costType": "mana",
+  "cost": 3,
+  "name": {
+   "ru": "Сезон дождей",
+   "en": "Rainy Season"
+  },
+  "desc": {
+   "ru": "В начале хода: ваши существа получают +*1*/+*1*",
+   "en": "At the start of turn: your creatures gain +*1*/+*1*"
+  }
+ },
+ {
+  "id": 115,
+  "itemId": "standard_115",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 22,
+  "costType": "gold",
+  "cost": 2,
+  "atk": 2,
+  "hp": 2,
+  "spd": 2,
+  "name": {
+   "ru": "Плющ переросток",
+   "en": "Overgrown Ivy"
+  },
+  "desc": {
+   "ru": "При разыгрывании: получает +*1*/+*1* за каждый Сорняк, призванный вами в этом матче",
+   "en": "When played: gains +*1*/+*1* for each Weed you summoned this match"
+  }
+ },
+ {
+  "id": 116,
+  "itemId": "standard_116",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 6,
+  "costType": "mana",
+  "cost": 1,
+  "name": {
+   "ru": "Заполонить сорняками",
+   "en": "Overrun with Weeds"
+  },
+  "desc": {
+   "ru": "Заполните вашу сторону Сорняками 1/1/3, они умрут через *3* хода",
+   "en": "Fill your row with Weeds 1/1/3; they die in *3* turns"
+  }
+ },
+ {
+  "id": 117,
+  "itemId": "standard_117",
+  "type": "creature",
+  "folder": "token",
+  "token": true,
+  "commander": false,
+  "rarity": 0,
+  "element": 4,
+  "costType": "gold",
+  "cost": 1,
+  "atk": 1,
+  "hp": 1,
+  "spd": 3,
+  "name": {
+   "ru": "Сорняк",
+   "en": "Weed"
+  },
+  "desc": {
+   "ru": "",
+   "en": ""
+  }
+ },
+ {
+  "id": 118,
+  "itemId": "standard_118",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 20,
+  "costType": "gold",
+  "cost": 3,
+  "atk": 2,
+  "hp": 4,
+  "spd": 2,
+  "name": {
+   "ru": "Селекционер",
+   "en": "Breeder"
+  },
+  "desc": {
+   "ru": "Пока контролируете: ваши Сорняки получают +*1*/+*2*",
+   "en": "While you control: your Weeds gain +*1*/+*2*"
+  }
+ },
+ {
+  "id": 119,
+  "itemId": "standard_119",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 4,
+  "costType": "mana",
+  "cost": 5,
+  "name": {
+   "ru": "Сбор урожая",
+   "en": "Harvest"
+  },
+  "desc": {
+   "ru": "Получите *1* золота за каждое ваше существо",
+   "en": "Gain *1* gold for each creature you control"
+  }
+ },
+ {
+  "id": 120,
+  "itemId": "standard_120",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 12,
+  "costType": "gold",
+  "cost": 4,
+  "atk": 1,
+  "hp": 5,
+  "spd": 2,
+  "name": {
+   "ru": "Друид в камуфляже",
+   "en": "Camouflaged Druid"
+  },
+  "desc": {
+   "ru": "При разыгрывании: ваши существа получают +*2* к здоровью",
+   "en": "When played: your creatures gain +*2* Health"
+  }
+ },
+ {
+  "id": 121,
+  "itemId": "standard_121",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 20,
+  "costType": "gold",
+  "cost": 3,
+  "atk": 1,
+  "hp": 2,
+  "spd": 1,
+  "name": {
+   "ru": "Собиратель побрякушек",
+   "en": "Trinket Collector"
+  },
+  "desc": {
+   "ru": "При разыгрывании: посмотрите 3 карты зелёного цвета, положите выбранную в руку, она стоит на 2 меньше",
+   "en": "When played: look at 3 green cards, add the chosen one to your hand; it costs 2 less"
+  }
+ },
+ {
+  "id": 122,
+  "itemId": "standard_122",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 18,
+  "costType": "mana",
+  "cost": 2,
+  "name": {
+   "ru": "Воображаемые друзья",
+   "en": "Imaginary Friends"
+  },
+  "desc": {
+   "ru": "Призовите Воображаемого друга Х/Х/Х, где Х — число разыгранных вами карт с этим именем; если в руке есть другая карта с таким названием, разыграйте её",
+   "en": "Summon an Imaginary Friend X/X/X, where X is the number of cards with this name you've played; if you have another card with this name in hand, play it"
+  }
+ },
+ {
+  "id": 123,
+  "itemId": "standard_123",
+  "type": "creature",
+  "folder": "token",
+  "token": true,
+  "commander": false,
+  "rarity": 0,
+  "element": 18,
+  "costType": "gold",
+  "cost": 0,
+  "atk": 0,
+  "hp": 0,
+  "spd": 1,
+  "name": {
+   "ru": "Воображаемый друг",
+   "en": "Imaginary Friend"
+  },
+  "desc": {
+   "ru": "",
+   "en": ""
+  }
+ },
+ {
+  "id": 124,
+  "itemId": "standard_124",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 4,
+  "element": 2,
+  "costType": "mana",
+  "cost": 7,
+  "name": {
+   "ru": "Опять всё самому делать!",
+   "en": "Do It All Myself Again!"
+  },
+  "desc": {
+   "ru": "Если в вашей колоде нет существ, то до конца матча все заклинания разыгрываются дважды",
+   "en": "If your deck has no creatures, then until the end of the match all spells are cast twice"
+  }
+ },
+ {
+  "id": 125,
+  "itemId": "standard_125",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 2,
+  "costType": "mana",
+  "cost": 1,
+  "name": {
+   "ru": "Искорка",
+   "en": "Spark"
+  },
+  "desc": {
+   "ru": "Нанесите *2* урона существу",
+   "en": "Deal *2* damage to a creature"
+  }
+ },
+ {
+  "id": 126,
+  "itemId": "standard_126",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 2,
+  "costType": "mana",
+  "cost": 1,
+  "name": {
+   "ru": "Запойное чтение",
+   "en": "Binge Reading"
+  },
+  "desc": {
+   "ru": "Возьмите *2* карты",
+   "en": "Draw *2* cards"
+  }
+ },
+ {
+  "id": 127,
+  "itemId": "standard_127",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 2,
+  "element": 0,
+  "costType": "mana",
+  "cost": 3,
+  "name": {
+   "ru": "Полезный конспект",
+   "en": "Useful Notes"
+  },
+  "desc": {
+   "ru": "Положите в руку копию последнего разыгранного вами заклинания",
+   "en": "Add a copy of the last spell you played to your hand"
+  }
+ },
+ {
+  "id": 128,
+  "itemId": "standard_128",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 2,
+  "costType": "mana",
+  "cost": 3,
+  "name": {
+   "ru": "Обидчивый гримуар",
+   "en": "Touchy Grimoire"
+  },
+  "desc": {
+   "ru": "Призовите Гримуар 2/2/1 «При смерти: возьмите *1* карту»",
+   "en": "Summon a Grimoire 2/2/1 «On death: draw *1* card»"
+  }
+ },
+ {
+  "id": 129,
+  "itemId": "standard_129",
+  "type": "creature",
+  "folder": "token",
+  "token": true,
+  "commander": false,
+  "rarity": 1,
+  "element": 2,
+  "costType": "gold",
+  "cost": 2,
+  "atk": 2,
+  "hp": 2,
+  "spd": 1,
+  "name": {
+   "ru": "Гримуар",
+   "en": "Grimoire"
+  },
+  "desc": {
+   "ru": "При смерти: возьмите *1* карту",
+   "en": "On death: draw *1* card"
+  }
+ },
+ {
+  "id": 130,
+  "itemId": "standard_130",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 2,
+  "costType": "mana",
+  "cost": 4,
+  "name": {
+   "ru": "Финишер",
+   "en": "Finisher"
+  },
+  "desc": {
+   "ru": "Нанесите *1* урона оппоненту за каждое заклинание, разыгранное вами в этом матче",
+   "en": "Deal *1* damage to the opponent for each spell you played this match"
+  }
+ },
+ {
+  "id": 131,
+  "itemId": "standard_131",
+  "type": "charm",
+  "folder": "charm",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 2,
+  "costType": "mana",
+  "cost": 3,
+  "name": {
+   "ru": "Скучный урок",
+   "en": "Boring Lesson"
+  },
+  "desc": {
+   "ru": "В конце хода: положите в руку случайное заклинание",
+   "en": "At the end of turn: add a random spell to your hand"
+  }
+ },
+ {
+  "id": 132,
+  "itemId": "standard_132",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 2,
+  "costType": "mana",
+  "cost": 1,
+  "name": {
+   "ru": "Книжка-пустышка",
+   "en": "Dummy Book"
+  },
+  "desc": {
+   "ru": "Возьмите карту; если в вашей колоде нет существ, возьмите ещё одну",
+   "en": "Draw a card; if your deck has no creatures, draw another one"
+  }
+ },
+ {
+  "id": 133,
+  "itemId": "standard_133",
+  "type": "charm",
+  "folder": "charm",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 18,
+  "costType": "mana",
+  "cost": 3,
+  "name": {
+   "ru": "Нечищеный источник",
+   "en": "Untapped Spring"
+  },
+  "desc": {
+   "ru": "В начале хода: получите *1* маны за каждую активацию",
+   "en": "At the start of turn: gain *1* mana for each activation"
+  }
+ },
+ {
+  "id": 134,
+  "itemId": "standard_134",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 4,
+  "element": 18,
+  "costType": "mana",
+  "cost": 10,
+  "name": {
+   "ru": "Дежавю",
+   "en": "Déjà Vu"
+  },
+  "desc": {
+   "ru": "Разыграйте копии всех заклинаний, разыгранных вами в этом матче",
+   "en": "Cast copies of all spells you played this match"
+  }
+ },
+ {
+  "id": 135,
+  "itemId": "standard_135",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 23,
+  "costType": "gold",
+  "cost": 7,
+  "atk": 4,
+  "hp": 6,
+  "spd": 2,
+  "name": {
+   "ru": "Шаман — покровитель сорняков",
+   "en": "Weed Patron Shaman"
+  },
+  "desc": {
+   "ru": "В конце хода: наносит *1* урона случайному врагу за каждое ваше существо",
+   "en": "At the end of turn: deals *1* damage to a random enemy for each creature you control"
+  }
+ },
+ {
+  "id": 136,
+  "itemId": "standard_136",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 5,
+  "costType": "mana",
+  "cost": 1,
+  "name": {
+   "ru": "Время кормёжки",
+   "en": "Feeding Time"
+  },
+  "desc": {
+   "ru": "Уничтожьте ваше существо, призовите 2 Павуков 1/1/3",
+   "en": "Destroy your creature, summon 2 Spiders 1/1/3"
+  }
+ },
+ {
+  "id": 137,
+  "itemId": "standard_137",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 5,
+  "costType": "mana",
+  "cost": 5,
+  "name": {
+   "ru": "Почему пауки",
+   "en": "Why Spiders"
+  },
+  "desc": {
+   "ru": "Нанесите *3* урона существам оппонента, призовите Павука 1/1/3 за каждое убитое существо",
+   "en": "Deal *3* damage to enemy creatures, summon a Spider 1/1/3 for each creature killed"
+  }
+ },
+ {
+  "id": 138,
+  "itemId": "standard_138",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 2,
+  "element": 6,
+  "costType": "mana",
+  "cost": 2,
+  "name": {
+   "ru": "Вторая попытка",
+   "en": "Second Try"
+  },
+  "desc": {
+   "ru": "Верните ваше существо в руку, оно станет на 2 меньше",
+   "en": "Return a creature you control to your hand; it costs 2 less"
+  }
+ },
+ {
+  "id": 139,
+  "itemId": "standard_139",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 2,
+  "element": 6,
+  "costType": "mana",
+  "cost": 4,
+  "name": {
+   "ru": "Дикий призыв",
+   "en": "Wild Summon"
+  },
+  "desc": {
+   "ru": "Разыграйте существо из колоды стоимостью 5 или меньше",
+   "en": "Play a creature costing 5 or less from your deck"
+  }
+ },
+ {
+  "id": 140,
+  "itemId": "standard_140",
+  "type": "charm",
+  "folder": "charm",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 4,
+  "costType": "mana",
+  "cost": 3,
+  "name": {
+   "ru": "Бесконтрольная заросль",
+   "en": "Uncontrolled Thicket"
+  },
+  "desc": {
+   "ru": "В начале хода: призовите Сорняк 1/1/2, он погибнет через *3* хода",
+   "en": "At the start of turn: summon a Weed 1/1/2; it dies in *3* turns"
+  }
+ },
+ {
+  "id": 141,
+  "itemId": "standard_141",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 38,
+  "costType": "gold",
+  "cost": 5,
+  "atk": 2,
+  "hp": 6,
+  "spd": 1,
+  "name": {
+   "ru": "Мастер над чарами",
+   "en": "Master of Charms"
+  },
+  "desc": {
+   "ru": "При разыгрывании: посмотрите 3 чары, положите выбранную в руку, она стоит на 1 меньше за каждый раз, когда вы разыграли эту карту",
+   "en": "When played: look at 3 charms, add the chosen one to your hand; it costs 1 less for each time you've played this card"
+  }
+ },
+ {
+  "id": 142,
+  "itemId": "standard_142",
+  "type": "charm",
+  "folder": "charm",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 35,
+  "costType": "gold",
+  "cost": 0,
+  "name": {
+   "ru": "Судный час",
+   "en": "Judgment Hour"
+  },
+  "desc": {
+   "ru": "По завершении: нанесите *10* урона ВСЕМ персонажам",
+   "en": "When it expires: deal *10* damage to ALL characters"
+  }
+ },
+ {
+  "id": 143,
+  "itemId": "standard_143",
+  "type": "charm",
+  "folder": "charm",
+  "token": false,
+  "commander": false,
+  "rarity": 2,
+  "element": 8,
+  "costType": "mana",
+  "cost": 5,
+  "name": {
+   "ru": "Неудачная молитва",
+   "en": "Failed Prayer"
+  },
+  "desc": {
+   "ru": "Каждый раз, когда существо без жёлтого цвета выходит на поле боя, оно получает *3* урона",
+   "en": "Each time a creature without the yellow color enters the battlefield, it takes *3* damage"
+  }
+ },
+ {
+  "id": 144,
+  "itemId": "standard_144",
+  "type": "charm",
+  "folder": "charm",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 5,
+  "costType": "mana",
+  "cost": 2,
+  "name": {
+   "ru": "Плохое варево",
+   "en": "Bad Brew"
+  },
+  "desc": {
+   "ru": "При разыгрывании: восстановите *12* здоровья. В начале хода: получите *3* урона",
+   "en": "When played: restore *12* health. At the start of turn: take *3* damage"
+  }
+ },
+ {
+  "id": 145,
+  "itemId": "standard_145",
+  "type": "charm",
+  "folder": "charm",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 3,
+  "costType": "mana",
+  "cost": 3,
+  "name": {
+   "ru": "Вулканчик из содовой",
+   "en": "Soda Volcano"
+  },
+  "desc": {
+   "ru": "В начале хода: нанесите *1* урона всем существам на поле боя за каждую активацию",
+   "en": "At the start of turn: deal *1* damage to all creatures on the battlefield for each activation"
+  }
+ },
+ {
+  "id": 146,
+  "itemId": "standard_146",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 12,
+  "costType": "mana",
+  "cost": 4,
+  "name": {
+   "ru": "Первая помощь",
+   "en": "First Aid"
+  },
+  "desc": {
+   "ru": "Восстановите *3* здоровья, замешайте в колоду 3 карты «Ещё одна первая помощь»",
+   "en": "Restore *3* health, shuffle 3 Another First Aid cards into your deck"
+  }
+ },
+ {
+  "id": 147,
+  "itemId": "standard_147",
+  "type": "spell",
+  "folder": "token",
+  "token": true,
+  "commander": false,
+  "rarity": 0,
+  "element": 0,
+  "costType": "mana",
+  "cost": 0,
+  "name": {
+   "ru": "Ещё одна первая помощь",
+   "en": "Another First Aid"
+  },
+  "desc": {
+   "ru": "При взятии: восстановите *3* здоровья",
+   "en": "When drawn: restore *3* health"
+  }
+ },
+ {
+  "id": 148,
+  "itemId": "standard_148",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 22,
+  "costType": "gold",
+  "cost": 1,
+  "atk": 2,
+  "hp": 2,
+  "spd": 2,
+  "name": {
+   "ru": "Лесная милфа",
+   "en": "Forest MILF"
+  },
+  "desc": {
+   "ru": "При разыгрывании: восстанавливает *3* здоровья и даёт *3* маны",
+   "en": "When played: restores *3* health and gives *3* mana"
+  }
+ },
+ {
+  "id": 149,
+  "itemId": "standard_149",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 37,
+  "costType": "gold",
+  "cost": 7,
+  "atk": 2,
+  "hp": 6,
+  "spd": 1,
+  "name": {
+   "ru": "Голодный повар",
+   "en": "Hungry Cook"
+  },
+  "desc": {
+   "ru": "При разыгрывании: уничтожает существо оппонента на поле боя, в руке и в колоде",
+   "en": "When played: destroys an enemy creature on the battlefield, in hand, and in the deck"
+  }
+ },
+ {
+  "id": 150,
+  "itemId": "standard_150",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 52,
+  "costType": "gold",
+  "cost": 5,
+  "atk": 2,
+  "hp": 2,
+  "spd": 1,
+  "name": {
+   "ru": "Обжора",
+   "en": "Glutton"
+  },
+  "desc": {
+   "ru": "Получает +*2*/+*2* за каждые ваши чары",
+   "en": "Gains +*2*/+*2* for each charm you control"
+  }
+ },
+ {
+  "id": 151,
+  "itemId": "standard_151",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 4,
+  "element": 6,
+  "costType": "gold",
+  "cost": 10,
+  "atk": 6,
+  "hp": 8,
+  "spd": 2,
+  "name": {
+   "ru": "Мистер Постоянство",
+   "en": "Mister Persistence"
+  },
+  "desc": {
+   "ru": "При разыгрывании: разыгрывает все чары, разыгранные вами в этом матче",
+   "en": "When played: casts all charms you played this match"
+  }
+ },
+ {
+  "id": 152,
+  "itemId": "standard_152",
+  "type": "creature",
+  "folder": "creature",
+  "token": false,
+  "commander": false,
+  "rarity": 3,
+  "element": 53,
+  "costType": "gold",
+  "cost": 1,
+  "atk": 2,
+  "hp": 2,
+  "spd": 2,
+  "name": {
+   "ru": "Стукач",
+   "en": "Informer"
+  },
+  "desc": {
+   "ru": "При смерти: призывает из колоды самое слабое существо",
+   "en": "On death: summons the weakest creature from your deck"
+  }
+ },
+ {
+  "id": 153,
+  "itemId": "standard_153",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 2,
+  "element": 35,
+  "costType": "mana",
+  "cost": 7,
+  "name": {
+   "ru": "Прикурить",
+   "en": "Light Up"
+  },
+  "desc": {
+   "ru": "Уничтожьте случайное существо оппонента на поле боя, в руке и в колоде",
+   "en": "Destroy a random enemy creature on the battlefield, in hand, and in the deck"
+  }
+ },
+ {
+  "id": 154,
+  "itemId": "standard_154",
+  "type": "spell",
+  "folder": "spell",
+  "token": false,
+  "commander": false,
+  "rarity": 2,
+  "element": 6,
+  "costType": "mana",
+  "cost": 5,
+  "name": {
+   "ru": "Дополнительная возможность",
+   "en": "Extra Opportunity"
+  },
+  "desc": {
+   "ru": "Посмотрите 3 заклинания, выберите 1 и разыграйте его, затем замешайте 3 его копии в колоду",
+   "en": "Look at 3 spells, choose 1 and cast it, then shuffle 3 copies of it into your deck"
+  }
+ },
+ {
+  "id": 155,
+  "itemId": "standard_155",
+  "type": "charm",
+  "folder": "charm",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 3,
+  "costType": "mana",
+  "cost": 4,
+  "name": {
+   "ru": "Сотворение чудес",
+   "en": "Working Miracles"
+  },
+  "desc": {
+   "ru": "В начале хода: разыграйте случайное заклинание",
+   "en": "At the start of turn: cast a random spell"
+  }
+ },
+ {
+  "id": 156,
+  "itemId": "standard_156",
+  "type": "charm",
+  "folder": "charm",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 4,
+  "costType": "mana",
+  "cost": 1,
+  "name": {
+   "ru": "Профсоюзное знамя",
+   "en": "Union Banner"
+  },
+  "desc": {
+   "ru": "Ваши существа получают *+1* к скорости",
+   "en": "Your creatures gain *+1* speed"
+  }
+ },
+ {
+  "id": 157,
+  "itemId": "standard_157",
+  "type": "charm",
+  "folder": "charm",
+  "token": false,
+  "commander": false,
+  "rarity": 0,
+  "element": 1,
+  "costType": "mana",
+  "cost": 2,
+  "name": {
+   "ru": "Сглаз",
+   "en": "Evil Eye"
+  },
+  "desc": {
+   "ru": "В начале хода: наносит *1* урона случайному существу оппонента",
+   "en": "At the start of turn: deals *1* damage to a random enemy creature"
+  }
+ },
+ {
+  "id": 158,
+  "itemId": "standard_158",
+  "type": "charm",
+  "folder": "charm",
+  "token": false,
+  "commander": false,
+  "rarity": 2,
+  "element": 34,
+  "costType": "mana",
+  "cost": 3,
+  "name": {
+   "ru": "Чёрная бухгалтерия",
+   "en": "Shady Bookkeeping"
+  },
+  "desc": {
+   "ru": "В начале хода: уничтожает случайную карту из колоды оппонента",
+   "en": "At the start of turn: destroys a random card from the opponent's deck"
+  }
+ },
+ {
+  "id": 159,
+  "itemId": "standard_159",
+  "type": "charm",
+  "folder": "charm",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 16,
+  "costType": "mana",
+  "cost": 3,
+  "name": {
+   "ru": "Займ под проценты",
+   "en": "High-Interest Loan"
+  },
+  "desc": {
+   "ru": "В начале хода: даёт *2* золота",
+   "en": "At the start of turn: gain *2* gold"
+  }
+ },
+ {
+  "id": 160,
+  "itemId": "standard_160",
+  "type": "charm",
+  "folder": "charm",
+  "token": false,
+  "commander": false,
+  "rarity": 2,
+  "element": 32,
+  "costType": "mana",
+  "cost": 4,
+  "name": {
+   "ru": "Порча",
+   "en": "Hex"
+  },
+  "desc": {
+   "ru": "В начале хода: оппонент сбрасывает случайную карту",
+   "en": "At the start of turn: the opponent discards a random card"
+  }
+ },
+ {
+  "id": 161,
+  "itemId": "standard_161",
+  "type": "charm",
+  "folder": "charm",
+  "token": false,
+  "commander": false,
+  "rarity": 2,
+  "element": 6,
+  "costType": "mana",
+  "cost": 6,
+  "name": {
+   "ru": "Дупликатор",
+   "en": "Duplicator"
+  },
+  "desc": {
+   "ru": "В начале хода: замешивает копию случайной карты из вашей руки в колоду",
+   "en": "At the start of turn: shuffles a copy of a random card from your hand into your deck"
+  }
+ },
+ {
+  "id": 162,
+  "itemId": "standard_162",
+  "type": "charm",
+  "folder": "charm",
+  "token": false,
+  "commander": false,
+  "rarity": 1,
+  "element": 20,
+  "costType": "mana",
+  "cost": 3,
+  "name": {
+   "ru": "Вербовка",
+   "en": "Recruitment"
+  },
+  "desc": {
+   "ru": "В начале хода: призывает самое дешёвое существо из вашей колоды",
+   "en": "At the start of turn: summons the cheapest creature from your deck"
+  }
+ },
+ {
+  "id": 163,
+  "itemId": "standard_163",
+  "type": "charm",
+  "folder": "charm",
+  "token": false,
+  "commander": false,
+  "rarity": 2,
+  "element": 16,
+  "costType": "mana",
+  "cost": 3,
+  "name": {
+   "ru": "Страховка",
+   "en": "Insurance"
+  },
+  "desc": {
+   "ru": "Когда вы получаете урон на своём ходу: возьмите карту",
+   "en": "When you take damage during your turn: draw a card"
+  }
+ }
+]

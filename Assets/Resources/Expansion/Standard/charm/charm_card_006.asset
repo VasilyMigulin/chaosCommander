@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
   m_Name: charm_card_006
   m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
   CardData:
     rid: 1051486567619101084
   references:
@@ -34,12 +35,16 @@ MonoBehaviour:
         PlayCost: 1
         PlayCostAmount: 5
         IsToken: 0
+        ShowAsLinked: 0
         MulliganStartingHand: 0
         MulliganUnlimitedReplace: 0
         RuntimeAbilities:
         - rid: 1051486567619101085
         Archetypes: []
+        TierSource: 0
+        Tiers: []
         TurnsAlive: 5
+        TickMoment: 1
     - rid: 1051486567619101085
       type: {class: AbilityNonTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
@@ -48,12 +53,15 @@ MonoBehaviour:
         Rules: []
         Effects:
         - rid: 1051486567619101087
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
         Vfx:
           Kind: 0
           Prefab: {fileID: 0}
           HitPrefab: {fileID: 0}
           ProjectileSpeed: 12
           MergeArea: 0
+          PlayCasterAnimation: 0
     - rid: 1051486567619101086
       type: {class: OnDieTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
@@ -62,4 +70,5 @@ MonoBehaviour:
       data:
         ConditionRoot:
           rid: -2
+        SummonModifiers: []
         Source: {fileID: 11400000, guid: 02266628693efc44b815be327a827901, type: 2}

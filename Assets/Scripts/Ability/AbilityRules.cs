@@ -56,6 +56,18 @@ namespace Game.Core.Ability
             => world.GetPool<BoardTag>().Has(cardEntity);
     }
 
+    // === class (OOP) === Источник ЖИВ: на поле И без DeadTag. Отличие от SourceOnBoardRule — исключает уже
+    // помеченного на смерть: при летальном уроне DeadTag ставится синхронно (в ApplyDamage сразу после
+    // CreatureDamagedEvent), а BoardTag снимет DieSystem позже, к моменту резолва способности он ещё висит.
+    // Нужен для «если ВЫЖИЛ»: Местный браток (OnTakeDamage) призывает копию, только пережив урон — иначе
+    // погибший тоже плодил бы копию, и существо стало бы неубиваемым генератором.
+    [Serializable]
+    public sealed class SourceAliveRule : IRule
+    {
+        public bool Evaluate(EcsWorld world, int cardEntity, int playerEntity)
+            => world.GetPool<BoardTag>().Has(cardEntity) && !world.GetPool<DeadTag>().Has(cardEntity);
+    }
+
     // === class (OOP) === Источник в руке.
     [Serializable]
     public sealed class SourceInHandRule : IRule

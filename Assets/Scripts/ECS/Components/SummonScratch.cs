@@ -24,9 +24,13 @@ namespace Game.Core.Ecs.Components
         public static void Clear() { Summoned.Clear(); _claimedCells.Clear(); }
         public static void Add(int entity) => Summoned.Add(entity);
 
-        static long CellKey(int ownerId, int col) => ((long)ownerId << 8) | (uint)(col & 0xFF);
-        public static bool IsCellClaimed(int ownerId, int col) => _claimedCells.Contains(CellKey(ownerId, col));
-        public static void ClaimCell(int ownerId, int col) => _claimedCells.Add(CellKey(ownerId, col));
+        // (ownerId,row,col): ряд в ключе — «заполнить сторону» (задний ряд) не должно конфликтовать резервами
+        // с фронтом той же колонки. Перегрузки без row — легаси-фронт (row 0 = BoardFrontRow.FrontRow).
+        static long CellKey(int ownerId, int row, int col) => ((long)ownerId << 16) | (uint)((row & 0xFF) << 8) | (uint)(col & 0xFF);
+        public static bool IsCellClaimed(int ownerId, int col) => IsCellClaimed(ownerId, 0, col);
+        public static bool IsCellClaimed(int ownerId, int row, int col) => _claimedCells.Contains(CellKey(ownerId, row, col));
+        public static void ClaimCell(int ownerId, int col) => ClaimCell(ownerId, 0, col);
+        public static void ClaimCell(int ownerId, int row, int col) => _claimedCells.Add(CellKey(ownerId, row, col));
     }
 
     /// <summary>

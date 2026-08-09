@@ -1,0 +1,154 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: charm_card_001
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
+  CardData:
+    rid: 2419360282373260026
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 2419360282373260026
+      type: {class: CardCharmModel, ns: Game.Core.Model.Card.Charm, asm: Game.Core.Model.Card.Charm}
+      data:
+        Id: 4
+        Name: "\u041A\u043E\u0440\u043E\u043B\u0435\u0432\u0441\u043A\u0438\u0439
+          \u0448\u0430\u0440\u043C"
+        Description: "\u0421\u0443\u0449\u0435\u0441\u0442\u0432\u0430 \u043E\u043F\u043F\u043E\u043D\u0435\u043D\u0442\u0430
+          \u043F\u043E\u043B\u0443\u0447\u0430\u044E\u0442 -1/-1, \u0432\u0430\u0448\u0438
+          \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0430 \u043F\u043E\u043B\u0443\u0447\u0430\u044E\u0442
+          +1/+1"
+        Rarity: 1
+        Element: 48
+        ArtImage: {fileID: 0}
+        ExpansionId: stolen_princess
+        PlayCost: 1
+        PlayCostAmount: 2
+        IsToken: 0
+        ShowAsLinked: 0
+        MulliganStartingHand: 0
+        MulliganUnlimitedReplace: 0
+        RuntimeAbilities:
+        - rid: 2419360282373260027
+        - rid: 2419360282373260034
+        Archetypes: []
+        TierSource: 0
+        Tiers: []
+        TurnsAlive: 5
+        TickMoment: 1
+    - rid: 2419360282373260027
+      type: {class: AbilityToField, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 2419360282373260028
+        - rid: 2419360282373260029
+        Rules: []
+        Effects:
+        - rid: 2419360282373260030
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 0}
+          ProjectileSpeed: 12
+          MergeArea: 0
+          PlayCasterAnimation: 0
+        Area: 0
+        Zone: 0
+        Filters:
+        - rid: 2419360282373260032
+        - rid: 2419360282373260033
+    - rid: 2419360282373260028
+      type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2419360282373260029
+      type: {class: OnCreatureInvokedTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        AllowFromAnyZone: 0
+    - rid: 2419360282373260030
+      type: {class: AddBuffEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        Buff:
+          rid: 2419360282373260031
+        Tracked: 1
+        RevertOnSourceDeath: 1
+    - rid: 2419360282373260031
+      type: {class: BuffStat, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Attack: 1
+        Health: 1
+        Speed: 0
+        Permanent: 0
+    - rid: 2419360282373260032
+      type: {class: AllyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2419360282373260033
+      type: {class: NotSelfTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2419360282373260034
+      type: {class: AbilityToField, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 2419360282373260035
+        - rid: 2419360282373260036
+        Rules: []
+        Effects:
+        - rid: 2419360282373260037
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 0}
+          ProjectileSpeed: 12
+          MergeArea: 0
+          PlayCasterAnimation: 0
+        Area: 0
+        Zone: 0
+        Filters:
+        - rid: 2419360282373260039
+        - rid: 2419360282373260040
+    - rid: 2419360282373260035
+      type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2419360282373260036
+      type: {class: OnCreatureInvokedTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        AllowFromAnyZone: 0
+    - rid: 2419360282373260037
+      type: {class: AddBuffEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        Buff:
+          rid: 2419360282373260038
+        Tracked: 1
+        RevertOnSourceDeath: 1
+    - rid: 2419360282373260038
+      type: {class: BuffStat, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Attack: -1
+        Health: -1
+        Speed: 0
+        Permanent: 0
+    - rid: 2419360282373260039
+      type: {class: EnemyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2419360282373260040
+      type: {class: NotSelfTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 

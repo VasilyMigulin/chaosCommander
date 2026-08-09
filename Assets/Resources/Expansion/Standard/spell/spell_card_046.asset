@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
   m_Name: spell_card_046
   m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
   CardData:
     rid: 2419359952424665391
   references:
@@ -36,11 +37,14 @@ MonoBehaviour:
         PlayCost: 1
         PlayCostAmount: 4
         IsToken: 0
-        MulliganStartingHand: 0
-        MulliganUnlimitedReplace: 0
+        ShowAsLinked: 0
+        HideAsLinked: 0
+        NonBattleAbilities: []
         RuntimeAbilities:
         - rid: 2419359952424665392
         Archetypes: []
+        TierSource: 0
+        Tiers: []
         RequiresTarget: 0
     - rid: 2419359952424665392
       type: {class: AbilityToTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
@@ -50,18 +54,22 @@ MonoBehaviour:
         Rules: []
         Effects:
         - rid: 2419359952424665395
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
         Vfx:
           Kind: 0
           Prefab: {fileID: 0}
-          HitPrefab: {fileID: 0}
+          HitPrefab: {fileID: 1883610838541854, guid: aa72280b4bb67cb468b0ffc37bcfc9c0, type: 3}
           ProjectileSpeed: 12
           MergeArea: 0
+          PlayCasterAnimation: 0
         Selection: 0
         Count: 1
         Zone: 0
         OfferCount: 3
         Filters:
         - rid: 2419359952424665393
+        IncludeCommanderInZones: 0
     - rid: 2419359952424665393
       type: {class: OpponentTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
@@ -75,6 +83,7 @@ MonoBehaviour:
           rid: -2
         Source: 10
         FixedCount: 1
+        ShowCountInDescription: 0
         CountCard: {fileID: 0}
         Archetype:
           rid: -2

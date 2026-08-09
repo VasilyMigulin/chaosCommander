@@ -832,6 +832,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
+--- !u!114 &1101797818900800202 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6514735831582923973, guid: 18590e748cd6a6e428842617eed1d81b, type: 3}
+  m_PrefabInstance: {fileID: 6134644861734993423}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
 --- !u!224 &2429339551825803547 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 8400371693150897940, guid: 18590e748cd6a6e428842617eed1d81b, type: 3}
@@ -859,6 +870,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5dcbf84dea4b8df4cb6d305670373d4e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: AwesomeUI.Core.Card::AwesomeUI.Core.Card.CardHighlightEffect
+--- !u!1 &3394241314631772381 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8806901778755311314, guid: 18590e748cd6a6e428842617eed1d81b, type: 3}
+  m_PrefabInstance: {fileID: 6134644861734993423}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &3613691370047016850 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 7423282214813544861, guid: 18590e748cd6a6e428842617eed1d81b, type: 3}
@@ -985,6 +1001,16 @@ MonoBehaviour:
   _attackText: {fileID: 1074154502132762410}
   _healthText: {fileID: 6328553065445051733}
   _speedText: {fileID: 7411539948190360755}
+  _tierBanner: {fileID: 3394241314631772381}
+  _tierText: {fileID: 1101797818900800202}
+  _buffColor: {r: 0.35, g: 1, b: 0.35, a: 1}
+  _debuffColor: {r: 1, g: 0.35, b: 0.35, a: 1}
+  _statPunchScale: 0.35
+  _statPunchDuration: 0.3
+  _punchTarget: {fileID: 0}
+  _cardPunchScale: 0.18
+  _cardPunchDuration: 0.35
+  _affectVfx: []
   _holdInspectEnabled: 1
   _holdThreshold: 0.45
   _counterText: {fileID: 5249811122584087539}

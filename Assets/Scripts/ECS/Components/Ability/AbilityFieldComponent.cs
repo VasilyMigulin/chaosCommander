@@ -13,5 +13,10 @@ namespace Game.Core.Ecs.Components
         public FieldArea Area;
         public TargetZone Zone;        // откуда брать кандидатов (Board по умолчанию)
         public ITargetFilter[] Filters;
+
+        /// <summary>Включать КОМАНДИРА в выборку из НЕ-Board зон (в Board он и так входит). По умолчанию
+        /// false — командир неуязвим к дискарду/миллу/краже. true — для БЛАГОТВОРНЫХ способностей
+        /// («Прямо пойдешь»: свои существа получают +1/+1/+1 ГДЕ БЫ НИ БЫЛИ — командир в руке тоже).</summary>
+        public bool IncludeCommanderInZones;
     }
 }

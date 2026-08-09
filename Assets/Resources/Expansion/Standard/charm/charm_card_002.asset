@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
   m_Name: charm_card_002
   m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
   CardData:
     rid: 1051486497689043205
   references:
@@ -35,12 +36,16 @@ MonoBehaviour:
         PlayCost: 1
         PlayCostAmount: 3
         IsToken: 0
+        ShowAsLinked: 0
         MulliganStartingHand: 0
         MulliganUnlimitedReplace: 0
         RuntimeAbilities:
         - rid: 1051486497689043209
         Archetypes: []
+        TierSource: 0
+        Tiers: []
         TurnsAlive: 3
+        TickMoment: 0
     - rid: 1051486497689043209
       type: {class: AbilityToField, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
@@ -50,6 +55,15 @@ MonoBehaviour:
         Rules: []
         Effects:
         - rid: 1051486497689043215
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 0}
+          ProjectileSpeed: 12
+          MergeArea: 0
+          PlayCasterAnimation: 0
         Area: 0
         Zone: 0
         Filters:
@@ -60,7 +74,8 @@ MonoBehaviour:
       data: 
     - rid: 1051486497689043211
       type: {class: OnCreatureInvokedTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
-      data: 
+      data:
+        AllowFromAnyZone: 0
     - rid: 1051486497689043213
       type: {class: NotSelfTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
@@ -76,3 +91,4 @@ MonoBehaviour:
         HealthBonus: 2
         SpeedBonus: 0
         RevertOnSourceDeath: 1
+        Stack: 0

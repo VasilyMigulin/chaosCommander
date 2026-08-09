@@ -22,11 +22,12 @@ namespace Game.Core.States
 
         public CardInstanceData[] TestingLibrary;
 
-        [Tooltip("REVIEW-СБОРКА (для издателя): при ОБЫЧНОМ входе через облако разблокировать ВСЮ коллекцию " +
-                 "локально — в максимуме копий под лимиты колоды (комон 4/рарка 3/эпик 2/лега 1/экзот 1), чтобы " +
-                 "сразу собирать любые колоды. Бэкенд/PvP/экономика работают как обычно. В отличие от " +
-                 "TestingLibrary руками карты тащить не нужно — весь пул берётся из CardConfig. НЕ включай в прод!")]
-        public bool UnlockFullCollection;
+        [Tooltip("REVIEW-СБОРКА (для издателя): единый флаг. (1) Разблокирует ВСЮ коллекцию локально — в " +
+                 "максимуме копий под лимиты колоды, чтобы сразу собирать любые колоды (пул из CardConfig). " +
+                 "(2) На сервере помечает аккаунт как review (тег review_account + флаг с датой — для последующей " +
+                 "чистки/удаления в Game Manager) и выдаёт 100 бустеров, чтобы издатель проверил открытие. " +
+                 "Серверная часть гейтится Title Data reviewSetup=true. Бэкенд/PvP/экономика — как обычно. НЕ в прод!")]
+        public bool IsReviewBuild;
 
         [Tooltip("Пресеты тест-колод (Create → Game → Deck Preset): собери несколько и переключай индексом ниже. " +
                  "Библиотека автоматически пополняется картами активного пресета.")]
@@ -217,9 +218,16 @@ namespace Game.Core.States
             // Затем грузим колоды. Любой сбой не блокирует вход в меню (см. BackendSession).
             BackendSession.Initialize(CardConfig, onDone: () =>
             {
-                // REVIEW-СБОРКА: разблокировать всю коллекцию ПОВЕРХ реального инвентаря (после логина, до
-                // загрузки колод — чтобы Prune не срезал деки). Локально, сервер/владение не трогаем.
-                if (UnlockFullCollection) PlayerLibrary.FillFullCollection(CardConfig);
+                // REVIEW-СБОРКА: (1) вся коллекция ПОВЕРХ реального инвентаря (после логина, до загрузки колод —
+                // чтобы Prune не срезал деки); локально. (2) сервер: пометить аккаунт review + выдать 100 бустеров
+                // (реальный инвентарь — проверить открытие). Фоновый вызов, вход в меню не блокирует.
+                if (IsReviewBuild)
+                {
+                    PlayerLibrary.FillFullCollection(CardConfig);
+                    ReviewService.SetupReviewAccount(
+                        r => Debug.Log($"[Review] аккаунт помечен, бустеров +{(r != null ? r.BoostersGranted : 0)} ({(r != null ? r.Reason : "?")})"),
+                        e => Debug.LogWarning($"[Review] setup failed: {e}"));
+                }
 
                 DeckStorage.LoadAll(
                     onSuccess: _ => GoToMenu(),

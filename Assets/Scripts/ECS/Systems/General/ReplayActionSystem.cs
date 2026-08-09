@@ -54,6 +54,8 @@ namespace Game.Core.Ecs.Systems
         readonly EcsFilterInject<Inc<AttackAnimPendingTag>> _animFilter = default;
         readonly EcsFilterInject<Inc<AbilityCastPendingComponent>> _castPendingFilter = default;
 
+        float _nextActionAt;   // не берём следующее действие из очереди раньше этого времени (ActionPacing)
+
         // Отложенные модификаторы призыва: применяем к призванным сущностям, когда те появятся
         // (родительский ActionAbilityData приходит раньше ActionCastData призванного).
         readonly List<PendingSummonMod> _pendingMods = new List<PendingSummonMod>();
@@ -78,6 +80,9 @@ namespace Game.Core.Ecs.Systems
             if (_movingFilter.Value.GetEntitiesCount() > 0) return;
             if (_animFilter.Value.GetEntitiesCount() > 0) return;
             if (_castPendingFilter.Value.GetEntitiesCount() > 0) return;   // снаряд в полёте — ждём прилёта
+
+            // Базовая пауза между реплеем соседних действий — читаемость (не «мешанина» за 1-2 кадра).
+            if (Time.time < _nextActionAt) return;
 
             if (!ActionQueue.TryDequeue(out IActionData action)) return;   // одно за кадр, по порядку
 
@@ -114,6 +119,8 @@ namespace Game.Core.Ecs.Systems
             {
                 Debug.LogError($"[Replay] failed to process {action?.GetType().Name}: {e}");
             }
+
+            _nextActionAt = Time.time + ActionPacing.GapSeconds;   // пауза перед следующим действием реплея
         }
 
         // ── Handlers ──────────────────────────────────────────────────────────
@@ -124,6 +131,43 @@ namespace Game.Core.Ecs.Systems
             {
                 Debug.LogError($"[ReplayActionSystem] Cast: card not found '{s.SourceEntityKey}' — desync");
                 return;
+            }
+
+            // АЛЬТЕРНАТИВНАЯ УПЛАТА (Букмекер и семейство): актив заплатил не ресурсом — зеркалим:
+            // тратим заряд маркера (его поставил ре-ран инсталл-эффекта) и повторяем уплату: урон
+            // владельцу (DamageSelf) или те же жертвы по ключам (discard/sacrifice/mill).
+            // -1 = обычная оплата (ресурсы оппонента пассив не симулирует).
+            if (s.AltPaidKind >= 0)
+            {
+                int altPlayer = -1;
+                var pp = _world.Value.GetPool<PlayerComponent>();
+                int cardOwnerId = OwnerId(card);
+                foreach (var pe in _world.Value.Filter<PlayerComponent>().End())
+                    if (pp.Get(pe).PlayerId == cardOwnerId) { altPlayer = pe; break; }
+                if (altPlayer >= 0)
+                {
+                    if (_world.Value.GetPool<AltCostComponent>().Has(altPlayer))
+                        AltCostUtil.ConsumeCharge(_world.Value, altPlayer);
+
+                    var kind = (AltCostKind)s.AltPaidKind;
+                    if (kind == AltCostKind.DamageSelf)
+                    {
+                        AltCostUtil.DamageSelf(_world.Value, altPlayer, card, s.AltPaidAmount);
+                    }
+                    else if (s.AltPaidKeys != null)
+                    {
+                        foreach (var key in s.AltPaidKeys)
+                        {
+                            if (!_state.Value.TryGetEntity(key, out int victim)) continue;
+                            switch (kind)
+                            {
+                                case AltCostKind.DiscardHand:       AltCostUtil.Discard(_world.Value, victim);   break;
+                                case AltCostKind.SacrificeCreature: AltCostUtil.Sacrifice(_world.Value, victim); break;
+                                case AltCostKind.MillDeck:          AltCostUtil.Mill(_world.Value, victim);      break;
+                            }
+                        }
+                    }
+                }
             }
 
             // Размещаем БЕЗ InvokeEvent/CardCastEvent (триггеров на пассиве нет; эффекты — из ActionAbilityData).
@@ -181,7 +225,9 @@ namespace Game.Core.Ecs.Systems
                 CardName      = cName,
                 Icon          = cIcon,
                 Visual        = visual,
-                IsLocalPlayer = false,   // ReplayCast — ВСЕГДА реплей ЧУЖОГО хода (по определению пассива)
+                // Реплей идёт в ЧУЖОЙ ход, но карта может быть НАШЕЙ: симулятор форс-кастует зеркало
+                // нашей карты (Попойка с добора в его ход) и присылает каст нам же на реплей.
+                IsLocalPlayer = _ownCardPool.Value.Has(card),
             });
         }
 
@@ -298,6 +344,9 @@ namespace Game.Core.Ecs.Systems
             if (!_queuedPool.Value.Has(abilityEntity)) _queuedPool.Value.Add(abilityEntity);
             ref var q = ref _queuedPool.Value.Get(abilityEntity);
             q.Targets = targets.ToArray();
+            // Реплей впрыскивает способности ПО ОДНОЙ в порядке актива → кадры растут → порядок сохраняется.
+            // Иерархию реакций пассиву воспроизводить не нужно: он не сортирует, а повторяет готовый порядок.
+            q.Key = ActivationKey.Root(Time.frameCount, 0, 0);
             // Недетерм. генерация: кладём присланные активом идентичности — RunResolveAbilityQueueSystem
             // загрузит их в GeneratedCardChannel перед применением, эффект возьмёт вместо своего ролла.
             q.GeneratedExps = s.GeneratedExpansionIds;

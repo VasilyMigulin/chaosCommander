@@ -17,6 +17,13 @@ namespace Game.Core.Ecs.Systems
     {
         const int CharmLimit = 5;   // максимум чар под контролем игрока
 
+        // Геометрия ряда призыва — как в RunSelectCellBoardSystem/BoardFrontRow: row 0 своей стороны,
+        // порядок заполнения от центра наружу. Свой экземпляр, потому что BoardFrontRow живёт в сборке
+        // Game.Core.Ability, на которую сборка систем не ссылается.
+        const int FrontRow  = 0;
+        const int BoardCols = 5;
+        static readonly int[] ColOrder = { 2, 1, 3, 0, 4 };
+
         public void Run(IEcsSystems systems)
         {
             var world = systems.GetWorld();
@@ -48,12 +55,14 @@ namespace Game.Core.Ecs.Systems
                 int player = FindPlayer(world, playerPool, ownerPool, card);
                 if (player < 0) continue;
 
-                // Гейт хода: карты разыгрывает ТОЛЬКО игрок, чей сейчас ход. «Чей ход» = ActiveState ИЛИ
+                // Гейт хода: РУЧНОЙ розыгрыш — только игрок, чей сейчас ход. «Чей ход» = ActiveState ИЛИ
                 // каскад начала/конца (StartTurnState/EndTurnState) — иначе ФОРС-ПЛЕЙ с добора на старте хода
                 // (OnDrawForcePlay: Подстава/Вонючее облако) отклонялся, т.к. ActiveState вешается лишь ПОСЛЕ
                 // оседания каскада. А PlayCardUtil уже снял карту из руки → токен зависал в лимбе (без каста,
                 // без синка) → фантом в зеркале руки у оппонента. Пассив ни одного из стейтов не имеет → заблокирован.
-                if (!activeStatePool.Has(player) && !startStatePool.Has(player) && !endStatePool.Has(player))
+                // FREE каст (форс от эффекта/триггера, не рукой игрока) гейт хода НЕ применяет: deathrattle-
+                // заклинания (Королевская пиньята) срабатывают при смерти В ЛЮБОЙ ход, в т.ч. чужой — иначе Decline.
+                if (!free && !activeStatePool.Has(player) && !startStatePool.Has(player) && !endStatePool.Has(player))
                 {
                     Decline(declinePool, card, DeclineReason.Unknown);
                     continue;
@@ -77,15 +86,95 @@ namespace Game.Core.Ecs.Systems
                     continue;
                 }
 
-                if (!free && !TryPayCost(world, card, player, out var reason))
+                if (!free)
                 {
-                    Decline(declinePool, card, reason);
-                    continue;
+                    if (world.GetPool<AltCostComponent>().Has(player))
+                    {
+                        // АЛЬТЕРНАТИВНАЯ УПЛАТА (семейство «Бесчестный букмекер»): ресурс НЕ списываем,
+                        // вместо него уплата по виду маркера. Жертвы роллит АКТИВ (пассиву едут ключами в
+                        // ActionCastData.AltPaid*). Это СТОИМОСТЬ: нечем платить (нет карты для сброса/
+                        // существа/карт в колоде) → каст отклоняется, как без маны; заряд НЕ тратится.
+                        if (!AltCostUtil.CanPay(world, world.GetPool<AltCostComponent>().Get(player).Kind, ownerId, card))
+                        {
+                            Decline(declinePool, card, DeclineReason.NoAltCostPayment);
+                            continue;
+                        }
+                        var kind = AltCostUtil.ConsumeCharge(world, player);
+                        int amount = 0;
+                        string[] keys = null;
+                        switch (kind)
+                        {
+                            case AltCostKind.DamageSelf:
+                                // Урон себе на эффективную стоимость: штатный пайплайн → Вуду-редирект/
+                                // пейн-триггеры работают (задумка архетипа); суицид разрешён.
+                                amount = EffectiveCost(world, card, player);
+                                AltCostUtil.DamageSelf(world, player, card, amount);
+                                break;
+                            case AltCostKind.DiscardHand:
+                            {
+                                int victim = AltCostUtil.RollOwnHandCard(world, ownerId, exclude: card);
+                                if (victim >= 0) { AltCostUtil.Discard(world, victim); keys = new[] { NetKeyOf(world, victim) }; }
+                                break;
+                            }
+                            case AltCostKind.SacrificeCreature:
+                            {
+                                int victim = AltCostUtil.RollOwnBoardCreature(world, ownerId);
+                                if (victim >= 0) { AltCostUtil.Sacrifice(world, victim); keys = new[] { NetKeyOf(world, victim) }; }
+                                break;
+                            }
+                            case AltCostKind.MillDeck:
+                            {
+                                int victim = AltCostUtil.RollOwnDeckCard(world, ownerId);
+                                if (victim >= 0) { AltCostUtil.Mill(world, victim); keys = new[] { NetKeyOf(world, victim) }; }
+                                break;
+                            }
+                        }
+
+                        var paidPool = world.GetPool<AltPaidComponent>();
+                        if (!paidPool.Has(card)) paidPool.Add(card);
+                        ref var paid = ref paidPool.Get(card);
+                        paid.Kind = kind; paid.Amount = amount; paid.Keys = keys;
+                        // Заряд потреблён (возможно, маркер снят) → перекраска руки.
+                        GameEventBus.Publish(new CostModifierChangedEvent());
+                    }
+                    else if (!TryPayCost(world, card, player, out var reason))
+                    {
+                        Decline(declinePool, card, reason);
+                        continue;
+                    }
                 }
 
                 // ── делегирование по типу ──
                 if (creatureTag.Has(card))
                 {
+                    // Клетку выбирает тот, чей сейчас ход: человек кликом (RunSelectCellBoardSystem) или ИИ
+                    // (RunAiTurnSystem.TryAct, шаг 1 — он смотрит только СВОИ карты). Спросить владельца
+                    // можно, лишь пока его ввод жив: ActiveState (ход идёт) или StartTurnState (ход вот-вот
+                    // начнётся, окно откроется после каскада). В EndTurnState ввод уже выключен и обратно
+                    // не включится, а в ЧУЖОЙ ход владелец кликать не может вовсе — спрашивать некого.
+                    //
+                    // Сюда это доезжает через free-каст (гейт хода выше пропускает вне хода только его):
+                    // «разыграй N случайных карт» с хрипа Королевской пиньяты в ход оппонента может вытащить
+                    // СУЩЕСТВО. Без авто-размещения PendingSelectCellState висел бы до чужого клика, а он в
+                    // PipelineGate — то есть встала бы вся очередь авто-кастов (и остаток каскада не сыграл бы).
+                    // Ставим сами — ровно как PlayCardUtil при форс-розыгрыше из эффекта.
+                    if (!activeStatePool.Has(player) && !startStatePool.Has(player))
+                    {
+                        int autoCol = FreeFrontCell(world, ownerId);
+                        if (autoCol < 0)
+                        {
+                            // Ряд призыва полон — ставить некуда. Карта остаётся в руке (стоимость вернёт
+                            // Decline), а не зависает без клетки и без каста.
+                            Decline(declinePool, card, DeclineReason.Unknown);
+                            continue;
+                        }
+                        ref var autoMove = ref moveToBoardPool.Add(card);
+                        autoMove.Row = FrontRow; autoMove.Col = autoCol; autoMove.OwnerId = ownerId;
+                        var invokePool = world.GetPool<InvokeEvent>();
+                        if (!invokePool.Has(card)) invokePool.Add(card);   // свой OnCast на размещении
+                        continue;
+                    }
+
                     // Существо: ждём выбор клетки (async). RunSelectCellBoardSystem ловит клик →
                     // RunMoveCardToBoardSystem ставит на борд → RunInvokeCreatureSystem публикует CardCastEvent.
                     if (!pendingCellPool.Has(card)) pendingCellPool.Add(card).OwnerPlayerEntity = player;
@@ -119,6 +208,35 @@ namespace Game.Core.Ecs.Systems
             GameEventBus.Publish(new TargetSelectionCancelledEvent { CardEntity = card });
         }
 
+        // Свободная клетка ряда призыва владельца для АВТО-размещения (спросить некого). Занятость
+        // считаем как RunSelectCellBoardSystem — по существам на доске, плюс исключаем клетки, уже
+        // забронированные необработанными MoveCardToBoardEvent: два авто-каста в одном кадре иначе
+        // выбрали бы одну и ту же клетку (борда-то они ещё не достигли).
+        static int FreeFrontCell(EcsWorld world, int ownerId)
+        {
+            var occupied = new bool[BoardCols];
+
+            var posPool = world.GetPool<BoardPositionComponent>();
+            foreach (var e in world.Filter<CreatureTag>().Inc<BoardTag>().Inc<BoardPositionComponent>().Exc<DeadTag>().End())
+            {
+                ref var p = ref posPool.Get(e);
+                if (p.OwnerId != ownerId || p.Row != FrontRow) continue;
+                if (p.Col >= 0 && p.Col < BoardCols) occupied[p.Col] = true;
+            }
+
+            var movePool = world.GetPool<MoveCardToBoardEvent>();
+            foreach (var e in world.Filter<MoveCardToBoardEvent>().End())
+            {
+                ref var m = ref movePool.Get(e);
+                if (m.OwnerId != ownerId || m.Row != FrontRow) continue;
+                if (m.Col >= 0 && m.Col < BoardCols) occupied[m.Col] = true;
+            }
+
+            foreach (var c in ColOrder)
+                if (!occupied[c]) return c;
+            return -1;
+        }
+
         static int CharmCount(EcsWorld world, EcsPool<OwnerComponent> ownerPool, int ownerId)
         {
             var filter = world.Filter<CharmTag>().Inc<BoardTag>().End();
@@ -138,6 +256,21 @@ namespace Game.Core.Ecs.Systems
             foreach (var e in filter)
                 if (playerPool.Get(e).PlayerId == ownerId) return e;
             return -1;
+        }
+
+        static string NetKeyOf(EcsWorld world, int entity)
+        {
+            var pool = world.GetPool<NetworkEntityComponent>();
+            return pool.Has(entity) ? pool.Get(entity).NetworkEntityKey : null;
+        }
+
+        // Эффективная стоимость карты (тот кост-компонент, что есть + модификатор владельца) — для пейн-оплаты.
+        static int EffectiveCost(EcsWorld world, int card, int player)
+        {
+            var g = world.GetPool<GoldCostComponent>();   if (g.Has(card)) return CostModifierUtil.Effective(world, player, g.Get(card).Cost);
+            var m = world.GetPool<ManaCostComponent>();   if (m.Has(card)) return CostModifierUtil.Effective(world, player, m.Get(card).Cost);
+            var h = world.GetPool<HealthCostComponent>(); if (h.Has(card)) return CostModifierUtil.Effective(world, player, h.Get(card).Cost);
+            return 0;
         }
 
         static bool TryPayCost(EcsWorld world, int card, int player, out DeclineReason reason)

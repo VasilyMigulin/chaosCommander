@@ -76,6 +76,17 @@ namespace AwesomeUI.Core.Card
         [SerializeField] TextMeshProUGUI _healthText;
         [SerializeField] TextMeshProUGUI _speedText;
 
+        // ── Баннер уровня (карта-с-уровнями) ─────────────────────────────────────
+        // Включается только для карт-с-уровнями (по CardTierChangedUIEvent); обычные карты его не получают.
+        // Объект баннера в префабе по умолчанию ВЫКЛЮЧЕН — SetCard сбрасывает при переиспользовании слота.
+        // Авто-резолв по именам объектов (AutoResolveReferences): TierBadge (баннер) + LvlLabel (текст) —
+        // назначать вручную НЕ нужно, но можно переопределить в инспекторе.
+        [Header("Tier (карта-с-уровнями)")]
+        [Tooltip("Баннер уровня. Авто по имени объекта \"TierBadge\"; можно назначить вручную.")]
+        [SerializeField] GameObject      _tierBanner;
+        [Tooltip("Текст номера уровня. Авто по имени объекта \"LvlLabel\"; можно назначить вручную.")]
+        [SerializeField] TextMeshProUGUI _tierText;
+
         // ── Живые статы: цвет относительно БАЗЫ + панч при изменении ─────────
         // База (печатные значения) захватывается в ApplyVisualData из CardVisualData; живые значения
         // прилетают в SetCostAmount (CardCostChangedEvent) и SetLiveStats (HandCardStatsChangedUIEvent).
@@ -87,8 +98,24 @@ namespace AwesomeUI.Core.Card
         [SerializeField] float _statPunchScale    = 0.35f;
         [SerializeField] float _statPunchDuration = 0.3f;
 
-        int _baseCost, _baseAttack, _baseMaxHealth;          // печатные значения (из CardVisualData)
-        int _shownCost, _shownAttack, _shownHealth;          // что сейчас на тексте (для панча по изменению)
+        // ── Фидбэк «к карте В РУКЕ применили эффект» (Дупликатор/удешевление/бафф) ──────────
+        // Что панчим при воздействии. ИДЕАЛЬНО — внутренний визуальный контейнер (тогда чистим его твины
+        // DOKill'ом). Но если контейнера нет — можно оставить ПУСТЫМ или назначить сам корень карты: код
+        // тогда НЕ киллит твины (там веер/зум), а DOPunchScale трогает только scale и вернётся к текущему —
+        // конфликт минимален (веер двигает position/rotation).
+        [Header("Affect feedback (эффект применён к карте в руке)")]
+        [Tooltip("Что панчить при воздействии. Внутренний контейнер (DOKill) ИЛИ сам корень карты / пусто (без DOKill — безопасно с веером/зумом).")]
+        [SerializeField] Transform _punchTarget;
+        [SerializeField] float _cardPunchScale    = 0.18f;
+        [SerializeField] float _cardPunchDuration = 0.35f;
+
+        [System.Serializable]
+        struct AffectVfxEntry { public CardAffectKind Kind; public GameObject Vfx; }
+        [Tooltip("UI-VFX под каждый вид воздействия. Выключенный объект-ребёнок карты (ParticleSystem/Animator). Проигрывается SetActive(true)+Play; гасит себя сам (Stop Action = Disable / длина клипа).")]
+        [SerializeField] AffectVfxEntry[] _affectVfx;
+
+        int _baseCost, _baseAttack, _baseMaxHealth, _baseSpeed;   // печатные значения (из CardVisualData)
+        int _shownCost, _shownAttack, _shownHealth, _shownSpeed;  // что сейчас на тексте (для панча по изменению)
         Color _defaultCostColor, _defaultAttackColor, _defaultHealthColor;
         bool _defaultColorsCaptured;
 
@@ -109,13 +136,53 @@ namespace AwesomeUI.Core.Card
             t.transform.DOPunchScale(Vector3.one * _statPunchScale, _statPunchDuration, vibrato: 1, elasticity: 0.5f);
         }
 
+        /// <summary>Фидбэк «к этой карте руки применили эффект»: punch выделенного визуала + UI-VFX по виду.
+        /// Дёргает НЕ root (его двигают веер/зум), а _punchTarget — иначе конфликт с их твинами.</summary>
+        public void PlayAffectFeedback(CardAffectKind kind)
+        {
+            var t = _punchTarget != null ? _punchTarget : transform;
+            // DOKill+reset — ТОЛЬКО для выделенного внутреннего контейнера (его никто больше не твинит).
+            // Если Punch Target — сам корень карты (или не назначен → фолбэк на корень), НЕ киллим: там живут
+            // твины веера/зума (DOScale/DOLocalMove), а DOPunchScale трогает только scale и сам вернётся к
+            // текущему масштабу — конфликт минимален (веер двигает position/rotation).
+            bool isRoot = (t == transform);
+            if (!isRoot) { t.DOKill(true); t.localScale = Vector3.one; }
+            t.DOPunchScale(Vector3.one * _cardPunchScale, _cardPunchDuration, vibrato: 1, elasticity: 0.5f);
+            PlayAffectVfx(kind);
+        }
+
+        void PlayAffectVfx(CardAffectKind kind)
+        {
+            if (_affectVfx == null) return;
+            foreach (var e in _affectVfx)
+            {
+                if (e.Vfx == null || e.Kind != kind) continue;
+                e.Vfx.SetActive(false);   // рестарт, если уже играл
+                e.Vfx.SetActive(true);
+                var ps = e.Vfx.GetComponent<ParticleSystem>();
+                if (ps != null) { ps.Clear(true); ps.Play(true); }
+                return;
+            }
+        }
+
         /// <summary>Живые статы существа-карты (рука): текст + цвет относительно базы + панч при изменении.
         /// Правила: атака выше базы → зелёная, ниже → красная; HP — при уроне (current &lt; max) показываем
         /// ТЕКУЩЕЕ красным, без урона — max (зелёный, если выше базы). punch=false — первичная отрисовка
         /// (карта только пришла в руку уже с бафами) — цветим, но не дёргаем.</summary>
-        public void SetLiveStats(int attack, int maxHealth, int currentHealth, bool punch = true)
+        public void SetLiveStats(int attack, int maxHealth, int currentHealth, int speed, bool punch = true)
         {
             CaptureDefaultColors();
+
+            // Скорость (Шальной десница даёт +1 к ней в РУКЕ): цвет относительно печатной базы + панч.
+            // Отдельного «дефолтного» цвета у неё нет — используем цвет атаки как нейтральный.
+            if (_speedText != null)
+            {
+                _speedText.text  = speed.ToString();
+                _speedText.color = speed > _baseSpeed ? _buffColor
+                                 : speed < _baseSpeed ? _debuffColor : _defaultAttackColor;
+                if (punch && speed != _shownSpeed) PunchStat(_speedText);
+                _shownSpeed = speed;
+            }
 
             if (_attackText != null)
             {
@@ -153,6 +220,15 @@ namespace AwesomeUI.Core.Card
 
             if (_elementIndicators == null || _elementIndicators.Length == 0)
                 _elementIndicators = AutoFindElementIndicators();
+
+            // Баннер уровня (карта-с-уровнями): по именам объектов из префаба — TierBadge (сам баннер) и
+            // LvlLabel (текст номера). Ищем и выключенные (GetComponentsInChildren(true)) — баннер по умолчанию off.
+            if (_tierBanner == null)
+            {
+                var t = FindChildTransform("TierBadge");
+                if (t != null) _tierBanner = t.gameObject;
+            }
+            if (_tierText == null) _tierText = FindChildComponent<TextMeshProUGUI>("LvlLabel");
         }
 
         ElementIndicatorEntry[] AutoFindElementIndicators()
@@ -200,6 +276,7 @@ namespace AwesomeUI.Core.Card
             ApplyBackground(data.Rarity);
             ApplyArt(data.Icon);
             ApplyInfo(data.CardName, data.CardType, data.Description);
+            if (_tierBanner != null) _tierBanner.SetActive(false);   // сброс — включит CardTierChangedUIEvent для tier-карт
             // База для окраски: CostAmount карт руки — уже ЭФФЕКТИВНАЯ цена (Мастер над чарами дисконтит
             // созданную карту ДО попадания в руку) — печатная база тогда едет отдельно (HasBaseCost).
             ApplyCost(data.CostType, data.CostAmount, data.HasBaseCost ? data.BaseCostAmount : data.CostAmount);
@@ -264,6 +341,20 @@ namespace AwesomeUI.Core.Card
             if (_descriptionText != null) _descriptionText.text = description ?? "";
         }
 
+        /// <summary>Баннер уровня карты-с-уровнями (level — 1-based для игрока). Зовёт PlayCardView по
+        /// CardTierChangedUIEvent. Обычные карты этот вызов не получают → баннер остаётся выключен.</summary>
+        public void SetTierBanner(int level)
+        {
+            if (_tierBanner != null && !_tierBanner.activeSelf) _tierBanner.SetActive(true);
+            if (_tierText != null) _tierText.text = level.ToString();
+        }
+
+        /// <summary>Обновить текст описания «вживую» (перерендер под активный уровень / модификаторы).</summary>
+        public void SetDescriptionLive(string description)
+        {
+            if (_descriptionText != null) _descriptionText.text = description ?? "";
+        }
+
         // ── Cost ─────────────────────────────────────────────────────────────
 
         /// <summary>Обновить ТОЛЬКО число стоимости (эффективная цена с модификаторами — Гиперинфляция,
@@ -281,12 +372,28 @@ namespace AwesomeUI.Core.Card
             _shownCost = amount;
         }
 
+        // Тип ресурса карты — чтобы вернуть ШТАТНУЮ иконку, когда маркер альтернативной уплаты снят.
+        EnumService.ResourceType _costType;
+
+        /// <summary>Иконка ОПЛАТЫ: altKind >= 0 → иконка альтернативной уплаты (семейство «Бесчестный
+        /// букмекер», спрайты в InterfaceConfig; не назначена → остаётся ресурсная); -1 → штатная иконка
+        /// ресурса карты. Зовёт PlayCardView по CardCostChangedEvent (AltCostKind).</summary>
+        public void SetAltCostIcon(int altKind)
+        {
+            if (_costIcon == null) return;
+            var cfg = InterfaceConfig.Current;
+            if (cfg == null) return;
+            Sprite alt = altKind >= 0 ? cfg.GetAltCostIcon(altKind) : null;
+            _costIcon.sprite = alt != null ? alt : cfg.GetCostIcon(_costType);
+        }
+
         void ApplyCost(EnumService.ResourceType costType, int amount, int baseAmount)
         {
             // Полная перерисовка = новая карта в слоте: фиксируем ПЕЧАТНУЮ базу (baseAmount) и красим
             // сразу относительно неё — карта могла прийти уже с дисконтом (Мастер над чарами), тогда
             // amount < baseAmount → зелёный с первого кадра, без панча (первичная отрисовка).
             CaptureDefaultColors();
+            _costType  = costType;
             _baseCost  = baseAmount;
             _shownCost = amount;
             if (_costText != null)
@@ -326,12 +433,14 @@ namespace AwesomeUI.Core.Card
             CaptureDefaultColors();
             _baseAttack    = attack;
             _baseMaxHealth = health;
+            _baseSpeed     = speed;
             _shownAttack   = attack;
             _shownHealth   = health;
+            _shownSpeed    = speed;
 
             if (_attackText != null) { _attackText.text = attack.ToString(); _attackText.color = _defaultAttackColor; }
             if (_healthText != null) { _healthText.text = health.ToString(); _healthText.color = _defaultHealthColor; }
-            if (_speedText  != null) _speedText.text  = speed.ToString();
+            if (_speedText  != null) { _speedText.text  = speed.ToString();  _speedText.color  = _defaultAttackColor; }
         }
 
         // ── Helpers ─────────────────────────────────────────────────────────── 

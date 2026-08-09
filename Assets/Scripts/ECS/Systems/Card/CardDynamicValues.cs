@@ -28,10 +28,17 @@ namespace Game.Core.Ecs.Systems
             var abilityEntities = contPool.Get(cardEntity).AbilityEntities;
             if (abilityEntities == null) return values;
 
+            // Карта-с-уровнями: способности всех уровней инитятся сразу, но описание берёт значения ТОЛЬКО с
+            // активного уровня (иначе *N* от разных уровней намешаются). Общие способности (без гейта) — всегда.
+            var gatePool = world.GetPool<AbilityTierGateComponent>();
+            var tierPool = world.GetPool<CardTierComponent>();
+            int curTier = tierPool.Has(cardEntity) ? tierPool.Get(cardEntity).CurrentTier : 0;
+
             var effPool = world.GetPool<AbilityEffectContainerComponent>();
             foreach (int abilityEntity in abilityEntities)
             {
                 if (abilityEntity < 0 || !effPool.Has(abilityEntity)) continue;
+                if (gatePool.Has(abilityEntity) && gatePool.Get(abilityEntity).Tier != curTier) continue;   // не активный уровень
                 var effects = effPool.Get(abilityEntity).Effects;
                 if (effects == null) continue;
 

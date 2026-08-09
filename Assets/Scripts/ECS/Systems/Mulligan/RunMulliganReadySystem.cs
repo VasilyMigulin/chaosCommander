@@ -188,6 +188,33 @@ namespace Game.Core.Ecs.Systems
             }
             snapshot.HandCount = handCount;
 
+            // Сайдборд: своя зона, в списки колоды/руки не входит — собираем прямым обходом по тегу.
+            var sideExpansionIds = new List<string>();
+            var sideCardIds = new List<int>();
+            var sideNetKeys = new List<string>();
+            var sideboardTag = _world.Value.GetPool<SideboardTag>();
+            var ownerPool = _world.Value.GetPool<OwnerComponent>();
+            foreach (var e in _world.Value.Filter<SideboardTag>().Inc<OwnerComponent>().End())
+            {
+                if (ownerPool.Get(e).OwnerId != player.PlayerId) continue;
+                if (!_netKeyPool.Value.Has(e) || !_cardModelPool.Value.Has(e)) continue;
+                ref var m = ref _cardModelPool.Value.Get(e);
+                sideExpansionIds.Add(m.ExpansionId ?? string.Empty);
+                sideCardIds.Add(m.ModelId);
+                sideNetKeys.Add(_netKeyPool.Value.Get(e).NetworkEntityKey);
+            }
+            snapshot.Sideboard = new NetworkCardSnapshotEntry[sideExpansionIds.Count];
+            for (int i = 0; i < sideExpansionIds.Count; i++)
+            {
+                snapshot.Sideboard[i] = new NetworkCardSnapshotEntry
+                {
+                    ExpansionId = sideExpansionIds[i],
+                    CardId = sideCardIds[i],
+                    EntityKey = sideNetKeys[i]
+                };
+            }
+            snapshot.SideboardCount = sideExpansionIds.Count;
+
             snapshot.Commander = new NetworkCardSnapshotEntry()
             {
                 ExpansionId = commanderExpansionID,

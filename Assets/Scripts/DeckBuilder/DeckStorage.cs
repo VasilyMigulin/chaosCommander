@@ -220,13 +220,23 @@ namespace Game.Core.DeckBuilder
             int max = 0;
             foreach (var d in _cache)
             {
-                if (d?.Cards == null) continue;
-                int inDeck = 0;
-                foreach (var c in d.Cards)
-                    if (c.CardId == cardId && c.ExpansionId == expansionId) inDeck += c.Count;
+                if (d == null) continue;
+                // Сайдборд считаем НАРАВНЕ с колодой: карта, лежащая только в отложенных, — такая же
+                // занятая копия. Без этого её можно было бы распылить/продать, и колода уходила бы в бой
+                // с пустым слотом Сказочника.
+                int inDeck = CountIn(d.Cards, expansionId, cardId) + CountIn(d.Sideboard, expansionId, cardId);
                 if (inDeck > max) max = inDeck;
             }
             return max;
+
+            static int CountIn(List<OwnedCardData> list, string expansionId, int cardId)
+            {
+                if (list == null) return 0;
+                int n = 0;
+                foreach (var c in list)
+                    if (c.CardId == cardId && c.ExpansionId == expansionId) n += c.Count;
+                return n;
+            }
         }
 
         /// <summary>
@@ -242,17 +252,28 @@ namespace Game.Core.DeckBuilder
 
             foreach (var deck in _cache)
             {
-                if (deck?.Cards == null) continue;
-                for (int i = deck.Cards.Count - 1; i >= 0; i--)
+                if (deck == null) continue;
+                // Сайдборд подрезаем ТАК ЖЕ, как колоду: иначе отложенная карта, которой у игрока уже нет,
+                // оставалась бы «фантомом» и уезжала в бой.
+                changed |= PruneList(deck.Cards);
+                changed |= PruneList(deck.Sideboard);
+            }
+
+            static bool PruneList(List<OwnedCardData> list)
+            {
+                if (list == null) return false;
+                bool touched = false;
+                for (int i = list.Count - 1; i >= 0; i--)
                 {
-                    var c = deck.Cards[i];
+                    var c = list[i];
                     int owned = PlayerLibrary.TryGet(c.ExpansionId, c.CardId, out var entry) ? entry.OwnedCount : 0;
                     if (c.Count <= owned) continue;
 
-                    changed = true;
-                    if (owned <= 0) deck.Cards.RemoveAt(i);
-                    else { c.Count = owned; deck.Cards[i] = c; }   // OwnedCardData — struct, кладём обратно
+                    touched = true;
+                    if (owned <= 0) list.RemoveAt(i);
+                    else { c.Count = owned; list[i] = c; }   // OwnedCardData — struct, кладём обратно
                 }
+                return touched;
             }
 
             if (!changed) { onDone?.Invoke(); return; }

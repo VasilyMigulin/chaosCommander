@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Game.Core.Ecs.Components;
 using Game.Core.Events;
@@ -55,7 +55,10 @@ namespace Game.Core.Ability
         // forceRandomTarget: нужен ли ПОРОЖДЁННОЙ карте авто-выбор цели (Selected → Random), НЕЗАВИСИМО от
         // autoCast. По умолчанию true (старое поведение — все текущие autoCast-вызыватели форсили всегда,
         // как Йогг-Сарон); PlayRandomFromPoolEffect (Фокус-покус) передаёт вычисленное по триггеру значение.
-        internal static void Spawn(EcsWorld world, int sourceCard, string exp, int cardId, bool toHand, bool autoCast = false, bool forceRandomTarget = true)
+        // modifiers — target-эффекты к порождённой карте при материализации (GeneratedModScratch →
+        // CreateCardSystem; ре-ран на обоих клиентах → зеркально), как у SpawnToBoard/дискавера.
+        internal static void Spawn(EcsWorld world, int sourceCard, string exp, int cardId, bool toHand, bool autoCast = false, bool forceRandomTarget = true,
+                                   IReadOnlyList<IEffect> modifiers = null)
         {
             if (string.IsNullOrEmpty(exp) || cardId < 0) return;
 
@@ -80,7 +83,12 @@ namespace Game.Core.Ability
                 RegisterInZoneList = !autoCast,   // авто-каст: без UI-зоны (карта тут же разыграется)
                 AutoCast           = autoCast,
                 ForceRandomTarget  = autoCast && forceRandomTarget,
+                // UI летит визуально ОТ карты-источника (кастер способности), а не «из-за края экрана» —
+                // как у раскопки (см. HandUISystem/EntityWorldPosUtil). sourceCard может быть уже на
+                // кладбище (спелл после резолва) — сущность не удаляется, TryGet сам отфолбэчится на аватар.
+                SourceEntity       = sourceCard,
             });
+            GeneratedModScratch.Register(genKey, sourceCard, modifiers);
             GameEventBus.Publish(new CardGeneratedEvent { ModelId = cardId, GeneratorPlayerId = Attribution(ownerId) });
         }
 
@@ -256,8 +264,166 @@ namespace Game.Core.Ability
             var pool = world.GetPool<CardModelComponent>();
             if (!pool.Has(target)) return;
             ref var m = ref pool.Get(target);
+            // Фидбэк: подсветить, КАКУЮ карту руки скопировал Дупликатор (punch + VFX; no-op если не в руке).
+            CardFeedbackUtil.MarkAffectedInHand(world, target, Game.Core.Service.CardAffectKind.Copied);
             for (int i = 0; i < Count; i++)
                 GenerateCardEffect.Spawn(world, cardEntity, m.ExpansionId, m.ModelId, toHand: false);
+        }
+    }
+
+    // === class (OOP) === Призвать на СВОЮ сторону КОПИЮ целевой карты-СУЩЕСТВА («Проходная на свалку»:
+    // взял существо → сбросил → «призовите копию»). Идентичность — CardModelComponent цели; сама цель НЕ
+    // двигается (она может быть уже в кладбище после сброса) — создаётся НОВАЯ сущность на свободной клетке
+    // фронта владельца (SpawnToBoard, как TransformEffect). Цель не существо → skip (ветвление существо/спелл
+    // делают фильтры по TriggerSubject, это лишь страховка). СИНК ДАРОМ: generate ре-ранится на обоих
+    // клиентах, ключ детерминирован (NextKey).
+    [Serializable]
+    public sealed class SummonCopyOfTargetEffect : EffectBase
+    {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Summon;
+        public int Count = 1;
+
+        [Tooltip("Эффекты к КАЖДОЙ призванной копии (бафф/таймер смерти). Применяются при материализации.")]
+        [SerializeReference] public List<IEffect> Modifiers = new();
+
+        public override void Init(EcsWorld world, int cardEntity, int playerEntity)
+        {
+            base.Init(world, cardEntity, playerEntity);
+            if (Modifiers != null) foreach (var mod in Modifiers) mod?.Init(world, cardEntity, playerEntity);
+        }
+
+        public override void Dispose()
+        {
+            base.Dispose();
+            if (Modifiers != null) foreach (var mod in Modifiers) mod?.Dispose();
+        }
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            if (target < 0) return;
+            var pool = world.GetPool<CardModelComponent>();
+            if (!pool.Has(target)) return;
+            ref var m = ref pool.Get(target);
+            if (m.CardType != Game.Core.Service.EnumService.CardType.Creature) return;   // копируем только существ
+
+            var ownerPool = world.GetPool<OwnerComponent>();
+            if (!ownerPool.Has(cardEntity)) return;
+            int ownerId = ownerPool.Get(cardEntity).OwnerId;
+
+            var mods = (Modifiers != null && Modifiers.Count > 0) ? Modifiers : null;
+            int n = Count <= 0 ? 1 : Count;
+            for (int i = 0; i < n; i++)
+            {
+                int col = BoardFrontRow.ClaimFreeCell(world, ownerId);   // резерв: мульти-копии не сядут на одну клетку
+                if (col < 0) return;                                     // фронт полон
+                GenerateCardEffect.SpawnToBoard(world, cardEntity, m.ExpansionId, m.ModelId, BoardFrontRow.FrontRow, col, mods);
+            }
+        }
+    }
+
+    // === class (OOP) === РАЗЫГРАТЬ (бесплатно, авто-кастом) КОПИЮ целевой карты («Подписка на утилизацию»:
+    // сбросили карту → «разыграйте копию»; таргетинг TriggerSubject от OnOwnerDiscardArmedTrigger). Отличие
+    // от PlayTargetCardEffect: играется НЕ сама цель (она в кладбище и должна там остаться), а СВЕЖАЯ копия
+    // по её идентичности. Spawn{autoCast=true}: копия создаётся и тут же кастуется free (AutoCastComponent →
+    // роутер, как Фокус-покус; Selected-цели форсятся в Random — окна выбора не будет). СИНК: генерация
+    // ре-ранится на обоих клиентах (детерм. ключ), сам каст делает актив (AutoCastSystem гейтит
+    // IsLocalActive), пассив получает обычным каст-синком по тому же ключу.
+    [Serializable]
+    public sealed class PlayCopyOfTargetEffect : EffectBase
+    {
+        [Tooltip("Всегда форсить случайные цели у разыгранной копии (как Йогг). false → форс только когда " +
+                 "розыгрыш идёт НЕ от OnCast игрока (семантика как у PlayTargetCardEffect).")]
+        public bool ForceRandomTarget = false;
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            if (target < 0) return;
+            var pool = world.GetPool<CardModelComponent>();
+            if (!pool.Has(target)) return;
+            ref var m = ref pool.Get(target);
+            // Как PlayTargetCardEffect: от чужого триггера (OnDiscard и т.п.) игрок физически не выбирает
+            // цели копии — форсим random; от OnCast (сам кастует источник) выбор остаётся игроку.
+            bool forceRandom = ForceRandomTarget || AbilityResolveContext.TriggerKey != TriggerKeys.OnCast;
+            GenerateCardEffect.Spawn(world, cardEntity, m.ExpansionId, m.ModelId, toHand: false, autoCast: true, forceRandomTarget: forceRandom);
+        }
+    }
+
+    // === class (OOP) === Положить в РУКУ владельца источника КОПИЮ целевой карты («Проходная на свалку»:
+    // взял заклинание → сбросил → «копию в руку, она стоит на 2 меньше»). Идентичность — CardModelComponent
+    // цели (зона цели не важна — копия создаётся с нуля). Скидка/баффы — через Modifiers при материализации:
+    // «на 2 дешевле» = AddBuffEffect{Buff=BuffCost{Delta=-2, Permanent=true}} (перм. — переживает зоны).
+    // СИНК ДАРОМ: как у ShuffleCopiesOfTargetEffect (ре-ран на обоих, детерм. ключи, GeneratedModScratch).
+    [Serializable]
+    public sealed class CreateCopyOfTargetToHandEffect : EffectBase
+    {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Draw;
+        public int Count = 1;
+
+        [Tooltip("Эффекты к созданной копии. «Стоит на 2 меньше» = AddBuffEffect{Buff=BuffCost{Delta=-2, Permanent=true}}.")]
+        [SerializeReference] public List<IEffect> Modifiers = new();
+
+        public override void Init(EcsWorld world, int cardEntity, int playerEntity)
+        {
+            base.Init(world, cardEntity, playerEntity);
+            if (Modifiers != null) foreach (var mod in Modifiers) mod?.Init(world, cardEntity, playerEntity);
+        }
+
+        public override void Dispose()
+        {
+            base.Dispose();
+            if (Modifiers != null) foreach (var mod in Modifiers) mod?.Dispose();
+        }
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            if (target < 0) return;
+            var pool = world.GetPool<CardModelComponent>();
+            if (!pool.Has(target)) return;
+            ref var m = ref pool.Get(target);
+
+            var mods = (Modifiers != null && Modifiers.Count > 0) ? Modifiers : null;
+            int n = Count <= 0 ? 1 : Count;
+            for (int i = 0; i < n; i++)
+                GenerateCardEffect.Spawn(world, cardEntity, m.ExpansionId, m.ModelId, toHand: true, modifiers: mods);
+        }
+    }
+
+    // === class (OOP) === Замешать в КОЛОДУ владельца источника КОПИЮ целевой карты («Королевский шут»,
+    // «Повторная шутка»: «выберите карту в руке — замешайте копию в колоду»). Идентичность — CardModelComponent
+    // цели; сама цель остаётся на месте (в отличие от StealToHandEffect и др. — тут именно КОПИЯ, оригинал
+    // никуда не девается). Иначе — точный близнец CreateCopyOfTargetToHandEffect (toHand: false вместо true).
+    [Serializable]
+    public sealed class CreateCopyOfTargetToDeckEffect : EffectBase
+    {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Draw;
+        public int Count = 1;
+
+        [Tooltip("Эффекты к созданной копии при материализации (см. CreateCopyOfTargetToHandEffect).")]
+        [SerializeReference] public List<IEffect> Modifiers = new();
+
+        public override void Init(EcsWorld world, int cardEntity, int playerEntity)
+        {
+            base.Init(world, cardEntity, playerEntity);
+            if (Modifiers != null) foreach (var mod in Modifiers) mod?.Init(world, cardEntity, playerEntity);
+        }
+
+        public override void Dispose()
+        {
+            base.Dispose();
+            if (Modifiers != null) foreach (var mod in Modifiers) mod?.Dispose();
+        }
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            if (target < 0) return;
+            var pool = world.GetPool<CardModelComponent>();
+            if (!pool.Has(target)) return;
+            ref var m = ref pool.Get(target);
+
+            var mods = (Modifiers != null && Modifiers.Count > 0) ? Modifiers : null;
+            int n = Count <= 0 ? 1 : Count;
+            for (int i = 0; i < n; i++)
+                GenerateCardEffect.Spawn(world, cardEntity, m.ExpansionId, m.ModelId, toHand: false, modifiers: mods);
         }
     }
 
@@ -316,6 +482,32 @@ namespace Game.Core.Ability
             if (manual != null && manual.Count > 0)
                 return manual[UnityEngine.Random.Range(0, manual.Count)] as ICreatable;
             return null;
+        }
+
+        /// <summary>Случайная карта пула СТОИМОСТЬЮ cost («существо за 1», «случайное за X»). Ровно за X нет —
+        /// берём ближайшие по |Δцены| (не фуззлимся: «за 100» даст самое дорогое), случайную среди равных.
+        /// cost &lt; 0 → без учёта цены (обычный Pick). Цена — печатная (ICreatable.PlayCostAmount).
+        /// Общий для призыва (SpawnRandomCardOnBoard) и трансмутаций (TransformRoll).</summary>
+        public static ICreatable PickByCost(ScriptableObject poolAsset, List<ScriptableObject> manual, int cost)
+        {
+            if (cost < 0) return Pick(poolAsset, manual);
+
+            var best = new List<ICreatable>();
+            int bestDelta = int.MaxValue;
+            void Consider(ICreatable c)
+            {
+                if (c == null) return;
+                int d = System.Math.Abs(c.PlayCostAmount - cost);
+                if (d < bestDelta) { bestDelta = d; best.Clear(); }
+                if (d == bestDelta) best.Add(c);
+            }
+
+            if (poolAsset is ICardPool cp && cp.Cards != null)
+                foreach (var c in cp.Cards) Consider(c);
+            else if (manual != null)
+                foreach (var so in manual) Consider(so as ICreatable);
+
+            return best.Count > 0 ? best[UnityEngine.Random.Range(0, best.Count)] : null;
         }
     }
 
@@ -461,3 +653,5 @@ namespace Game.Core.Ability
         }
     }
 }
+
+

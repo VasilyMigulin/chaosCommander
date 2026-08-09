@@ -23,6 +23,12 @@ namespace Game.Core.DeckBuilder
 
         public static string PlayFabId { get; private set; }
 
+        /// <summary>
+        /// Ник аккаунта, с которым вошли (из пейлоада логина). Пусто — ник ещё не задан:
+        /// LoginPanel по этому признаку решает, показывать ли экран «Давай знакомиться».
+        /// </summary>
+        public static string DisplayName { get; private set; }
+
         // ── Auth ─────────────────────────────────────────────────────────────
 
         // Единый лог ошибки PlayFab: GenerateErrorReport() даёт код, HTTP-статус и детали (а не только
@@ -33,12 +39,21 @@ namespace Game.Core.DeckBuilder
                            $"msg='{error.ErrorMessage}'\n{error.GenerateErrorReport()}");
         }
 
-        // Параметры «что подтянуть при логине»: UserData + UserReadOnlyData (в ней флаг isDev дев-аккаунта).
+        // Параметры «что подтянуть при логине»: UserData + UserReadOnlyData (в ней флаг isDev дев-аккаунта)
+        // + профиль ради ника (аккаунт мог быть создан на сайте — тогда ник уже есть, и знакомиться не надо).
         static GetPlayerCombinedInfoRequestParams LoginInfoParams() => new GetPlayerCombinedInfoRequestParams
         {
             GetUserData = true,
             GetUserReadOnlyData = true,
+            GetPlayerProfile = true,
+            ProfileConstraints = new PlayerProfileViewConstraints { ShowDisplayName = true },
         };
+
+        // Запомнить ник из пейлоада логина (пусто, если ещё не задан).
+        static void ApplyDisplayName(GetPlayerCombinedInfoResultPayload info)
+        {
+            DisplayName = info?.PlayerProfile?.DisplayName ?? "";
+        }
 
         // Прочитать серверный флаг isDev из ответа логина → включить дев-панель для этого аккаунта.
         // UserReadOnlyData клиент писать не может, только сервер/Game Manager — подделать нельзя.
@@ -67,6 +82,7 @@ namespace Game.Core.DeckBuilder
                 {
                     PlayFabId = result.PlayFabId;
                     ApplyDevAccount(result.InfoResultPayload);
+                    ApplyDisplayName(result.InfoResultPayload);
                     Debug.Log($"[PlayFab] LoginWithEmail OK → PlayFabId={result.PlayFabId} newlyCreated={result.NewlyCreated}");
                     onSuccess?.Invoke();
                 },
@@ -111,6 +127,7 @@ namespace Game.Core.DeckBuilder
                 {
                     PlayFabId = result.PlayFabId;
                     ApplyDevAccount(result.InfoResultPayload);
+                    ApplyDisplayName(result.InfoResultPayload);
                     Debug.Log($"[PlayFab] LoginWithCustomId OK → PlayFabId={result.PlayFabId} newlyCreated={result.NewlyCreated}");
                     onSuccess?.Invoke();
                 },
@@ -124,8 +141,32 @@ namespace Game.Core.DeckBuilder
             Debug.Log($"[PlayFab] SetDisplayName '{displayName}'…");
             PlayFabClientAPI.UpdateUserTitleDisplayName(
                 new UpdateUserTitleDisplayNameRequest { DisplayName = displayName },
-                result => { Debug.Log($"[PlayFab] SetDisplayName OK → '{result.DisplayName}'"); onSuccess?.Invoke(); },
+                result =>
+                {
+                    DisplayName = result.DisplayName;
+                    Debug.Log($"[PlayFab] SetDisplayName OK → '{result.DisplayName}'");
+                    onSuccess?.Invoke();
+                },
                 error => { LogPlayFabError("SetDisplayName", error); onError?.Invoke(error.ErrorMessage); });
+        }
+
+        /// <summary>
+        /// Привязать ID устройства к ТЕКУЩЕМУ аккаунту. Нужен после явного входа (почта/Google/Apple)
+        /// на телефоне: со следующего запуска тихий вход по CustomId попадёт уже в этот аккаунт,
+        /// а не в гостевой.
+        ///
+        /// forceLink=true отбирает устройство у гостевого аккаунта, который мог быть создан
+        /// автологином. Прогресс того гостя остаётся на нём и становится недоступен — это
+        /// осознанный размен: игрок сам выбрал войти в свой аккаунт.
+        /// </summary>
+        public static void LinkCustomId(string customId, bool forceLink,
+            Action onSuccess, Action<string> onError)
+        {
+            Debug.Log($"[PlayFab] LinkCustomId → customId='{customId}' force={forceLink}");
+            PlayFabClientAPI.LinkCustomID(
+                new LinkCustomIDRequest { CustomId = customId, ForceLink = forceLink },
+                _ => { Debug.Log("[PlayFab] LinkCustomId OK"); onSuccess?.Invoke(); },
+                error => { LogPlayFabError("LinkCustomId", error); onError?.Invoke(error.ErrorMessage); });
         }
 
         // ── Соцпривязка (Google / Apple) ─────────────────────────────────────
@@ -161,8 +202,20 @@ namespace Game.Core.DeckBuilder
         {
             Debug.Log($"[PlayFab] LoginWithGoogleAccount → title={PlayFabSettings.TitleId}");
             PlayFabClientAPI.LoginWithGoogleAccount(
-                new LoginWithGoogleAccountRequest { ServerAuthCode = serverAuthCode, CreateAccount = true },
-                result => { PlayFabId = result.PlayFabId; Debug.Log($"[PlayFab] LoginWithGoogleAccount OK → {result.PlayFabId}"); onSuccess?.Invoke(); },
+                new LoginWithGoogleAccountRequest
+                {
+                    ServerAuthCode = serverAuthCode,
+                    CreateAccount = true,
+                    InfoRequestParameters = LoginInfoParams()
+                },
+                result =>
+                {
+                    PlayFabId = result.PlayFabId;
+                    ApplyDevAccount(result.InfoResultPayload);
+                    ApplyDisplayName(result.InfoResultPayload);
+                    Debug.Log($"[PlayFab] LoginWithGoogleAccount OK → {result.PlayFabId}");
+                    onSuccess?.Invoke();
+                },
                 error => { LogPlayFabError("LoginWithGoogleAccount", error); onError?.Invoke(error.ErrorMessage); });
         }
 
@@ -171,8 +224,20 @@ namespace Game.Core.DeckBuilder
         {
             Debug.Log($"[PlayFab] LoginWithApple → title={PlayFabSettings.TitleId}");
             PlayFabClientAPI.LoginWithApple(
-                new LoginWithAppleRequest { IdentityToken = identityToken, CreateAccount = true },
-                result => { PlayFabId = result.PlayFabId; Debug.Log($"[PlayFab] LoginWithApple OK → {result.PlayFabId}"); onSuccess?.Invoke(); },
+                new LoginWithAppleRequest
+                {
+                    IdentityToken = identityToken,
+                    CreateAccount = true,
+                    InfoRequestParameters = LoginInfoParams()
+                },
+                result =>
+                {
+                    PlayFabId = result.PlayFabId;
+                    ApplyDevAccount(result.InfoResultPayload);
+                    ApplyDisplayName(result.InfoResultPayload);
+                    Debug.Log($"[PlayFab] LoginWithApple OK → {result.PlayFabId}");
+                    onSuccess?.Invoke();
+                },
                 error => { LogPlayFabError("LoginWithApple", error); onError?.Invoke(error.ErrorMessage); });
         }
 

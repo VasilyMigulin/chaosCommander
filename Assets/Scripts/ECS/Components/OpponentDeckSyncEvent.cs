@@ -16,6 +16,13 @@ namespace Game.Core.Ecs.Components
         public int      HandCount;
         public string CommanderExpansionID;
         public int    CommanderID;
-        public string CommanderNetKey; 
+        public string CommanderNetKey;
+
+        // «Отложенные» (сайдборд Сказочника) — своя зона у зеркала, нужна чтобы ключи разрешались,
+        // когда владелец достанет карту раскопкой.
+        public string[] SideboardExpansionIds;
+        public int[]    SideboardCardIds;
+        public string[] SideboardNetworkKeys;
+        public int      SideboardCount;
     }
 }

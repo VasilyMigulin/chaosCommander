@@ -1,0 +1,186 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: spell_card_012
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
+  CardData:
+    rid: 2419360554740613162
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 2419360554740613162
+      type: {class: CardSpellModel, ns: Game.Core.Model.Card.Spell, asm: Game.Core.Model.Card.Spell}
+      data:
+        Id: 28
+        Name: "\u041F\u0440\u043E\u0444\u0438\u043B\u0430\u043A\u0442\u0438\u0447\u0435\u0441\u043A\u0438\u0439
+          \u044D\u043A\u0437\u043E\u0440\u0446\u0438\u0437\u043C"
+        Description: "\u041D\u0430\u043D\u0435\u0441\u0438\u0442\u0435 \u0432\u0441\u0435\u043C
+          \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0430\u043C 3 \u0443\u0440\u043E\u043D\u0430"
+        Rarity: 1
+        Element: 8
+        ArtImage: {fileID: 0}
+        ExpansionId: 
+        PlayCost: 1
+        PlayCostAmount: 3
+        IsToken: 0
+        ShowAsLinked: 0
+        MulliganStartingHand: 0
+        MulliganUnlimitedReplace: 0
+        RuntimeAbilities: []
+        Archetypes: []
+        TierSource: 2
+        Tiers:
+        - rid: 2419360554740613163
+        - rid: 2419360554740613169
+        - rid: 2419360554740613175
+        RequiresTarget: 0
+    - rid: 2419360554740613163
+      type: {class: CardTier, ns: Game.Core.Model.Card, asm: Game.Core.Model.Card}
+      data:
+        Threshold: 0
+        Attack: 0
+        Health: 0
+        Speed: 0
+        PlayCost: 1
+        PlayCostAmount: 3
+        Abilities:
+        - rid: 2419360554740613164
+    - rid: 2419360554740613164
+      type: {class: AbilityToField, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 2419360554740613165
+        Rules: []
+        Effects:
+        - rid: 2419360554740613166
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 185366, guid: 6dcff98dc6fbe6e4bbbdac7b196f0c5e, type: 3}
+          ProjectileSpeed: 12
+          MergeArea: 0
+          PlayCasterAnimation: 0
+        Area: 0
+        Zone: 0
+        Filters:
+        - rid: 2419360554740613167
+        - rid: 2419360554740613168
+    - rid: 2419360554740613165
+      type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2419360554740613166
+      type: {class: DealDamageEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Amount: 3
+        ConditionRoot:
+          rid: -2
+    - rid: 2419360554740613167
+      type: {class: AllyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2419360554740613168
+      type: {class: EnemyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2419360554740613169
+      type: {class: CardTier, ns: Game.Core.Model.Card, asm: Game.Core.Model.Card}
+      data:
+        Threshold: 5
+        Attack: 0
+        Health: 0
+        Speed: 0
+        PlayCost: 1
+        PlayCostAmount: 4
+        Abilities:
+        - rid: 2419360554740613170
+    - rid: 2419360554740613170
+      type: {class: AbilityToField, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 2419360554740613173
+        Rules: []
+        Effects:
+        - rid: 2419360554740613174
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 185366, guid: 6dcff98dc6fbe6e4bbbdac7b196f0c5e, type: 3}
+          ProjectileSpeed: 12
+          MergeArea: 0
+          PlayCasterAnimation: 0
+        Area: 0
+        Zone: 0
+        Filters:
+        - rid: 2419360554740613171
+        - rid: 2419360554740613172
+    - rid: 2419360554740613171
+      type: {class: AllyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2419360554740613172
+      type: {class: EnemyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2419360554740613173
+      type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2419360554740613174
+      type: {class: DealDamageEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Amount: 5
+        ConditionRoot:
+          rid: -2
+    - rid: 2419360554740613175
+      type: {class: CardTier, ns: Game.Core.Model.Card, asm: Game.Core.Model.Card}
+      data:
+        Threshold: 7
+        Attack: 0
+        Health: 0
+        Speed: 0
+        PlayCost: 1
+        PlayCostAmount: 5
+        Abilities:
+        - rid: 2419360554740613176
+    - rid: 2419360554740613176
+      type: {class: AbilityToField, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 2419360554740613179
+        Rules: []
+        Effects:
+        - rid: 2419360554740613180
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 185366, guid: 6dcff98dc6fbe6e4bbbdac7b196f0c5e, type: 3}
+          ProjectileSpeed: 12
+          MergeArea: 0
+          PlayCasterAnimation: 0
+        Area: 0
+        Zone: 0
+        Filters:
+        - rid: 2419360554740613177
+        - rid: 2419360554740613178
+    - rid: 2419360554740613177
+      type: {class: AllyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2419360554740613178
+      type: {class: EnemyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2419360554740613179
+      type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2419360554740613180
+      type: {class: DealDamageEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Amount: 7
+        ConditionRoot:
+          rid: -2

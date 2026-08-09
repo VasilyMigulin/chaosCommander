@@ -24,6 +24,10 @@ namespace Game.Core.Ecs.Components
 
         public int SpellsPlayed;               // разыграно ЗАКЛИНАНИЙ этим игроком («Моментум»: урон за каждый спелл)
 
+        /// <summary>ТОКЕНЫ этого игрока, погибшие за матч (токены не идут в кладбище — Limbo, поэтому «трупы»
+        /// для TierSource.Corpses = существа в кладбище + этот счётчик). DeathTrackedEvent на обоих → зеркален.</summary>
+        public int TokensDied;
+
         /// <summary>ЖУРНАЛ заклинаний игрока в порядке розыгрыша (с повторами) — идентичности для создания
         /// копий (экзотик «разыграть все заклинания матча»). События на обоих клиентах → лог зеркален.</summary>
         public List<SpellPlayRecord> SpellsPlayedLog;

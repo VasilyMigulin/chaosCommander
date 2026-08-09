@@ -21,6 +21,9 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<HandTag> _handTagPool = default;
         readonly EcsPoolInject<DeckTag> _deckTagPool = default;
         readonly EcsPoolInject<CommanderTag> _commanderPool = default;
+        readonly EcsPoolInject<NetworkEntityComponent> _netKeyPool = default;
+        readonly EcsPoolInject<PlayerComponent> _playerPool = default;
+        readonly EcsPoolInject<CardModelComponent> _modelPool = default;   // имя карты в логе фантома
         readonly EcsFilterInject<Inc<DrawCardEvent, DeckComponent, HandComponent>> _filter = default;
 
         public void Run(IEcsSystems systems)
@@ -40,6 +43,11 @@ namespace Game.Core.Ecs.Systems
 
                     if (deck.Count == 0) break;
 
+                    // ФАНТОМЫ РУКИ (баг 2026-07-30 «игра думает, что рука полная, а в ней 3 карты»):
+                    // карта, оставшаяся в hand.CardEntities без HandTag, занимает место навсегда — рука
+                    // «полна» при пустых слотах. Чистим ПЕРЕД проверкой лимита и логируем, кто завис.
+                    SanitizeHand(playerEntity, ref hand);
+
                     // Рука полна — карта остаётся в колоде (без сжигания)
                     if (CountNonCommander(ref hand) >= HandComponent.MaxNonCommanderCards)
                         break;
@@ -58,6 +66,12 @@ namespace Game.Core.Ecs.Systems
                     _handTagPool.Value.Add(cardEntity);
                     drawn++;
                     drawnEntities?.Add(cardEntity);
+
+                    // Форензика синка: КАЖДЫЙ добор с ключом (turn-start И эффектные — на обоих клиентах).
+                    // Эффектные доборы ре-ранятся «с верха» локально → при расхождении порядка колод здесь
+                    // видно, какую именно карту снял каждый клиент (дифф [Draw]-строк той же границы).
+                    UnityEngine.Debug.Log($"[Draw] p={(_playerPool.Value.Has(playerEntity) ? _playerPool.Value.Get(playerEntity).PlayerId : -1)} " +
+                                          $"key={(_netKeyPool.Value.Has(cardEntity) ? _netKeyPool.Value.Get(cardEntity).NetworkEntityKey : cardEntity.ToString())} sync={sync}");
 
                     GameEventBus.Publish(new CardDrawnEvent
                     {
@@ -80,10 +94,40 @@ namespace Game.Core.Ecs.Systems
             }
         }
 
+        /// <summary>
+        /// Выкидывает из списка руки «фантомов» — сущности БЕЗ HandTag (карта уже разыграна/сброшена/ушла,
+        /// но кто-то не убрал её из hand.CardEntities) и синхронизирует Count со списком. Без этого рука
+        /// считается полной при визуально пустых слотах, и добор молча прекращается.
+        /// Логируем КАЖДЫЙ случай: это всегда чья-то незакрытая перекладка — по имени карты видно, чья.
+        /// </summary>
+        private void SanitizeHand(int playerEntity, ref HandComponent hand)
+        {
+            if (hand.CardEntities == null) { hand.Count = 0; return; }
+
+            for (int i = hand.CardEntities.Count - 1; i >= 0; i--)
+            {
+                int card = hand.CardEntities[i];
+                if (_handTagPool.Value.Has(card)) continue;
+
+                string name = _modelPool.Value.Has(card) ? _modelPool.Value.Get(card).CardName : "?";
+                UnityEngine.Debug.LogWarning($"[Hand] ФАНТОМ в руке: entity={card} '{name}' без HandTag — убираю из списка руки");
+                hand.CardEntities.RemoveAt(i);
+            }
+
+            if (hand.Count != hand.CardEntities.Count)
+            {
+                UnityEngine.Debug.LogWarning($"[Hand] счётчик руки разъехался со списком: Count={hand.Count}, факт={hand.CardEntities.Count} — синхронизирую");
+                hand.Count = hand.CardEntities.Count;
+            }
+        }
+
+        // Счёт по ФАКТИЧЕСКОМУ списку (не по hand.Count): при рассинхроне цикл по Count мог выйти за
+        // границы списка (IndexOutOfRange) или недосчитать карты.
         private int CountNonCommander(ref HandComponent hand)
         {
+            if (hand.CardEntities == null) return 0;
             int n = 0;
-            for (int i = 0; i < hand.Count; i++)
+            for (int i = 0; i < hand.CardEntities.Count; i++)
             {
                 if (!_commanderPool.Value.Has(hand.CardEntities[i]))
                     n++;

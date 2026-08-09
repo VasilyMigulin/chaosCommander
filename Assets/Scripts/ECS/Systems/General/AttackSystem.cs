@@ -30,6 +30,8 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<AttackHitEvent> _hitPool = default;
         readonly EcsPoolInject<ViewRefComponent> _viewPool = default;
         readonly EcsPoolInject<DeadTag> _deadPool = default;
+        readonly EcsPoolInject<PlayerComponent> _playerPool = default;
+        readonly EcsCustomInject<BoardView> _boardView = default;   // позиция аватара для поворота к цели
 
         public void Run(IEcsSystems systems)
         {
@@ -38,7 +40,7 @@ namespace Game.Core.Ecs.Systems
                 ref var req   = ref _attackPool.Value.Get(entity);
                 ref var speed = ref _speedPool.Value.Get(entity);
 
-                if (speed.Remaining <= 0)
+                if (!req.Free && speed.Remaining <= 0)
                 {
                     _attackPool.Value.Del(entity);
                     continue;
@@ -47,7 +49,15 @@ namespace Game.Core.Ecs.Systems
                 int targetEntity = req.TargetEntity;
                 int attackValue  = _atkValuePool.Value.Has(entity) ? _atkValuePool.Value.Get(entity).Value : 0;
 
-                speed.Remaining--;
+                // Существо с атакой ≤0 не может атаковать (раньше било с 0 урона и тратило скорость).
+                // Не тратим Remaining и не запускаем анимацию — запрос просто отклоняется.
+                if (attackValue <= 0)
+                {
+                    _attackPool.Value.Del(entity);
+                    continue;
+                }
+
+                if (!req.Free) speed.Remaining--;
                 _attackPool.Value.Del(entity);
 
                 // Блокируем ввод/очередь на время анимации
@@ -70,10 +80,18 @@ namespace Game.Core.Ecs.Systems
                 CreatureView view = GetView(entity);
                 if (view != null)
                 {
-                    // Поворачиваемся лицом к цели перед ударом.
+                    // Поворачиваемся лицом к цели перед ударом: существо — по его вью; АВАТАР — по месту
+                    // аватара на доске (у игрока нет CreatureView — раньше атака в лицо шла БЕЗ поворота,
+                    // существо било «спиной», глядя куда осталось смотреть после прошлого действия).
                     var targetView = GetView(targetEntity);
                     if (targetView != null)
                         view.FaceTowards(targetView.transform.position, instant: true);
+                    else if (_playerPool.Value.Has(targetEntity) && _boardView.Value != null)
+                    {
+                        var avatar = _boardView.Value.GetAvatarView(_playerPool.Value.Get(targetEntity).PlayerId);
+                        if (avatar != null)
+                            view.FaceTowards(avatar.transform.position, instant: true);
+                    }
 
                     view.PlayAttack(
                         onHit: () =>

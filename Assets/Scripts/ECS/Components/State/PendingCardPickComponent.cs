@@ -16,5 +16,11 @@ namespace Game.Core.Ecs.Components
 
         /// <summary>Количество реально заполненных слотов в OfferedCardEntities.</summary>
         public int OfferedCount;
+
+        /// <summary>Токен окна выбора (PickRequestId) — ключ корреляции CardPickChosenEvent.</summary>
+        public int RequestId;
+
+        /// <summary>Оффер опубликован (слот у CardPickBrokerSystem получен).</summary>
+        public bool Presented;
     }
 }

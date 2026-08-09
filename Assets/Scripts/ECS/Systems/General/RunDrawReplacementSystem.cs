@@ -10,18 +10,34 @@ using Game.Core.Shared;
 namespace Game.Core.Ecs.Systems
 {
     /// <summary>
-    /// Замена добора (Адовый червь). Стоит ПЕРЕД DrawCardSystem: для игрока с DrawReplacementComponent
-    /// отменяет обычный добор и предлагает выбор «смотри N верхних» через CardPickOfferedEvent (UI —
-    /// существующий PickupWindow). По CardPickChosenEvent выбранную уничтожает (→ кладбище), остальные
-    /// берёт в руку (DestroyChosen=true). Выбор коррелируется по сущности ИГРОКА (CastingCardEntity).
+    /// Замена механики добора начала хода (Адовый червь): «посмотри N верхних, выбери одну» вместо
+    /// взятия верхней карты. Предложение показывается через CardPickOfferedEvent (UI — существующий
+    /// PickupWindow); по CardPickChosenEvent выбранная уничтожается (→ кладбище), остальные идут
+    /// в руку (DestroyChosen=true).
     ///
-    /// ФАЗА 1 — локально (актив). СИНК (передать offered+chosen пассиву) — отдельным куском.
+    /// Запускается по DrawReplacementDueComponent, который ставит RunTurnStartSystem ВМЕСТО обычного
+    /// DrawCardEvent. Сам DrawCardEvent эта система не трогает вовсе — то есть доборы от эффектов карт
+    /// идут штатно и замену не запускают, как и написано на карте («когда вы берёте карту в начале хода»).
+    /// Перехват DrawCardEvent тут был бы неверен принципиально: DrawCardEffect суммирует Count в уже
+    /// существующее событие, и базовый добор от эффектных в нём неотличим.
+    ///
+    /// Окно выбора — ОБЩИЙ ресурс (его делят раскопка, таргетинг из зон и этот канал), поэтому оффер
+    /// публикуется только со слотом от CardPickBrokerSystem, а выбор коррелируется по RequestId.
+    /// Прежняя корреляция по CastingCardEntity=entity ИГРОКА была несовместима с остальными каналами
+    /// (там это entity КАРТЫ, id из одного пространства, шина общая): чужой выбор не находил pending,
+    /// pending висел вечно, и, поскольку DrawCardEvent удаляется здесь безусловно, игрок переставал
+    /// добирать карты до конца матча.
+    ///
+    /// Пик ОБЯЗАТЕЛЬНЫЙ (AllowCancel=false) — иначе отмена приводила бы к тому же зависанию.
+    ///
+    /// ФАЗА 1 — локально (актив). СИНК — DrawReplacementResolvedNetEvent → ActionDrawReplacementData.
     /// </summary>
     public sealed class RunDrawReplacementSystem : IEcsRunSystem
     {
+        readonly EcsWorldInject _world = default;   // HandSpace: лимит руки при выдаче выбранной карты
         readonly EcsCustomInject<CardConfig> _cardConfig = default;
 
-        readonly EcsPoolInject<DrawCardEvent>                   _drawPool    = default;
+        readonly EcsPoolInject<DrawReplacementDueComponent>     _duePool     = default;
         readonly EcsPoolInject<DrawReplacementComponent>        _replPool    = default;
         readonly EcsPoolInject<PendingDrawReplacementComponent> _pendingPool = default;
         readonly EcsPoolInject<DeckComponent>                   _deckPool    = default;
@@ -30,38 +46,52 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<HandTag>                         _handTagPool = default;
         readonly EcsPoolInject<GraveTag>                        _graveTagPool = default;
         readonly EcsPoolInject<CardModelComponent>             _modelPool   = default;
+        readonly EcsPoolInject<PlayerComponent>                _playerPool  = default;
 
-        readonly EcsFilterInject<Inc<DrawCardEvent, DrawReplacementComponent, DeckComponent, HandComponent>> _drawFilter = default;
+        readonly EcsFilterInject<Inc<DrawReplacementDueComponent, DrawReplacementComponent, DeckComponent, HandComponent>> _dueFilter = default;
+        readonly EcsFilterInject<Inc<PendingDrawReplacementComponent>> _pendingFilter = default;
 
         bool _subscribed;
-        readonly Queue<CardPickChosenEvent> _chosen = new Queue<CardPickChosenEvent>();
+        readonly Queue<CardPickChosenEvent>    _chosen    = new Queue<CardPickChosenEvent>();
+        readonly Queue<CardPickCancelledEvent> _cancelled = new Queue<CardPickCancelledEvent>();
+        readonly Queue<int>                    _expired   = new Queue<int>();
+        readonly List<int>                     _buffer    = new List<int>();
 
         void Subscribe()
         {
             if (_subscribed) return;
             _subscribed = true;
-            GameEventBus.Subscribe<CardPickChosenEvent>(OnChosen);
+            GameEventBus.Subscribe<CardPickChosenEvent>(e => _chosen.Enqueue(e));
+            GameEventBus.Subscribe<CardPickCancelledEvent>(e => _cancelled.Enqueue(e));
+            // Момент истечения задаёт брокер (одно правило на все каналы пика); способ наш — выбрать
+            // случайную из предложенных, чтобы добор не пропал совсем.
+            GameEventBus.Subscribe<CardPickExpiredEvent>(e => _expired.Enqueue(e.PlayerId));
         }
-
-        void OnChosen(CardPickChosenEvent e) => _chosen.Enqueue(e);
 
         public void Run(IEcsSystems systems)
         {
             Subscribe();
 
-            // Перехват добора: отменяем обычный, предлагаем выбор (или ждём текущий).
-            var buffer = new List<int>();
-            foreach (var pe in _drawFilter.Value) buffer.Add(pe);
-            foreach (var pe in buffer)
+            // Начался ход игрока с заменой: фиксируем предложение (верх колоды на этот момент).
+            _buffer.Clear();
+            foreach (var pe in _dueFilter.Value) _buffer.Add(pe);
+            foreach (var pe in _buffer)
             {
-                if (!_pendingPool.Value.Has(pe)) Offer(pe);   // уже ждём — просто отменяем добор ниже
-                _drawPool.Value.Del(pe);                      // обычного добора не будет
+                if (!_pendingPool.Value.Has(pe)) Claim(pe);   // уже ждём выбор — новое предложение не копим
+                _duePool.Value.Del(pe);
             }
 
-            while (_chosen.Count > 0) Resolve(_chosen.Dequeue());
+            // Показ окна отделён от фиксации предложения: слот у брокера может прийти не в этом кадре,
+            // а маркер замены живёт ровно один — ждать слот прямо здесь означало бы потерять замену.
+            Present();
+
+            while (_chosen.Count > 0)    ResolveChosen(_chosen.Dequeue());
+            while (_cancelled.Count > 0) ResolveCancelled(_cancelled.Dequeue());
+            while (_expired.Count > 0)   Expire(_expired.Dequeue());
         }
 
-        void Offer(int playerEntity)
+        // Зафиксировать, ЧТО будет предложено (верх колоды на момент добора), не показывая окна.
+        void Claim(int playerEntity)
         {
             ref var repl = ref _replPool.Value.Get(playerEntity);
             ref var deck = ref _deckPool.Value.Get(playerEntity);
@@ -71,25 +101,89 @@ namespace Game.Core.Ecs.Systems
             var offered = new int[n];
             for (int i = 0; i < n; i++) offered[i] = deck.CardEntities[i];
 
-            _pendingPool.Value.Add(playerEntity).Offered = offered;
-
-            GameEventBus.Publish(new CardPickOfferedEvent
-            {
-                CastingCardEntity   = playerEntity,   // корреляция (эхо в CardPickChosenEvent)
-                PlayerEntity        = playerEntity,
-                OfferedCardEntities = offered,
-                OfferedCardVisuals  = BuildVisuals(offered),
-                OfferedCount        = n,
-            });
+            ref var pending = ref _pendingPool.Value.Add(playerEntity);
+            pending.Offered   = offered;
+            pending.RequestId = 0;
+            pending.Presented = false;
         }
 
-        void Resolve(CardPickChosenEvent e)
+        // Показать окно тем, кому брокер выдал слот.
+        void Present()
         {
-            int playerEntity = e.CastingCardEntity;
-            if (!_pendingPool.Value.Has(playerEntity)) return;   // не наш выбор / устарел
+            _buffer.Clear();
+            foreach (var pe in _pendingFilter.Value) _buffer.Add(pe);
+
+            foreach (var pe in _buffer)
+            {
+                if (!_pendingPool.Value.Has(pe)) continue;
+                ref var p = ref _pendingPool.Value.Get(pe);
+                if (p.Presented) continue;
+                if (p.Offered == null || p.Offered.Length == 0) { ClearPending(pe); continue; }
+                if (!PickTicket.Ready(_world.Value, pe, ref p.RequestId, pe)) continue;
+
+                p.Presented = true;
+                GameEventBus.Publish(new CardPickOfferedEvent
+                {
+                    RequestId           = p.RequestId,
+                    CastingCardEntity   = pe,             // диагностика; корреляция — только по RequestId
+                    PlayerEntity        = pe,
+                    OfferedCardEntities = p.Offered,
+                    OfferedCardVisuals  = BuildVisuals(p.Offered),
+                    OfferedCount        = p.Offered.Length,
+                    AllowCancel         = false,          // выбрать одну из трёх ОБЯЗАН
+                });
+            }
+        }
+
+        void ResolveChosen(CardPickChosenEvent e)
+        {
+            if (e.RequestId == 0) return;
+            foreach (var pe in _pendingFilter.Value)
+            {
+                if (_pendingPool.Value.Get(pe).RequestId != e.RequestId) continue;
+                Apply(pe, e.ChosenCardEntity);
+                return;
+            }
+        }
+
+        // Пик обязательный, кнопка отмены в окне скрыта (AllowCancel=false). Но отмена может прийти
+        // и не из окна, поэтому обрабатываем защитно: сворачиваем случайным выбором, а не «забываем»
+        // запрос — иначе он заглушил бы добор до конца матча.
+        void ResolveCancelled(CardPickCancelledEvent e)
+        {
+            if (e.RequestId == 0) return;
+            foreach (var pe in _pendingFilter.Value)
+            {
+                if (_pendingPool.Value.Get(pe).RequestId != e.RequestId) continue;
+                ForceRandom(pe);
+                return;
+            }
+        }
+
+        // Ход закончился с открытым окном — добор не должен пропасть: роллим сами.
+        void Expire(int playerId)
+        {
+            _buffer.Clear();
+            foreach (var pe in _pendingFilter.Value)
+                if (PlayerIdOf(pe) == playerId) _buffer.Add(pe);
+
+            foreach (var pe in _buffer)
+                if (_pendingPool.Value.Has(pe)) ForceRandom(pe);
+        }
+
+        void ForceRandom(int playerEntity)
+        {
+            var offered = _pendingPool.Value.Get(playerEntity).Offered;
+            if (offered == null || offered.Length == 0) { ClearPending(playerEntity); return; }
+            Apply(playerEntity, offered[UnityEngine.Random.Range(0, offered.Length)]);
+        }
+
+        // ── Терминал: разложить предложенные по зонам и синкнуть результат ───────
+        void Apply(int playerEntity, int chosen)
+        {
+            if (!_pendingPool.Value.Has(playerEntity)) return;
 
             var offered = _pendingPool.Value.Get(playerEntity).Offered;
-            int chosen = e.ChosenCardEntity;
             bool destroyChosen = _replPool.Value.Has(playerEntity) && _replPool.Value.Get(playerEntity).DestroyChosen;
 
             ref var deck = ref _deckPool.Value.Get(playerEntity);
@@ -106,6 +200,12 @@ namespace Game.Core.Ecs.Systems
                     {
                         if (!_graveTagPool.Value.Has(card)) _graveTagPool.Value.Add(card);   // уничтожена → кладбище
                     }
+                    else if (!HandSpace.HasRoom(_world.Value, playerEntity))
+                    {
+                        // Лимит руки (единое правило, HandSpace): места нет → карта сгорает, как при
+                        // обычном доборе в полную руку (Адовый червь не может переполнить руку).
+                        HandSpace.Burn(_world.Value, card, "замена добора (Адовый червь)");
+                    }
                     else
                     {
                         if (!_handTagPool.Value.Has(card)) _handTagPool.Value.Add(card);
@@ -117,7 +217,7 @@ namespace Game.Core.Ecs.Systems
             deck.Count = deck.CardEntities != null ? deck.CardEntities.Count : 0;
             hand.Count = hand.CardEntities.Count;
 
-            _pendingPool.Value.Del(playerEntity);
+            ClearPending(playerEntity);
 
             // СИНК: сообщаем коллектору — он пошлёт ActionDrawReplacementData, пассив повторит у оппонента.
             GameEventBus.Publish(new DrawReplacementResolvedNetEvent
@@ -128,6 +228,16 @@ namespace Game.Core.Ecs.Systems
                 DestroyChosen = destroyChosen,
             });
         }
+
+        // Сущность ИГРОКА живёт весь матч, поэтому талон окна снимаем явно — сам он не исчезнет.
+        void ClearPending(int playerEntity)
+        {
+            if (_pendingPool.Value.Has(playerEntity)) _pendingPool.Value.Del(playerEntity);
+            PickTicket.Release(_world.Value, playerEntity);
+        }
+
+        int PlayerIdOf(int playerEntity)
+            => _playerPool.Value.Has(playerEntity) ? _playerPool.Value.Get(playerEntity).PlayerId : -1;
 
         CardVisualData[] BuildVisuals(int[] cards)
         {

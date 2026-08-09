@@ -167,11 +167,16 @@ namespace AwesomeUI.Feature
             GUILayout.Label("РЕЙТИНГ (подбор соперника)", Bold);
             if (string.IsNullOrEmpty(_mmr)) _mmr = Game.Core.Service.PlayerRating.Mmr.ToString();
             _mmr = GUILayout.TextField(_mmr);
-            if (GUILayout.Button("Задать MMR") && int.TryParse(_mmr, out int mmr))
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Задать MMR (локально)") && int.TryParse(_mmr, out int mmr))
             {
                 Game.Core.Service.PlayerRating.Mmr = mmr;
                 Ok($"MMR = {Game.Core.Service.PlayerRating.Mmr} ({Game.Core.Service.PlayerRating.RankName})");
             }
+            if (GUILayout.Button("Задать MMR (сервер)") && int.TryParse(_mmr, out int srvMmr))
+                DevService.SetMmr(srvMmr, v => Ok($"серверный MMR = {v}"), Fail);
+            GUILayout.EndHorizontal();
+            if (GUILayout.Button("Синк MMR с сервера")) RatingService.Fetch(() => Ok($"MMR = {Game.Core.Service.PlayerRating.Mmr}"));
             GUILayout.Label($"Сейчас: {Game.Core.Service.PlayerRating.Mmr} · {Game.Core.Service.PlayerRating.RankName}");
 
             GUILayout.Space(8);

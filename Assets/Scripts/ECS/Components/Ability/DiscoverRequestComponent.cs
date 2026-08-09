@@ -21,6 +21,13 @@ namespace Game.Core.Ecs.Components
         public int  OwnerId;
         public int  OfferCount;          // сколько показать в окне (discover)
         public bool Offered;             // окно уже показано (актив)
+        public int  RequestId;           // токен окна выбора (PickRequestId): по нему — и ТОЛЬКО по нему —
+                                         // узнаётся свой CardPickChosenEvent. Корреляция по SourceCardEntity
+                                         // была неоднозначной: шину слушают все каналы пика, а у замены
+                                         // добора в том же поле лежит entity ИГРОКА из общего id-пространства.
+        public int  Seq;                 // порядок среди запросов ОДНОГО источника («Приглашение»: 2 раскопки
+                                         // в одном касте → окна СТРОГО по очереди; ставит DiscoverEffect.Apply,
+                                         // порядок эффектов при ре-ране одинаков → зеркален)
 
         // ── терминал: куда и кому уходит выбранная карта ──
         public DiscoverDest Dest;        // Hand / Deck / Grave

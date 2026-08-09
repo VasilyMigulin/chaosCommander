@@ -31,5 +31,25 @@ namespace Game.Core.Ecs.Components
 
         // ── Флаги ─────────────────────────────────────────────────────────────
         public bool IsCommander;
+
+        /// <summary>Снимок для UI-показа карты вне руки (уничтожена/разыграна из колоды и т.п.).
+        /// Кост — ПЕЧАТНЫЙ (без живых модификаторов владельца): для витринного показа этого достаточно,
+        /// а эффективную цену честно считает только HandUISystem для карт, реально попавших в руку.</summary>
+        public Shared.CardVisualData ToVisual() => new Shared.CardVisualData
+        {
+            CardName    = CardName,
+            Description = Description,
+            Icon        = ArtImage,
+            CardType    = CardType,
+            Rarity      = Rarity,
+            Element     = Element,
+            CostType    = CostType,
+            CostAmount  = CostAmount,
+            IsCreature  = IsCreature,
+            Attack      = Attack,
+            MaxHealth   = MaxHealth,
+            Speed       = Speed,
+            IsCommander = IsCommander,
+        };
     }
 }

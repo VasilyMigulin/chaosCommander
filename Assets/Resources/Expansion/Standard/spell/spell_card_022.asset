@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
   m_Name: spell_card_022
   m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
   CardData:
     rid: 1051486589887447068
   references:
@@ -34,11 +35,14 @@ MonoBehaviour:
         PlayCost: 1
         PlayCostAmount: 5
         IsToken: 0
-        MulliganStartingHand: 0
-        MulliganUnlimitedReplace: 0
+        ShowAsLinked: 0
+        HideAsLinked: 0
+        NonBattleAbilities: []
         RuntimeAbilities:
         - rid: 1051486589887447069
         Archetypes: []
+        TierSource: 0
+        Tiers: []
         RequiresTarget: 0
     - rid: 1051486589887447069
       type: {class: AbilityToTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
@@ -52,12 +56,15 @@ MonoBehaviour:
         Effects:
         - rid: 1051486589887447071
         - rid: 1051486589887447072
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
         Vfx:
           Kind: 0
           Prefab: {fileID: 0}
-          HitPrefab: {fileID: 0}
+          HitPrefab: {fileID: 185366, guid: 6dcff98dc6fbe6e4bbbdac7b196f0c5e, type: 3}
           ProjectileSpeed: 12
           MergeArea: 0
+          PlayCasterAnimation: 0
         Selection: 1
         Count: 1
         Zone: 0
@@ -66,6 +73,7 @@ MonoBehaviour:
         - rid: 1051486589887447073
         - rid: 1051486589887447074
         - rid: 1051486589887447075
+        IncludeCommanderInZones: 0
     - rid: 1051486589887447071
       type: {class: RemoveColorEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:

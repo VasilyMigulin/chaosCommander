@@ -12,5 +12,10 @@ namespace Game.Core.Ecs.Components
         public int PlayerEntity;
         public bool Offered;
         public int[] Chosen;
+
+        /// <summary>Токен окна выбора (PickRequestId) — ключ корреляции CardPickChosenEvent. Перевыдаётся
+        /// на КАЖДОЕ окно: при Count>1 способность просит несколько карт подряд, и каждый показ берёт
+        /// у брокера свой слот заново.</summary>
+        public int RequestId;
     }
 }

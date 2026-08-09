@@ -33,7 +33,11 @@ namespace Game.Core.Ecs.Systems
                         PlayerOwnerEntity = entity,   // сущность игрока-оппонента → способности с верным владельцем
                         OwnerId = player.PlayerId,
                         IsEnemy = true,
-                        InHand = false
+                        InHand = false,
+                        // Регистрируем в списках зон оппонента → DeckComponent.Count верный и отслеживается при
+                        // доборе/розыгрыше (MoveDeckCardToHand/RemoveFromHand). Без флага список пуст → счётчик
+                        // руки/колоды оппонента на пассиве врал (баг 2). UI руки врага НЕ дублируется (IsEnemy-гейт).
+                        RegisterInZoneList = true
                     });
                 }
 
@@ -47,7 +51,25 @@ namespace Game.Core.Ecs.Systems
                         PlayerOwnerEntity = entity,
                         OwnerId = player.PlayerId,
                         IsEnemy = true,
-                        InHand = true
+                        InHand = true,
+                        RegisterInZoneList = true   // см. коммент выше — счётчик руки оппонента
+                    });
+                }
+
+                // Сайдборд оппонента: зеркало в своей зоне. RegisterInZoneList=false — у сайдборда нет
+                // списка в компоненте игрока (в отличие от колоды/руки), зона задаётся только тегом.
+                for (int i = 0; i < sync.SideboardCount; i++)
+                {
+                    GameEventBus.Publish(new CreateCardEvent
+                    {
+                        ExpansionId = sync.SideboardExpansionIds[i],
+                        CardId = sync.SideboardCardIds[i],
+                        NetworkEntityKey = sync.SideboardNetworkKeys[i],
+                        PlayerOwnerEntity = entity,
+                        OwnerId = player.PlayerId,
+                        IsEnemy = true,
+                        InSideboard = true,
+                        RegisterInZoneList = false
                     });
                 }
 
@@ -60,7 +82,8 @@ namespace Game.Core.Ecs.Systems
                     OwnerId = player.PlayerId,
                     IsEnemy = true,
                     InHand= true,
-                    IsCommander = true
+                    IsCommander = true,
+                    RegisterInZoneList = true   // командир в руке на индексе 0 (как у локального в InitDeckSystem)
                 });
 
                 _syncPool.Value.Del(entity);

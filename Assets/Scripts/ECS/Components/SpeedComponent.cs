@@ -20,6 +20,33 @@ namespace Game.Core.Ecs.Components
         /// <summary>ИСТИННО ПЕРМАНЕНТНЫЕ баффы скорости: не чистятся даже при смерти.</summary>
         public List<int> ModifiersPermanent;
 
+        /// <summary>СТЕК ФИКСАЦИЙ («скорость всех существ равна 0» — Придворный этикет): пока стек не пуст,
+        /// Max = ПОСЛЕДНЕЕ значение, а база и ВСЕ модификаторы игнорируются. Накладываются аддитивно:
+        /// новый фикс поверх старого (последний актуален), снятие возвращает предыдущий, пустой стек —
+        /// обычный расчёт. См. StatOverrideUtil / FixStat.</summary>
+        public List<int> Overrides;
+
+        public void AddOverride(int value)
+        {
+            (Overrides ??= new List<int>()).Add(value);
+            int oldMax = Max;
+            RecalculateValue();
+            if (Max > oldMax) Remaining += Max - oldMax;
+        }
+
+        /// <summary>Снять СВОЙ фикс (последнее вхождение значения) — парный к AddOverride.</summary>
+        public bool RemoveOverride(int value)
+        {
+            if (Overrides == null) return false;
+            int i = Overrides.LastIndexOf(value);
+            if (i < 0) return false;
+            Overrides.RemoveAt(i);
+            int oldMax = Max;
+            RecalculateValue();
+            if (Max > oldMax) Remaining += Max - oldMax;
+            return true;
+        }
+
         public void AddModifier(int m, bool permanent = false)
         {
             if (permanent) (ModifiersPermanent ??= new List<int>()).Add(m);
@@ -46,8 +73,25 @@ namespace Game.Core.Ecs.Components
             if (Modifiers != null && Modifiers.Count > 0) { Modifiers.Clear(); RecalculateValue(); }
         }
 
+        /// <summary>Форс-установка ПЕЧАТНОЙ базы скорости (карта-с-уровнями). Устойчиво к ClearModifiers; при росте
+        /// базы Remaining тянется за Max в этот же ход, при снижении RecalculateValue клампит.</summary>
+        public void SetBaseMax(int newBaseMax)
+        {
+            int oldMax = Max;
+            BaseMax = newBaseMax;
+            RecalculateValue();
+            if (Max > oldMax) Remaining += Max - oldMax;
+        }
+
         public void RecalculateValue()
         {
+            if (Overrides != null && Overrides.Count > 0)
+            {
+                int fixedValue = Overrides[Overrides.Count - 1];   // последний фикс — актуальный
+                Max = fixedValue < 0 ? 0 : fixedValue;
+                if (Remaining > Max) Remaining = Max;
+                return;
+            }
             int v = BaseMax;
             if (Modifiers != null)          for (int i = 0; i < Modifiers.Count; i++)          v += Modifiers[i];
             if (ModifiersPermanent != null) for (int i = 0; i < ModifiersPermanent.Count; i++) v += ModifiersPermanent[i];

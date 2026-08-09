@@ -9,6 +9,7 @@ using Game.Core.Instance.Card;
 using Game.Core.Model.Card;
 using Game.Core.Service;
 using Game.Core.Shared;
+using Game.Core.Shared.Interface;   // IDeckBuildAbility — карта объявляет свою зону отложенных
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -78,6 +79,13 @@ namespace AwesomeUI.Feature.DeckBuilder
         [SerializeField] GameObject         _noCommanderHint;
 
         [Header("Color Indicators")]
+        // ── Режим правки «отложенных» (сайдборд Сказочника) ──
+        // Третьей зоны НЕТ намеренно: список колоды ПЕРЕКЛЮЧАЕТСЯ на отложенные карты, библиотека внизу
+        // остаётся, добавляется кнопка «назад». Отдельная постоянная зона рядом с колодой и библиотекой
+        // была бы нагромождением ради механики одной карты (решение юзера 2026-08-02).
+        [SerializeField] Button             _sideboardBackButton;   // «назад» — виден только в режиме
+        [SerializeField] GameObject         _sideboardHint;         // опц. подпись «Отложенные карты»
+
         [SerializeField] ElementColorEntry[] _colorIndicators;
 
         [Header("Info")]
@@ -97,6 +105,8 @@ namespace AwesomeUI.Feature.DeckBuilder
 
         readonly List<LibraryCardView> _libraryViews = new List<LibraryCardView>();
         readonly List<DeckCardView>    _deckViews    = new List<DeckCardView>();
+        /// <summary>Список колоды сейчас показывает ОТЛОЖЕННЫЕ карты, а не колоду.</summary>
+        bool _sideboardMode;
 
         /// <summary>Имя колоды на момент открытия (пусто → новая). Нужно, чтобы переименование
         /// ЗАМЕНЯЛО колоду, а не создавало вторую.</summary>
@@ -121,6 +131,7 @@ namespace AwesomeUI.Feature.DeckBuilder
             _searchInput?.onValueChanged.AddListener(OnSearchChanged);
             _exitButton?.onClick.AddListener(OnExitClicked);
             _copyCodeButton?.onClick.AddListener(OnCopyCodeClicked);
+            _sideboardBackButton?.onClick.AddListener(OnSideboardBack);
             _commanderFilterToggle?.onValueChanged.AddListener(OnCommanderFilterChanged);
 
             PlayerLibrary.Changed += OnLibraryChanged;   // выдали карты (грант/бустер) → библиотека обновится в рантайме
@@ -132,8 +143,22 @@ namespace AwesomeUI.Feature.DeckBuilder
         public override void OnOpen(params Action[] onComplete)
         {
             base.OnOpen(onComplete);
+            ResetFilters();        // фильтры не должны «залипать» с прошлого редактирования (см. ниже)
             BuildLibraryViews();   // библиотека могла измениться, пока панель была закрыта — пересобираем
             LoadFromContext();     // что редактируем — решил DeckViewPanel
+        }
+
+        /// <summary>
+        /// Сброс фильтров библиотеки при КАЖДОМ открытии панели. Тоггл «только командиры» и строка поиска —
+        /// состояние UI-объектов, а панель переиспользуется: включив фильтр, чтобы выбрать командира, игрок
+        /// оставлял его включённым, и при следующем заходе «Редактировать колоду» библиотека показывала
+        /// ОДНИ ЛЕГЕНДАРКИ (баг 2026-07-30). Sety-Without-Notify — чтобы не дёргать RefreshLibrary дважды:
+        /// её всё равно вызовет LoadFromContext → RefreshAll.
+        /// </summary>
+        void ResetFilters()
+        {
+            if (_commanderFilterToggle != null) _commanderFilterToggle.SetIsOnWithoutNotify(false);
+            if (_searchInput != null)           _searchInput.SetTextWithoutNotify(string.Empty);
         }
 
         // Карты появились в рантайме → пересобрать библиотеку, НЕ трогая колоду-в-работе (_service).
@@ -153,9 +178,14 @@ namespace AwesomeUI.Feature.DeckBuilder
             _exitButton?.onClick.RemoveListener(OnExitClicked);
             _copyCodeButton?.onClick.RemoveListener(OnCopyCodeClicked);
             _commanderFilterToggle?.onValueChanged.RemoveListener(OnCommanderFilterChanged);
+            _sideboardBackButton?.onClick.RemoveListener(OnSideboardBack);
 
             foreach (var v in _libraryViews) v.OnAddRequested -= OnLibraryCardAdd;
-            foreach (var v in _deckViews)    v.OnRemoveRequested -= OnDeckCardRemove;
+            foreach (var v in _deckViews)
+            {
+                v.OnRemoveRequested -= OnDeckCardRemove;
+                v.OnEditSideboardRequested -= OnEditSideboard;
+            }
             if (_commanderView != null)      _commanderView.OnRemoveRequested -= OnCommanderRemove;
         }
 
@@ -273,8 +303,11 @@ namespace AwesomeUI.Feature.DeckBuilder
                 if (hasCommander && visible && _service.IsCommanderCard(entry.Model))
                     visible = false;
 
-                // Скрываем карты чужого цвета (если командир выбран)
-                if (hasCommander && visible && !_service.IsColorAllowed(entry.Model))
+                // Скрываем карты чужого цвета (если командир выбран). В режиме ОТЛОЖЕННЫХ — НЕ скрываем:
+                // весь смысл Сказочника в том, чтобы достать что угодно, включая карты вне цветов колоды
+                // (иначе он всего лишь «ещё три карты той же колоды»). Лимит копий и владение при этом
+                // действуют, они проверяются в TryAddToSideboard.
+                if (hasCommander && visible && !_sideboardMode && !_service.IsColorAllowed(entry.Model))
                     visible = false;
 
                 // Фильтр «только командиры» (легендарные существа)
@@ -308,7 +341,11 @@ namespace AwesomeUI.Feature.DeckBuilder
         void RefreshDeck()
         {
             // Очистить старые вьюхи
-            foreach (var v in _deckViews) v.OnRemoveRequested -= OnDeckCardRemove;
+            foreach (var v in _deckViews)
+            {
+                v.OnRemoveRequested -= OnDeckCardRemove;
+                v.OnEditSideboardRequested -= OnEditSideboard;
+            }
             _deckViews.Clear();
             if (_commanderView != null)
             {
@@ -318,8 +355,9 @@ namespace AwesomeUI.Feature.DeckBuilder
             }
             foreach (Transform child in _deckContent) Destroy(child.gameObject);
 
-            // Командир — первым в списке
-            if (_service.Commander != null)
+            // Командир — первым в списке. В режиме правки отложенных его не показываем: список сейчас
+            // про другую зону, а командира туда всё равно нельзя (IsCommanderCard в TryAddToSideboard).
+            if (_service.Commander != null && !_sideboardMode)
             {
                 var cmd = _service.Commander;
                 PlayerLibrary.TryGet(cmd.ExpansionId, cmd.Id, out var ownedCmd);
@@ -339,8 +377,9 @@ namespace AwesomeUI.Feature.DeckBuilder
                 _commanderView.OnRemoveRequested += OnCommanderRemove;
             }
 
-            // Обычные карты
-            foreach (var entry in _service.DeckEntries.Values)
+            // Тот же список показывает ЛИБО колоду, ЛИБО отложенные — см. _sideboardMode.
+            var source = _sideboardMode ? _service.SideboardEntries : _service.DeckEntries;
+            foreach (var entry in source.Values)
             {
                 if (entry.DeckCount <= 0) continue;
 
@@ -354,16 +393,58 @@ namespace AwesomeUI.Feature.DeckBuilder
                     CardName  = entry.Model.Name,
                     DeckCount = entry.DeckCount,
                     MaxCopies = DeckBuilderService.MaxCopies(entry.Model.Rarity),
+                    // Кнопка правки — только у карты-владельца зоны и только когда мы В КОЛОДЕ:
+                    // из режима отложенных выходят кнопкой «назад», а не вложенным входом ещё глубже.
+                    HasSideboard = !_sideboardMode && DeclaresSideboard(entry.Model),
                     Visual    = CardVisualDataFactory.From(entry.Model),
                 });
+                view.OnEditSideboardRequested += OnEditSideboard;
                 _deckViews.Add(view);
             }
 
-            // Счётчик: командир (если есть) + обычные карты
-            int commanderCount = _service.Commander != null ? 1 : 0;
-            int total = commanderCount + _service.TotalCards;
+            // Счётчик у списка один, но считает то, что список ПОКАЗЫВАЕТ: в режиме отложенных «2 / 3»,
+            // иначе размер колоды. Отложенные в размер колоды не входят (решение юзера 2026-08-01).
             if (_cardCountText != null)
-                _cardCountText.text = $"{total} / {MaxDeckSize}";
+            {
+                if (_sideboardMode)
+                {
+                    _cardCountText.text = $"{_service.SideboardCount} / {_service.SideboardSize}";
+                }
+                else
+                {
+                    int commanderCount = _service.Commander != null ? 1 : 0;
+                    _cardCountText.text = $"{commanderCount + _service.TotalCards} / {MaxDeckSize}";
+                }
+            }
+
+            if (_sideboardBackButton != null) _sideboardBackButton.gameObject.SetActive(_sideboardMode);
+            if (_sideboardHint != null)       _sideboardHint.SetActive(_sideboardMode);
+        }
+
+        /// <summary>Объявляет ли карта свою зону отложенных (Сказочник) — по её небоевым способностям.
+        /// Спрашиваем МОДЕЛЬ, а не имя/id: любая будущая карта с SideboardAbility получит кнопку сама.</summary>
+        static bool DeclaresSideboard(CardModel model)
+        {
+            if (model?.NonBattleAbilities == null) return false;
+            foreach (var a in model.NonBattleAbilities)
+                if (a is IDeckBuildAbility) return true;
+            return false;
+        }
+
+        void OnEditSideboard(DeckCardView view)
+        {
+            if (!_service.HasSideboard) return;
+            _sideboardMode = true;
+            RefreshDeck();
+            RefreshLibrary(_searchInput != null ? _searchInput.text : "");
+            ShowFeedback(Loc("ui.deck.sideboard_edit", "Выберите карты, которые отложите"));
+        }
+
+        void OnSideboardBack()
+        {
+            _sideboardMode = false;
+            RefreshDeck();
+            RefreshLibrary(_searchInput != null ? _searchInput.text : "");
         }
 
         void RefreshMeta()
@@ -398,6 +479,20 @@ namespace AwesomeUI.Feature.DeckBuilder
                 return;
             }
 
+            // В режиме правки отложенных клик по библиотеке кладёт карту В ЗОНУ, а не в колоду.
+            // Никакой скрытой маршрутизации: куда попадёт карта, видно по тому, что показывает список.
+            if (_sideboardMode)
+            {
+                var sideResult = _service.TryAddToSideboard(view.Model);
+                if (sideResult == DeckBuilderService.AddResult.Ok)
+                {
+                    RefreshDeck();
+                    RefreshLibrary(_searchInput != null ? _searchInput.text : "");
+                }
+                else ShowFeedback(ResultMessage(sideResult));
+                return;
+            }
+
             // Проверка лимита обычных карт (20 без командира)
             if (_service.TotalCards >= MaxDeckSize - 1)
             {
@@ -419,6 +514,7 @@ namespace AwesomeUI.Feature.DeckBuilder
 
         void OnCommanderRemove(DeckCardView view)
         {
+            _sideboardMode = false;   // колода обнуляется — режим правки отложенных больше не о чем
             _service.ClearAll();
             RefreshAll();
             ShowFeedback(Loc("ui.deck.commander_removed", "Командир убран из колоды"));
@@ -426,11 +522,18 @@ namespace AwesomeUI.Feature.DeckBuilder
 
         void OnDeckCardRemove(DeckCardView view)
         {
-            if (_service.TryRemove(view.Model))
-            {
-                RefreshDeck();
-                RefreshLibrary(_searchInput != null ? _searchInput.text : "");
-            }
+            // Список один на две сущности — убираем из того, что он сейчас показывает.
+            bool removed = _sideboardMode
+                ? _service.TryRemoveFromSideboard(view.Model)
+                : _service.TryRemove(view.Model);
+            if (!removed) return;
+
+            // Убрали из колоды карту, объявлявшую зону → сервис уже вернул отложенные в библиотеку
+            // (TryRemove → SyncSideboard). Гасим и режим, иначе список остался бы в пустой правке.
+            if (!_service.HasSideboard) _sideboardMode = false;
+
+            RefreshDeck();
+            RefreshLibrary(_searchInput != null ? _searchInput.text : "");
         }
 
         void OnSearchChanged(string value)
@@ -557,6 +660,8 @@ namespace AwesomeUI.Feature.DeckBuilder
                 case DeckBuilderService.AddResult.CopyLimitReached:   return Loc("ui.deck.copy_limit", "Достигнут лимит копий для этой карты");
                 case DeckBuilderService.AddResult.NotEnoughCopies:    return Loc("ui.deck.not_enough_copies", "У вас нет достаточно копий этой карты");
                 case DeckBuilderService.AddResult.IsCommanderCard:    return Loc("ui.deck.is_commander", "Это карта командира — уже в колоде");
+                case DeckBuilderService.AddResult.NoSideboard:        return Loc("ui.deck.no_sideboard", "В колоде нет карты, которая позволяет откладывать");
+                case DeckBuilderService.AddResult.SideboardFull:      return Loc("ui.deck.sideboard_full", "Отложено уже достаточно карт");
                 default:                                               return "";
             }
         }

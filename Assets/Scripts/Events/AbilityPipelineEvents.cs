@@ -15,8 +15,23 @@ namespace Game.Core.Events
     /// CollectActionSystem такие НЕ синкает ActionCastData (создание уже зеркально через детерм. ре-ран).</summary>
     public struct CreatureInvokedEvent : IGameEvent { public int CardEntity; public bool Generated; public int OwnerId; }
 
+    /// <summary>ЧАРА появилась на столе через ГЕНЕРАЦИЮ (SpawnCharmTokenEffect и т.п. — CreateCardEvent{InBoard}),
+    /// а не через обычный розыгрыш из руки (тот получает CardCastEvent штатно, роутер публикует его сам).
+    /// Аналог CreatureInvokedEvent{Generated=true}, но для чар: InBoard-создание в CreateCardSystem НЕ шлёт
+    /// CardCastEvent вообще (см. его комментарий) — сгенерированная чара иначе не имела бы НИКАКОГО «я появилась»
+    /// сигнала для своего OnCast-эквивалента. Нужен картам вида «Королёвский садовник»: чара, заспавненная
+    /// эффектом, должна сразу (не на будущий ход) применить своё разовое действие — трекинг/бафф текущих
+    /// целей — под ТЕМ ЖЕ источником (собой), что и её реактивная часть (иначе два разных TrackedBuffsComponent
+    /// на разных картах-источниках дают двойной бафф существу, которое умерло и вернулось на поле).</summary>
+    public struct CharmInvokedEvent : IGameEvent { public int CardEntity; public int OwnerId; }
+
     /// <summary>Существо-карта погибла.</summary>
     public struct CreatureDiedEvent : IGameEvent { public int CardEntity; public int KillerEntity; }
+
+    /// <summary>Карта СБРОШЕНА из руки в кладбище (DiscardEffect). Ловит OnDiscardTrigger («При сбросе»),
+    /// как OnDieTrigger ловит CreatureDiedEvent. Публикуется на активе (сброс симулирует активный клиент),
+    /// пассив реплеит результат снапшотом резолва.</summary>
+    public struct CardDiscardedEvent : IGameEvent { public int CardEntity; }
 
     /// <summary>Игрок получил урон (для аккумулирующих условий эффектов).</summary>
     public struct PlayerDamagedEvent : IGameEvent { public int PlayerEntity; public int Amount; }

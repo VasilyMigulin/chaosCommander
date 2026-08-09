@@ -18,6 +18,7 @@ namespace Game.Core.Ecs.Systems
     public sealed class DieSystem : IEcsRunSystem
     {
         readonly EcsWorldInject _world = default;   // для пере-привязки способностей краденого командира
+        readonly EcsCustomInject<BoardView> _boardView = default;
         readonly EcsFilterInject<Inc<DeadTag, BoardTag, CreatureTag>> _filter = default;
 
         readonly EcsPoolInject<AttackAnimPendingTag> _attackAnimPool = default;
@@ -35,6 +36,13 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<HandComponent> _handPool = default;
         readonly EcsPoolInject<PlayerComponent> _playerPool = default;
         readonly EcsPoolInject<DeadTag> _deadPool = default;
+
+        // Детерминированный порядок обработки смертей (см. Run): штамп выхода на стол + буфер пачки.
+        readonly EcsPoolInject<BoardEntryOrderComponent> _entryOrderPool = default;
+        readonly System.Collections.Generic.List<int> _deathBatch = new();
+
+        int DeathEntrySeq(int entity)
+            => _entryOrderPool.Value.Has(entity) ? _entryOrderPool.Value.Get(entity).Seq : 0;
         readonly EcsPoolInject<TokenTag> _tokenPool = default;
         readonly EcsPoolInject<LimboTag> _limboPool = default;
         readonly EcsPoolInject<BoardPositionComponent> _posPool = default;
@@ -46,6 +54,23 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<GoldCostComponent>   _goldCostPool   = default;
         readonly EcsPoolInject<ManaCostComponent>   _manaCostPool   = default;
         readonly EcsPoolInject<HealthCostComponent> _healthCostPool = default;
+        readonly EcsPoolInject<DoubleAttackTag>     _doubleAttackPool = default;
+        readonly EcsPoolInject<ShieldComponent>     _shieldPool       = default;
+        readonly EcsPoolInject<InvulnerableTag>     _invulnerablePool = default;
+        readonly EcsPoolInject<TauntTag>            _tauntPool        = default;
+        readonly EcsPoolInject<PoisonComponent>     _poisonPool       = default;
+        readonly EcsPoolInject<StealthComponent>    _stealthPool      = default;
+        readonly EcsPoolInject<VenomousComponent>   _venomousPool     = default;
+        readonly EcsPoolInject<RetaliateTag>        _retaliatePool    = default;
+
+        // БАЗОВЫЙ ДОХОД МАНЫ: убил ВРАЖЕСКОЕ существо (ЛЮБЫМ способом — бой/урон-спелл через
+        // TakeDamageSystem, прямое уничтожение через Destroy-эффекты; все пишут KilledByComponent) →
+        // +мана убийце. Единая точка начисления. Гоняется на обоих клиентах → зеркально.
+        readonly EcsPoolInject<KilledByComponent> _killedByPool = default;
+        readonly EcsPoolInject<ManaComponent> _manaPool = default;
+        readonly EcsFilterInject<Inc<PlayerComponent, ManaComponent>> _playerManaFilter = default;
+        const int ManaPerKill = 1;   // сколько маны за убитое вражеское существо (баланс-кнопка)
+        const int ManaCap     = 10;  // потолок маны (как у золота)
 
         // Захваченный (TakeControlEffect) командир при смерти возвращается ИЗНАЧАЛЬНОМУ владельцу, а не
         // текущему контролёру — см. ReturnCommanderToHand.
@@ -65,24 +90,62 @@ namespace Game.Core.Ecs.Systems
 
         readonly EcsFilterInject<Inc<PlayerComponent, HandComponent>> _playerFilter = default;
 
+        // Анти-софтлок гейтов смерти: существо с DeadTag не должно ждать анимаций ВЕЧНО. Если FinishEvent
+        // каста/атаки потерялся (анимация прервана, вьюха пересоздана, VFX убит), HasPendingCastAnim/
+        // AttackAnimPending никогда не снимутся → PlayDeath не вызывается → «вьюха-зомби» стоит на столе
+        // со стат-бабблами. Дедлайн чисто вьюшечный: game-state не меняет (смерть неизбежна и уже
+        // зафиксирована DeadTag'ом), поэтому расхождение МОМЕНТА обработки между клиентами безопасно.
+        const float GateDeadlineSeconds = 3f;
+        readonly System.Collections.Generic.Dictionary<int, float> _gateSince = new();
+
         public void Run(IEcsSystems systems)
         {
-            foreach (var entity in _filter.Value)
+            // ПОРЯДОК СМЕРТЕЙ = порядок ВЫХОДА на стол (тот же закон, что у баунса в RunLeaveBoardSystem
+            // и у активаций в очереди). Порядок ecslite-фильтра произвольный (свап-удаления), а от него
+            // зависит очередь хрипов: они становятся СЛЕДСТВИЯМИ одной причины и нумеруются по приходу
+            // (ActivationKey.Child). Без сортировки каскад из нескольких одновременных смертей
+            // резолвился бы каждый раз в новом порядке — недетерминированно для игрока и для реплея.
+            _deathBatch.Clear();
+            foreach (var e in _filter.Value) _deathBatch.Add(e);
+            _deathBatch.Sort((a, b) => DeathEntrySeq(a).CompareTo(DeathEntrySeq(b)));
+
+            foreach (var entity in _deathBatch)
             {
-                if (HasPendingCastAnim(entity))
+                if (!_deadPool.Value.Has(entity)) continue;   // сущность могла измениться в этой же пачке
+                // Гейты анимаций (гонки Cast/Death и Attack/Death на одном Animator) — с дедлайном.
+                bool gated = HasPendingCastAnim(entity) || _attackAnimPool.Value.Has(entity);
+                if (gated)
                 {
-                    continue;   // ждём конца СВОЕЙ анимации каста — попробуем следующим кадром
+                    if (!_gateSince.TryGetValue(entity, out float since))
+                    {
+                        _gateSince[entity] = UnityEngine.Time.time;
+                        continue;   // ждём конца СВОЕЙ анимации — попробуем следующим кадром
+                    }
+                    if (UnityEngine.Time.time - since < GateDeadlineSeconds) continue;
+                    UnityEngine.Debug.LogWarning($"[Die] entity={entity} гейт смерти висит > {GateDeadlineSeconds}с (потерян Finish анимации?) → форсим обработку смерти");
                 }
+                _gateSince.Remove(entity);
 
-                // Гонка Attack/Death на ОДНОМ Animator (существо гибнет — напр. от контр-урона в onHit —
-                // ПОКА ещё играет СВОЮ анимацию атаки): SetTrigger("Death") посреди состояния "Attack" может
-                // не найти валидный переход (та же природа бага, что и с Cast/Death — см. HasPendingCastAnim).
-                // Ждём, пока AttackAnimPendingTag снимется (FinishEvent атаки/анти-софтлок в AttackSystem).
-                if (_attackAnimPool.Value.Has(entity))
+                // Изоляция сбоев: BoardTag снимается в начале обработки — если ниже кинет ЛЮБОЙ подписчик
+                // (CreatureDiedEvent → ревёрт аур/триггеры, ResourceChanged → UI), сущность выпадала из
+                // фильтра смерти НАВСЕГДА с полуобработанной смертью: PlayDeath не вызван → «вьюха-зомби»
+                // стоит на столе без единого лога смерти. Ловим, логируем и ДОДЕЛЫВАЕМ уборку вьюхи.
+                try
                 {
-                    continue;
+                    ProcessDeath(entity);
                 }
+                catch (System.Exception ex)
+                {
+                    UnityEngine.Debug.LogError($"[Die] entity={entity} исключение при обработке смерти: {ex}");
+                    if (!_gravePool.Value.Has(entity) && !_limboPool.Value.Has(entity) && !_handTagPool.Value.Has(entity))
+                        SendToGrave(entity);   // минимум: карта в грав + PlayDeath, чтобы вьюха не зависла
+                }
+            }
+        }
 
+        void ProcessDeath(int entity)
+        {
+            {
                 if (_selectPool.Value.Has(entity))
                     _selectPool.Value.Del(entity);
 
@@ -104,6 +167,15 @@ namespace Game.Core.Ecs.Systems
                 bool isToken = _tokenPool.Value.Has(entity);
 
                 int ownerId = _ownerPool.Value.Has(entity) ? _ownerPool.Value.Get(entity).OwnerId : -1;
+
+                // Доход маны за килл: атрибуция стоит (KilledBy) и убийца — ВРАГ владельца жертвы.
+                if (_killedByPool.Value.Has(entity))
+                {
+                    int killer = _killedByPool.Value.Get(entity).PlayerId;
+                    _killedByPool.Value.Del(entity);   // одноразово (возврат из кладбища не переначислит)
+                    if (killer >= 0 && killer != ownerId)
+                        AwardManaForKill(killer);
+                }
 
                 if (isCommander)
                     ReturnCommanderToHand(entity, ownerId);
@@ -134,6 +206,30 @@ namespace Game.Core.Ecs.Systems
             }
         }
 
+        // Начисляет ману игроку-убийце (поднимает Max и Current, кап ManaCap — как у золота). Публикует
+        // ResourceChangedEvent для UI. Гоняется на обоих клиентах → значения сходятся без отдельного синка.
+        void AwardManaForKill(int playerId)
+        {
+            foreach (var pe in _playerManaFilter.Value)
+            {
+                ref var p = ref _playerPool.Value.Get(pe);
+                if (p.PlayerId != playerId) continue;
+
+                ref var mana = ref _manaPool.Value.Get(pe);
+                mana.Max     = System.Math.Min(mana.Max + ManaPerKill, ManaCap);
+                mana.Current = System.Math.Min(mana.Current + ManaPerKill, mana.Max);
+
+                GameEventBus.Publish(new ResourceChangedEvent
+                {
+                    isLocalPlayer = p.IsLocalPlayer,
+                    Type          = Game.Core.Service.EnumService.ResourceType.Mana,
+                    NewValue      = mana.Current,
+                    MaxValue      = mana.Max,
+                });
+                return;
+            }
+        }
+
         private void SendToGrave(int entity)
         {
             _gravePool.Value.Add(entity);
@@ -161,6 +257,12 @@ namespace Game.Core.Ecs.Systems
 
         private void ReturnCommanderToHand(int entity, int ownerId)
         {
+            // Мировая позиция ДО зачистки ниже (BoardPositionComponent снимается чуть дальше) — UI летит
+            // командиром в руку с его собственной клетки, а не с дефолтной точки «из-за края экрана».
+            Vector3? fromWorld = null;
+            if (EntityWorldPosUtil.TryGet(_world.Value, _boardView.Value, entity, out var srcPos))
+                fromWorld = srcPos;
+
             // Захваченный командир (TakeControlEffect: контроль-на-месте, OwnerId сменился на захватчика) при
             // смерти возвращается ИЗНАЧАЛЬНОМУ владельцу, а не текущему контролёру — иначе игрок, укравший
             // командира, получал бы его в СВОЮ руку. OriginalOwnerComponent ставится ОДИН раз при первом
@@ -246,7 +348,7 @@ namespace Game.Core.Ecs.Systems
                 // (_commanderSlot), «места» для него хватает всегда. Если на повторной смерти он логически
                 // уже числился в hand.CardEntities (re-cast не снял из списка) — раньше событие не слалось и
                 // командир переставал визуально возвращаться (баг 2-й смерти).
-                GameEventBus.Publish(new CardDrawnEvent { CardEntity = entity, PlayerId = playerEntity });
+                GameEventBus.Publish(new CardDrawnEvent { CardEntity = entity, PlayerId = playerEntity, FromWorld = fromWorld });
             }
 
             // Кулдаун НЕ ставим здесь: его вешает RunCommanderCooldownSystem на сам факт возврата в руку
@@ -264,6 +366,18 @@ namespace Game.Core.Ecs.Systems
             if (_goldCostPool.Value.Has(entity))   { ref var c = ref _goldCostPool.Value.Get(entity);   c.ClearModifiers(); }
             if (_manaCostPool.Value.Has(entity))   { ref var c = ref _manaCostPool.Value.Get(entity);   c.ClearModifiers(); }
             if (_healthCostPool.Value.Has(entity)) { ref var c = ref _healthCostPool.Value.Get(entity); c.ClearModifiers(); }
+
+            // Свойства (Двойной удар/Защищённый) — сняты со смертью, как любой другой рантайм-модификатор.
+            // Печатные (CardCreatureModel.Properties) переживут это молча: возрождение (SummonSelfEffect и
+            // т.п.) заново гонит Init → Properties.Apply навесит их обратно с чистого листа.
+            if (_doubleAttackPool.Value.Has(entity)) _doubleAttackPool.Value.Del(entity);
+            if (_shieldPool.Value.Has(entity))       _shieldPool.Value.Del(entity);
+            if (_invulnerablePool.Value.Has(entity)) _invulnerablePool.Value.Del(entity);
+            if (_tauntPool.Value.Has(entity))        _tauntPool.Value.Del(entity);
+            if (_poisonPool.Value.Has(entity))       _poisonPool.Value.Del(entity);
+            if (_stealthPool.Value.Has(entity))      _stealthPool.Value.Del(entity);
+            if (_venomousPool.Value.Has(entity))     _venomousPool.Value.Del(entity);
+            if (_retaliatePool.Value.Has(entity))    _retaliatePool.Value.Del(entity);
         }
 
         private int FindPlayerEntity(int playerId)

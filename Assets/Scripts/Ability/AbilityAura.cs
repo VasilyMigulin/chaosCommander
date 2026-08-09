@@ -123,7 +123,7 @@ namespace Game.Core.Ability
             foreach (var r in buffs.Records)
             {
                 if (r.Atk   != 0 && atkPool.Has(r.Target)) { ref var a = ref atkPool.Get(r.Target); a.RemoveModifier(r.Atk); }
-                if (r.Hp    != 0 && hpPool.Has(r.Target))  { ref var h = ref hpPool.Get(r.Target);  h.RemoveModifier(r.Hp); }
+                if (r.Hp    != 0 && hpPool.Has(r.Target))  { ref var h = ref hpPool.Get(r.Target);  h.RemoveModifier(r.Hp); GameEventBus.Publish(new CreatureHealthChangedEvent { CreatureEntity = r.Target }); }
                 if (r.Speed != 0 && spdPool.Has(r.Target)) { ref var s = ref spdPool.Get(r.Target); s.RemoveModifier(r.Speed); }
             }
             buffs.Records.Clear();

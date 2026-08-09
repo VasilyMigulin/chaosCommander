@@ -157,6 +157,7 @@ namespace AwesomeUI.Feature.Battle
 
             // Данные готовы, но окно открываем только когда началась фаза мулигана (после VS-экрана).
             _readyToOpen = true;
+            UnityEngine.Debug.Log($"[MuliganWindow] OnMulliganStarted: offered={evt.OfferedCardEntities?.Length ?? 0} _phaseBegun={_phaseBegun} → readyToOpen=true");
             if (_phaseBegun) OpenNow();
         }
 
@@ -164,11 +165,13 @@ namespace AwesomeUI.Feature.Battle
         private void OnMulliganPhaseBegin(MulliganPhaseBeginUIEvent _)
         {
             _phaseBegun = true;
+            UnityEngine.Debug.Log($"[MuliganWindow] OnMulliganPhaseBegin: _readyToOpen={_readyToOpen} _opened={_opened}");
             if (_readyToOpen) OpenNow();
         }
 
         private void OpenNow()
         {
+            UnityEngine.Debug.Log($"[MuliganWindow] OpenNow: opened_before={_opened}");
             if (_opened) return;
             _opened = true;
             OnOpen();

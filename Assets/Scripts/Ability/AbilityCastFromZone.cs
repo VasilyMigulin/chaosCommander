@@ -47,15 +47,23 @@ namespace Game.Core.Ability
             var graveTag = world.GetPool<GraveTag>();
             if (graveTag.Has(target)) graveTag.Del(target);
 
+            int pe = ZoneListUtil.FindPlayerEntity(world, ownerId);
+
+            // Лимит руки (единое правило, HandSpace): места нет → карта СГОРАЕТ вместо переноса в руку.
+            // Зональные теги уже сняты выше, поэтому «оставить как было» невозможно — только сжечь.
+            if (pe < 0 || !HandSpace.HasRoom(world, pe))
+            {
+                HandSpace.Burn(world, target, "перенос в руку (MoveToHand)");
+                return;
+            }
+
             var handTag = world.GetPool<HandTag>();
             if (!handTag.Has(target)) handTag.Add(target);
 
-            int pe = ZoneListUtil.FindPlayerEntity(world, ownerId);
-            if (pe >= 0)
-            {
-                ZoneListUtil.AddToHand(world, target, pe);
-                GameEventBus.Publish(new CardDrawnEvent { CardEntity = target, PlayerId = pe });
-            }
+            ZoneListUtil.AddToHand(world, target, pe);
+            // SourceEntity = копатель (cardEntity) — UI летит визуально ОТ него, а не «из-за края экрана»
+            // (см. HandUISystem.TryGet): раскопка существом/заклинанием (Библиотекарь и т.п.).
+            GameEventBus.Publish(new CardDrawnEvent { CardEntity = target, PlayerId = pe, SourceEntity = cardEntity });
         }
     }
 }

@@ -1,8 +1,10 @@
 using System;
 using Game.Core.Events;
 using Game.Core.Ecs.Components;
+using Game.Core.Service;
 using Game.Core.Shared.Interface;
 using Leopotam.EcsLite;
+using UnityEngine;   // Tooltip у полей триггеров (инспектор ассетов)
 
 namespace Game.Core.Ability
 {
@@ -159,6 +161,8 @@ namespace Game.Core.Ability
         EcsWorld _world;
         int _abilityEntity, _cardEntity, _playerEntity;
 
+        public bool IsReaction => true;   // реакция на чужой резолв → сразу за причиной (см. ActivationKey)
+
         public void Init(EcsWorld world, int abilityEntity, int cardEntity, int playerEntity)
         {
             _world = world; _abilityEntity = abilityEntity; _cardEntity = cardEntity; _playerEntity = playerEntity;
@@ -168,7 +172,7 @@ namespace Game.Core.Ability
         void OnDamaged(CreatureDamagedEvent e)
         {
             if (e.CreatureEntity != _cardEntity) return;
-            AbilityFire.Mark(_world, _abilityEntity, _cardEntity, _playerEntity);
+            AbilityFire.Mark(_world, _abilityEntity, _cardEntity, _playerEntity, isReaction: IsReaction);
         }
 
         public void Dispose() => GameEventBus.UnsubscribeAll(this);
@@ -182,6 +186,8 @@ namespace Game.Core.Ability
         EcsWorld _world;
         int _abilityEntity, _cardEntity, _playerEntity;
 
+        public bool IsReaction => true;   // реакция на чужой резолв → сразу за причиной (см. ActivationKey)
+
         public void Init(EcsWorld world, int abilityEntity, int cardEntity, int playerEntity)
         {
             _world = world; _abilityEntity = abilityEntity; _cardEntity = cardEntity; _playerEntity = playerEntity;
@@ -191,7 +197,7 @@ namespace Game.Core.Ability
         void OnDied(CreatureDiedEvent e)
         {
             if (e.KillerEntity != _cardEntity) return;
-            AbilityFire.Mark(_world, _abilityEntity, _cardEntity, _playerEntity);
+            AbilityFire.Mark(_world, _abilityEntity, _cardEntity, _playerEntity, isReaction: IsReaction);
         }
 
         public void Dispose() => GameEventBus.UnsubscribeAll(this);
@@ -206,6 +212,11 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class OnCreatureInvokedTrigger : ITrigger
     {
+        [Tooltip("Срабатывать, даже когда ИСТОЧНИК НЕ на поле (в руке/колоде/кладбище) — «Медлительный " +
+                 "дворецкий»: сам выпрыгивает на выход дорогого существа оппонента. По умолчанию ВЫКЛ " +
+                 "(аура работает только с поля) — старые ассеты без поля читаются как false.")]
+        public bool AllowFromAnyZone = false;
+
         EcsWorld _world;
         int _abilityEntity, _cardEntity, _playerEntity;
 
@@ -218,10 +229,73 @@ namespace Game.Core.Ability
         void OnInvoked(CreatureInvokedEvent e)
         {
             if (e.CardEntity == _cardEntity) return;                           // сам источник — это OnCast
-            if (!TriggerUtil.OnBoard(_world, _cardEntity)) return;             // аура активна только на поле
+            if (!AllowFromAnyZone && !TriggerUtil.OnBoard(_world, _cardEntity)) return;   // аура — только с поля
             if (!_world.GetPool<CreatureTag>().Has(e.CardEntity)) return;      // только существа
             // Виновник (вышедшее существо) → TriggerSubjectComponent (для TargetSelection.TriggerSubject).
             AbilityFire.Mark(_world, _abilityEntity, _cardEntity, _playerEntity, subjectEntity: e.CardEntity);
+        }
+
+        public void Dispose() => GameEventBus.UnsubscribeAll(this);
+    }
+
+    // === class (OOP) === Я — ЧАРА, только что сгенерированная СРАЗУ на борд (SpawnCharmTokenEffect и
+    // подобные — CreateCardEvent{InBoard}). Аналог OnCastTrigger, но для ЭТОГО конкретного пути создания:
+    // обычный розыгрыш чары из руки получает CardCastEvent штатно (OnCastTrigger сработает), а сгенерированная
+    // сразу на стол — нет (InBoard-создание CardCastEvent не публикует вовсе, см. CharmInvokedEvent). Нужен,
+    // когда чара обязана сделать СВОЁ разовое действие СРАЗУ при появлении — напр. Королёвский садовник:
+    // чара-носитель баффает ТЕКУЩИХ Сорняков на поле в момент своего рождения, а будущих — отдельной
+    // реактивной способностью (OnCreatureInvokedTrigger) НА ТОЙ ЖЕ карте — единый источник трекинга, не два
+    // разных TrackedBuffsComponent (иначе существо, умершее и вернувшееся на поле, забафается дважды).
+    [Serializable]
+    public sealed class OnCharmInvokedTrigger : ITrigger
+    {
+        EcsWorld _world;
+        int _abilityEntity, _cardEntity, _playerEntity;
+
+        public void Init(EcsWorld world, int abilityEntity, int cardEntity, int playerEntity)
+        {
+            _world = world; _abilityEntity = abilityEntity; _cardEntity = cardEntity; _playerEntity = playerEntity;
+            GameEventBus.Subscribe<CharmInvokedEvent>(this, OnInvoked);
+        }
+
+        void OnInvoked(CharmInvokedEvent e)
+        {
+            if (e.CardEntity != _cardEntity) return;   // только про СЕБЯ
+            AbilityFire.Mark(_world, _abilityEntity, _cardEntity, _playerEntity);
+        }
+
+        public void Dispose() => GameEventBus.UnsubscribeAll(this);
+    }
+
+    // === class (OOP) === ВЛАДЕЛЕЦ разыграл ЛЮБУЮ СВОЮ карту, а ИСТОЧНИК лежит В РУКЕ («Раскуренный дьякон»:
+    // «пока в руке: когда вы разыгрываете карту…»). Сигнал — CardCastEvent (тот же, что у OnCastTrigger:
+    // публикуется только у АКТИВА, пассив реплеит резолв снапшотом). Розыгрыш САМОГО источника не считается.
+    // Виновник (разыгранная карта) → TriggerSubjectComponent: ветвление по её свойствам делают ФИЛЬТРЫ
+    // таргетинга (Color/WithoutColor/CardType…) — не прошли, способность фуззлится.
+    // AllowFromAnyZone=true → работать из любой зоны (по умолч. только из руки — «пока в руке»).
+    [Serializable]
+    public sealed class OnOwnerCardPlayedTrigger : ITrigger
+    {
+        [Tooltip("Работать из ЛЮБОЙ зоны (колода/кладбище/поле), а не только из руки. По умолч. ВЫКЛ — «пока в руке».")]
+        public bool AllowFromAnyZone = false;
+
+        EcsWorld _world;
+        int _abilityEntity, _cardEntity, _playerEntity;
+
+        public void Init(EcsWorld world, int abilityEntity, int cardEntity, int playerEntity)
+        {
+            _world = world; _abilityEntity = abilityEntity; _cardEntity = cardEntity; _playerEntity = playerEntity;
+            GameEventBus.Subscribe<CardCastEvent>(this, OnCast);
+        }
+
+        void OnCast(CardCastEvent e)
+        {
+            if (e.CardEntity == _cardEntity) return;                                   // сам источник — это OnCast
+            if (!AllowFromAnyZone && !_world.GetPool<HandTag>().Has(_cardEntity)) return;   // «пока в руке»
+            var owner = _world.GetPool<OwnerComponent>();
+            if (!owner.Has(e.CardEntity) || !owner.Has(_cardEntity)) return;
+            if (owner.Get(e.CardEntity).OwnerId != owner.Get(_cardEntity).OwnerId) return;  // разыграл МОЙ владелец
+            AbilityFire.Mark(_world, _abilityEntity, _cardEntity, _playerEntity, TriggerKeys.OnCast, subjectEntity: e.CardEntity);
         }
 
         public void Dispose() => GameEventBus.UnsubscribeAll(this);
@@ -330,7 +404,42 @@ namespace Game.Core.Ability
         {
             if (e.PlayerId != _playerEntity) return;                  // карту взял МОЙ владелец
             if (!TriggerUtil.OnBoard(_world, _cardEntity)) return;    // источник на поле
-            AbilityFire.Mark(_world, _abilityEntity, _cardEntity, _playerEntity);
+            // Виновник (взятая карта) → TriggerSubjectComponent: TargetSelection.TriggerSubject достанет её
+            // («Проходная на свалку»: сбрось ВЗЯТУЮ, ветвление существо/спелл — фильтрами CardType по subject).
+            AbilityFire.Mark(_world, _abilityEntity, _cardEntity, _playerEntity, subjectEntity: e.CardEntity);
+        }
+
+        public void Dispose() => GameEventBus.UnsubscribeAll(this);
+    }
+
+    // === class (OOP) === ВЛАДЕЛЕЦ источника сбросил ЛЮБУЮ свою карту; источник — ЧАРА НА ПОЛЕ («Подписка
+    // на утилизацию»: спелл «Пожизненная подписка» призывает чару-токен через SpawnCharmTokenEffect — тот же
+    // двухслойный паттерн, что Вуду-будду, — а чара до конца матча реагирует на сбросы). Гейт OnBoard, как у
+    // OnCardDrawnTrigger: пока чара в руке/колоде — молчит. Сброс САМОГО источника не считается. Виновник
+    // (сброшенная карта) → TriggerSubjectComponent: эффект «разыграй копию» берёт её через
+    // TargetSelection.TriggerSubject (Zone=Grave — к моменту резолва сброшенная уже в кладбище).
+    // СИНК: CardDiscardedEvent публикуется на обоих клиентах (ре-ран резолва DiscardEffect); гейт
+    // актив/пассив — в AbilityFire.Mark (пассив реплеит снапшот резолва).
+    [Serializable]
+    public sealed class OnOwnerDiscardTrigger : ITrigger
+    {
+        EcsWorld _world;
+        int _abilityEntity, _cardEntity, _playerEntity;
+
+        public void Init(EcsWorld world, int abilityEntity, int cardEntity, int playerEntity)
+        {
+            _world = world; _abilityEntity = abilityEntity; _cardEntity = cardEntity; _playerEntity = playerEntity;
+            GameEventBus.Subscribe<CardDiscardedEvent>(this, OnDiscarded);
+        }
+
+        void OnDiscarded(CardDiscardedEvent e)
+        {
+            if (e.CardEntity == _cardEntity) return;                  // сброс самого источника — не про него
+            if (!TriggerUtil.OnBoard(_world, _cardEntity)) return;    // источник (чара) на поле
+            var owner = _world.GetPool<OwnerComponent>();
+            if (!owner.Has(e.CardEntity) || !owner.Has(_cardEntity)) return;
+            if (owner.Get(e.CardEntity).OwnerId != owner.Get(_cardEntity).OwnerId) return;   // сбросил МОЙ владелец
+            AbilityFire.Mark(_world, _abilityEntity, _cardEntity, _playerEntity, TriggerKeys.OnDiscard, subjectEntity: e.CardEntity);
         }
 
         public void Dispose() => GameEventBus.UnsubscribeAll(this);
@@ -356,6 +465,8 @@ namespace Game.Core.Ability
         EcsWorld _world;
         int _abilityEntity, _cardEntity, _playerEntity;
 
+        public bool IsReaction => true;   // реакция на чужой резолв → сразу за причиной (см. ActivationKey)
+
         public void Init(EcsWorld world, int abilityEntity, int cardEntity, int playerEntity)
         {
             _world = world; _abilityEntity = abilityEntity; _cardEntity = cardEntity; _playerEntity = playerEntity;
@@ -367,19 +478,25 @@ namespace Game.Core.Ability
             if (e.PlayerEntity != _playerEntity) return;                 // урон ИМЕННО владельцу
             if (!TriggerUtil.OnBoard(_world, _cardEntity)) return;       // источник (чара) на поле
             if (!AnyTurn && !TriggerUtil.IsOwnersTurn(_world, _playerEntity)) return;   // умолч. — «на вашем ходу» (с каскадами начала/конца)
-            AbilityFire.Mark(_world, _abilityEntity, _cardEntity, _playerEntity);
+            AbilityFire.Mark(_world, _abilityEntity, _cardEntity, _playerEntity, isReaction: IsReaction);
         }
 
         public void Dispose() => GameEventBus.UnsubscribeAll(this);
     }
 
     // === class (OOP) === Погибло ДРУЖЕСТВЕННОЕ существо (не сам источник).
-    // Источник должен быть на поле. Сигнал — bus CreatureDiedEvent.
+    // Источник должен быть на поле. Сигнал — bus CreatureDiedEvent. Виновник (погибшее существо) →
+    // TriggerSubjectComponent (Собиратель кукол: «когда существо умирает, призовите его копию») — на
+    // него нацеливаться нужно через TargetSelection.TriggerSubjectAllowDead, НЕ обычный TriggerSubject:
+    // тот фуззлится на уже мёртвом (осознанно, для СВОЕГО случая — «Неудачная молитва»), а виновник
+    // ЭТОГО триггера к моменту резолва уже помечен DeadTag by design.
     [Serializable]
     public sealed class OnAllyDiedTrigger : ITrigger
     {
         EcsWorld _world;
         int _abilityEntity, _cardEntity, _playerEntity;
+
+        public bool IsReaction => true;   // реакция на чужой резолв → сразу за причиной (см. ActivationKey)
 
         public void Init(EcsWorld world, int abilityEntity, int cardEntity, int playerEntity)
         {
@@ -394,7 +511,7 @@ namespace Game.Core.Ability
             var owner = _world.GetPool<OwnerComponent>();
             if (!owner.Has(e.CardEntity) || !owner.Has(_cardEntity)) return;
             if (owner.Get(e.CardEntity).OwnerId != owner.Get(_cardEntity).OwnerId) return; // союзник?
-            AbilityFire.Mark(_world, _abilityEntity, _cardEntity, _playerEntity);
+            AbilityFire.Mark(_world, _abilityEntity, _cardEntity, _playerEntity, isReaction: IsReaction, subjectEntity: e.CardEntity);
         }
 
         public void Dispose() => GameEventBus.UnsubscribeAll(this);

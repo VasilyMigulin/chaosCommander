@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using Game.Core.Ecs.Components;
+using Game.Core.Shared.Interface;
 using Leopotam.EcsLite;
 using UnityEngine;
 
@@ -15,6 +17,11 @@ namespace Game.Core.Model.Card.Creature
 
         /// <summary>Actions per turn (move + attack budget).</summary>
         public int Speed;
+
+        /// <summary>Свойства существа (Двойной удар/Защищённый/...) — кейворды, НЕ Ability. Каждое само
+        /// вешает свой ECS-компонент на ините (ICreatureProperty.Apply). Пусто = без свойств. Раздать
+        /// свойство РАНТАЙМОМ (спелл/аура) — PropertyBuff{Property} + AddBuffEffect, см. AbilityProperties.cs.</summary>
+        [SerializeReference] public List<ICreatureProperty> Properties = new List<ICreatureProperty>();
 
         /// <summary>Prefab spawned on the board when this creature enters play.</summary>
         public GameObject ViewPrefab;
@@ -35,7 +42,7 @@ namespace Game.Core.Model.Card.Creature
 
         public override Game.Core.Service.EnumService.CardType GetCardType() => Game.Core.Service.EnumService.CardType.Creature;
 
-        protected override void OnInit(EcsWorld world, int entityCard, bool isCommander)
+        protected override void OnInit(EcsWorld world, int entityCard, int playerOwnerEntity, bool isCommander)
         {
             ref var atk = ref world.GetPool<AttackComponent>().Add(entityCard);
             atk.Value = Attack;
@@ -61,6 +68,10 @@ namespace Game.Core.Model.Card.Creature
             if (TurnsAlive > 0)
                 world.GetPool<CreatureTimerComponent>().Add(entityCard).TurnsRemaining = TurnsAlive;
 
+            if (Properties != null)
+                foreach (var prop in Properties)
+                    prop?.Apply(world, entityCard);
+
             if (SummonVfx != null && SummonVfx.HasAny)
                 world.GetPool<SummonVfxComponent>().Add(entityCard).Spec = SummonVfx;
 
@@ -72,6 +83,19 @@ namespace Game.Core.Model.Card.Creature
                 viewData.MaxHealth  = MaxHealth;
                 viewData.Speed      = Speed;
                 viewData.IsCommander = isCommander;
+
+                // Свойства (Двойной удар/Защитник/...) — ярлык-кейворд ВСЕГДА в начале описания, вне
+                // авторского текста карты. Базовый CardModel.Init уже собрал viewData.Description без них
+                // (Properties — поле CardCreatureModel, база о нём не знает) — приклеиваем префикс здесь же.
+                // Тот же путь (ReapplyTypeInit → OnInit) гоняет и RunTransformSystem — полиморф пересчитает
+                // ярлыки под НОВУЮ модель тоже, бесплатно.
+                if (Properties != null && Properties.Count > 0)
+                {
+                    var keys = new List<string>(Properties.Count);
+                    foreach (var prop in Properties)
+                        if (prop != null) keys.Add(prop.Key);
+                    viewData.Description = Game.Core.Shared.CardDescriptionFormatter.BuildPropertyPrefix(keys) + viewData.Description;
+                }
             }
         }
     }

@@ -56,6 +56,19 @@ namespace Game.Core.Ability
         }
     }
 
+    /// <summary>Свои ЧАРЫ (на поле, сторона кастера) — как AllyTargetFilter, но для чар вместо существ
+    /// (Прокачать чары: «чары под вашим контролем длятся на 1 ход дольше»).</summary>
+    [Serializable]
+    public sealed class OwnCharmTargetFilter : ITargetSelector
+    {
+        public bool Match(EcsWorld world, int candidate, int casterCard, int casterPlayer)
+        {
+            if (!world.GetPool<CharmTag>().Has(candidate)) return false;
+            int side = TargetFilterUtil.OwnerId(world, candidate);
+            return side != -1 && side == TargetFilterUtil.CasterSide(world, casterPlayer);
+        }
+    }
+
     /// <summary>Вражеский ИГРОК (сущность игрока на чужой стороне).</summary>
     [Serializable]
     public sealed class OpponentTargetFilter : ITargetSelector
@@ -144,6 +157,52 @@ namespace Game.Core.Ability
             => world.GetPool<CommanderTag>().Has(candidate);
     }
 
+    /// <summary>Цель — ТОКЕН (IsToken на модели карты, TokenTag на сущности). Для «воздействовать только
+    /// на токен-существ» (Командующий королевской гвардией: «ваши токены имеют Двойной удар» и т.п.).</summary>
+    [Serializable]
+    public sealed class TokenTargetFilter : ITargetFilter
+    {
+        public bool Match(EcsWorld world, int candidate, int casterCard, int casterPlayer)
+            => world.GetPool<TokenTag>().Has(candidate);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // КОМБИНАТОРЫ — алгебра поверх ЛЮБЫХ фильтров, а не «анти-фильтр» под каждый признак.
+    // Список Filters уже даёт И; Not даёт НЕ; AnyOf даёт ИЛИ — этого набора хватает на всё.
+    // Без них каждое отрицание требовало нового класса: WithoutColorTargetFilter — уже такой
+    // рукописный дубль ColorTargetFilter, и следом просились бы «не командир», «не ранен»,
+    // «не архетип». Теперь любой существующий и будущий фильтр инвертируется без нового кода.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>ОТРИЦАНИЕ вложенного фильтра: «не командир» = Not{ Inner = CommanderTargetFilter }.
+    /// Пустой Inner пропускает всё (нейтральный элемент — недонастроенный фильтр не режет цели молча).</summary>
+    [Serializable]
+    public sealed class NotTargetFilter : ITargetFilter
+    {
+        [Tooltip("Фильтр, результат которого инвертируется.")]
+        [SerializeReference] public ITargetFilter Inner;
+
+        public bool Match(EcsWorld world, int candidate, int casterCard, int casterPlayer)
+            => Inner == null || !Inner.Match(world, candidate, casterCard, casterPlayer);
+    }
+
+    /// <summary>ИЛИ по вложенным фильтрам («красное ИЛИ синее»). Сам список Filters у способности
+    /// объединяет по И, поэтому ИЛИ выразить было нечем. Пустой список пропускает всё.</summary>
+    [Serializable]
+    public sealed class AnyOfTargetFilter : ITargetFilter
+    {
+        [Tooltip("Подходит, если совпал ХОТЯ БЫ один из вложенных фильтров.")]
+        [SerializeReference] public System.Collections.Generic.List<ITargetFilter> Any = new();
+
+        public bool Match(EcsWorld world, int candidate, int casterCard, int casterPlayer)
+        {
+            if (Any == null || Any.Count == 0) return true;
+            foreach (var f in Any)
+                if (f != null && f.Match(world, candidate, casterCard, casterPlayer)) return true;
+            return false;
+        }
+    }
+
     /// <summary>Цель БЕЗ указанного цвета (Окропить: «существам без жёлтого»). Игроки (без
     /// CardModelComponent) не подходят → бьёт только существ без нужного цвета.</summary>
     [Serializable]
@@ -185,6 +244,107 @@ namespace Game.Core.Ability
             var m = world.GetPool<ManaCostComponent>();    if (m.Has(candidate)) return m.Get(candidate).Cost <= MaxCost;
             var h = world.GetPool<HealthCostComponent>();  if (h.Has(candidate)) return h.Get(candidate).Cost <= MaxCost;
             return false;
+        }
+    }
+
+    /// <summary>Оператор сравнения для числовых фильтров (общий: стоимость/статы/что добавим дальше).
+    /// Значения ЗАКРЕПЛЕНЫ (как CountSource) — перестановка ломает заавторенные ассеты.</summary>
+    public enum CompareOp { Greater = 0, GreaterOrEqual = 1, Less = 2, LessOrEqual = 3, Equal = 4, NotEqual = 5 }
+
+    /// <summary>С ЧЕМ сравнивать числовой признак цели. Значения ЗАКРЕПЛЕНЫ.</summary>
+    public enum CompareTo
+    {
+        FixedValue = 0,   // с числом Value
+        SourceCard = 1,   // с тем же признаком КАРТЫ-ИСТОЧНИКА способности («дороже меня»)
+    }
+
+    /// <summary>ЧИСЛОВОЙ ПРИЗНАК цели для сравнения. Значения ЗАКРЕПЛЕНЫ; расширяется (добавь ветку в Read).</summary>
+    public enum StatKind
+    {
+        Cost   = 0,   // ТЕКУЩАЯ стоимость (Cost кост-компонента = база + модификаторы карты)
+        Attack = 1,
+        Health = 2,   // текущее HP
+        MaxHealth = 3,
+        Speed  = 4,
+    }
+
+    /// <summary>
+    /// ОБЩИЙ ЧИСЛОВОЙ КОМПАРАТОР цели: «признак цели (Stat) [Op] эталон (число ИЛИ тот же признак
+    /// источника)». Один фильтр вместо семейства узких: «дороже меня» (Медлительный дворецкий:
+    /// Cost/Greater/SourceCard), «не дороже 3» (Cost/LessOrEqual/Fixed=3), «атака ≥ 5», «раненые»
+    /// (Health/Less/SourceCard не годится — для этого DamagedTargetFilter) и т.п.
+    /// Стоимости/статы берутся ТЕКУЩИЕ (с модификаторами), а не печатные. Глобальный кост-модификатор
+    /// игрока (Гиперинфляция) НЕ учитываем — он у сторон разный, сравнение было бы несимметричным.
+    /// Нет нужного компонента у цели (или у источника при SourceCard) → НЕ матчит.
+    /// </summary>
+    [Serializable]
+    public sealed class StatCompareTargetFilter : ITargetFilter
+    {
+        [Tooltip("Какой признак цели сравниваем.")]
+        public StatKind Stat = StatKind.Cost;
+        [Tooltip("Оператор: цель [Op] эталон. Greater = «цель больше эталона».")]
+        public CompareOp Op = CompareOp.Greater;
+        [Tooltip("Эталон: число (FixedValue) или тот же признак КАРТЫ-ИСТОЧНИКА (SourceCard — «дороже меня»).")]
+        public CompareTo Compare = CompareTo.SourceCard;
+        [Tooltip("Эталон для FixedValue.")]
+        public int Value = 0;
+
+        public bool Match(EcsWorld world, int candidate, int casterCard, int casterPlayer)
+        {
+            if (!TryRead(world, candidate, Stat, out int mine)) return false;
+
+            int reference = Value;
+            if (Compare == CompareTo.SourceCard && !TryRead(world, casterCard, Stat, out reference)) return false;
+
+            switch (Op)
+            {
+                case CompareOp.Greater:        return mine >  reference;
+                case CompareOp.GreaterOrEqual: return mine >= reference;
+                case CompareOp.Less:           return mine <  reference;
+                case CompareOp.LessOrEqual:    return mine <= reference;
+                case CompareOp.Equal:          return mine == reference;
+                default:                       return mine != reference;
+            }
+        }
+
+        /// <summary>Текущее значение признака сущности. public — переиспользуют другие фильтры/эффекты.</summary>
+        public static bool TryRead(EcsWorld world, int e, StatKind stat, out int value)
+        {
+            value = 0;
+            switch (stat)
+            {
+                case StatKind.Cost:
+                {
+                    var g = world.GetPool<GoldCostComponent>();   if (g.Has(e)) { value = g.Get(e).Cost; return true; }
+                    var m = world.GetPool<ManaCostComponent>();    if (m.Has(e)) { value = m.Get(e).Cost; return true; }
+                    var h = world.GetPool<HealthCostComponent>();  if (h.Has(e)) { value = h.Get(e).Cost; return true; }
+                    return false;
+                }
+                case StatKind.Attack:
+                {
+                    var p = world.GetPool<AttackComponent>();
+                    if (!p.Has(e)) return false;
+                    value = p.Get(e).Value; return true;
+                }
+                case StatKind.Health:
+                {
+                    var p = world.GetPool<HealthComponent>();
+                    if (!p.Has(e)) return false;
+                    value = p.Get(e).Current; return true;
+                }
+                case StatKind.MaxHealth:
+                {
+                    var p = world.GetPool<HealthComponent>();
+                    if (!p.Has(e)) return false;
+                    value = p.Get(e).Max; return true;
+                }
+                default:
+                {
+                    var p = world.GetPool<SpeedComponent>();
+                    if (!p.Has(e)) return false;
+                    value = p.Get(e).Max; return true;
+                }
+            }
         }
     }
 

@@ -1,0 +1,97 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: charm_card_008
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
+  CardData:
+    rid: 1
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 1
+      type: {class: CardCharmModel, ns: Game.Core.Model.Card.Charm, asm: Game.Core.Model.Card.Charm}
+      data:
+        Id: 95
+        Name: "Полевой госпиталь"
+        Description: "В начале хода: восстанавливает 1 здоровья всем своим персонажам, улучшается с каждой активацией"
+        Rarity: 1
+        Element: 16
+        ArtImage: {fileID: 0}
+        ExpansionId: stolen_princess
+        PlayCost: 1
+        PlayCostAmount: 3
+        IsToken: 0
+        ShowAsLinked: 0
+        HideAsLinked: 0
+        NonBattleAbilities: []
+        RuntimeAbilities:
+        - rid: 2
+        Archetypes: []
+        TierSource: 0
+        Tiers: []
+        TurnsAlive: 3
+        TickMoment: 1
+        FixTurns: 0
+    - rid: 2
+      type: {class: AbilityToField, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 3
+        Rules: []
+        Effects:
+        - rid: 7
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 0}
+          ProjectileSpeed: 12
+          MergeArea: 0
+          PlayCasterAnimation: 0
+        Area: 0
+        Zone: 0
+        Filters:
+        - rid: 4
+        - rid: 5
+        IncludeCommanderInZones: 0
+    - rid: 3
+      type: {class: OnTurnStartTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+    - rid: 4
+      type: {class: OwnPlayerTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+    - rid: 5
+      type: {class: AllyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+    - rid: 6
+      type: {class: HealEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Amount: 1
+        ConditionRoot:
+          rid: -2
+    - rid: 7
+      type: {class: RepeatEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        Source: 11
+        FixedCount: 1
+        ShowCountInDescription: 0
+        CountCard: {fileID: 0}
+        Archetype:
+          rid: -2
+        Inner:
+          rid: 6

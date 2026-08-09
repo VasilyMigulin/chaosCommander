@@ -34,7 +34,7 @@ MonoBehaviour:
           HitPrefab: {fileID: 185366, guid: 2589c453adc70bf4b9d34509504d2d3f, type: 3}
           ProjectileSpeed: 12
           MergeArea: 0
-          PlayCasterAnimation: 1
+          PlayCasterAnimation: 0
         Area: 0
         Zone: 0
         Filters:

@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($log = \"$env:LOCALAPPDATA\\\\Unity\\\\Editor\\\\Editor.log\"; $all = [System.IO.File]::ReadAllLines\\($log, [System.Text.Encoding]::UTF8\\); \"всего строк: {0}\" -f $all.Count; $hits = @\\(\\); for \\($i=0; $i -lt $all.Count; $i++\\) { if \\($all[$i] -match 'Пиньята|Фокус-покус'\\) { $hits += $i } }; \"совпадений Пиньята/Фокус: {0}\" -f $hits.Count; if \\($hits.Count\\) { \"диапазон строк: {0} … {1}\" -f $hits[0], $hits[-1] })"
+    ]
+  }
+}

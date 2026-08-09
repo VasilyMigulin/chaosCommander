@@ -47,7 +47,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247286718470
-    m_Localized: 'At the start of turn: summon 2 Arena Fighters'
+    m_Localized: 'At the start of turn: summon 3 Arena Fighters'
     m_Metadata:
       m_Items: []
   - m_Id: 247286718471
@@ -248,7 +248,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912815
-    m_Localized: Skinless Skeleton Sorcerer
+    m_Localized: Lich, Skeleton Sorcerer
     m_Metadata:
       m_Items: []
   - m_Id: 247290912816
@@ -285,7 +285,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912824
-    m_Localized: 'When played: casts a random spell costing 3 or less from your deck'
+    m_Localized: 'When played: look at 2 spells costing 5 or less in your deck, choose
+      1 and play it'
     m_Metadata:
       m_Items: []
   - m_Id: 247290912825
@@ -374,8 +375,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 247290912846
-    m_Localized: 'At the start of the match: deals *3* damage to its owner, summons
-      4 Spiders 1/1/3'
+    m_Localized: 'At the start of the match: deals *3* damage to its owner, fill
+      row with Spiders 1/1/3'
     m_Metadata:
       m_Items: []
   - m_Id: 247290912847
@@ -1077,7 +1078,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2812476587499536
-    m_Localized: 'On death: shuffle a random Laborer into your deck'
+    m_Localized: 'On death: shuffle a random Laborer into your deck, if there are
+      no other Laborers in your deck'
     m_Metadata:
       m_Items: []
   - m_Id: 2812476587499537
@@ -1437,27 +1439,28 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 5340893094600774
-    m_Localized: Halt, who goes there! Oh, the prince... Halt anyway!
+    m_Localized: "Guards! I, the Reckless Prince, demand release. \u2026Oh. You ARE
+      the guards."
     m_Metadata:
       m_Items: []
   - m_Id: 5340893094600775
-    m_Localized: Step aside, guard. I'm here for the princess. State business!
+    m_Localized: "Fine \u2014 a warm-up before the rescue."
     m_Metadata:
       m_Items: []
   - m_Id: 5340893094600776
-    m_Localized: Gnidalf dragged her to the swamps! But don't go there... it STINKS.
+    m_Localized: Jailbreak complete! Castle, you were mid at best.
     m_Metadata:
       m_Items: []
   - m_Id: 5340893094600777
-    m_Localized: Should have warmed up before the heroics, your highness.
+    m_Localized: Back to the cell. At least they feed you there.
     m_Metadata:
       m_Items: []
   - m_Id: 5340893094600778
-    m_Localized: Achoo! Who dares enter my fragrant lair?!
+    m_Localized: Gnidalf! Release the princess, you unwashed soul!
     m_Metadata:
       m_Items: []
   - m_Id: 5340893094600779
-    m_Localized: The princess is saved! Though now a long bath is in order...
+    m_Localized: Done. The princess is free, and Gnidalf is freely filthy.
     m_Metadata:
       m_Items: []
   - m_Id: 5340893094600780
@@ -2593,6 +2596,1219 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 10032882373353474
     m_Localized: "Shred dupes (\xD7{0})"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10184817860665344
+    m_Localized: The Reckless Prince
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10184817919385600
+    m_Localized: 'At the start of your turn: plays the top card of your deck (targets
+      are random)'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10184817919385601
+    m_Localized: The Fairest Princess
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10184817919385602
+    m_Localized: 'At the start of the match: shuffles itself into your deck. When
+      drawn: restores all your health'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10184817919385603
+    m_Localized: The Local Tough
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10184817919385604
+    m_Localized: 'After it survives damage: summons a copy of itself'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10184817919385605
+    m_Localized: What a Brawl!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10184817919385606
+    m_Localized: Destroy all creatures except one random
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10552786671362048
+    m_Localized: The Fairest Princess
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10552786742665216
+    m_Localized: Bruiser the Jailer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10552786742665217
+    m_Localized: The Rat King
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10552786742665218
+    m_Localized: Sensei Boarman
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10552786742665219
+    m_Localized: Moldwick the Warlock
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10552786742665220
+    m_Localized: The Underboss of Hell
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10552786742665221
+    m_Localized: Ugh. Sewers. Smells like a chemistry final.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10552786742665222
+    m_Localized: The Rat King? Really? I'm allergic to monarchs.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10552786742665223
+    m_Localized: "Long live your rats. Too long \u2014 they keep coming back."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10552786742665224
+    m_Localized: I got gnawed to bits. Literally. How embarrassing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10552786742665225
+    m_Localized: "A gym? Great, I'll ask for directions. \u2026Why is everyone HUGE?"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10552786742665226
+    m_Localized: Billy, I don't want to compete. I want to walk PAST you.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10552786742665227
+    m_Localized: Counts as leg day. Never coming back.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10552786742665228
+    m_Localized: They pinned me. And it wasn't a wrestling move.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10552786742665229
+    m_Localized: The Swamp of Bad Luck. The name kind of spoils the ending.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10552786742665230
+    m_Localized: Gramps, hand over the staff. It's a size too big for you.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10552786742665231
+    m_Localized: "Peekaboo, princeling. Have a gift \u2014 breathe in my little clouds."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10552786742665232
+    m_Localized: "Curses lifted. The bad luck stays \u2014 that's just my personality."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10552786742665233
+    m_Localized: Seems I drew the wrong card. All of them.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10552786742665234
+    m_Localized: The Underworld. Warm, crowded, middle management. Just like Monday.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10552786742665235
+    m_Localized: You're not Gnidalf. You're his contractor.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10552786742665236
+    m_Localized: 'Tell upstairs: the prince is coming. And he''s cranky.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10552786742665237
+    m_Localized: Buried under imps. Tiny ones. Twice as insulting.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10552786742665238
+    m_Localized: "I last bathed a century ago. And I already won \u2014 in advance."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10552786742665239
+    m_Localized: Tired, princeling? Here's some clouds for the road.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10552786742665240
+    m_Localized: "Thanks, prince. You also\u2026 well, you can shower later."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10552786742665241
+    m_Localized: "So close. Next time I'll bring soap \u2014 might help."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10884899786448896
+    m_Localized: Royal Charm
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10884899853557760
+    m_Localized: Enemy creatures get -1/-1, your creatures get +1/+1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10884899853557761
+    m_Localized: Royal Bender
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10884899853557762
+    m_Localized: Gain 2 mana and shuffle 10 Benders into your deck (each gives 2
+      mana when drawn)
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10884899853557763
+    m_Localized: Eternal Bender
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10884899853557764
+    m_Localized: 'At the start of the match: if your deck has no creatures, your
+      minimum mana becomes 3 for the rest of the match. When drawn: gives 3 mana'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10884899853557765
+    m_Localized: Bender
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10884899853557766
+    m_Localized: 'When drawn: gives 2 mana'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11293883966152704
+    m_Localized: 'On death: cast 3 random spells costing 3 or less'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11293884024872960
+    m_Localized: 'On death: cast 5 random spells costing 5 or less'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11293884024872961
+    m_Localized: 'On death: cast 10 random spells'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11514233782001664
+    m_Localized: Sewer Breach
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11514233836527616
+    m_Localized: Discard a creature, deal 3 damage to enemies
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11514233836527617
+    m_Localized: Cesspit Trash
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11514233836527618
+    m_Localized: 'When discarded: summon this creature and a copy of it'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11514233836527619
+    m_Localized: Royal Pinata
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11514233836527620
+    m_Localized: Dump Boss
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11514233836527621
+    m_Localized: 'When played: discards your cheapest card, shuffles 2 copies of
+      it into your deck'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11514233836527622
+    m_Localized: Take Out the Trash
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11514233836527623
+    m_Localized: 'Summons a 3/3/2 Trash. When discarded: summons another'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11514233836527624
+    m_Localized: Trash
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11514233836527625
+    m_Localized: Salvage
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11514233836527626
+    m_Localized: Discard your cheapest card, deal damage to enemies equal to its
+      cost
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11641583169429504
+    m_Localized: "Guest ID \u2014 sign in on the game website with it (My Collection)"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11641583240732672
+    m_Localized: Copy ID
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11641583240732673
+    m_Localized: ID copied to clipboard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11641583244926976
+    m_Localized: "Opponent is not responding\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11641583244926977
+    m_Localized: Opponent disconnected
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11641583244926978
+    m_Localized: Connection lost
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11641583244926979
+    m_Localized: Match ends in {0}s
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11641583244926980
+    m_Localized: "Synchronizing\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11988063835119616
+    m_Localized: Home Medic
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11988064057417728
+    m_Localized: 'At the end of turn: restores *5* health to your most wounded character'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11988064057417729
+    m_Localized: Spitting Weed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11988064057417730
+    m_Localized: 'At the end of turn: deals *1* damage to a random enemy'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11988064057417731
+    m_Localized: Royal Weed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11988064057417732
+    m_Localized: 'On death: if your deck is nothing but weeds, fill your row with
+      weeds from your deck'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11988064057417733
+    m_Localized: Patch Up
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11988064057417734
+    m_Localized: Restore *5* health. If all your cards are yellow, restore *5* more
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11988064057417735
+    m_Localized: Bender Time
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11988064057417736
+    m_Localized: Gives 5 mana. Costs 0 if your deck has no creatures
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11988064057417737
+    m_Localized: Landfill Gatehouse
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11988064057417738
+    m_Localized: "When you draw a card: discard it. A creature \u2014 summon a copy
+      of it; a spell \u2014 put a copy into your hand, it costs 2 less"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11988064057417739
+    m_Localized: Lifetime Salvage Subscription
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11988064057417740
+    m_Localized: 'Until the end of the match: when you discard a card, cast a copy
+      of it'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11988064057417741
+    m_Localized: Royal Party Invitation
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11988064057417742
+    m_Localized: "Look at both hands and pick one card from each \u2014 play them
+      under your control"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11988064057417743
+    m_Localized: "(More gold \u2014 higher tier)"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11988064057417744
+    m_Localized: "(More mana \u2014 higher tier)"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11988064057417745
+    m_Localized: "(More corpses \u2014 higher tier)"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12005193355878400
+    m_Localized: Salvage Subscription
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12005193360072704
+    m_Localized: When you discard a card, cast a copy of it
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12209845678628864
+    m_Localized: Landfill Racketeer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12209845741543424
+    m_Localized: 'At the start of the match: your opponent discards a card. If all
+      cards in your deck are Black, they discard 1 more'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12209845741543425
+    m_Localized: Royal Drinking Buddy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12209845741543426
+    m_Localized: 'When played: both players discard their strongest card'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12209845741543427
+    m_Localized: Transmutation Master
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12209845741543428
+    m_Localized: 'When played: transforms a chosen creature into a random one costing
+      X, where X is how many times you have played this card'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12209845741543429
+    m_Localized: Sewer Mutagen
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12209845741543430
+    m_Localized: Transforms a creature into a random 1-cost creature
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12209845741543431
+    m_Localized: Preventive Exorcism
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12209845741543432
+    m_Localized: Deal 3 damage to all creatures
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12209845741543433
+    m_Localized: Deal 5 damage to all creatures
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12209845741543434
+    m_Localized: Deal 7 damage to all creatures
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12209845741543435
+    m_Localized: Pent-Up Frustration
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12209845741543436
+    m_Localized: Deal 2 damage to an enemy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12209845741543437
+    m_Localized: Deal 4 damage to an enemy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12209845741543438
+    m_Localized: Deal 8 damage to an enemy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12231225635758080
+    m_Localized: Crooked Bookie
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12231225686089728
+    m_Localized: 'When played: your next card deals its cost as damage to you instead
+      of paying it'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12709243932106752
+    m_Localized: Card tiers
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12709243978244096
+    m_Localized: Tier {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12709243978244097
+    m_Localized: '{0}+ gold'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12709243978244098
+    m_Localized: '{0}+ mana'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12709243978244099
+    m_Localized: '{0}+ corpses'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12709243978244100
+    m_Localized: Slow-Footed Butler
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12709243978244101
+    m_Localized: When your opponent plays a creature costing more than this, summon
+      this butler from wherever it is
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12709243978244102
+    m_Localized: Blissed-Out Deacon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12709243978244103
+    m_Localized: "While in hand: when you play a yellow card, put a copy of it into
+      your hand; a non-yellow card \u2014 draw a card"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12709243978244104
+    m_Localized: "Looks like you tried to flee your last match. Dragging you back\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12709243978244105
+    m_Localized: "Your seat is still taken \u2014 by you. Waiting for the server
+      to notice\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12709243978244106
+    m_Localized: "You got away \u2014 that match ended without you."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12934045376700416
+    m_Localized: Already have an account
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12934045439614976
+    m_Localized: Sign in with email
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12934045439614977
+    m_Localized: For accounts created on the game website
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12934045439614978
+    m_Localized: Email
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12934045439614979
+    m_Localized: Password
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12934045439614980
+    m_Localized: Sign in
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12934045439614981
+    m_Localized: Back
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12934045439614982
+    m_Localized: Enter your email and password
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12934045439614983
+    m_Localized: Wrong email or password
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12934045439614984
+    m_Localized: "Couldn't sign in \u2014 try again"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12934045439614985
+    m_Localized: The Princess's Charm
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12934045439614986
+    m_Localized: All creatures have *1* speed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12934045439614987
+    m_Localized: The Uninvited
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12934045439614988
+    m_Localized: 'At the start of your turn: summons a random 1-cost creature. Each
+      activation summons a costlier one'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12934045439614989
+    m_Localized: The Reckless Hand
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12934045439614990
+    m_Localized: 'While in hand: your other creatures gain *+1* attack and *+1* speed'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13029948456427520
+    m_Localized: The Crossroads
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13029948510953472
+    m_Localized: 'At the start of your turn: look at 3 paths and choose 1'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13029948510953473
+    m_Localized: Go Left!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13029948510953474
+    m_Localized: 'Fortune awaits: gain *3* gold and *3* mana'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13029948510953475
+    m_Localized: Go Straight!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13029948510953476
+    m_Localized: 'Might awaits: your creatures gain *+1*/*+1*/*+1* wherever they
+      are'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13029948510953477
+    m_Localized: Go Right!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13029948510953478
+    m_Localized: 'Wisdom awaits: draw *2* cards'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13677886086045696
+    m_Localized: The Storyteller
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13677886169931776
+    m_Localized: 'While building your deck: set aside *3* cards. Battlecry: draw
+      one of them'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13677886169931777
+    m_Localized: No card in the deck allows setting cards aside
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13677886169931778
+    m_Localized: Enough cards are already set aside
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13677886169931779
+    m_Localized: Choose the cards to set aside
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143363203072
+    m_Localized: Royal Jester
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146112
+    m_Localized: 'When played: look at 3 jokes, choose 1. On death: play the chosen
+      joke'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146113
+    m_Localized: Doll Collector
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146114
+    m_Localized: 'When your creature dies: summons a 1/1/1 copy of it'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146115
+    m_Localized: Fairy-Tale Wizard Oops
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146116
+    m_Localized: 'While in hand: every 5th spell triggers three times'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146117
+    m_Localized: Royal Gardener
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146118
+    m_Localized: 'When played: until the end of the match, your Weeds get +1/+1 and
+      die after 2 turns'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146119
+    m_Localized: 'When played: until the end of the match, your Weeds get +2/+2 and
+      die after 3 turns'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146120
+    m_Localized: Royal Yes-Man
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146121
+    m_Localized: 'At the end of turn: your creatures gain +1 attack'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146122
+    m_Localized: Palace Chow Guzzler
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146123
+    m_Localized: 'When played: gains +4 health'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146124
+    m_Localized: Weary Worker
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146125
+    m_Localized: 'On death: your creatures get +1/+1'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146126
+    m_Localized: Court Druid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146127
+    m_Localized: 'When played: if you control a Weed, gains +1/+1'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146128
+    m_Localized: Court Demonologist
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146129
+    m_Localized: 'When played: if you control an Imp, deals *4* damage to the enemy'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146130
+    m_Localized: Part-Time Pyrotechnician
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146131
+    m_Localized: 'When played: deals *1* damage to the enemy'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146132
+    m_Localized: 'When played: deals *1* damage to all enemies'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146133
+    m_Localized: The Insulting Joke
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146134
+    m_Localized: Opponent's creatures' attack is - 1 until your next turn
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146135
+    m_Localized: The Funny Joke
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146136
+    m_Localized: At the start of your next turn, restore *6* health
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146137
+    m_Localized: The Recurring Joke
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146138
+    m_Localized: At the start of your next turn, look at 3 cards in hand, choose
+      1, and shuffle a copy into your deck
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146139
+    m_Localized: Planted Like Royalty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146140
+    m_Localized: 'Until the end of the match: your Weeds get +1/+1 and die after
+      2 turns'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146141
+    m_Localized: Planted Like Royalty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146142
+    m_Localized: 'Until the end of the match: your Weeds get +2/+2 and die after
+      3 turns'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146143
+    m_Localized: Fairy-Tale Wish
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146144
+    m_Localized: 'At the start of turn: choose to cast a random spell costing 1,
+      3, 5, or 7'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146145
+    m_Localized: Wish for a 1-Cost Spell
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146146
+    m_Localized: Cast a random spell costing 1 or less
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146147
+    m_Localized: Wish for a 3-Cost Spell
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146148
+    m_Localized: Cast a random spell costing 3 or less
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146149
+    m_Localized: Wish for a 5-Cost Spell
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146150
+    m_Localized: Cast a random spell costing 5 or less
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146151
+    m_Localized: Wish for a 7-Cost Spell
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146152
+    m_Localized: Cast a random spell costing 7 or less
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146153
+    m_Localized: Invite VIP Guests
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146154
+    m_Localized: Summons a Wannabe VIP Guest
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146155
+    m_Localized: Summons a Wannabe VIP Guest and a VIP Guest
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146156
+    m_Localized: Summons a Wannabe VIP Guest, a VIP Guest, and an Ultra-VIP Guest
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146157
+    m_Localized: Wannabe VIP Guest
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146158
+    m_Localized: VIP Guest
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146159
+    m_Localized: Ultra-VIP Guest
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146160
+    m_Localized: Spoil the Harvest
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146161
+    m_Localized: 'At the start of your next turn: all creatures die'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146162
+    m_Localized: Spoiled Harvest
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146163
+    m_Localized: 'At the start of your next turn: all creatures die'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146164
+    m_Localized: Unleash the Locusts
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146165
+    m_Localized: 'Applies an effect to all creatures: take 1 damage at the end of
+      turn'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146166
+    m_Localized: Lost Cause
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14896143405146167
+    m_Localized: Destroy all creatures
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15101124070002688
+    m_Localized: The Lord's Work
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15101124124528640
+    m_Localized: Deal 4 damage to all creatures; if all cards in your deck are yellow,
+      deal 4 damage to all enemies instead
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15476869548728320
+    m_Localized: Call the Guard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15476869599059968
+    m_Localized: Fill your side with 3/3/2 guards. They immediately rush into the
+      attack
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15476869599059969
+    m_Localized: Guardsman
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15476869599059970
+    m_Localized: The Overgrown
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15476869599059971
+    m_Localized: Second Ace up the Sleeve
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15476869599059972
+    m_Localized: "Look at 3 spells that cost 2, choose 1 and put it into your hand
+      \u2014 it costs 2 less"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15476869599059973
+    m_Localized: Smuggler
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15476869599059974
+    m_Localized: 'Battlecry: look at 3 cards in your deck, choose 1. Deathrattle:
+      put the chosen card into your hand'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15476869599059975
+    m_Localized: Foretell the Future
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15476869599059976
+    m_Localized: Look at the top 3 cards of your deck, choose 1 to put back on top;
+      the rest go to the bottom
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15476869599059977
+    m_Localized: Set Off Fireworks
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15476869599059978
+    m_Localized: Deal 2 damage to a random enemy, three times
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15476869599059979
+    m_Localized: Father Fence
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15476869599059980
+    m_Localized: 'Battlecry: look at the last 3 spells played, choose 1 and put it
+      into your hand. If it''s yellow, it costs 2 less'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15476869599059981
+    m_Localized: Baptize the Prince
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15476869599059982
+    m_Localized: Your commander gets +2 Health, wherever they are
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15476869599059983
+    m_Localized: Knight with the Overgrown One
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15476869599059984
+    m_Localized: 'Deathrattle: summons a 4/4/2 Overgrown One'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15476869599059985
+    m_Localized: Watchful Statue
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15476869599059986
+    m_Localized: Bring the Heat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15476869599059987
+    m_Localized: Deal 5 damage to enemy creatures. Costs 0 if your deck has no creatures
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15476869599059988
+    m_Localized: Pull an Ace from Your Sleeve
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15476869599059989
+    m_Localized: "Look at 3 spells that cost 1, choose 1 and put it into your hand
+      \u2014 it costs 1 less. Put \xABSecond Ace up the Sleeve\xBB into your hand"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15476869599059990
+    m_Localized: Empower Charms
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15476869599059991
+    m_Localized: Charms you control last 1 turn longer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15476869599059992
+    m_Localized: Enchanted One
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15476869599059993
+    m_Localized: 'Battlecry: your charms last 1 turn longer for the rest of this
+      match'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15476869599059994
+    m_Localized: Enchant the Match
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15476869599059995
+    m_Localized: "Look at 3 charms, choose 1 and play it \u2014 its duration is extended
+      to the end of the match"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15961641182027776
+    m_Localized: +{0} MMR
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15961641240748032
+    m_Localized: "\u2212{0} MMR"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15968702859042816
+    m_Localized: Call the Guard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15968702917763072
+    m_Localized: Fill your side with 3/3/2 guards. They immediately rush into the
+      attack
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15968702917763073
+    m_Localized: Guardsman
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15968702917763074
+    m_Localized: The Overgrown
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15968702917763075
+    m_Localized: Second Ace up the Sleeve
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15968702917763076
+    m_Localized: "Look at 3 spells that cost 2, choose 1 and put it into your hand
+      \u2014 it costs 2 less"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15968702917763077
+    m_Localized: Smuggler
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15968702917763078
+    m_Localized: 'Battlecry: look at 3 cards in your deck, choose 1. Deathrattle:
+      put the chosen card into your hand'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15968702917763079
+    m_Localized: Foretell the Future
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15968702917763080
+    m_Localized: Look at the top 3 cards of your deck, choose 1 to put back on top;
+      the rest go to the bottom
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15968702917763081
+    m_Localized: Set Off Fireworks
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15968702917763082
+    m_Localized: Deal 2 damage to a random enemy, three times
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15968702917763083
+    m_Localized: Father Fence
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15968702917763084
+    m_Localized: 'Battlecry: look at the last 3 spells played, choose 1 and put it
+      into your hand. If it''s yellow, it costs 2 less'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15968702917763085
+    m_Localized: Baptize the Prince
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15968702917763086
+    m_Localized: Your commander gets +2 Health, wherever they are
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15968702917763087
+    m_Localized: Knight with the Overgrown One
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15968702917763088
+    m_Localized: 'Deathrattle: summons a 4/4/2 Overgrown One'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15968702917763089
+    m_Localized: Watchful Statue
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15968702917763090
+    m_Localized: Bring the Heat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15968702917763091
+    m_Localized: Deal 5 damage to enemy creatures. Costs 0 if your deck has no creatures
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15968702917763092
+    m_Localized: Pull an Ace from Your Sleeve
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15968702917763093
+    m_Localized: "Look at 3 spells that cost 1, choose 1 and put it into your hand
+      \u2014 it costs 1 less. Put \xABSecond Ace up the Sleeve\xBB into your hand"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15968702917763094
+    m_Localized: Empower Charms
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15968702917763095
+    m_Localized: Charms you control last 1 turn longer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15968702917763096
+    m_Localized: Enchanted One
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15968702917763097
+    m_Localized: 'Battlecry: your charms last 1 turn longer for the rest of this
+      match'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15968702917763098
+    m_Localized: Enchant the Match
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15968702917763099
+    m_Localized: "Look at 3 charms, choose 1 and play it \u2014 its duration is extended
+      to the end of the match"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15980024325726208
+    m_Localized: "Calculating rating\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15980024367669248
+    m_Localized: Rating will update later
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15980024367669249
+    m_Localized: To menu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15980024367669250
+    m_Localized: Rewards
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15980024367669251
+    m_Localized: Match tasks
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15980024367669252
+    m_Localized: Guardian
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15980024367669253
+    m_Localized: Property. Nearby creatures must attack it
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15980024367669254
+    m_Localized: Double Strike
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15980024367669255
+    m_Localized: Property. Attacks twice per turn
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15980024367669256
+    m_Localized: Shield
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15980024367669257
+    m_Localized: Property. Absorbs several hits, then breaks
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15980024367669258
+    m_Localized: Invulnerable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15980024367669259
+    m_Localized: Property. Takes no damage and can't be destroyed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15980024367669260
+    m_Localized: Poison
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15980024367669261
+    m_Localized: Property. Takes damage equal to poison stacks each turn
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15980024367669262
+    m_Localized: Stealth
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15980024367669263
+    m_Localized: Property. Untargetable by the enemy for a few turns
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16196933138767872
+    m_Localized: Commander of the Royal Guard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16196933193293824
+    m_Localized: 'While you control this: your token creatures have Double Strike'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16196933193293825
+    m_Localized: Clumsy Guard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16196933193293826
+    m_Localized: Barrack Party
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16196933193293827
+    m_Localized: 'At the start of turn: summons a Barrack Partygoer 1/1/4. Improves
+      with each activation'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16196933193293828
+    m_Localized: Barrack Partygoer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16196933193293829
+    m_Localized: Stick-Swinging Lessons
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16196933193293830
+    m_Localized: 'Until the start of your next turn: your creatures have Double Strike'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16196933193293831
+    m_Localized: Stick-Swinging Lessons
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16196933193293832
+    m_Localized: Your creatures have Double Strike
     m_Metadata:
       m_Items: []
   references:

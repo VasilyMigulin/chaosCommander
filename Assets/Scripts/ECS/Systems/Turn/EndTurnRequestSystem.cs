@@ -87,8 +87,9 @@ namespace Game.Core.Ecs.Systems
             }
 
             // Шаг B: дождаться оседания ability-пайплайна → отправить EndTurn-снапшот, снять EndTurnState.
-            if (_endFilter.Value.GetEntitiesCount() == 0) return;
-            if (AbilitiesPending()) return;
+            if (_endFilter.Value.GetEntitiesCount() == 0) { _waitingSince = 0f; return; }
+            if (AbilitiesPending()) { ReportIfStuck(); return; }
+            _waitingSince = 0f;
 
             var world = systems.GetWorld();
             bool solo = _remotePlayers.Value.GetEntitiesCount() == 0;   // нет сетевого оппонента
@@ -145,6 +146,38 @@ namespace Game.Core.Ecs.Systems
             foreach (var e in _allPlayers.Value)
                 if (_counterPool.Value.Has(e)) total += _counterPool.Value.Get(e).Personal;
             return total;
+        }
+
+        // ── Диагностика зависшей передачи хода ───────────────────────────────
+        // Шаг B ждёт БЕЗ ТАЙМАУТА (и правильно: дренаж детерминирован, а «протухший» хендофф хуже
+        // задержки). Но если что-то всё-таки не оседает, ход не передаётся НИКОГДА — в логе просто
+        // обрывается всё после «settling abilities…», и виновника приходится угадывать (софт-лок
+        // 2026-08-03: раскопка, сработавшая вне хода владельца, ждала окно, которое некому показать).
+        // Поэтому: подождали дольше разумного — ОДИН РАЗ печатаем, ЧТО именно висит.
+        float _waitingSince;
+        const float StuckReportAfter = 8f;
+
+        void ReportIfStuck()
+        {
+            if (_waitingSince == 0f) { _waitingSince = UnityEngine.Time.time; return; }
+            if (_waitingSince < 0f) return;                                   // уже отчитались
+            if (UnityEngine.Time.time - _waitingSince < StuckReportAfter) return;
+
+            var sb = new System.Text.StringBuilder("[EndTurn] передача хода ЗАСТРЯЛА, не осели:");
+            Append(sb, "AbilityCastEvent",        _abilityCast.Value.GetEntitiesCount());
+            Append(sb, "AbilityTargetingState",   _abilityTarget.Value.GetEntitiesCount());
+            Append(sb, "AbilityQueuedState",      _abilityQueued.Value.GetEntitiesCount());
+            Append(sb, "RequestCardCastEvent",    _castRequest.Value.GetEntitiesCount());
+            Append(sb, "CastEvent",               _castInProgress.Value.GetEntitiesCount());
+            Append(sb, "PendingOnCastComponent",  _pendingOnCast.Value.GetEntitiesCount());
+            Append(sb, "DiscoverRequestComponent", _discoverPending.Value.GetEntitiesCount());
+            UnityEngine.Debug.LogError(sb.ToString());
+            _waitingSince = -1f;
+        }
+
+        static void Append(System.Text.StringBuilder sb, string name, int count)
+        {
+            if (count > 0) sb.Append(' ').Append(name).Append('=').Append(count);
         }
 
         bool AbilitiesPending()

@@ -46,9 +46,21 @@ namespace AwesomeUI.Core.Card
             public Sprite Icon;
         }
 
+        /// <summary>Иконка АЛЬТЕРНАТИВНОЙ уплаты (семейство «Бесчестный букмекер»): пока висит маркер,
+        /// карты руки показывают её вместо иконки ресурса. Kind = AltCostKind (int, без ссылки на
+        /// ECS-сборку): 0 = урон себе, 1 = сброс карты, 2 = жертва существа, 3 = карта из колоды.</summary>
+        [Serializable]
+        public struct AltCostIconVisual
+        {
+            [Tooltip("AltCostKind: 0 = урон себе (Букмекер), 1 = сброс карты, 2 = жертва существа, 3 = карта из колоды.")]
+            public int Kind;
+            public Sprite Icon;
+        }
+
         [SerializeField] RarityVisual[] _rarities;
         [SerializeField] CostIconVisual[] _costIcons;
         [SerializeField] CurrencyVisual[] _currencies;
+        [SerializeField] AltCostIconVisual[] _altCostIcons;
 
         public Sprite GetRarityBadge(EnumService.Rarity rarity)
         {
@@ -71,6 +83,16 @@ namespace AwesomeUI.Core.Card
             if (_costIcons == null) return null;
             foreach (var c in _costIcons)
                 if (c.ResourceType == resourceType) return c.Icon;
+            return null;
+        }
+
+        /// <summary>Иконка альтернативной уплаты по AltCostKind (int). null — не назначена (вьюха
+        /// оставит иконку ресурса как фоллбэк).</summary>
+        public Sprite GetAltCostIcon(int kind)
+        {
+            if (_altCostIcons == null) return null;
+            foreach (var a in _altCostIcons)
+                if (a.Kind == kind) return a.Icon;
             return null;
         }
 

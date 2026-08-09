@@ -25,6 +25,17 @@ namespace Game.Core.Ability
         public List<Rule> Rules = new();   // группы правил; на ините → AbilityRuleContainerComponent на сущности
         [SerializeReference] public List<IEffect> Effects = new();
 
+        [Tooltip("Сколько раз за ход способность может ПРИМЕНИТЬСЯ. 0 = без ограничения (умолчание). " +
+                 "Счётчик сбрасывается в начале хода ВЛАДЕЛЬЦА; холостые срабатывания (фильтры не дали " +
+                 "целей) лимит не тратят. Баланс-гейт для реактивных карт вроде «Блаженного дьякона».")]
+        public int MaxActivationsPerTurn = 0;
+
+        [Tooltip("Группа лимита. 0 (умолчание) = счётчик ОБЩИЙ НА КАРТУ: в проекте несколько способностей — " +
+                 "это почти всегда ВЕТКИ ОДНОЙ игровой способности («если жёлтая — копия, иначе — добор»), и " +
+                 "игрок ждёт «раз в ход» суммарно. Нужны НЕЗАВИСИМЫЕ лимиты у разных способностей одной " +
+                 "карты — дай им разные номера (1, 2, …).")]
+        public int LimitGroup = 0;
+
         // Косметика каста (луч/снаряд/область). Авторится на карте, на game-state НЕ влияет.
         public VfxSpec Vfx;
 
@@ -43,6 +54,16 @@ namespace Game.Core.Ability
             // Контейнер правил — прогоняет RunCheckAbilityRulesSystem.
             if (Rules != null && Rules.Count > 0)
                 world.GetPool<AbilityRuleContainerComponent>().Add(abilityEntity).Rules = Rules.ToArray();
+
+            // Лимит активаций за ход (0 = безлимит): гейт в AbilityFire.Mark, счёт в резолве, сброс на
+            // старте хода владельца. Ставим ПОСЛЕ ClearAbilityEntity-совместимо (Rebind чистит и его).
+            if (MaxActivationsPerTurn > 0)
+            {
+                ref var limit = ref world.GetPool<AbilityUseLimitComponent>().Add(abilityEntity);
+                limit.Max = MaxActivationsPerTurn;
+                limit.UsedThisTurn = 0;
+                limit.Group = LimitGroup;
+            }
 
             // Контейнер эффектов — применяет RunResolveAbilityQueueSystem. Здесь же инитим условия эффектов.
             if (Effects != null && Effects.Count > 0)
@@ -99,6 +120,7 @@ namespace Game.Core.Ability
         {
             Del<AbilityOwnerComponent>(world, ae);
             Del<AbilityRuleContainerComponent>(world, ae);
+            Del<AbilityUseLimitComponent>(world, ae);   // Init поставит заново (счётчик обнулится при смене контроля)
             Del<AbilityEffectContainerComponent>(world, ae);
             Del<AbilityTriggerContainerComponent>(world, ae);
             Del<AbilityVfxComponent>(world, ae);
@@ -180,6 +202,11 @@ namespace Game.Core.Ability
         public int OfferCount = 3;
         [SerializeReference] public List<ITargetFilter> Filters = new();
 
+        [Tooltip("Включать КОМАНДИРА в выборку из НЕ-Board зон (рука/колода/кладбище). Выкл (умолч.) — " +
+                 "командир неуязвим к сбросу/миллу/краже. ВКЛЮЧИ для благотворных способностей, которые " +
+                 "должны задевать и командира в руке.")]
+        public bool IncludeCommanderInZones = false;
+
         protected override void OnInit(EcsWorld world, int abilityEntity)
         {
             ref var t = ref world.GetPool<AbilityTargetComponent>().Add(abilityEntity);
@@ -188,6 +215,7 @@ namespace Game.Core.Ability
             t.OfferCount = OfferCount;
             t.Zone = Zone;
             t.Filters = Filters != null ? Filters.ToArray() : Array.Empty<ITargetFilter>();
+            t.IncludeCommanderInZones = IncludeCommanderInZones;
         }
     }
 
@@ -198,12 +226,18 @@ namespace Game.Core.Ability
         public TargetZone Zone = TargetZone.Board;
         [SerializeReference] public List<ITargetFilter> Filters = new();
 
+        [Tooltip("Включать КОМАНДИРА в выборку из НЕ-Board зон (рука/колода/кладбище). Выкл (умолч.) — " +
+                 "командир неуязвим к сбросу/миллу/краже. ВКЛЮЧИ для благотворных «всем вашим существам, " +
+                 "где бы они ни были» (иначе командир в руке останется без баффа).")]
+        public bool IncludeCommanderInZones = false;
+
         protected override void OnInit(EcsWorld world, int abilityEntity)
         {
             ref var f = ref world.GetPool<AbilityFieldComponent>().Add(abilityEntity);
             f.Area = Area;
             f.Zone = Zone;
             f.Filters = Filters != null ? Filters.ToArray() : Array.Empty<ITargetFilter>();
+            f.IncludeCommanderInZones = IncludeCommanderInZones;
         }
     }
 

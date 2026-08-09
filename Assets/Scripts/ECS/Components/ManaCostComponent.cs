@@ -10,6 +10,13 @@ namespace Game.Core.Ecs.Components
         public List<int> Modifiers;
         public List<int> ModifiersPermanent;
 
+        // Принудительный кост (см. GoldCostComponent): установлен → Cost = OverrideValue, стек игнорируется.
+        public bool HasOverride;
+        public int  OverrideValue;
+
+        public void SetOverride(int value) { HasOverride = true;  OverrideValue = value; RecalculateValue(); }
+        public void ClearOverride()        { HasOverride = false; RecalculateValue(); }
+
         public void AddModifier(int m, bool permanent = false)
         {
             if (permanent) (ModifiersPermanent ??= new List<int>()).Add(m);
@@ -31,10 +38,14 @@ namespace Game.Core.Ecs.Components
 
         public void RecalculateValue()
         {
+            if (HasOverride) { Cost = OverrideValue < 0 ? 0 : OverrideValue; return; }
             int v = Base;
             if (Modifiers != null)          for (int i = 0; i < Modifiers.Count; i++)          v += Modifiers[i];
             if (ModifiersPermanent != null) for (int i = 0; i < ModifiersPermanent.Count; i++) v += ModifiersPermanent[i];
             Cost = v < 0 ? 0 : v;
         }
+
+        /// <summary>Форс-установка ПЕЧАТНОЙ базы стоимости (карта-с-уровнями). Устойчиво к ClearModifiers; баффы поверх.</summary>
+        public void SetBase(int newBase) { Base = newBase; RecalculateValue(); }
     }
 }

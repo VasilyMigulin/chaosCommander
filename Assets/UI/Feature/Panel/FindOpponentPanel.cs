@@ -95,7 +95,16 @@ namespace AwesomeUI.Feature
         public override void OnInject()
         {
             base.OnInject();
-            if (_cancelBtn != null) _cancelBtn.onClick.AddListener(OnCancel);
+            BindCancel();
+        }
+
+        // Подписка кнопки ИДЕМПОТЕНТНА (Remove перед Add): зовётся и из OnInject, и из OnEnable —
+        // двойного OnCancel не будет.
+        void BindCancel()
+        {
+            if (_cancelBtn == null) return;
+            _cancelBtn.onClick.RemoveListener(OnCancel);
+            _cancelBtn.onClick.AddListener(OnCancel);
         }
 
         void OnEnable()
@@ -106,6 +115,7 @@ namespace AwesomeUI.Feature
             _statusCg = EnsureGroup(_statusText);
             _applied = (MatchmakingUiStatus)(-1);
             _searching = false;
+            BindCancel();   // страховка: панель могли открыть уже ПОСЛЕ смерти MenuState (без Inject)
         }
 
         void ApplyStatus(MatchmakingUiStatus status)
@@ -229,14 +239,17 @@ namespace AwesomeUI.Feature
 
         public override void Unject()
         {
-            // _searching здесь НЕ гасим: панель переживает смену сцены (Menu→Lobby) и переинжект, а поиск
-            // при этом продолжается — сброс флага и останавливал крутёж. Update сам сверится с хабом.
-            if (_cancelBtn != null) _cancelBtn.onClick.RemoveListener(OnCancel);
+            // ЗДЕСЬ НЕ ОТПИСЫВАЕМ КНОПКУ «ОТМЕНА» (баг 2026-07-29 «отмена не работает в лобби»): Fusion
+            // грузит LobbyScene → умирает MenuState → его InjectionDestroyHook зовёт UIHandler.Unject()
+            // у ВСЕХ панелей, а обратного Inject нет (LobbyState пустой). Снятый тут listener делал кнопку
+            // мёртвой ровно в лобби — клик не доходил даже до лога. Панель персистентная (DontDestroyOnLoad),
+            // подписка живёт до OnDipose; повторный OnInject идемпотентен (BindCancel).
+            // _searching тоже НЕ гасим: поиск продолжается, Update сверится с хабом.
         }
 
         public override void OnDipose()
         {
-            Unject();
+            if (_cancelBtn != null) _cancelBtn.onClick.RemoveListener(OnCancel);   // объект реально умирает
             base.OnDipose();
         }
 

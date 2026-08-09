@@ -15,6 +15,11 @@ namespace Game.Core.Ecs.Systems
     /// </summary>
     public sealed class SpawnCreatureViewSystem : IEcsRunSystem
     {
+        // ВРЕМЕННО ВЫКЛЮЧЕНО (2026-08-06): автоскейл под клетку (CreatureView.FitToBounds) даёт разный
+        // размер у визуально одинаковых моделей — похоже на баг с bind-pose/риггингом, разбирается отдельно.
+        // true — вернуть как было.
+        const bool AutoScaleEnabled = false;
+
         readonly EcsCustomInject<BoardView> _boardView = default;
         readonly EcsCustomInject<Game.Core.Configs.DefaultAbilityVfxConfig> _defaultVfx = default;
 
@@ -61,6 +66,8 @@ namespace Game.Core.Ecs.Systems
 
                 var creatureView = instance.GetComponent<CreatureView>();
                 creatureView?.SetCell(pos.Row, pos.Col, pos.OwnerId);
+                if (AutoScaleEnabled)
+                    creatureView?.FitToBounds(cell?.FitBounds);   // автоскейл под клетку — ДО поворота/поп-анимации
                 creatureView?.SetOwnerFacing(pos.OwnerId);   // владелец 2 смотрит на оппонента
 
                 // Спека появления (Pre-портал/Resolve-аура/Finish-аккорд): своя с CardCreatureModel

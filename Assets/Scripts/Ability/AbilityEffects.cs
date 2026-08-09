@@ -109,6 +109,8 @@ namespace Game.Core.Ability
                     ref var hp = ref hpPool.Get(target);
                     hp.AddModifier(HealthBonus, Permanent);
                     if (HealthBonus > 0) hp.Current += HealthBonus;   // классический «+X/+X» — заодно лечит
+                    // HP изменился модификатором → сигналим LethalHealthSystem (дебафф до ≤0 = смерть, не через урон).
+                    GameEventBus.Publish(new CreatureHealthChangedEvent { CreatureEntity = target });
                 }
             }
             if (SpeedBonus != 0)
@@ -145,9 +147,54 @@ namespace Game.Core.Ability
             if (!world.GetPool<CreatureTag>().Has(target)) return;   // только существа
             var dead = world.GetPool<DeadTag>();
             if (dead.Has(target)) return;
+            if (world.GetPool<InvulnerableTag>().Has(target)) return;   // «Неуязвимый»: принудительно не уничтожается
             var hpPool = world.GetPool<HealthComponent>();
             if (hpPool.Has(target)) hpPool.Get(target).Current = 0;
+            KillAttribution.Mark(world, cardEntity, target);   // атрибуция → мана за вражеского (DieSystem)
             dead.Add(target);
+        }
+    }
+
+    // === helper === Атрибуция ПРЯМОГО уничтожения (не-урон): владелец карты-источника пишется в
+    // KilledByComponent жертвы ДО DeadTag — DieSystem начислит ману за вражеское существо (единая точка,
+    // как у смертей от урона через TakeDamageSystem). Эффекты ре-ранятся на обоих клиентах → зеркально.
+    internal static class KillAttribution
+    {
+        public static void Mark(EcsWorld world, int sourceCard, int victim)
+        {
+            var ownerPool = world.GetPool<OwnerComponent>();
+            if (!ownerPool.Has(sourceCard)) return;
+            var pool = world.GetPool<KilledByComponent>();
+            if (!pool.Has(victim)) pool.Add(victim);
+            pool.Get(victim).PlayerId = ownerPool.Get(sourceCard).OwnerId;
+        }
+    }
+
+    // === class (OOP) === Уничтожить ВСЕХ существ на поле, КРОМЕ цели (Вот это потасовка! = HS Brawl). Цель =
+    // случайный ВЫЖИВШИЙ, выбранный ТАРГЕТИНГОМ: AbilityToTarget{Random, Count 1, Filters=[CardTypeFilter.Creature]}
+    // (обе стороны, без side-фильтра) → выбор синкается target-ключом (оба клиента получают того же выжившего).
+    // Здесь — просто DeadTag всем прочим существам на борде: OnDie/предсмертные хрипы срабатывают, как Brawl в HS
+    // (в отличие от RemoveEffect). Детерминировано по борду → ре-ран зеркален. Пустой борд/1 существо → безвредно.
+    [Serializable]
+    public sealed class DestroyAllExceptTargetEffect : EffectBase
+    {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Removal;
+
+        public override void Apply(EcsWorld world, int cardEntity, int survivor)
+        {
+            var dead = world.GetPool<DeadTag>();
+            var hpPool = world.GetPool<HealthComponent>();
+            var invulnerablePool = world.GetPool<InvulnerableTag>();
+            var buf = new System.Collections.Generic.List<int>();
+            foreach (var e in world.Filter<CreatureTag>().Inc<BoardTag>().Exc<DeadTag>().End())
+                if (e != survivor) buf.Add(e);
+            foreach (var e in buf)
+            {
+                if (invulnerablePool.Has(e)) continue;   // «Неуязвимый» переживает потасовку
+                if (hpPool.Has(e)) hpPool.Get(e).Current = 0;
+                KillAttribution.Mark(world, cardEntity, e);   // мана за КАЖДОГО вражеского (свои — не в счёт, гейт в DieSystem)
+                if (!dead.Has(e)) dead.Add(e);
+            }
         }
     }
 
@@ -259,7 +306,14 @@ namespace Game.Core.Ability
             var pool = world.GetPool<GoldComponent>();
             if (!pool.Has(_playerEntity)) return;
             ref var gold = ref pool.Get(_playerEntity);
-            gold.Current = Math.Min(gold.Current + Amount, gold.Max);
+            // Даём ТОЛЬКО Current, Max не трогаем (не перманентный доход — разовая прибавка). БЕЗ клампа к
+            // Max: доход хода (RunTurnStartSystem) синхронно рефиллит Current=Max в САМОМ НАЧАЛЕ хода, а этот
+            // эффект чаще всего приходит из интерактивного выбора того же OnTurnStartTrigger (напр. Развилка →
+            // «Богатство») — пик-окно ждёт клика игрока, резолвится ПОЗЖЕ рефилла, и Current к этому моменту
+            // уже = Max → клампнутый +Amount не давал бы вообще ничего. Временный перелив НЕ висит вечно:
+            // на СЛЕДУЮЩЕМ старте хода тот же RunTurnStartSystem безусловно перезапишет Current=Max — лишнее
+            // само сгорает (как «Освежающий напиток» с временной маной), отдельного возврата не нужно.
+            gold.Current += Amount;
             EffectUtil.RaiseResource(world, _playerEntity, EnumService.ResourceType.Gold, gold.Current, gold.Max);
         }
     }
@@ -286,6 +340,38 @@ namespace Game.Core.Ability
             tempPool.Get(target).RefundAmount += Amount;
 
             EffectUtil.RaiseResource(world, target, EnumService.ResourceType.Mana, mana.Current, mana.Max);
+        }
+    }
+
+    // === class (OOP) === ПОЛ маны игрока до конца матча (Вечная попойка, спелл-архетип): вешает
+    // ManaFloorComponent{Floor}; RunTurnStartSystem в начале КАЖДОГО хода поднимает ману до Floor, если ниже.
+    // Сразу поднимает и текущую (работает уже в ход применения, а не со следующего). Условие «нет существ
+    // в колоде» вешается штатным ConditionRoot (NoCreaturesInDeckCondition), не флагом (см. осевую архитектуру).
+    // target = сущность игрока (NonTarget). Синк: OnMatchStart ре-ранится на обоих → маркер зеркален.
+    [Serializable]
+    public sealed class SetManaFloorEffect : EffectBase, ICasterScopedEffect
+    {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Resource;
+        public int Floor = 3;
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            if (Floor <= 0 || target < 0) return;
+
+            var floorPool = world.GetPool<ManaFloorComponent>();
+            if (!floorPool.Has(target)) floorPool.Add(target);
+            ref var f = ref floorPool.Get(target);
+            if (Floor > f.Floor) f.Floor = Floor;   // не понижаем уже установленный пол
+
+            // Сразу поднять ману до пола (иначе эффект заработал бы только со следующего старта хода).
+            var manaPool = world.GetPool<ManaComponent>();
+            if (manaPool.Has(target))
+            {
+                ref var mana = ref manaPool.Get(target);
+                if (mana.Max < Floor) mana.Max = Floor;
+                if (mana.Current < Floor) mana.Current = Floor;
+                EffectUtil.RaiseResource(world, target, EnumService.ResourceType.Mana, mana.Current, mana.Max);
+            }
         }
     }
 
@@ -324,6 +410,110 @@ namespace Game.Core.Ability
         }
     }
 
+    // === class (OOP) === Постоянный бонус к длительности БУДУЩИХ чар владельца (Зачарованный: «ваши чары
+    // в этом матче длятся на 1 дольше»). Одноразовый перм. эффект на игроке (не аура — не откатывается со
+    // смертью источника), хранится в CharmDurationBonusService (match-lifetime, как CastMultiplierService).
+    // Читает CardCharmModel.OnInit при инициализации КАЖДОЙ следующей чары владельца; уже стоящие на
+    // столе чары бонус не получают (как и полагается «+N к печатному значению»).
+    [Serializable]
+    public sealed class AddCharmDurationBonusEffect : EffectBase
+    {
+        public int Amount = 1;
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            if (Amount == 0 || target < 0) return;   // NonTarget → target = сущность игрока-владельца
+            var playerPool = world.GetPool<PlayerComponent>();
+            if (!playerPool.Has(target)) return;
+            CharmDurationBonusService.Add(playerPool.Get(target).PlayerId, Amount);
+        }
+    }
+
+    // === class (OOP) === СЕМЕЙСТВО «альтернативная уплата»: «следующие Charges разыгранных вами карт
+    // оплачиваются НЕ ресурсом, а Kind» — урон себе на эффективную стоимость (Бесчестный букмекер,
+    // пейн-архетип), сброс случайной карты руки, жертва своего существа, карта из колоды. Вешает маркер
+    // AltCostComponent на игрока-владельца; повторный инсталл ПЕРЕЗАПИСЫВАЕТ вид и заряды (второй
+    // букмекер при висящем маркере сам оплатится альтернативой своим кастом — «следующая карта»).
+    // Потребление/уплата — RunCastRouterSystem (актив, жертвы роллит он) и ReplayActionSystem (пассив,
+    // по ActionCastData.AltPaid*). Free-касты маркер не трогают. Урон DamageSelf штатный → Вуду-редирект
+    // работает (задумка); уплата сбросом фейрит OnDiscard-триггеры (синергия discard-архетипа).
+    // NonTarget (в ассете AbilityNonTarget). СИНК: Apply ре-ранится на обоих → маркер зеркален.
+    [Serializable]
+    public sealed class InstallAltCostEffect : EffectBase, ICasterScopedEffect
+    {
+        [Tooltip("Вид уплаты: урон себе (эффективная стоимость) / сброс случайной карты руки / " +
+                 "жертва своего случайного существа / карта из колоды в кладбище.")]
+        public AltCostKind Kind = AltCostKind.DamageSelf;
+        [Tooltip("На сколько СЛЕДУЮЩИХ разыгранных карт действует (заряды маркера).")]
+        public int Charges = 1;
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            if (PlayerEntity < 0) return;
+            var pool = world.GetPool<AltCostComponent>();
+            if (!pool.Has(PlayerEntity)) pool.Add(PlayerEntity);
+            ref var alt = ref pool.Get(PlayerEntity);
+            alt.Kind    = Kind;                          // повторный инсталл перезаписывает вид и заряды
+            alt.Charges = Charges <= 0 ? 1 : Charges;    // старые ассеты без поля (0) → 1
+            // Рука должна подсветиться СРАЗУ (карты играбельны при любых ресурсах) — тот же сигнал
+            // пересчёта, что у Гиперинфляции/пер-карточных кост-баффов.
+            GameEventBus.Publish(new CostModifierChangedEvent());
+        }
+    }
+
+    // === class (OOP) === ПАССИВ «карта стоит РОВНО Cost, пока выполнено условие» (Запойное время: Cost=0 +
+    // ConditionRoot=NoCreaturesInDeckCondition). НЕ триггер-эффект (паттерн BuffPerCharmEffect): работает
+    // с Init (карта создана — в колоде/руке, на ОБОИХ клиентах), реактивно по ConditionRoot.Changed.
+    // Реализация: Override в кост-компоненте карты (Cost = принудительное значение, база и ВЕСЬ стек
+    // модификаторов игнорируются; потеря условия возвращает обычный расчёт) — а не «скидка», чтобы
+    // печатная цена честно ЗАМЕНЯЛАСЬ независимо от навешанных баффов/дебаффов. Глобальный модификатор
+    // игрока (Гиперинфляция) — по-прежнему ПОВЕРХ (0 + 1 = 1), консистентно с остальными нулёвыми картами.
+    // В ассете кладётся в способность БЕЗ триггеров (напр. AbilityToSelf; Apply — no-op). Пустой
+    // ConditionRoot → эффект неактивен (забытое условие не должно молча раздавать бесплатные карты).
+    // СИНК: условие зеркально (скан по зеркальным тегам зон) + Init на обоих клиентах → Override зеркален.
+    [Serializable]
+    public sealed class SetCostWhileConditionEffect : EffectBase
+    {
+        [Tooltip("Принудительная стоимость, пока условие выполнено (0 = бесплатно).")]
+        public int Cost = 0;
+
+        EcsWorld _world;
+        int _card = -1;
+        bool _applied;
+
+        public override void Init(EcsWorld world, int cardEntity, int playerEntity)
+        {
+            base.Init(world, cardEntity, playerEntity);   // инитит ConditionRoot
+            _world = world; _card = cardEntity;
+            if (ConditionRoot != null) ConditionRoot.Changed += Sync;
+            Sync();
+        }
+
+        public override void Dispose()
+        {
+            if (ConditionRoot != null) ConditionRoot.Changed -= Sync;
+            if (_applied) Toggle(false);   // карта уходит/ре-инит — не оставляем висячий Override
+            base.Dispose();
+        }
+
+        void Sync()
+        {
+            bool ready = ConditionRoot != null && ConditionRoot.IsReady;
+            if (ready == _applied) return;
+            Toggle(ready);
+        }
+
+        void Toggle(bool on)
+        {
+            _applied = on;
+            if (_world == null || _card < 0) return;
+            if (on) BuffCost.SetOverride(_world, _card, Cost);
+            else    BuffCost.ClearOverride(_world, _card);
+        }
+
+        public override void Apply(EcsWorld world, int cardEntity, int target) { }   // пассив: резолвить нечего
+    }
+
     // === class (OOP) === Установить замену добора владельцу (Адовый червь): до конца матча вместо
     // обычного добора в начале хода — «смотри LookCount, выбери одну». NonTarget (target = игрок).
     // Персистентно (не снимается). Перехват/выбор — RunDrawReplacementSystem (+ UI PickupWindow).
@@ -349,7 +539,7 @@ namespace Game.Core.Ability
     // {ChainKilled, GainRandomCardEffect}=случайная карта за убитого, и т.д. — для ЛЮБОГО эффекта.
     // Источники счёта расширяются добавлением в enum (не трогая сами эффекты).
     [Serializable]
-    public sealed class RepeatEffect : EffectBase
+    public sealed class RepeatEffect : EffectBase, IDynamicValue
     {
         // ВАЖНО: значения ЗАКРЕПЛЕНЫ явно. Unity сериализует enum по ЧИСЛУ, а ассеты хранят это число —
         // любая перестановка/вставка члена без явного значения ломает уже настроенные карты (Грыз считал
@@ -368,10 +558,15 @@ namespace Game.Core.Ability
             OwnCreaturesOnBoard = 9,    // сколько ЖИВЫХ существ у владельца на поле СЕЙЧАС (включая источник, если он на поле)
             MatchSpellsPlayedSelf = 10, // сколько ЗАКЛИНАНИЙ разыграно владельцем в матче (Моментум)
             SelfResolves = 11,          // порядковый номер ТЕКУЩЕГО применения этой способности: 1,2,3… (Нечищенный источник). НЕ для цепочек (AbilityChain)
+            ChainDiscardedCost = 12,    // стоимость карты, СБРОШЕННОЙ прошлой стадией цепочки (Утилизация: урон = ей). Читает ChainContext.LastDiscardedCost
         }
 
         public CountSource Source = CountSource.Fixed;
         public int FixedCount = 1;
+
+        [Tooltip("Показывать число повторов в описании как *N* (карты-с-уровнями/динамический count). По умолчанию " +
+                 "ВЫКЛ — чтобы не добавлять лишний слот и не сдвигать *N* в описаниях уже настроенных карт.")]
+        public bool ShowCountInDescription = false;
 
         [Tooltip("Для MatchPlayedCard/MatchDrawnCard/MatchGenerated/MatchGeneratedSelf: ассет карты, чьи розыгрыши/взятия/генерации считаем.")]
         public ScriptableObject CountCard;
@@ -415,6 +610,11 @@ namespace Game.Core.Ability
 
         int ResolveCount(EcsWorld world, int cardEntity)
             => AbilityCount.Resolve(world, PlayerEntity, cardEntity, Source, FixedCount, CountCard, Archetype);
+
+        // IDynamicValue (opt-in): *N* = резолвнутое число повторов. Та же величина, что читает Apply (инвариант).
+        public int DynamicValueCount => ShowCountInDescription ? 1 : 0;
+        public int GetDynamicValue(int index, EcsWorld world, int cardEntity, int playerEntity)
+            => AbilityCount.Resolve(world, playerEntity, cardEntity, Source, FixedCount, CountCard, Archetype);
     }
 
     // === helper === резолв «сколько» для RepeatEffect И count-driven эффектов (SummonTokensByCount).
@@ -427,6 +627,7 @@ namespace Game.Core.Ability
         {
             if (source == RepeatEffect.CountSource.Fixed) return fixedCount;
             if (source == RepeatEffect.CountSource.ChainKilled) return ChainContext.CurrentKilled;
+            if (source == RepeatEffect.CountSource.ChainDiscardedCost) return ChainContext.LastDiscardedCost;
 
             // SelfResolves — номер текущего применения способности (скрэтч ставит RunResolveAbilityQueueSystem
             // ДО эффектов → в обычном резолве всегда ≥1, первое срабатывание = 1; на пассиве резолв идёт тем же

@@ -24,6 +24,11 @@ namespace AwesomeUI.Feature
         public static string Empty       => T("ui.meta.empty", "Пока пусто");
         public static string Confirm     => T("ui.dialog.confirm", "Подтвердить");
         public static string Cancel      => T("ui.dialog.cancel", "Отмена");
+
+        // Реконнект (возврат в незавершённый бой после перезапуска приложения) — тосты в меню.
+        public static string ReconnectResume  => T("ui.reconnect.resume",  "Кажется, вы пытались сбежать из прошлого боя. Возвращаем вас обратно…");
+        public static string ReconnectWaiting => T("ui.reconnect.waiting", "Ваше место в бою ещё занято вами же. Ждём, пока сервер это заметит…");
+        public static string ReconnectFailed  => T("ui.reconnect.failed",  "Побег удался: тот бой закончился без вас.");
         public static string Max         => T("ui.dialog.max", "Максимум");   // кнопка в блоке количества
         public static string BoosterTap    => T("ui.booster.tap", "Нажмите, чтобы открыть");
         /// <summary>Заголовок окна мульти-открытия: «Открыть ×3».</summary>

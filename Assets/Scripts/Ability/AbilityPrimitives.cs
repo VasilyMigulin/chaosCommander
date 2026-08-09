@@ -134,21 +134,35 @@ namespace Game.Core.Ability
 
     // === class (OOP) === УНИВЕРСАЛЬНЫЙ множитель частоты выбранного триггера владельца: триггер Trigger
     // срабатывает Times раз (2 = дважды/Временная петля, 3 = трижды и т.д.). Бампит CastMultiplierService
-    // для (владелец, ключ-триггера) на Times-1 → AbilityFire.Mark ставит PendingCasts → N резолвов.
-    // Триггер обязан слать свой ключ в Mark (см. TriggerKind/TriggerKeys). Для нескольких триггеров (напр.
-    // Временная петля = начало+конец хода) добавь несколько таких эффектов. Temporary=false → до конца матча;
-    // Temporary=true → откат после Turns ходов владельца (откат в конце хода: актив — EndTurn Step B, пассив —
-    // ReplayEndTurn → CastMultiplierService.TickOwnerTurnEnd, зеркально). СИНК: бамп идёт на обоих (резолв
-    // ре-ранится) → сервис одинаков; множитель влияет на число резолвов активного → N ActionAbilityData, пассив реплеит N.
+    // для (владелец, ключ-триггера) → AbilityFire.Mark ставит PendingCasts → N резолвов. Триггер обязан
+    // слать свой ключ в Mark (см. TriggerKind/TriggerKeys). Для нескольких триггеров (напр. Временная петля
+    // = начало+конец хода) добавь несколько таких эффектов.
+    //
+    // ТРИ ВЗАИМОИСКЛЮЧАЮЩИХ способа истощения источника (решение пользователя 2026-08-05):
+    //   Charges=0, Temporary=false → Permanent: до конца матча.
+    //   Charges=0, Temporary=true  → откат после Turns ходов владельца (конец хода: актив — EndTurn Step B,
+    //                                 пассив — ReplayEndTurn → CastMultiplierService.TickOwnerTurnEnd).
+    //   Charges>0                  → съедаемый (Волшебник Упс): живёт Charges СРАБАТЫВАНИЙ этого ключа
+    //                                 (списывается за проц — CastMultiplierService.ConsumeCharge из
+    //                                 AbilityFire.Mark, не по ходам); Temporary/Turns в этом случае игнорируются.
+    //
+    // АРИФМЕТИКА СТЕКА: несколько источников (в т.ч. с другой карты) на один ключ складывают СВОИ ЛИЦА —
+    // «дважды»(2) + «трижды»(3) = пять срабатываний, а не «1 + дельты» (см. CastMultiplierService).
+    // СИНК: бамп идёт на обоих (резолв ре-ранится) → сервис одинаков; множитель влияет на число резолвов
+    // активного → N ActionAbilityData, пассив реплеит N.
     [Serializable]
     public sealed class SetTriggerMultiplierEffect : EffectBase
     {
         public TriggerKind Trigger = TriggerKind.OnTurnEnd;
 
-        [UnityEngine.Tooltip("Какие карты множить: Any = все (Временная петля), Spell = только заклинания («спеллы срабатывают дважды»), Creature/Charm. Бампы Any и конкретного типа складываются.")]
+        [UnityEngine.Tooltip("Какие карты множить: Any = все (Временная петля), Spell = только заклинания («спеллы срабатывают дважды»), Creature/Charm. Источники на Any и на конкретный тип складываются.")]
         public MultiplierCardScope CardScope = MultiplierCardScope.Any;   // default 0 → старые ассеты (Петля) читаются как Any
 
-        public int Times = 2;        // сколько раз срабатывать (>=1; 1 = без изменений)
+        public int Times = 2;        // лицо множителя: сколько раз срабатывать (>=2; 1 = без изменений)
+
+        [UnityEngine.Tooltip("Съедаемый источник: сколько СРАБАТЫВАНИЙ переживёт (списывается за проц). >0 — Temporary/Turns ниже игнорируются (Волшебник Упс).")]
+        public int Charges = 0;
+
         public bool Temporary = false;   // true → откатится после Turns ходов владельца; false → до конца матча
         public int Turns = 1;        // для Temporary: сколько ходов владельца держится (1 = до конца этого хода)
 
@@ -164,8 +178,9 @@ namespace Game.Core.Ability
 
             string key = CastMultiplierService.ComposeKey(TriggerKeys.ScopeKey(CardScope), TriggerKeys.Of(Trigger));
 
-            if (Temporary) CastMultiplierService.AddTemporary(ownerId, key, Times - 1, Turns);
-            else           CastMultiplierService.Add(ownerId, key, Times - 1);
+            if (Charges > 0)       CastMultiplierService.AddCharges(ownerId, key, Times, Charges);
+            else if (Temporary)    CastMultiplierService.AddTemporary(ownerId, key, Times, Turns);
+            else                   CastMultiplierService.Add(ownerId, key, Times);
         }
     }
 

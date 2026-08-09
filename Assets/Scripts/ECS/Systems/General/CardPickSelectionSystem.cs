@@ -54,11 +54,14 @@ namespace Game.Core.Ecs.Systems
 
         readonly EcsFilterInject<Inc<HandTag,  OwnerComponent, CardModelComponent>> _handCardsFilter  = default;
         readonly EcsFilterInject<Inc<GraveTag, OwnerComponent, CardModelComponent>> _graveCardsFilter = default;
+        readonly EcsFilterInject<Inc<PendingCardPickComponent>> _pendingFilter = default;
 
         bool _subscribed;
 
         readonly Queue<CardPickChosenEvent>    _chosenQueue    = new Queue<CardPickChosenEvent>();
         readonly Queue<CardPickCancelledEvent> _cancelledQueue = new Queue<CardPickCancelledEvent>();
+        readonly Queue<int>                    _expiredQueue   = new Queue<int>();
+        readonly List<int>                     _buffer         = new List<int>();
 
         // Ключи карт пула, для которых уже отправлен CreateCardEvent (чтобы не дублировать)
         readonly HashSet<string> _poolCreationRequested = new HashSet<string>();
@@ -69,10 +72,13 @@ namespace Game.Core.Ecs.Systems
             _subscribed = true;
             GameEventBus.Subscribe<CardPickChosenEvent>(OnChosen);
             GameEventBus.Subscribe<CardPickCancelledEvent>(OnCancelled);
+            // Момент истечения задаёт CardPickBrokerSystem; способ наш — отмена (карта остаётся в руке).
+            GameEventBus.Subscribe<CardPickExpiredEvent>(OnExpired);
         }
 
         void OnChosen(CardPickChosenEvent e)    => _chosenQueue.Enqueue(e);
         void OnCancelled(CardPickCancelledEvent e) => _cancelledQueue.Enqueue(e);
+        void OnExpired(CardPickExpiredEvent e)  => _expiredQueue.Enqueue(e.PlayerId);
 
         // ── Run ────────────────────────────────────────────────────────────────
 
@@ -93,6 +99,9 @@ namespace Game.Core.Ecs.Systems
 
             while (_cancelledQueue.Count > 0)
                 ResolveCancelled(_cancelledQueue.Dequeue());
+
+            while (_expiredQueue.Count > 0)
+                Expire(_expiredQueue.Dequeue());
         }
 
         // ── Своя карта: формируем предложение для UI ─────────────────────────────
@@ -101,25 +110,39 @@ namespace Game.Core.Ecs.Systems
         {
             int playerEntity = _castPool.Value.Get(cardEntity).PlayerOwnerEntity;
 
-            if (_pendingPool.Value.Has(playerEntity)) return; // уже предложено
-
             if (!_activePool.Value.Has(playerEntity)) return; // только в свой ход
 
-            ref var req     = ref _reqCompPool.Value.Get(cardEntity);
-            int[]   offered = CollectOfferedCards(ref req, playerEntity);
+            if (!_pendingPool.Value.Has(playerEntity))
+            {
+                ref var req     = ref _reqCompPool.Value.Get(cardEntity);
+                int[]   offered = CollectOfferedCards(ref req, playerEntity);
 
-            ref var pending = ref _pendingPool.Value.Add(playerEntity);
-            pending.CastingCardEntity   = cardEntity;
-            pending.OfferedCardEntities = offered;
-            pending.OfferedCount        = offered.Length;
+                ref var fresh = ref _pendingPool.Value.Add(playerEntity);
+                fresh.CastingCardEntity   = cardEntity;
+                fresh.OfferedCardEntities = offered;
+                fresh.OfferedCount        = offered.Length;
+                fresh.RequestId           = 0;
+                fresh.Presented           = false;
+            }
 
+            ref var pending = ref _pendingPool.Value.Get(playerEntity);
+            if (pending.CastingCardEntity != cardEntity) return;   // окно занято другим кастом этого игрока
+            if (pending.Presented) return;
+
+            // Окно выбора одно на четыре канала — публикуем только со слотом от CardPickBrokerSystem.
+            // Талон вешаем на карту-кастера: её жизнь и есть жизнь запроса.
+            if (!PickTicket.Ready(_world.Value, cardEntity, ref pending.RequestId, playerEntity)) return;
+
+            pending.Presented = true;
             GameEventBus.Publish(new CardPickOfferedEvent
             {
-                CastingCardEntity   = cardEntity,
+                RequestId           = pending.RequestId,
+                CastingCardEntity   = cardEntity,   // диагностика; корреляция — только по RequestId
                 PlayerEntity        = playerEntity,
-                OfferedCardEntities = offered,
-                OfferedCardVisuals  = BuildVisuals(offered),
-                OfferedCount        = offered.Length,
+                OfferedCardEntities = pending.OfferedCardEntities,
+                OfferedCardVisuals  = BuildVisuals(pending.OfferedCardEntities),
+                OfferedCount        = pending.OfferedCount,
+                AllowCancel         = true,
             });
         }
 
@@ -158,14 +181,18 @@ namespace Game.Core.Ecs.Systems
                         int ownerId = _ownerPool.Value.Has(cardEntity)
                             ? _ownerPool.Value.Get(cardEntity).OwnerId : -1;
 
+                        // PlayerOwnerEntity ОБЯЗАТЕЛЕН: CreateCardSystem передаёт его в CardData.Init →
+                        // эффекты кэшируют PlayerEntity (TakeControl/GainMana/DrawCard). Без него зеркальная
+                        // pool-карта инициализировалась с playerEntity=0 → эффекты молча не применялись.
                         GameEventBus.Publish(new CreateCardEvent
                         {
-                            ExpansionId      = choice.ExpansionId,
-                            CardId           = choice.CardId,
-                            NetworkEntityKey = choice.ChosenEntityKey,
-                            OwnerId          = ownerId,
-                            IsEnemy          = true,
-                            InHand           = false,
+                            ExpansionId       = choice.ExpansionId,
+                            CardId            = choice.CardId,
+                            NetworkEntityKey  = choice.ChosenEntityKey,
+                            PlayerOwnerEntity = FindPlayerEntity(ownerId),
+                            OwnerId           = ownerId,
+                            IsEnemy           = true,
+                            InHand            = false,
                         });
                         _poolCreationRequested.Add(choice.ChosenEntityKey);
                     }
@@ -189,9 +216,12 @@ namespace Game.Core.Ecs.Systems
 
         void ResolveChosen(in CardPickChosenEvent e)
         {
-            int cardEntity = e.CastingCardEntity;
+            if (e.RequestId == 0) return;
+            int playerEntity = FindPendingByRequest(e.RequestId);
+            if (playerEntity < 0) return;
+
+            int cardEntity = _pendingPool.Value.Get(playerEntity).CastingCardEntity;
             if (!_castPool.Value.Has(cardEntity)) return;
-            int playerEntity = _castPool.Value.Get(cardEntity).PlayerOwnerEntity;
 
             int chosen  = e.ChosenCardEntity;
             int modelId = (chosen >= 0 && _modelPool.Value.Has(chosen))
@@ -243,14 +273,40 @@ namespace Game.Core.Ecs.Systems
 
         void ResolveCancelled(in CardPickCancelledEvent e)
         {
-            int cardEntity = e.CastingCardEntity;
-            if (!_castPool.Value.Has(cardEntity)) return;
-            int playerEntity = _castPool.Value.Get(cardEntity).PlayerOwnerEntity;
+            if (e.RequestId == 0) return;
+            int playerEntity = FindPendingByRequest(e.RequestId);
+            if (playerEntity < 0) return;
 
-            _castPool.Value.Del(cardEntity); // каст не происходит, карта остаётся в руке
+            CancelPick(_pendingPool.Value.Get(playerEntity).CastingCardEntity, playerEntity);
+        }
 
-            if (_pendingPool.Value.Has(playerEntity))
-                _pendingPool.Value.Del(playerEntity);
+        // Ход закончился — незавершённый пик перед кастом сворачиваем отменой (карта остаётся в руке).
+        // Раньше этот канал конец хода не обрабатывал вовсе, и pending жил бесконечно.
+        void Expire(int playerId)
+        {
+            _buffer.Clear();
+            foreach (var pe in _pendingFilter.Value)
+                if (_playerPool.Value.Has(pe) && _playerPool.Value.Get(pe).PlayerId == playerId) _buffer.Add(pe);
+
+            foreach (var pe in _buffer)
+            {
+                if (!_pendingPool.Value.Has(pe)) continue;
+                CancelPick(_pendingPool.Value.Get(pe).CastingCardEntity, pe);
+            }
+        }
+
+        void CancelPick(int cardEntity, int playerEntity)
+        {
+            if (_castPool.Value.Has(cardEntity)) _castPool.Value.Del(cardEntity); // каст не происходит, карта в руке
+            if (_pendingPool.Value.Has(playerEntity)) _pendingPool.Value.Del(playerEntity);
+            PickTicket.Release(_world.Value, cardEntity);
+        }
+
+        int FindPendingByRequest(int requestId)
+        {
+            foreach (var pe in _pendingFilter.Value)
+                if (_pendingPool.Value.Get(pe).RequestId == requestId) return pe;
+            return -1;
         }
 
         void Finalize(int cardEntity, int chosenCardEntity, int playerEntity)
@@ -268,6 +324,9 @@ namespace Game.Core.Ecs.Systems
 
             if (playerEntity >= 0 && _pendingPool.Value.Has(playerEntity))
                 _pendingPool.Value.Del(playerEntity);
+
+            // Карта-кастер переживает пик → талон окна снимаем явно, иначе слот остался бы занятым.
+            PickTicket.Release(_world.Value, cardEntity);
         }
 
         // ── Сборка пула карт (локальное предложение для UI) ──────────────────────
@@ -372,6 +431,14 @@ namespace Game.Core.Ecs.Systems
         {
             return (entity >= 0 && _netKeyPool.Value.Has(entity))
                 ? _netKeyPool.Value.Get(entity).NetworkEntityKey : null;
+        }
+
+        int FindPlayerEntity(int ownerId)
+        {
+            if (ownerId < 0) return -1;
+            foreach (var pe in _world.Value.Filter<PlayerComponent>().End())
+                if (_playerPool.Value.Get(pe).PlayerId == ownerId) return pe;
+            return -1;
         }
     }
 }

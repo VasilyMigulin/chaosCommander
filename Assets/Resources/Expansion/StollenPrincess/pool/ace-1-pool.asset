@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b6336606c687b0341a9a2922c8a8d6b2, type: 3}
+  m_Name: ace-1-pool
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardPool
+  ColorMask: 0
+  FilterType: 1
+  Type: 1
+  FilterCost: 1
+  CostType: 1
+  MinCost: 1
+  MaxCost: 1
+  FilterRarity: 0
+  Rarity: 0
+  Archetype:
+    rid: -2
+  IncludeTokens: 0
+  ExpansionId: 
+  Cards:
+  - {fileID: 11400000, guid: ced2f33b65c570245b4c5214f39e74ce, type: 2}
+  - {fileID: 11400000, guid: 2d3b27fcd15abd74cae8abd8faf1c3f3, type: 2}
+  - {fileID: 11400000, guid: 0e1f909ac58d97443aad2ecae8884d36, type: 2}
+  - {fileID: 11400000, guid: 26fdd5812f174704aa9db4c4947f2d43, type: 2}
+  - {fileID: 11400000, guid: 865cf19ad9fcd094391114217db37989, type: 2}
+  - {fileID: 11400000, guid: ee55122d99c06af4a9070f9b48fbe40e, type: 2}
+  - {fileID: 11400000, guid: f88759bf05a152b46a87aa03032fc414, type: 2}
+  - {fileID: 11400000, guid: 0fabd938be3d7994baa50db1c70c0445, type: 2}
+  - {fileID: 11400000, guid: 5a2cda55d51731b45951412d7558e0bc, type: 2}
+  - {fileID: 11400000, guid: 18f44d81066437c498d3a9b712784e04, type: 2}
+  - {fileID: 11400000, guid: d910f327db447ed4da35f14ec86424ce, type: 2}
+  - {fileID: 11400000, guid: 6166d77d99465d44e82fc28ca72f899e, type: 2}
+  - {fileID: 11400000, guid: 4eb4f6447089dd64fb9c57e9b7e1fe83, type: 2}
+  - {fileID: 11400000, guid: a3448cae4f2967b4fab8350bcf5c1740, type: 2}
+  - {fileID: 11400000, guid: fbe877a371c140e4c8e5b10d81cf1d83, type: 2}
+  - {fileID: 11400000, guid: aaa4b34d672110c42a54e5a9d66f769d, type: 2}
+  - {fileID: 11400000, guid: 16663bed76958af4fa6f06ea22141392, type: 2}
+  - {fileID: 11400000, guid: 47b002c5dd1d64b438c8436656959880, type: 2}
+  - {fileID: 11400000, guid: bf7083169ac73f54ca47ebb93be65b28, type: 2}
+  - {fileID: 11400000, guid: 131dc260119d99b478fb4f0c3b666f3f, type: 2}
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }

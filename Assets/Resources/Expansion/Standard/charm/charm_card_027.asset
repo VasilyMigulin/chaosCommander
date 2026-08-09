@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
   m_Name: charm_card_027
   m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
   CardData:
     rid: 2419360061758898747
   references:
@@ -33,12 +34,16 @@ MonoBehaviour:
         PlayCost: 1
         PlayCostAmount: 3
         IsToken: 0
+        ShowAsLinked: 0
         MulliganStartingHand: 0
         MulliganUnlimitedReplace: 0
         RuntimeAbilities:
         - rid: 2419360061758898767
         Archetypes: []
-        TurnsAlive: 4
+        TierSource: 0
+        Tiers: []
+        TurnsAlive: 3
+        TickMoment: 1
     - rid: 2419360061758898767
       type: {class: AbilityNonTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
@@ -47,6 +52,8 @@ MonoBehaviour:
         Rules: []
         Effects:
         - rid: 2419360061758898769
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
         Vfx:
           Kind: 0
           Prefab: {fileID: 0}

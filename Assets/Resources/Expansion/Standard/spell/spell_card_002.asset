@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
   m_Name: spell_card_002
   m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
   CardData:
     rid: 8072969059334357076
   references:
@@ -26,16 +27,20 @@ MonoBehaviour:
         - rid: 1051486475324227790
         Rules: []
         Effects: []
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
         Vfx:
           Kind: 0
           Prefab: {fileID: 0}
-          HitPrefab: {fileID: 0}
+          HitPrefab: {fileID: 185366, guid: 6dcff98dc6fbe6e4bbbdac7b196f0c5e, type: 3}
           ProjectileSpeed: 12
           MergeArea: 0
+          PlayCasterAnimation: 0
         Stages:
         - Mode: 2
           Selection: 0
           Count: 1
+          Zone: 0
           Area: 0
           Filters:
           - rid: 1051486475324227791
@@ -44,10 +49,11 @@ MonoBehaviour:
         - Mode: 0
           Selection: 0
           Count: 1
+          Zone: 0
           Area: 0
           Filters: []
           Effects:
-          - rid: 1051486475324227793
+          - rid: 1051486475324227794
     - rid: 1051486475324227790
       type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
@@ -67,8 +73,22 @@ MonoBehaviour:
         ConditionRoot:
           rid: -2
         Count: 1
+        ToDeck: 0
         PoolAsset: {fileID: 11400000, guid: d86dec95f6c50f540a7a6247696c72b0, type: 2}
         Pool: []
+    - rid: 1051486475324227794
+      type: {class: RepeatEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        Source: 1
+        FixedCount: 1
+        ShowCountInDescription: 0
+        CountCard: {fileID: 0}
+        Archetype:
+          rid: -2
+        Inner:
+          rid: 1051486475324227793
     - rid: 8072969059334357076
       type: {class: CardSpellModel, ns: Game.Core.Model.Card.Spell, asm: Game.Core.Model.Card.Spell}
       data:
@@ -89,9 +109,12 @@ MonoBehaviour:
         PlayCost: 1
         PlayCostAmount: 5
         IsToken: 0
-        MulliganStartingHand: 0
-        MulliganUnlimitedReplace: 0
+        ShowAsLinked: 0
+        HideAsLinked: 0
+        NonBattleAbilities: []
         RuntimeAbilities:
         - rid: 1051486475324227789
         Archetypes: []
+        TierSource: 0
+        Tiers: []
         RequiresTarget: 0

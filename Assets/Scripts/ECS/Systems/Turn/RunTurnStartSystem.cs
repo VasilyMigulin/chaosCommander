@@ -22,7 +22,11 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<PlayerComponent>  _playerPool = default;
         readonly EcsPoolInject<GoldComponent>    _goldPool   = default;
         readonly EcsPoolInject<ManaComponent>    _manaPool   = default;
+        readonly EcsPoolInject<ManaFloorComponent> _manaFloorPool = default;   // Вечная попойка: пол маны
         readonly EcsPoolInject<DrawCardEvent>    _drawPool   = default;
+        // Адовый червь: замена механики добора начала хода — вместо DrawCardEvent ставим маркер замены.
+        readonly EcsPoolInject<DrawReplacementComponent>    _drawReplPool = default;
+        readonly EcsPoolInject<DrawReplacementDueComponent> _drawDuePool  = default;
         readonly EcsPoolInject<LocalComponent>   _localPool  = default;
         readonly EcsFilterInject<Inc<StartTurnState, PlayerComponent>> _filter = default;
 
@@ -39,6 +43,11 @@ namespace Game.Core.Ecs.Systems
 
         // Наступающий кризис: игрок с GoldBlockComponent не получает доход золота в начале хода.
         readonly EcsPoolInject<GoldBlockComponent> _goldBlockPool = default;
+
+        // Лимиты активаций способностей за ход (Ability.MaxActivationsPerTurn) — сброс на старте хода владельца.
+        readonly EcsFilterInject<Inc<AbilityUseLimitComponent, AbilityOwnerComponent>> _abilityLimits = default;
+        readonly EcsPoolInject<AbilityUseLimitComponent> _abilityLimitPool = default;
+        readonly EcsPoolInject<AbilityOwnerComponent> _abilityOwnerPool = default;
 
         // Задачи: чары владельца на старте его хода («чары × ходов»).
         readonly EcsFilterInject<Inc<CharmTag, BoardTag, OwnerComponent>, Exc<DeadTag>> _charms = default;
@@ -62,6 +71,15 @@ namespace Game.Core.Ecs.Systems
                     if (_attacksUsedPool.Value.Has(ce)) _attacksUsedPool.Value.Get(ce).Value = 0;
                 }
 
+                // 1b) Лимиты активаций способностей (Ability.MaxActivationsPerTurn) — обнуляем у карт
+                //     ВЛАДЕЛЬЦА, чей ход начался. Компонент висит только на ability-сущностях с лимитом.
+                foreach (var ae in _abilityLimits.Value)
+                {
+                    if (!_abilityOwnerPool.Value.Has(ae)) continue;
+                    if (_abilityOwnerPool.Value.Get(ae).PlayerEntity != entity) continue;
+                    _abilityLimitPool.Value.Get(ae).UsedThisTurn = 0;
+                }
+
                 // 2) Золото — кроме игрока с маркером GoldBlockComponent (Наступающий кризис): доход не начисляем.
                 bool isLocal = _localPool.Value.Has(entity);
                 if (!_goldBlockPool.Value.Has(entity))
@@ -79,6 +97,13 @@ namespace Game.Core.Ecs.Systems
                 if (_manaPool.Value.Has(entity))
                 {
                     ref var mana = ref _manaPool.Value.Get(entity);
+                    // Пол маны (Вечная попойка): в начале хода поднимаем ману до Floor, если ниже. Выше — не трогаем.
+                    if (_manaFloorPool.Value.Has(entity))
+                    {
+                        int floor = _manaFloorPool.Value.Get(entity).Floor;
+                        if (mana.Max < floor) mana.Max = floor;
+                        if (mana.Current < floor) mana.Current = floor;
+                    }
                     GameEventBus.Publish(new ResourceChangedEvent
                     {
                         isLocalPlayer = isLocal,
@@ -101,8 +126,19 @@ namespace Game.Core.Ecs.Systems
                 }
 
                 // 3) Добор (turn-start → Sync=true: каскад идёт только у активного, пассив повторит по ActionDrawData)
-                if (!_drawPool.Value.Has(entity)) _drawPool.Value.Add(entity);
-                _drawPool.Value.Get(entity).Sync = true;
+                //    Адовый червь ЗАМЕНЯЕТ саму механику добора начала хода: вместо взятия верхней карты
+                //    игрок смотрит N верхних и выбирает. Решается ЗДЕСЬ, у источника — перехватывать
+                //    DrawCardEvent ниже по течению нельзя: DrawCardEffect суммирует Count в уже
+                //    существующее событие, и базовый добор от эффектных там уже не отличить.
+                if (_drawReplPool.Value.Has(entity))
+                {
+                    if (!_drawDuePool.Value.Has(entity)) _drawDuePool.Value.Add(entity);
+                }
+                else
+                {
+                    if (!_drawPool.Value.Has(entity)) _drawPool.Value.Add(entity);
+                    _drawPool.Value.Get(entity).Sync = true;
+                }
 
                 // 4) Сигнал начала хода (bus): сброс индекса действий у коллектора +
                 //    OnTurnStartTrigger способностей ловят TurnStartedEvent и поднимают каст.
@@ -113,6 +149,12 @@ namespace Game.Core.Ecs.Systems
                     if (_ownerPool.Value.Get(ce).OwnerId != playerId) continue;
                     if (!_turnStartEventPool.Value.Has(ce)) _turnStartEventPool.Value.Add(ce);
                 }
+
+                // Записки о причине (CausedByActivationComponent) принадлежат каскаду, а каскад не
+                // пересекает границу хода. Снимаем ДО TurnStartedEvent, иначе карта, порождённая эффектом
+                // в прошлом ходу и не разыгранная, утащила бы за собой древнюю волну и встала бы в очередь
+                // перед свежими активациями этого хода.
+                CauseStamp.ClearAll(systems.GetWorld());
 
                 GameEventBus.Publish(new TurnStartedEvent { ActivePlayerId = playerId, TurnNumber = start.TurnNumber });
 
@@ -130,11 +172,8 @@ namespace Game.Core.Ecs.Systems
             }
         }
 
-        static int GoldIncome(int personalTurnNumber)
-        {
-            if (personalTurnNumber <= 3) return 1;
-            if (personalTurnNumber <= 6) return 2;
-            return 3;
-        }
+        // Классический доход: +1 к максимуму золота КАЖДЫЙ ход (кап 10). Разгонная кривая (+2 с 4-го,
+        // +3 с 7-го хода) убрана решением юзера 2026-07-29 — «такого требования не было».
+        static int GoldIncome(int personalTurnNumber) => 1;
     }
 }

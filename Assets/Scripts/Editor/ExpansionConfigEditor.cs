@@ -68,6 +68,10 @@ namespace Game.Core.EditorTools
             AssetDatabase.SaveAssetIfDirty(config);
 
             Debug.Log($"[ExpansionConfig:{config.ExpansionId}] Собрано {found.Count} карт из «{folder}».");
+
+            // Карты экспансии зарегистрированы → сразу пересобрать все CardPool, чтобы новые/переименованные
+            // карты попали в подходящие по критериям пулы (иначе пришлось бы жать Rebuild на каждом пуле вручную).
+            CardPoolEditor.RebuildAllPools();
         }
     }
 }

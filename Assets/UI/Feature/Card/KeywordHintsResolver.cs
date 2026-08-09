@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Game.Core.Model.Card;
+using Game.Core.Model.Card.Creature;
 using Game.Core.Shared;
 
 namespace AwesomeUI.Feature
@@ -10,9 +11,10 @@ namespace AwesomeUI.Feature
     /// (card_text.csv): подсказка показывается ТОЛЬКО если у ключа есть описание — так новые механики
     /// подключаются добавлением пары строк локализации, без правок кода.
     ///
-    /// Источники ключей сейчас: архетипы карты (Archetypes → ICreatureTag.Key: "Imp"/"Worker"/…).
-    /// БУДУЩИЕ механики (Защитник/провокация, Двойной удар и т.п.): когда появятся их маркеры на
-    /// CardModel/способностях — добавить сюда ветку, которая мапит маркер в id ключа локализации.
+    /// Источники ключей: архетипы карты (Archetypes → ICreatureTag.Key: "Imp"/"Worker"/…) и свойства
+    /// существ (Properties → ICreatureProperty.Key: "Taunt"/"DoubleAttack"/…, кейворды ХС-типа —
+    /// см. AbilityProperties.cs). Тот же id (в нижнем регистре) используют CardTextLocalization.PropertyLabel
+    /// (короткий ярлык в самом описании) и ui.keyword.{id}.* (развёрнутая подсказка-reminder-text здесь).
     /// </summary>
     public static class KeywordHintsResolver
     {
@@ -35,7 +37,12 @@ namespace AwesomeUI.Feature
                     TryAdd(hints, tag.Key.ToLowerInvariant(), fallbackTitle: tag.Key);
                 }
 
-            // TODO (будущие механики): Защитник/Двойной удар и др. — по их маркерам, тем же TryAdd(id).
+            if (source is CardCreatureModel creature && creature.Properties != null)
+                foreach (var prop in creature.Properties)
+                {
+                    if (prop == null || string.IsNullOrEmpty(prop.Key)) continue;
+                    TryAdd(hints, prop.Key.ToLowerInvariant(), fallbackTitle: CardTextLocalization.PropertyLabel(prop.Key));
+                }
 
             return hints;
         }

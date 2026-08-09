@@ -1,9 +1,10 @@
 using Fusion;
 using Fusion.Sockets;
+using Game.Core.Network;
 using System;
 using System.Collections.Generic;
-using UnityEngine; 
-using System.Threading.Tasks; 
+using UnityEngine;
+using System.Threading.Tasks;
 
 namespace Game.Core.Photon
 {
@@ -41,6 +42,13 @@ namespace Game.Core.Photon
         private MatchmakingService _matchmakingService;
 
         public MatchmakingService Matchmaking => _matchmakingService;
+
+        /// <summary>
+        /// Имя комнаты текущей сессии. Нужно реконнекту: вернуться можно только прямым входом ПО ИМЕНИ —
+        /// матчмейкинг ищет по MMR и отбрасывает полные комнаты, а имя содержит MMR хоста и номер, то есть
+        /// невыводимо. Сохраняется в MatchSessionStore на старте боя.
+        /// </summary>
+        public string CurrentRoomName => sessionParams.RoomName;
         public int ConnectedPlayersCount => connectedPlayers.Count;
         public int TargetPlayersCount => sessionParams.TargetPlayerCount;
 
@@ -341,6 +349,10 @@ namespace Game.Core.Photon
 
             Debug.Log($"[PhotonInitializer] Player left: {player}, total: {connectedPlayers.Count}");
 
+            // Игровой слой: оппонент вышел из сессии (обрыв/закрыл приложение). NetConnectionWatchSystem
+            // покажет окно ожидания и закроет матч техпобедой по таймауту, если тот не вернётся.
+            NetHealth.NoteOpponentLeft();
+
             OnPlayerLeftEvent?.Invoke(player);
             OnPlayersCountChanged?.Invoke(connectedPlayers.Count, sessionParams.TargetPlayerCount);
         }
@@ -360,6 +372,10 @@ namespace Game.Core.Photon
         public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason)
         {
             Debug.Log($"[PhotonInitializer] Shutdown: {shutdownReason}");
+
+            // Аварийное завершение раннера (не штатный Ok при выходе в меню) = потеря соединения.
+            if (runner == Runner && shutdownReason != ShutdownReason.Ok)
+                NetHealth.NoteSelfDisconnected();
 
             if (runner == Runner)
                 connectedPlayers.Clear();
@@ -387,6 +403,11 @@ namespace Game.Core.Photon
         public void OnDisconnectedFromServer(NetworkRunner runner, NetDisconnectReason reason)
         {
             Debug.Log($"[PhotonInitializer] Disconnected: {reason}");
+
+            // Потеря СВОЕГО соединения (сон телефона/обрыв сети). NetConnectionWatchSystem покажет
+            // «соединение потеряно» и закроет матч поражением по таймауту (реконнект — отдельная фаза).
+            if (runner == Runner)
+                NetHealth.NoteSelfDisconnected();
         }
 
         public void OnConnectedToServer(NetworkRunner runner)

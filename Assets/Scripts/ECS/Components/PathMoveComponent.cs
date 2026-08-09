@@ -19,5 +19,11 @@ namespace Game.Core.Ecs.Components
 
         /// <summary>Цель атаки в конце пути: сущность существа ИЛИ игрока (аватар); -1 — только движение.</summary>
         public int AttackTargetEntity;
+
+        /// <summary>
+        /// Бесплатный маршрут (Позвать стражу и т.п.): ход/атака не тратят SpeedComponent.Remaining и не
+        /// ограничены AttacksUsedComponent (бонусная атака сверх лимита хода, а не вместо него).
+        /// </summary>
+        public bool Free;
     }
 }

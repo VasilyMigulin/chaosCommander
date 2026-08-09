@@ -42,3 +42,12 @@ MonoBehaviour:
     Icon: {fileID: 21300000, guid: db445bdb34cc34ec78fc713c3278d6db, type: 3}
   - Code: SC
     Icon: {fileID: 21300000, guid: 6bbe44310535f43768ed03213b8e520d, type: 3}
+  _altCostIcons:
+  - Kind: 0
+    Icon: {fileID: 21300000, guid: ef7ba2558afeea548ba74f22b424c4ce, type: 3}
+  - Kind: 1
+    Icon: {fileID: 21300000, guid: 45e10a9cac63ce442b5d4b40321ae4f4, type: 3}
+  - Kind: 2
+    Icon: {fileID: 21300000, guid: 0693de9801b781343984e171ff23f296, type: 3}
+  - Kind: 3
+    Icon: {fileID: 21300000, guid: 7aaf0f0c15169f24e93b5c9dd8fe0272, type: 3}

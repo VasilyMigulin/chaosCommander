@@ -42,6 +42,7 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<DeckTag>       _deckTagPool  = default;
         readonly EcsPoolInject<HandTag>       _handTagPool  = default;
         readonly EcsPoolInject<GraveTag>      _graveTagPool = default;
+        readonly EcsPoolInject<SideboardTag>  _sideboardTagPool = default;   // «отложенные» (Сказочник)
 
         // Терминал Dest+TakeOwnership (воровство/замешивание/сброс).
         readonly EcsPoolInject<OwnerComponent>  _ownerPool   = default;
@@ -53,41 +54,55 @@ namespace Game.Core.Ecs.Systems
         bool _subscribed;
         readonly Queue<CardPickChosenEvent>    _chosen    = new Queue<CardPickChosenEvent>();
         readonly Queue<CardPickCancelledEvent> _cancelled = new Queue<CardPickCancelledEvent>();
-        readonly Queue<int> _turnEndedOwners = new Queue<int>();   // PlayerId, чей ход закончился (форс-резолв discover)
+        readonly Queue<int> _forced  = new Queue<int>();   // reqEntity: раскопка без окна (авто-ролл)
+        readonly Queue<int> _expired = new Queue<int>();   // PlayerId, чей ход закончился (см. CardPickExpiredEvent)
         readonly HashSet<string> _poolCreationRequested = new HashSet<string>();
 
         public void Init(IEcsSystems systems)
         {
             GameEventBus.Subscribe<CardPickChosenEvent>(e => _chosen.Enqueue(e));
             GameEventBus.Subscribe<CardPickCancelledEvent>(e => _cancelled.Enqueue(e));
-            GameEventBus.Subscribe<TurnEndedEvent>(e => _turnEndedOwners.Enqueue(e.ActivePlayerId));
+            // Момент истечения задаёт CardPickBrokerSystem (одно правило на все каналы пика), способ —
+            // наш: раскопка форсит случайный вариант из предложенного, как Йогг-Сарон.
+            GameEventBus.Subscribe<CardPickExpiredEvent>(e => _expired.Enqueue(e.PlayerId));
             _subscribed = true;
         }
         public void Run(IEcsSystems systems)
         {
+            // РЕШАЕТ СИМУЛЯТОР ХОДА, а не владелец карты. Раньше маршрут шёл по OwnCardTag, и раскопка,
+            // сработавшая ВНЕ хода владельца (хрип Королевской пиньяты в ход оппонента разыграл её
+            // «Приглашение»), висела вечно у ОБОИХ: владельцу окно показать негде (не его ход), а
+            // симулятор ждал его выбора из стора, которого никто не пришлёт. EndTurnRequestSystem Шаг B
+            // ждёт пустого DiscoverRequestComponent → ход не передавался = СОФТ-ЛОК (лог 2026-08-03, PvE).
+            // Та же болезнь и то же лекарство, что у Selected-целей: не можешь спросить — ролль
+            // (RunAbilityTargetingSystem, «форс random вне хода владельца»).
+            bool simulator = TurnGate.IsLocalActive(_world.Value);
+
             // Копим в буфер: обработка может создавать/удалять сущности (CreateCardEvent / DelEntity).
             var pending = new List<int>();
             foreach (var req in _reqFilter.Value) pending.Add(req);
             foreach (var req in pending)
             {
                 if (!_reqPool.Value.Has(req)) continue;
-                int src = _reqPool.Value.Get(req).SourceCardEntity;
-                if (_ownPool.Value.Has(src)) TryOfferOwn(req);
-                else                         TryResolveRemote(req);
+                if (simulator) TryDecide(req);
+                else           TryResolveRemote(req);   // пассив ждёт решения симулятора (стор реплея)
             }
 
             while (_chosen.Count > 0)    ResolveChosen(_chosen.Dequeue());
+            while (_forced.Count > 0)    ForceResolveDiscover(_forced.Dequeue());
             while (_cancelled.Count > 0) ResolveCancelled(_cancelled.Dequeue());
 
             // Ход закончился, а раскопка ещё висит (окно открыто/не открыто, игрок не успел выбрать) — окно
             // НЕ должно пережить конец хода (баг: зависало навсегда). Форсим случайный выбор из предложенного,
             // как ForceRandomTargetingComponent у Йогг-Сарон-эффектов.
-            while (_turnEndedOwners.Count > 0) ForceResolveForEndedTurn(_turnEndedOwners.Dequeue());
+            while (_expired.Count > 0) ExpireForPlayer(_expired.Dequeue());
         }
 
         // Все СВОИ (не чужие-из-реплея) discover-запросы владельца, чей ход закончился, — форс-резолв
         // случайным выбором из уже предложенного (или предложить и сразу выбрать, если ещё не успели оффернуть).
-        void ForceResolveForEndedTurn(int playerId)
+        // Идём по ИГРОКУ, а не по выданным талонам: свернуть надо и те запросы, что окна ещё не получали
+        // (вторая раскопка одного каста ждёт своей очереди в HasEarlierPending).
+        void ExpireForPlayer(int playerId)
         {
             var pending = new List<int>();
             foreach (var req in _reqFilter.Value) pending.Add(req);
@@ -116,51 +131,87 @@ namespace Game.Core.Ecs.Systems
             }
             if (r.ShownTokens == null || r.ShownTokens.Length == 0) { _world.Value.DelEntity(reqEntity); return; }
 
-            _chosen.Enqueue(new CardPickChosenEvent
-            {
-                CastingCardEntity = r.SourceCardEntity,
-                ChosenCardEntity  = r.ShownTokens[UnityEngine.Random.Range(0, r.ShownTokens.Length)],
-            });
+            Apply(reqEntity, r.ShownTokens[UnityEngine.Random.Range(0, r.ShownTokens.Length)]);
         }
 
-        // ── Своя карта: показать окно (один раз, в свой ход) ─────────────────────
-        void TryOfferOwn(int reqEntity)
+        // Владелец в СВОЁМ ходу? (ActiveState или каскад начала/конца). Копия хелпера из
+        // RunAbilityTargetingSystem: TriggerUtil.IsOwnersTurn живёт в Game.Core.Ability, на которую
+        // сборка систем не ссылается. Проверяем сущность ВЛАДЕЛЬЦА, а не TurnGate.IsLocalActive: в PvE
+        // один клиент симулирует обоих, и тот гейт истинен и в ход ИИ.
+        bool IsOwnersTurn(int playerEntity)
+        {
+            if (playerEntity < 0) return false;
+            return _activePool.Value.Has(playerEntity)
+                || _world.Value.GetPool<StartTurnState>().Has(playerEntity)
+                || _world.Value.GetPool<EndTurnState>().Has(playerEntity);
+        }
+
+        // Есть ли БОЛЕЕ РАННИЙ (меньший Seq) живой запрос того же источника: раскопки одного каста идут
+        // СТРОГО по очереди («Приглашение»: два окна) — иначе корреляция выбора по SourceCardEntity
+        // неоднозначна, а single-slot CardPickReplayStore у пассива терял бы первый выбор.
+        bool HasEarlierPending(int reqEntity)
+        {
+            ref var r = ref _reqPool.Value.Get(reqEntity);
+            foreach (var other in _reqFilter.Value)
+            {
+                if (other == reqEntity || !_reqPool.Value.Has(other)) continue;
+                ref var o = ref _reqPool.Value.Get(other);
+                if (o.SourceCardEntity == r.SourceCardEntity && o.Seq < r.Seq) return true;
+            }
+            return false;
+        }
+
+        // ── Решение симулятора: окно владельцу либо ролл за него ─────────────────
+        void TryDecide(int reqEntity)
         {
             ref var r = ref _reqPool.Value.Get(reqEntity);
             if (r.Offered) return;
-            if (!_activePool.Value.Has(r.OwnerPlayerEntity)) return;   // только в свой ход
+            if (HasEarlierPending(reqEntity)) return;                  // ждём резолва предыдущей раскопки источника
+
+            // Окно возможно ТОЛЬКО у владельца и ТОЛЬКО в его ход. Во всех прочих случаях выбор делает
+            // симулятор случайным роллом (как Йогг-Сарон):
+            //   • ForceRandomTargeting — авто-розыгрыш by design не отдаёт выбор игроку;
+            //   • чужая карта — за владельца симулятор выбирать не может, а спросить его нечем;
+            //   • НЕ ход владельца (хрип в чужой ход) — игрок физически не может кликать не в свой ход.
+            // Окно не нужно → слот у брокера НЕ занимаем (иначе висел бы впустую).
+            bool autoRoll = _world.Value.GetPool<ForceRandomTargetingComponent>().Has(r.SourceCardEntity)
+                         || !_ownPool.Value.Has(r.SourceCardEntity)
+                         || !IsOwnersTurn(r.OwnerPlayerEntity);
+
+            // Ход владельца ИДЁТ, но ActiveState ещё нет (каскад начала хода) — окно откроем, когда он
+            // появится. Роллить здесь рано: момент выбора у игрока просто не наступил.
+            if (!autoRoll && !_activePool.Value.Has(r.OwnerPlayerEntity)) return;
+
+            // Окно выбора одно на всю игру и его делят четыре канала: публиковать оффер можно только
+            // получив слот у CardPickBrokerSystem, иначе соседний канал перебьёт наш показ в том же кадре
+            // (Развилка + Адовый червь). Первый вызов ставит талон, слот придёт следующим кадром.
+            if (!autoRoll && !PickTicket.Ready(_world.Value, reqEntity, ref r.RequestId, r.OwnerPlayerEntity))
+                return;
 
             int[] tokens; string[] exp; int[] ids; CardVisualData[] visuals;
             if (r.FromPool) BuildPoolOffer(r, out tokens, out exp, out ids, out visuals);
             else            BuildZoneOffer(r, out tokens, out exp, out ids, out visuals);
 
-            if (tokens.Length == 0) { _world.Value.DelEntity(reqEntity); return; }   // фуззл
+            if (tokens.Length == 0) { _world.Value.DelEntity(reqEntity); return; }   // фуззл (талон уйдёт с сущностью)
 
             r.Offered     = true;
             r.ShownTokens = tokens;
             r.ShownExp    = exp;
             r.ShownCardId = ids;
 
-            // Авто-розыгрыш (ForceRandomTargeting, как Йогг-Сарон): раскопка НЕ отдаёт выбор игроку —
-            // актив роллит случайный вариант сам (без окна), дальше штатный резолв ResolveChosen →
-            // выбор уезжает пассиву готовым каналом (CardPickResolvedNetEvent).
-            if (_world.Value.GetPool<ForceRandomTargetingComponent>().Has(r.SourceCardEntity))
-            {
-                _chosen.Enqueue(new CardPickChosenEvent
-                {
-                    CastingCardEntity = r.SourceCardEntity,
-                    ChosenCardEntity  = tokens[UnityEngine.Random.Range(0, tokens.Length)],
-                });
-                return;
-            }
+            // Без окна: роллим в общем порядке резолва (Run), а не здесь — иначе Apply удалял бы сущность
+            // прямо посреди обхода фильтра запросов.
+            if (autoRoll) { _forced.Enqueue(reqEntity); return; }
 
             GameEventBus.Publish(new CardPickOfferedEvent
             {
-                CastingCardEntity   = r.SourceCardEntity,   // корреляция (эхо в Chosen)
+                RequestId           = r.RequestId,          // корреляция (эхо в Chosen/Cancelled)
+                CastingCardEntity   = r.SourceCardEntity,
                 PlayerEntity        = r.OwnerPlayerEntity,
                 OfferedCardEntities = tokens,
                 OfferedCardVisuals  = visuals,
                 OfferedCount        = tokens.Length,
+                AllowCancel         = true,   // от раскопки можно отказаться (ResolveCancelled)
             });
         }
 
@@ -204,9 +255,12 @@ namespace Game.Core.Ecs.Systems
             }
         }
 
-        // ── Чужая карта (реплей): авто-резолв из стора ───────────────────────────
+        // ── Не мы решаем (реплей): авто-резолв из стора ──────────────────────────
+        // Сюда попадает и СВОЯ карта, если решает не этот клиент (наш хрип сработал в ход оппонента —
+        // выбор делает симулятор и присылает его обычным каналом пика).
         void TryResolveRemote(int reqEntity)
         {
+            if (HasEarlierPending(reqEntity)) return;   // очередь: выбор в сторе принадлежит БОЛЕЕ РАННЕЙ раскопке
             ref var r = ref _reqPool.Value.Get(reqEntity);
             string srcKey = NetKey(r.SourceCardEntity);
             if (!CardPickReplayStore.TryPeek(srcKey, out var choice)) return;
@@ -217,8 +271,13 @@ namespace Game.Core.Ecs.Systems
                 {
                     if (!_poolCreationRequested.Contains(choice.ChosenEntityKey))
                     {
+                        // isEnemy считаем от ВЛАДЕЛЬЦА, а не константой true: по этой ветке теперь идёт и
+                        // СВОЯ карта (решение принимал симулятор) — с жёстким true своя карта приехала бы
+                        // в руку помеченной вражеской.
+                        bool isEnemy = !(_playerPool.Value.Has(r.OwnerPlayerEntity)
+                                      && _playerPool.Value.Get(r.OwnerPlayerEntity).IsLocalPlayer);
                         GeneratedModScratch.Register(choice.ChosenEntityKey, r.SourceCardEntity, r.Modifiers);   // зеркально активу
-                        SpawnToHand(r.OwnerPlayerEntity, r.OwnerId, choice.ExpansionId, choice.CardId, choice.ChosenEntityKey, isEnemy: true);
+                        SpawnToHand(r.OwnerPlayerEntity, r.OwnerId, choice.ExpansionId, choice.CardId, choice.ChosenEntityKey, isEnemy, r.SourceCardEntity);
                         _poolCreationRequested.Add(choice.ChosenEntityKey);
                     }
                     return;   // ждём появления сущности
@@ -237,47 +296,66 @@ namespace Game.Core.Ecs.Systems
         }
 
         // ── Резолв выбора игрока (актив) ─────────────────────────────────────────
+
+        // Матч ТОЛЬКО по токену окна. Прежняя эвристика (источник + вхождение токена в предложение +
+        // наименьший Seq) была нужна лишь потому, что несколько запросов могли делить один
+        // CastingCardEntity, а шину слушают все каналы пика разом. С RequestId кандидат ровно один.
         void ResolveChosen(CardPickChosenEvent e)
         {
+            if (e.RequestId == 0) return;
             foreach (var reqEntity in _reqFilter.Value)
             {
-                ref var r = ref _reqPool.Value.Get(reqEntity);
-                if (r.SourceCardEntity != e.CastingCardEntity) continue;
-                if (!_ownPool.Value.Has(r.SourceCardEntity)) continue;   // чужие резолвятся из стора
-                if (!r.Offered) continue;
-
-                int chosen = e.ChosenCardEntity;
-                int idx = IndexOf(r.ShownTokens, e.ChosenCardEntity);
-                if (idx < 0) return;   // не из нашего предложения
-
-                if (r.FromPool)
-                {
-                    string exp = r.ShownExp[idx];
-                    int    cid = r.ShownCardId[idx];
-                    // ПУЛ: карта создаётся заново → генерируем новый короткий общий ключ (не геттер NetKey(entity)!).
-                    // Полное имя — локальный метод NetKey(int) перекрывает простое имя класса.
-                    string key = Game.Core.Network.NetKey.Next();
-                    GeneratedModScratch.Register(key, r.SourceCardEntity, r.Modifiers);   // мод-ры применит CreateCardSystem
-                    SpawnToHand(r.OwnerPlayerEntity, r.OwnerId, exp, cid, key, isEnemy: false);
-                    EmitResolved(r.SourceCardEntity, chosenEntity: -1, fromPool: true, key, exp, cid);
-                }
-                else
-                { 
-                    PlacePicked(chosen, r);
-                    EmitResolved(r.SourceCardEntity, chosen, fromPool: false, NetKey(chosen), null, -1);
-                }
-
-                _world.Value.DelEntity(reqEntity);
-                return;
+                if (_reqPool.Value.Get(reqEntity).RequestId != e.RequestId) continue;
+                Apply(reqEntity, e.ChosenCardEntity);
+                return;   // Apply удаляет сущность — обход фильтра дальше не продолжаем
             }
+        }
+
+        // Терминал раскопки: выбранный токен → карта в Dest + синк выбора пассиву. Общий для окна,
+        // авто-ролла (ForceRandomTargeting) и форс-резолва на конце хода.
+        void Apply(int reqEntity, int chosenToken)
+        {
+            if (!_reqPool.Value.Has(reqEntity)) return;
+
+            // Снимаем КОПИЮ до побочных эффектов: SpawnToHand/PlacePicked публикуют события и применяют
+            // модификаторы, а те могут породить новую раскопку — пул DiscoverRequestComponent переедет
+            // в памяти и удержанный ref «поплывёт». Структура из ссылок, копия дешёвая.
+            var r = _reqPool.Value.Get(reqEntity);
+
+            int idx = IndexOf(r.ShownTokens, chosenToken);
+            if (idx < 0) return;   // токен не из этого предложения
+
+            int source = r.SourceCardEntity;
+
+            if (r.FromPool)
+            {
+                string exp = r.ShownExp[idx];
+                int    cid = r.ShownCardId[idx];
+                // ПУЛ: карта создаётся заново → генерируем новый короткий общий ключ (не геттер NetKey(entity)!).
+                // Полное имя — локальный метод NetKey(int) перекрывает простое имя класса.
+                string key = Game.Core.Network.NetKey.Next();
+                // NB: цели у карты, разыгранной модификатором дискавера, выбираются СЛУЧАЙНО — это
+                // ЗАДУМАНО («Дополнительная возможность» форсит random, как Йогг-Сарон), а не баг.
+                GeneratedModScratch.Register(key, source, r.Modifiers);   // мод-ры применит CreateCardSystem
+                SpawnToHand(r.OwnerPlayerEntity, r.OwnerId, exp, cid, key, isEnemy: false, sourceCard: source);
+                EmitResolved(source, chosenEntity: -1, fromPool: true, key, exp, cid);
+            }
+            else
+            {
+                PlacePicked(chosenToken, r);
+                EmitResolved(source, chosenToken, fromPool: false, NetKey(chosenToken), null, -1);
+            }
+
+            _world.Value.DelEntity(reqEntity);   // талон окна уходит вместе с сущностью → слот свободен
         }
 
         void ResolveCancelled(CardPickCancelledEvent e)
         {
+            if (e.RequestId == 0) return;
             foreach (var reqEntity in _reqFilter.Value)
             {
-                if (_reqPool.Value.Get(reqEntity).SourceCardEntity != e.CastingCardEntity) continue;
-                _world.Value.DelEntity(reqEntity);   // discover отменён → ничего не получаем
+                if (_reqPool.Value.Get(reqEntity).RequestId != e.RequestId) continue;
+                _world.Value.DelEntity(reqEntity);   // отменена → ничего не получаем, слот освобождён
                 return;
             }
         }
@@ -297,6 +375,10 @@ namespace Game.Core.Ecs.Systems
             if (_deckTagPool.Value.Has(card))  _deckTagPool.Value.Del(card);
             if (_handTagPool.Value.Has(card))  _handTagPool.Value.Del(card);
             if (_graveTagPool.Value.Has(card)) _graveTagPool.Value.Del(card);
+            // Сайдборд (Сказочник): карта уходит из отложенных НАВСЕГДА — обратно её вернуть нечем,
+            // и это правильно, зона одноразовая. Без снятия тега карта осталась бы и в руке, и в
+            // сайдборде разом, и раскопка предложила бы её второй раз.
+            if (_sideboardTagPool.Value.Has(card)) _sideboardTagPool.Value.Del(card);
 
             // воровство: владелец → кастер (+ свопнуть клиент-относительные теги)
             int destOwnerId = r.TakeOwnership ? r.OwnerId : curOwner;
@@ -321,24 +403,41 @@ namespace Game.Core.Ecs.Systems
                     if (mod != null && mod.IsReady)
                         mod.Apply(_world.Value, r.SourceCardEntity, card);
 
-            switch (r.Dest)
-            {
-                case DiscoverDest.Hand:
-                    if (!_handTagPool.Value.Has(card)) _handTagPool.Value.Add(card);
-                    AddToHandList(destPlayer, card);
-                    GameEventBus.Publish(new CardDrawnEvent { CardEntity = card, PlayerId = destPlayer });
-                    break;
-                case DiscoverDest.Deck:
-                    if (!_deckTagPool.Value.Has(card)) _deckTagPool.Value.Add(card);
-                    AddToDeckList(destPlayer, card);
-                    break;
-                case DiscoverDest.Grave:
-                    if (!_graveTagPool.Value.Has(card)) _graveTagPool.Value.Add(card);
-                    break;
-            }
+            // Модификатор мог УВЕСТИ карту прямо здесь («выберите и разыграйте» — PlayTargetCardEffect,
+            // «Приглашение»): существо уже едет на борд (MoveCardToBoardEvent), спелл/чара ждёт авто-каста
+            // (AutoCastComponent). Регистрировать такую карту в Dest-зоне нельзя — фантом руки/колоды
+            // (тот же случай, что StillInDeclaredZone у CreateCardSystem).
+            bool leftByModifier = _world.Value.GetPool<MoveCardToBoardEvent>().Has(card)
+                               || _world.Value.GetPool<AutoCastComponent>().Has(card);
 
-            // если карта ушла ИЗ руки (сброс/замешивание/воровство в колоду) — обновить UI руки
-            if (wasInHand && r.Dest != DiscoverDest.Hand)
+            if (!leftByModifier)
+                switch (r.Dest)
+                {
+                    case DiscoverDest.Hand:
+                        // Лимит руки (единое правило, HandSpace): места нет → выбранная карта СГОРАЕТ.
+                        // Зональные теги с неё уже сняты выше, вернуть «как было» нельзя; выбор потрачен.
+                        if (!HandSpace.HasRoom(_world.Value, destPlayer))
+                        {
+                            HandSpace.Burn(_world.Value, card, "выбор дискавера в руку");
+                            break;
+                        }
+                        if (!_handTagPool.Value.Has(card)) _handTagPool.Value.Add(card);
+                        AddToHandList(destPlayer, card);
+                        // SourceEntity = кастер раскопки — UI летит визуально ОТ него, а не «из-за края экрана»
+                        // (см. HandUISystem.TryGet), как у MoveToHandEffect.
+                        GameEventBus.Publish(new CardDrawnEvent { CardEntity = card, PlayerId = destPlayer, SourceEntity = r.SourceCardEntity });
+                        break;
+                    case DiscoverDest.Deck:
+                        if (!_deckTagPool.Value.Has(card)) _deckTagPool.Value.Add(card);
+                        AddToDeckList(destPlayer, card);
+                        break;
+                    case DiscoverDest.Grave:
+                        if (!_graveTagPool.Value.Has(card)) _graveTagPool.Value.Add(card);
+                        break;
+                }
+
+            // если карта ушла ИЗ руки (сброс/замешивание/воровство/розыгрыш модификатором) — обновить UI руки
+            if (wasInHand && (leftByModifier || r.Dest != DiscoverDest.Hand))
                 GameEventBus.Publish(new CardRemovedFromHandUIEvent { CardEntity = card });
         }
 
@@ -387,7 +486,7 @@ namespace Game.Core.Ecs.Systems
         }
 
         // Создать НОВУЮ карту (пул) сразу в руке владельца с заданным ключом.
-        void SpawnToHand(int ownerPlayer, int ownerId, string exp, int cardId, string key, bool isEnemy)
+        void SpawnToHand(int ownerPlayer, int ownerId, string exp, int cardId, string key, bool isEnemy, int sourceCard)
         {
             if (string.IsNullOrEmpty(exp) || cardId < 0) return;
             GameEventBus.Publish(new CreateCardEvent
@@ -400,6 +499,7 @@ namespace Game.Core.Ecs.Systems
                 IsEnemy            = isEnemy,
                 InHand             = true,
                 RegisterInZoneList = true,
+                SourceEntity       = sourceCard,   // UI летит визуально ОТ кастера раскопки, а не «из-за края экрана»
             });
         }
 

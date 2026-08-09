@@ -1,0 +1,92 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: spell_card_016
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
+  CardData:
+    rid: 2425735989079048546
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 2425735989079048546
+      type: {class: CardSpellModel, ns: Game.Core.Model.Card.Spell, asm: Game.Core.Model.Card.Spell}
+      data:
+        Id: 67
+        Name: "\u041D\u0430\u043F\u0443\u0441\u0442\u0438\u0442\u044C \u0441\u0430\u0440\u0430\u043D\u0447\u0443"
+        Description: "\u041D\u0430\u043A\u043B\u0430\u0434\u044B\u0432\u0430\u0435\u0442
+          \u044D\u0444\u0444\u0435\u043A\u0442 \u043D\u0430 \u0432\u0441\u0435\u0445
+          \u0441\u0443\u0449\u0435\u0441\u0442\u0432: \u043F\u043E\u043B\u0443\u0447\u0438\u0442\u0435
+          1 \u0443\u0440\u043E\u043D\u0430 \u0432 \u043A\u043E\u043D\u0446\u0435
+          \u0445\u043E\u0434\u0430"
+        Rarity: 0
+        Element: 4
+        ArtImage: {fileID: 0}
+        ExpansionId: 
+        PlayCost: 1
+        PlayCostAmount: 1
+        IsToken: 0
+        ShowAsLinked: 0
+        NonBattleAbilities: []
+        RuntimeAbilities:
+        - rid: 2425735989079048547
+        Archetypes: []
+        TierSource: 0
+        Tiers: []
+        RequiresTarget: 0
+    - rid: 2425735989079048547
+      type: {class: AbilityToField, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 2425735989079048548
+        Rules: []
+        Effects:
+        - rid: 2425735989079048549
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 185366, guid: 2f98e91049e674d43b96757a89dceecc, type: 3}
+          ProjectileSpeed: 12
+          MergeArea: 0
+          PlayCasterAnimation: 1
+        Area: 0
+        Zone: 0
+        Filters:
+        - rid: 2425735989079048551
+        - rid: 2425735989079048552
+        IncludeCommanderInZones: 0
+    - rid: 2425735989079048548
+      type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425735989079048549
+      type: {class: AddBuffEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        Buff:
+          rid: 2425735989079048550
+        Tracked: 0
+        RevertOnSourceDeath: 1
+    - rid: 2425735989079048550
+      type: {class: BuffRecurringDamage, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Amount: 1
+    - rid: 2425735989079048551
+      type: {class: AllyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425735989079048552
+      type: {class: EnemyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 

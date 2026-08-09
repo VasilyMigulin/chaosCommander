@@ -38,6 +38,20 @@ namespace Game.Core.Backend
         public static void ResetBlackMarket(Action onDone = null, Action<string> onError = null)
             => FunctionService.Call<object>(BackendConfig.Fn.DevResetBlackMarket, null, () => onDone?.Invoke(), onError);
 
+        [Serializable] class MmrReq  { public int Mmr; }
+        [Serializable] class MmrResp { public bool Success; public string Reason; public int Mmr; }
+
+        /// <summary>Выставить СЕРВЕРНЫЙ MMR (statistics) — тест подбора/Elo. Локальный кэш обновляем из ответа.</summary>
+        public static void SetMmr(int mmr, Action<int> onDone = null, Action<string> onError = null)
+            => FunctionService.Call<MmrReq, MmrResp>(
+                BackendConfig.Fn.DevSetMmr, new MmrReq { Mmr = mmr },
+                r =>
+                {
+                    if (r == null || !r.Success) { onError?.Invoke(r?.Reason ?? "no response"); return; }
+                    Service.PlayerRating.Mmr = r.Mmr;
+                    onDone?.Invoke(r.Mmr);
+                }, onError);
+
         public static void GrantCard(string itemId, int count,
             Action<RewardResponse> onDone = null, Action<string> onError = null)
             => FunctionService.Call<ItemReq, RewardResponse>(

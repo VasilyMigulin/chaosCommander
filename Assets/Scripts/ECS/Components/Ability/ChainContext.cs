@@ -9,5 +9,9 @@ namespace Game.Core.Ecs.Components
     public static class ChainContext
     {
         public static int CurrentKilled;
+
+        /// <summary>Стоимость карты, СБРОШЕННОЙ на прошлой стадии цепочки (DiscardEffect кладёт сюда). Следующая
+        /// стадия читает через RepeatEffect{Source=ChainDiscardedCost} (Утилизация: урон = стоимости сброшенной).</summary>
+        public static int LastDiscardedCost;
     }
 }

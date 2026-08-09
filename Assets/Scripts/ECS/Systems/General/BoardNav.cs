@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Game.Core.Ecs.Components;
 using Leopotam.EcsLite;
@@ -82,8 +83,13 @@ namespace Game.Core.Ecs.Systems
         /// Стартовая клетка (занятая самим существом) в Cost с 0; занятые клетки непроходимы и в волну
         /// не попадают. Доска крошечная (20 клеток) — аллокации на клик несущественны.
         /// </summary>
+        /// <param name="isMeleeLocked">«Защитник»: клетка, СМЕЖНАЯ с вражеским Защитником, — ТУПИК волны:
+        /// достижима (можно встать и атаковать), но волна НЕ продолжается ДАЛЬШЕ неё — обойти/пройти мимо
+        /// Защитника нельзя. Если стартовая клетка сама такая — существо вообще никуда не уходит (только
+        /// атака, как и было задумано изначально: «нет других вариантов действия»). null → без ограничения.</param>
         public static Reachability ComputeReachable(EcsFilter creaturesFilter, EcsPool<BoardPositionComponent> posPool,
-                                                    int startRow, int startCol, int startOwner, int maxSteps)
+                                                    int startRow, int startCol, int startOwner, int maxSteps,
+                                                    Func<(int row, int col, int owner), bool> isMeleeLocked = null)
         {
             var r = new Reachability { Start = (startRow, startCol, startOwner) };
             r.Cost[r.Start] = 0;
@@ -97,6 +103,7 @@ namespace Game.Core.Ecs.Systems
                 var (cr, cc, co) = queue.Dequeue();
                 int cost = r.Cost[(cr, cc, co)];
                 if (cost >= maxSteps) continue;
+                if (isMeleeLocked != null && isMeleeLocked((cr, cc, co))) continue;   // тупик: дальше не идём
 
                 foreach (var next in GetNeighbours(cr, cc, co))
                 {

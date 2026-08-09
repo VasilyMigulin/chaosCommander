@@ -35,8 +35,8 @@ MonoBehaviour:
         PlayCost: 0
         PlayCostAmount: 3
         IsToken: 0
-        MulliganStartingHand: 4
-        MulliganUnlimitedReplace: 1
+        NonBattleAbilities:
+        - rid: 1051486497689043021
         RuntimeAbilities: []
         Archetypes: []
         MaxHealth: 3
@@ -45,3 +45,8 @@ MonoBehaviour:
         ViewPrefab: {fileID: 8026686172653069236, guid: f2855e883e665154890754f8e6090cf3, type: 3}
         TurnsAlive: 0
         IsCommander: 0
+    - rid: 1051486497689043021
+      type: {class: MulliganSetupAbility, ns: Game.Core.Shared.Interface, asm: Game.Core.Shared.Interface}
+      data:
+        StartingHand: 4
+        UnlimitedReplace: 1

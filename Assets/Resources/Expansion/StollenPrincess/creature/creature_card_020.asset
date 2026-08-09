@@ -1,0 +1,134 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: creature_card_020
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
+  CardData:
+    rid: 2425735989079048340
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 2425735989079048340
+      type: {class: CardCreatureModel, ns: Game.Core.Model.Card.Creature, asm: Game.Core.Model.Card.Creature}
+      data:
+        Id: 44
+        Name: "\u041A\u043E\u0440\u043E\u043B\u0435\u0432\u0441\u043A\u0438\u0439
+          \u0441\u0430\u0434\u043E\u0432\u043D\u0438\u043A"
+        Description: 
+        Rarity: 4
+        Element: 20
+        ArtImage: {fileID: 0}
+        ExpansionId: stolen_princess
+        PlayCost: 0
+        PlayCostAmount: 2
+        IsToken: 0
+        ShowAsLinked: 0
+        NonBattleAbilities: []
+        RuntimeAbilities: []
+        Archetypes: []
+        TierSource: 1
+        Tiers:
+        - rid: 2425735989079048381
+        - rid: 2425735989079048382
+        MaxHealth: 6
+        Attack: 1
+        Speed: 1
+        ViewPrefab: {fileID: 8026686172653069236, guid: 5798755a323c0b14691fd7a672890171, type: 3}
+        SummonVfx:
+          PrePrefab: {fileID: 0}
+          PreLeadSeconds: 0
+          ResolvePrefab: {fileID: 0}
+          ResolveAttach: 1
+          ResolveDelaySeconds: 0.1
+          ResolveFollow: 1
+          FinishPrefab: {fileID: 0}
+          FinishAnchor: 1
+          FinishAttach: 0
+        TurnsAlive: 0
+        IsCommander: 0
+    - rid: 2425735989079048381
+      type: {class: CardTier, ns: Game.Core.Model.Card, asm: Game.Core.Model.Card}
+      data:
+        Threshold: 0
+        Attack: 1
+        Health: 6
+        Speed: 1
+        PlayCost: 0
+        PlayCostAmount: 2
+        Abilities:
+        - rid: 2425735989079048419
+    - rid: 2425735989079048382
+      type: {class: CardTier, ns: Game.Core.Model.Card, asm: Game.Core.Model.Card}
+      data:
+        Threshold: 6
+        Attack: 1
+        Health: 6
+        Speed: 1
+        PlayCost: 0
+        PlayCostAmount: 2
+        Abilities:
+        - rid: 2425735989079048416
+    - rid: 2425735989079048416
+      type: {class: AbilityNonTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 2425735989079048417
+        Rules: []
+        Effects:
+        - rid: 2425735989079048418
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 0}
+          ProjectileSpeed: 12
+          MergeArea: 0
+          PlayCasterAnimation: 1
+    - rid: 2425735989079048417
+      type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425735989079048418
+      type: {class: SpawnCharmTokenEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        Source: {fileID: 11400000, guid: c18b8fcd9ba70884ea234b87020c3d52, type: 2}
+    - rid: 2425735989079048419
+      type: {class: AbilityNonTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 2425735989079048420
+        Rules: []
+        Effects:
+        - rid: 2425735989079048421
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 0}
+          ProjectileSpeed: 12
+          MergeArea: 0
+          PlayCasterAnimation: 1
+    - rid: 2425735989079048420
+      type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425735989079048421
+      type: {class: SpawnCharmTokenEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        Source: {fileID: 11400000, guid: 18be4d1b295a25943aec73c00c7f7fa9, type: 2}

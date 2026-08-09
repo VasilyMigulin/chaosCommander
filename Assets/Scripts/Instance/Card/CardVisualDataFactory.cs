@@ -46,12 +46,20 @@ namespace Game.Core.Instance.Card
             // Имя/описание прогоняем через форматтер: локализация + подстановка *N* (вне боя —
             // числа из текста) + авто-болд ключевых фраз + суффикс длительности для чар.
             string nameKey = CardTextLocalization.NameKey(model.ExpansionId, model.Id);
-            string descKey = CardTextLocalization.DescKey(model.ExpansionId, model.Id);
+            // Карта-с-уровнями: описание — ключ УРОВНЯ 0 (базового .desc у тир-карт в таблице нет — как в
+            // CardModel.Init); без этого библиотека/инспект показывали фоллбэк из ассета вместо локализации.
+            string descKey = (model.Tiers != null && model.Tiers.Count > 0)
+                ? CardTextLocalization.TierDescKey(model.ExpansionId, model.Id, 0)
+                : CardTextLocalization.DescKey(model.ExpansionId, model.Id);
+
+            // Свойства (Двойной удар/Защитник/...) — ярлык-кейворд ВСЕГДА в начале, вне авторского текста.
+            var creature = model as CardCreatureModel;
+            string propertyPrefix = CardDescriptionFormatter.BuildPropertyPrefix(PropertyKeys(creature));
 
             var data = new CardVisualData
             {
                 CardName    = CardDescriptionFormatter.FormatName(nameKey, model.Name),
-                Description = CardDescriptionFormatter.Format(descKey, model.Description, cardType, charmTurns, null),
+                Description = propertyPrefix + CardDescriptionFormatter.Format(descKey, model.Description, cardType, charmTurns, null),
                 Icon        = model.ArtImage,
                 Rarity      = model.Rarity,
                 Element     = model.Element,
@@ -61,7 +69,7 @@ namespace Game.Core.Instance.Card
                 IsCommander = isCommander,
             };
 
-            if (model is CardCreatureModel creature)
+            if (creature != null)
             {
                 data.IsCreature = true;
                 data.Attack     = creature.Attack;
@@ -70,6 +78,15 @@ namespace Game.Core.Instance.Card
             }
 
             return data;
+        }
+
+        static System.Collections.Generic.List<string> PropertyKeys(CardCreatureModel creature)
+        {
+            if (creature?.Properties == null || creature.Properties.Count == 0) return null;
+            var keys = new System.Collections.Generic.List<string>(creature.Properties.Count);
+            foreach (var p in creature.Properties)
+                if (p != null) keys.Add(p.Key);
+            return keys;
         }
     }
 }

@@ -60,6 +60,19 @@ namespace Game.Core.Progression
         static void OnMatchEnded(MatchEndedEvent _)
         {
             var pending = TaskProgress.TakeAll();
+
+            // UI (MatchRewardsWindow, секция «задачи за матч») получает дельты этого матча — публикуем
+            // ВСЕГДА (пустые массивы = «прогресса не было»), независимо от успеха серверного репорта.
+            int n = pending?.Count ?? 0;
+            var types = new string[n];
+            var amounts = new int[n];
+            if (pending != null)
+            {
+                int i = 0;
+                foreach (var kv in pending) { types[i] = kv.Key; amounts[i] = kv.Value; i++; }
+            }
+            GameEventBus.Publish(new MatchTasksFlushedUIEvent { Types = types, Amounts = amounts });
+
             if (pending == null) return;
             DailyService.ReportProgressBatch(pending);   // до входа — грейсфул no-op (гейтит FunctionService)
         }

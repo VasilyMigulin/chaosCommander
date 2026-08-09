@@ -14,3 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Core.Configs::Game.Core.Configs.CardConfig
   Expansions:
   - {fileID: 11400000, guid: 2f041f72876822a4a8b12ff3cd14e8cf, type: 2}
+  - {fileID: 11400000, guid: cb64711687832b6498e19d36467b6f59, type: 2}

@@ -37,6 +37,10 @@ namespace Game.Core.Ability
             string dbgKey = netPool.Has(target) ? netPool.Get(target).NetworkEntityKey : "noKey";
             UnityEngine.Debug.Log($"[Discard] сбрасываю target={target} key={dbgKey} owner={dbgOwner} name='{cardName}'");
 
+            // Стоимость сброшенной карты → контекст цепочки (Утилизация: следующая стадия наносит урон = ей).
+            // Детерминировано на обоих клиентах (discard ре-ранится с тем же target-ключом) → синк даром.
+            ChainContext.LastDiscardedCost = DiscardCostOf(world, target);
+
             handTag.Del(target);
             if (ownerPool.Has(target)) ZoneListUtil.RemoveFromHand(world, target, ownerPool.Get(target).OwnerId);
 
@@ -46,6 +50,19 @@ namespace Game.Core.Ability
             // Анимированный сброс (slot.PlayDiscardAnimation): событие было объявлено и подписано в CardLayout,
             // но НИКТО его не публиковал → сброс не отображался. Теперь публикуем отсюда.
             GameEventBus.Publish(new CardDiscardFromHandUIEvent { CardEntity = target, CardName = cardName, Icon = icon });
+
+            // Доменный сигнал сброса → OnDiscardTrigger сброшенной карты («Выгребной мусор»). ПОСЛЕ ухода в
+            // кладбище, как CreatureDiedEvent после DeadTag. Гейт актив/пассив — внутри триггера (AbilityFire.Mark).
+            GameEventBus.Publish(new CardDiscardedEvent { CardEntity = target });
+        }
+
+        // Эффективная стоимость карты (тот cost-компонент, что у неё есть).
+        static int DiscardCostOf(EcsWorld world, int e)
+        {
+            var g = world.GetPool<GoldCostComponent>();   if (g.Has(e)) return g.Get(e).Cost;
+            var m = world.GetPool<ManaCostComponent>();    if (m.Has(e)) return m.Get(e).Cost;
+            var h = world.GetPool<HealthCostComponent>();  if (h.Has(e)) return h.Get(e).Cost;
+            return 0;
         }
     }
 
@@ -66,10 +83,12 @@ namespace Game.Core.Ability
             if (!deckTag.Has(target)) { UnityEngine.Debug.LogWarning($"[Mill] target={target} НЕ в колоде → skip"); return; }   // только из колоды
             if (world.GetPool<CommanderTag>().Has(target)) { UnityEngine.Debug.Log($"[Mill] target={target} — командир, неуязвим → skip"); return; }
 
-            // Визуал ДО снятия тегов — для уведомления «карта уничтожена из колоды».
+            // Визуал ДО снятия тегов — для уведомления «карта уничтожена из колоды». Полный Visual нужен
+            // владельцу: его CardLayout показывает уничтоженную карту ЦЕЛИКОМ (дуга с зависанием).
             var viewPool = world.GetPool<CardViewDataComponent>();
             string cardName = viewPool.Has(target) ? viewPool.Get(target).CardName : "";
             UnityEngine.Sprite icon = viewPool.Has(target) ? viewPool.Get(target).ArtImage : null;
+            var visual = viewPool.Has(target) ? viewPool.Get(target).ToVisual() : default;
 
             var ownerPool = world.GetPool<OwnerComponent>();
             if (ownerPool.Has(target)) ZoneListUtil.RemoveFromDeck(world, target, ownerPool.Get(target).OwnerId);
@@ -79,7 +98,15 @@ namespace Game.Core.Ability
             if (!graveTag.Has(target)) graveTag.Add(target);
 
             UnityEngine.Debug.Log($"[Mill] уничтожаю из колоды target={target} name='{cardName}'");
-            GameEventBus.Publish(new CardMillFromDeckUIEvent { CardEntity = target, CardName = cardName, Icon = icon });
+            GameEventBus.Publish(new CardMillFromDeckUIEvent
+            {
+                CardEntity   = target,
+                CardName     = cardName,
+                Icon         = icon,
+                Visual       = visual,
+                // Клиент-относительный признак «своя карта» — ровно то, что нужно UI для развилки показа.
+                IsLocalOwner = world.GetPool<OwnCardTag>().Has(target),
+            });
         }
     }
 
@@ -106,6 +133,14 @@ namespace Game.Core.Ability
             if (!playerPool.Has(PlayerEntity)) return;
             int newOwnerId = playerPool.Get(PlayerEntity).PlayerId;
             if (oldOwnerId == newOwnerId) return;             // уже моя
+
+            // Лимит МОЕЙ руки (единое правило, HandSpace): места нет — кража не удаётся, карта остаётся
+            // в колоде оппонента НЕТРОНУТОЙ (ничего ещё не сняли — выходим до перекладки).
+            if (!HandSpace.HasRoom(world, PlayerEntity))
+            {
+                UnityEngine.Debug.Log($"[Steal] рука полна → кража отменена (target={target})");
+                return;
+            }
 
             ZoneListUtil.RemoveFromDeck(world, target, oldOwnerId);
             deckTag.Del(target);

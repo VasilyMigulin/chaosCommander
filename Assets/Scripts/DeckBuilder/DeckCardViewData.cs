@@ -18,6 +18,10 @@ namespace Game.Core.DeckBuilder
         public int          MaxCopies;     // максимально допустимо по редкости
         public bool         IsCommander;   // особая метка для слота командира
 
+        /// <summary>Карта объявляет свою зону «отложенных» (Сказочник) → на её вьюхе загорается кнопка
+        /// «редактировать», которая переводит список колоды в режим правки этой зоны.</summary>
+        public bool         HasSideboard;
+
         /// <summary>Полный визуальный DTO — строится фабрикой из Model.</summary>
         public CardVisualData Visual;
     }

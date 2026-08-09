@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: standard
   m_EditorClassIdentifier: Game.Core.Configs::Game.Core.Configs.ExpansionConfig
   ExpansionId: standard
+  StoryOnly: 0
   Cards:
   - {fileID: 11400000, guid: f782c13faf86c3047a41cf53cfd79dda, type: 2}
   - {fileID: 11400000, guid: b466477fc60219b4cbc50bdb233c40e9, type: 2}

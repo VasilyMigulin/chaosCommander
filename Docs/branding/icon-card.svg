@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>Горе-герои — карта с рожей</title>
+  <defs>
+    <clipPath id="frame"><rect width="512" height="512" rx="104"/></clipPath>
+  </defs>
+  <g clip-path="url(#frame)">
+    <rect width="512" height="512" fill="#141018"/>
+
+    <!-- лучи -->
+    <g fill="#F2A33C" opacity=".14">
+      <g transform="translate(256 256)">
+        <path d="M0 0 L 700 -84 L 700 84 Z"/>
+        <path d="M0 0 L 700 -84 L 700 84 Z" transform="rotate(45)"/>
+        <path d="M0 0 L 700 -84 L 700 84 Z" transform="rotate(90)"/>
+        <path d="M0 0 L 700 -84 L 700 84 Z" transform="rotate(135)"/>
+        <path d="M0 0 L 700 -84 L 700 84 Z" transform="rotate(180)"/>
+        <path d="M0 0 L 700 -84 L 700 84 Z" transform="rotate(225)"/>
+        <path d="M0 0 L 700 -84 L 700 84 Z" transform="rotate(270)"/>
+        <path d="M0 0 L 700 -84 L 700 84 Z" transform="rotate(315)"/>
+      </g>
+    </g>
+
+    <!-- карта, брошенная на стол криво -->
+    <g transform="rotate(-7 256 262)">
+      <rect x="132" y="96" width="248" height="332" rx="22" fill="#141018"/>
+      <rect x="142" y="106" width="228" height="312" rx="16" fill="#EDE6DA"/>
+
+      <!-- корона набекрень -->
+      <path d="M186 186 L206 146 L232 176 L256 132 L280 176 L306 146 L326 186 Z"
+            fill="#F2A33C" stroke="#141018" stroke-width="9" stroke-linejoin="round"/>
+
+      <!-- рожа -->
+      <circle cx="212" cy="256" r="24" fill="#141018"/>
+      <circle cx="300" cy="252" r="24" fill="#141018"/>
+      <circle cx="220" cy="249" r="8" fill="#EDE6DA"/>
+      <circle cx="308" cy="245" r="8" fill="#EDE6DA"/>
+      <path d="M194 316 Q256 382 318 310" fill="none" stroke="#141018"
+            stroke-width="15" stroke-linecap="round"/>
+      <rect x="242" y="330" width="20" height="26" rx="5" fill="#EDE6DA"
+            stroke="#141018" stroke-width="6"/>
+
+      <!-- масть в углу -->
+      <text x="168" y="150" font-family="Segoe UI, Arial, sans-serif" font-size="40"
+            fill="#C24B33">&#9824;</text>
+    </g>
+
+    <!-- наклейка -->
+    <g transform="rotate(-14 386 396)">
+      <circle cx="386" cy="396" r="52" fill="#C24B33" stroke="#141018" stroke-width="9"/>
+      <text x="386" y="413" font-family="Segoe UI, Arial, sans-serif" font-weight="900"
+            font-size="42" text-anchor="middle" fill="#EDE6DA">б/у</text>
+    </g>
+  </g>
+</svg>

@@ -42,9 +42,12 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<PathMoveComponent> _pathPool = default;
         readonly EcsFilterInject<Inc<PathMoveComponent>> _pathFilter = default;
         readonly EcsPoolInject<AttacksUsedComponent> _attacksUsedPool = default;
+        readonly EcsPoolInject<DoubleAttackTag> _doubleAttackPool = default;
+        readonly EcsPoolInject<TauntTag> _tauntPool = default;
+        readonly EcsPoolInject<StealthComponent> _stealthPool = default;
 
         // #4: сколько раз существо может атаковать за ход (сверх траты 1 скорости за атаку в AttackSystem).
-        // База 1; бонусы («Неистовство ветра» и т.п.) добавятся отдельным компонентом-модификатором позже.
+        // База 1; свойство «Двойной удар» (DoubleAttackTag) поднимает лимит до 2.
         const int MaxAttacksPerTurn = 1;
 
         readonly EcsFilterInject<Inc<AttackAnimPendingTag>> _animPendingFilter = default;
@@ -118,17 +121,24 @@ namespace Game.Core.Ecs.Systems
                     }
 
                     // Достижимость: BFS по пустым клеткам в бюджете скорости (общая для клика и подсветки).
+                    // «Защитник»: волна не идёт ДАЛЬШЕ клетки, смежной с вражеским Защитником — обойти/пройти
+                    // мимо нельзя, только дойти вплотную и остановиться (см. BoardNav.ComputeReachable).
                     var reach = BoardNav.ComputeReachable(_creaturesFilter.Value, _posPool.Value,
-                                                          selPos.Row, selPos.Col, selPos.OwnerId, selSpeed.Remaining);
+                                                          selPos.Row, selPos.Col, selPos.OwnerId, selSpeed.Remaining,
+                                                          cell => HasAdjacentEnemyTaunt(cell.row, cell.col, cell.owner, activePlayerId));
 
                     // Клик по аватар-клетке (-1,-1,side): «дойти до row 0 врага и ударить аватар» одним кликом.
                     // #5: бить аватар можно ТОЛЬКО с задней линии врага (row 0 его стороны). #4: 1 атака/ход.
+                    // «Защитник»: если ПРЯМО СЕЙЧАС (без движения) рядом стоит вражеский Защитник — атаковать
+                    // можно ТОЛЬКО его (др. цели, вкл. аватар, недоступны). Смотрим позицию ДО пути.
+                    bool tauntBlocks = HasAdjacentEnemyTaunt(selPos.Row, selPos.Col, selPos.OwnerId, activePlayerId);
+
                     if (row == -1 && col == -1)
                     {
                         int avatarPlayer = FindPlayerBySide(ownerId);
                         bool isEnemyAvatar = avatarPlayer >= 0
                             && _playerPool.Value.Get(avatarPlayer).PlayerId != activePlayerId;
-                        if (isEnemyAvatar && CanAttack(selectedEntity)
+                        if (isEnemyAvatar && !tauntBlocks && CanAttack(selectedEntity)
                             && TryAvatarApproachPath(reach, ownerId, selSpeed.Remaining, out var toRow0))
                         {
                             StartPath(selectedEntity, reach.PathTo(toRow0), avatarPlayer);
@@ -137,13 +147,16 @@ namespace Game.Core.Ecs.Systems
                         continue;
                     }
 
+                    // «Скрытый»: вражеское существо со Stealth не выбирается кликом как цель атаки —
+                    // FindCreatureAt(isEnemy:true) сам его пропускает.
                     int enemyEntity = FindCreatureAt(row, col, ownerId, activePlayerId, isEnemy: true);
                     if (enemyEntity >= 0)
                     {
+                        bool tauntBlocksThis = tauntBlocks && !_tauntPool.Value.Has(enemyEntity);
                         // «Подойти и ударить»: ближайшая достижимая клетка, СМЕЖНАЯ с целью, + 1 скорость
                         // на саму атаку. Уже смежен → путь пустой (чистая атака, как раньше).
                         // #4: лимит атак; AttacksUsed спишет RunPathMoveSystem в момент удара.
-                        if (CanAttack(selectedEntity)
+                        if (!tauntBlocksThis && CanAttack(selectedEntity)
                             && TryApproachPath(reach, row, col, ownerId, selSpeed.Remaining, out var standCell))
                         {
                             StartPath(selectedEntity, reach.PathTo(standCell), enemyEntity);
@@ -222,11 +235,12 @@ namespace Game.Core.Ecs.Systems
                 return -1;
             }
 
-            // #4: доступна ли ещё атака в этом ходу (лимит MaxAttacksPerTurn).
+            // #4: доступна ли ещё атака в этом ходу (лимит MaxAttacksPerTurn, +1 за «Двойной удар»).
             bool CanAttack(int e)
             {
                 int used = _attacksUsedPool.Value.Has(e) ? _attacksUsedPool.Value.Get(e).Value : 0;
-                return used < MaxAttacksPerTurn;
+                int cap = MaxAttacksPerTurn + (_doubleAttackPool.Value.Has(e) ? 1 : 0);
+                return used < cap;
             }
 
             // Ближайшая достижимая клетка, с которой бьётся цель (tr,tc,to): смежная с целью, стоимость
@@ -277,9 +291,11 @@ namespace Game.Core.Ecs.Systems
 
                 if (speed.Remaining <= 0) return;
 
-                // Вся достижимость одним BFS: пустые клетки в бюджете → Move.
+                // Вся достижимость одним BFS: пустые клетки в бюджете → Move. «Защитник» тем же тупиком,
+                // что и в клике (иначе подсветка обещала бы клетки, которые клик потом не даст занять).
                 var reach = BoardNav.ComputeReachable(_creaturesFilter.Value, _posPool.Value,
-                                                      pos.Row, pos.Col, pos.OwnerId, speed.Remaining);
+                                                      pos.Row, pos.Col, pos.OwnerId, speed.Remaining,
+                                                      cell => HasAdjacentEnemyTaunt(cell.row, cell.col, cell.owner, playerId));
                 foreach (var kv in reach.Cost)
                 {
                     if (kv.Key == reach.Start) continue;
@@ -290,18 +306,24 @@ namespace Game.Core.Ecs.Systems
                 // #4: лимит атак исчерпан — атак-подсветок нет (двигаться ещё можно).
                 if (!CanAttack(creatureEntity)) return;
 
-                // Враги в радиусе «подойти + ударить».
+                // «Защитник»: рядом (без движения) вражеский Защитник — подсвечиваем ТОЛЬКО его.
+                bool tauntBlocks = HasAdjacentEnemyTaunt(pos.Row, pos.Col, pos.OwnerId, playerId);
+
+                // Враги в радиусе «подойти + ударить» («Скрытые» не подсвечиваются — не выбираются кликом).
                 foreach (var ce in _creaturesFilter.Value)
                 {
                     ref var ep = ref _posPool.Value.Get(ce);
                     ref var eo = ref _ownerPool.Value.Get(ce);
                     if (eo.OwnerId == playerId) continue;
+                    if (_stealthPool.Value.Has(ce)) continue;
+                    if (tauntBlocks && !_tauntPool.Value.Has(ce)) continue;
 
                     if (TryApproachPath(reach, ep.Row, ep.Col, ep.OwnerId, speed.Remaining, out _))
                         _boardView.Value.GetCell(ep.Row, ep.Col, ep.OwnerId)?.SetHighlight(CellHighlight.Attack);
                 }
 
                 // #5: аватар врага — если достижима row 0 его стороны (или уже стоим там) с запасом на удар.
+                if (tauntBlocks) return;   // Защитник рядом — аватар недоступен как цель
                 foreach (var pe in _playersFilter.Value)
                 {
                     if (_playerPool.Value.Get(pe).PlayerId == playerId) continue;
@@ -319,10 +341,25 @@ namespace Game.Core.Ecs.Systems
                     if (p.Row != row || p.Col != col || p.OwnerId != ownerId) continue;
 
                     ref var o = ref _ownerPool.Value.Get(ce);
-                    if (isEnemy  && o.OwnerId != playerId) return ce;
+                    if (isEnemy && o.OwnerId != playerId)
+                    {
+                        if (_stealthPool.Value.Has(ce)) continue;   // «Скрытый» враг не выбирается кликом
+                        return ce;
+                    }
                     if (!isEnemy && o.OwnerId == playerId) return ce;
                 }
                 return -1;
+            }
+
+            // «Защитник»: есть ли вражеский Защитник на клетке, СМЕЖНОЙ с (row,col,owner) — без движения.
+            bool HasAdjacentEnemyTaunt(int row, int col, int owner, int playerId)
+            {
+                foreach (var (nr, nc, no) in BoardNav.GetNeighbours(row, col, owner))
+                {
+                    int ce = FindCreatureAt(nr, nc, no, playerId, isEnemy: true);
+                    if (ce >= 0 && _tauntPool.Value.Has(ce)) return true;
+                }
+                return false;
             }
         }
     }
