@@ -1,7 +1,10 @@
+using System;
 using Leopotam.EcsLite;
 using Leopotam.EcsLite.Di;
+using Game.Core.Configs;
 using Game.Core.Ecs.Components;
 using Game.Core.Events;
+using Game.Core.Mono;
 using Game.Core.Service;
 
 namespace Game.Core.Ecs.Systems
@@ -34,12 +37,17 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<LastDamageTakenComponent> _lastDmgPool = default;
 
         readonly EcsPoolInject<KilledByComponent> _killedByPool = default;   // атрибуция → мана в DieSystem
-        readonly EcsPoolInject<ShieldComponent> _shieldPool = default;       // свойство «Защищённый»
+        readonly EcsPoolInject<ShieldComponent> _shieldPool = default;       // свойство «Укреплённый»
         readonly EcsPoolInject<InvulnerableTag> _invulnerablePool = default; // свойство «Неуязвимый»
         readonly EcsPoolInject<VenomousComponent> _venomousPool = default;   // свойство «Ядовитый» (атакующий)
         readonly EcsPoolInject<PoisonComponent> _poisonPool = default;       // свойство «Отравленный» (цель)
         readonly EcsPoolInject<RetaliateTag> _retaliatePool = default;       // свойство «Ответочка»
+        readonly EcsPoolInject<VampirismTag> _vampirismPool = default;       // свойство «Вампиризм»
         readonly EcsPoolInject<AttackComponent> _atkPool = default;
+        readonly EcsFilterInject<Inc<PlayerComponent>> _playerFilter = default;   // для PlayerEntityById (Вампиризм)
+
+        readonly EcsCustomInject<BoardView> _boardView = default;
+        readonly EcsCustomInject<DefaultAbilityVfxConfig> _defaultVfx = default;   // ShieldedBlockVfxPrefab
 
         public void Run(IEcsSystems systems)
         {
@@ -94,6 +102,15 @@ namespace Game.Core.Ecs.Systems
             return -1;
         }
 
+        // Сущность игрока-аватара по PlayerId (обратная операция к PlayerIdOf) — нужна Вампиризму, чтобы
+        // лечить именно ВЛАДЕЛЬЦА, а не носителя свойства. Игроков всегда 2 — линейный проход дёшев.
+        int PlayerEntityById(int playerId)
+        {
+            foreach (var pe in _playerFilter.Value)
+                if (_playerPool.Value.Get(pe).PlayerId == playerId) return pe;
+            return -1;
+        }
+
         void ApplyDamage(int entity, int amount, int sourceEntity, int sourcePlayerId, int targetPlayerId)
         { 
             if (!_hpPool.Value.Has(entity)) return;
@@ -103,15 +120,29 @@ namespace Game.Core.Ecs.Systems
             // LethalHealthSystem (обнуление HP дебаффом статов) — тот минует TakeDamageEvent целиком.
             if (_invulnerablePool.Value.Has(entity)) return;
 
-            // «Защищённый»: поглощает удар ЦЕЛИКОМ (0 урона), тратит 1 заряд; на 0 зарядов свойство снимается.
-            // Единая точка для боя (AttackHitEvent) и урона от способностей (TakeDamageEvent) — оба сюда сходятся.
+            // «Укреплённый» (Shielded): поглощает удар ЦЕЛИКОМ (0 урона), тратит 1 заряд; на 0 зарядов
+            // свойство снимается. Единая точка для боя (AttackHitEvent) и урона от способностей
+            // (TakeDamageEvent) — оба сюда сходятся. Дефолтный VFX (ShieldedBlockVfxPrefab) — играет на
+            // КАЖДОМ поглощённом ударе; у свойства нет своей Vfx-спеки (в отличие от способностей),
+            // это единственный источник картинки блока.
             if (_shieldPool.Value.Has(entity))
             {
                 ref var shield = ref _shieldPool.Value.Get(entity);
                 if (shield.Charges > 0)
                 {
                     shield.Charges--;
-                    if (shield.Charges <= 0) _shieldPool.Value.Del(entity);
+                    if (shield.Charges <= 0)
+                    {
+                        _shieldPool.Value.Del(entity);
+                        // Реактивно гасим постоянный визуал (PropertyAuraVisualSystem) — заряды спалены в ноль,
+                        // а не через ShieldedProperty.Remove (Ecs.Systems не ссылается на Game.Core.Ability).
+                        GameEventBus.Publish(new CreaturePropertyAuraChangedEvent { CreatureEntity = entity, Key = "Shielded", Active = false });
+                    }
+
+                    var prefab = _defaultVfx.Value != null ? _defaultVfx.Value.ShieldedBlockVfxPrefab : null;
+                    if (prefab != null && EntityWorldPosUtil.TryGet(_world.Value, _boardView.Value, entity, out var at))
+                        GameEventBus.Publish(new HitVfxEvent { At = at, Prefab = prefab });
+
                     return;
                 }
             }
@@ -128,11 +159,42 @@ namespace Game.Core.Ecs.Systems
                 {
                     if (!_poisonPool.Value.Has(entity)) _poisonPool.Value.Add(entity);
                     _poisonPool.Value.Get(entity).Stacks += venomStacks;
+
+                    // Значок «Отравлен» над головой ЦЕЛИ (постоянный, пока Stacks > 0 — снимает только
+                    // DieSystem) + разовая вспышка попадания ядом. Active=true идемпотентен — можно слать
+                    // при КАЖДОМ наложении, PropertyAuraVisualSystem не пересоздаст, если уже показан.
+                    GameEventBus.Publish(new CreaturePropertyAuraChangedEvent { CreatureEntity = entity, Key = "Poisoned", Active = true });
+
+                    var poisonHitPrefab = _defaultVfx.Value != null ? _defaultVfx.Value.PoisonedHitVfxPrefab : null;
+                    if (poisonHitPrefab != null && EntityWorldPosUtil.TryGet(_world.Value, _boardView.Value, entity, out var poisonAt))
+                        GameEventBus.Publish(new HitVfxEvent { At = poisonAt, Prefab = poisonHitPrefab });
                 }
             }
 
             ref var hp = ref _hpPool.Value.Get(entity);
             hp.Current -= amount;
+
+            // «Вампиризм» (АТАКУЮЩИЙ, sourceEntity): урон РЕАЛЬНО прошёл (не заблокирован Щитом/Неуязвимостью
+            // выше) → лечит ВЛАДЕЛЬЦА носителя (игрока-аватар), а не сам носитель, на ту же величину.
+            // Владельца-сущность ищем по PlayerId (2 игрока — линейный проход по фильтру дёшев).
+            if (amount > 0 && sourceEntity >= 0 && _vampirismPool.Value.Has(sourceEntity) && sourcePlayerId >= 0)
+            {
+                int ownerPlayerEntity = PlayerEntityById(sourcePlayerId);
+                if (ownerPlayerEntity >= 0 && _hpPool.Value.Has(ownerPlayerEntity))
+                {
+                    ref var ownerHp = ref _hpPool.Value.Get(ownerPlayerEntity);
+                    ownerHp.Current = Math.Min(ownerHp.Current + amount, ownerHp.Max);
+
+                    // Разовые вспышки: «укус» на ЦЕЛИ урона + «пришедшее» здоровье на АВАТАРЕ владельца.
+                    var hitPrefab = _defaultVfx.Value != null ? _defaultVfx.Value.VampirismHitVfxPrefab : null;
+                    if (hitPrefab != null && EntityWorldPosUtil.TryGet(_world.Value, _boardView.Value, entity, out var hitAt))
+                        GameEventBus.Publish(new HitVfxEvent { At = hitAt, Prefab = hitPrefab });
+
+                    var healPrefab = _defaultVfx.Value != null ? _defaultVfx.Value.VampirismHealVfxPrefab : null;
+                    if (healPrefab != null && EntityWorldPosUtil.TryGet(_world.Value, _boardView.Value, ownerPlayerEntity, out var healAt))
+                        GameEventBus.Publish(new HitVfxEvent { At = healAt, Prefab = healPrefab });
+                }
+            }
 
             GameEventBus.Publish(new CreatureDamagedEvent { CreatureEntity = entity, Amount = amount });
 

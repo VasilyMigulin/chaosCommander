@@ -1,8 +1,12 @@
 fileFormatVersion: 2
 guid: 09acb4b92fa88475176c4a99581feaf3
+labels:
+- Штурмовая
+- Штурмовая_лестница
+- лестница
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000
-  userData:
-  assetBundleName:
-  assetBundleVariant:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

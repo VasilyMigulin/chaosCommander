@@ -3699,6 +3699,78 @@ MonoBehaviour:
     m_Key: card.stolen_princess.91.desc
     m_Metadata:
       m_Items: []
+  - m_Id: 16328184701116416
+    m_Key: ui.keyword.retaliate.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184755642368
+    m_Key: ui.keyword.retaliate.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184764030976
+    m_Key: card.stolen_princess.92.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184764030977
+    m_Key: card.stolen_princess.92.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184764030978
+    m_Key: card.stolen_princess.93.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184764030979
+    m_Key: card.stolen_princess.93.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184764030980
+    m_Key: card.stolen_princess.94.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184764030981
+    m_Key: card.stolen_princess.94.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184764030982
+    m_Key: card.stolen_princess.95.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184764030983
+    m_Key: card.stolen_princess.95.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184764030984
+    m_Key: card.stolen_princess.96.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184764030985
+    m_Key: card.stolen_princess.96.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184764030986
+    m_Key: card.stolen_princess.97.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184764030987
+    m_Key: card.stolen_princess.97.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184764030988
+    m_Key: card.stolen_princess.98.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184764030989
+    m_Key: card.stolen_princess.98.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184764030990
+    m_Key: card.stolen_princess.99.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184764030991
+    m_Key: card.stolen_princess.99.desc
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

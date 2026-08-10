@@ -1,0 +1,71 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: creature_card_038
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
+  CardData:
+    rid: 2425736124044673233
+  references:
+    version: 2
+    RefIds:
+    - rid: 2425736124044673233
+      type: {class: CardCreatureModel, ns: Game.Core.Model.Card.Creature, asm: Game.Core.Model.Card.Creature}
+      data:
+        Id: 106
+        Name: "\u0427\u0435\u043C\u043F\u0438\u043E\u043D \u043A\u043E\u0440\u043E\u043B\u0435\u0432\u0441\u043A\u043E\u0439
+          \u0432\u0435\u0447\u0435\u0440\u0438\u043D\u043A\u0438"
+        Description: 
+        Rarity: 3
+        Element: 21
+        ArtImage: {fileID: 0}
+        ExpansionId: stolen_princess
+        PlayCost: 0
+        PlayCostAmount: 5
+        IsToken: 0
+        ShowAsLinked: 0
+        HideAsLinked: 0
+        NonBattleAbilities: []
+        RuntimeAbilities: []
+        Archetypes: []
+        TierSource: 0
+        Tiers: []
+        MaxHealth: 3
+        Attack: 4
+        Speed: 4
+        Properties:
+        - rid: 2425736124044673236
+        - rid: 2425736124044673234
+        - rid: 2425736124044673235
+        ViewPrefab: {fileID: 1046069417137952589, guid: 0a4455957a243a449ba135fd36e9714d, type: 3}
+        SummonVfx:
+          PrePrefab: {fileID: 0}
+          PreLeadSeconds: 0
+          ResolvePrefab: {fileID: 0}
+          ResolveAttach: 1
+          ResolveDelaySeconds: 0.1
+          ResolveFollow: 1
+          FinishPrefab: {fileID: 0}
+          FinishAnchor: 1
+          FinishAttach: 0
+        TurnsAlive: 0
+        IsCommander: 1
+    - rid: 2425736124044673234
+      type: {class: DoubleAttackProperty, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736124044673235
+      type: {class: ShieldedProperty, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Charges: 3
+    - rid: 2425736124044673236
+      type: {class: TauntProperty, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 

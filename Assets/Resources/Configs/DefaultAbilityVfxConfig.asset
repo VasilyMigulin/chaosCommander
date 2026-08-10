@@ -15,3 +15,10 @@ MonoBehaviour:
   OnCastVfxPrefab: {fileID: 1212038522573524, guid: d773d301d86b3254180a6887af308eef, type: 3}
   OnDieVfxPrefab: {fileID: 153568, guid: cca79b260878071418290367024a6716, type: 3}
   DefaultSummonVfxPrefab: {fileID: 194666, guid: 268f984e175944440bf68fb3d316673d, type: 3}
+  ShieldedBlockVfxPrefab: {fileID: 173668, guid: 5d476fdbb7a864646aa6a217aa4e6166, type: 3}
+  ShieldedAuraVfxPrefab: {fileID: 1527444747669750, guid: d689eae7844400f4883b231a5cd72279, type: 3}
+  TauntAuraVfxPrefab: {fileID: 108178, guid: e053c479a3add9649af9d847a748547d, type: 3}
+  PoisonedHitVfxPrefab: {fileID: 160890, guid: 81a6215dbf618d84cae2c6907f947094, type: 3}
+  PoisonedStatusVfxPrefab: {fileID: 189512, guid: e2a6556875ac55a44b3e6e6a62cdb381, type: 3}
+  VampirismHitVfxPrefab: {fileID: 176804, guid: 4889039938a567444827eafcfbc2b267, type: 3}
+  VampirismHealVfxPrefab: {fileID: 4569046032541823318, guid: 448ffbcf71db27749b98c4ed68e15143, type: 3}

@@ -3,7 +3,7 @@ using Leopotam.EcsLite;
 namespace Game.Core.Shared.Interface
 {
     /// <summary>
-    /// «Свойство» существа (Двойной удар/Защищённый/...) — аналог кейвордов ХС, НЕ Ability. В отличие от
+    /// «Свойство» существа (Двойной удар/Укреплённый/...) — аналог кейвордов ХС, НЕ Ability. В отличие от
     /// ICreatureTag (статичная идентичность архетипа) свойство ОБРАТИМО: его можно снять (Remove), поэтому
     /// его же можно раздавать рантаймом через PropertyBuff (IBuffable) + AddBuffEffect — в т.ч. аурой
     /// (Tracked=true), с авто-откатом при смерти источника. Authored как [SerializeReference] в

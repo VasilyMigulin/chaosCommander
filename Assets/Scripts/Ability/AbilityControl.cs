@@ -365,7 +365,7 @@ namespace Game.Core.Ability
         {
             if (target < 0) return;
             if (!TurnGate.IsLocalActive(world)) return;   // форс-розыгрыш — активный; пассив реплеит снапшоты
-            bool forceRandom = ForceRandomTarget || AbilityResolveContext.TriggerKey != TriggerKeys.OnCast;
+            bool forceRandom = ForceRandomTarget || !AbilityResolveContext.IsSelfTrigger;
             PlayCardUtil.Play(world, target, free: true, forceRandomTarget: forceRandom);
         }
     }
@@ -613,7 +613,7 @@ namespace Game.Core.Ability
                 found.Add(e);
                 if (found.Count >= Count) break;
             }
-            bool forceRandom = ForceRandomTarget || AbilityResolveContext.TriggerKey != TriggerKeys.OnCast;
+            bool forceRandom = ForceRandomTarget || !AbilityResolveContext.IsSelfTrigger;
             foreach (var e in found) PlayCardUtil.Play(world, e, Free, forceRandom);
         }
     }

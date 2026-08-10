@@ -18,7 +18,7 @@ namespace Game.Core.Model.Card.Creature
         /// <summary>Actions per turn (move + attack budget).</summary>
         public int Speed;
 
-        /// <summary>Свойства существа (Двойной удар/Защищённый/...) — кейворды, НЕ Ability. Каждое само
+        /// <summary>Свойства существа (Двойной удар/Укреплённый/...) — кейворды, НЕ Ability. Каждое само
         /// вешает свой ECS-компонент на ините (ICreatureProperty.Apply). Пусто = без свойств. Раздать
         /// свойство РАНТАЙМОМ (спелл/аура) — PropertyBuff{Property} + AddBuffEffect, см. AbilityProperties.cs.</summary>
         [SerializeReference] public List<ICreatureProperty> Properties = new List<ICreatureProperty>();

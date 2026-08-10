@@ -39,6 +39,20 @@ namespace Game.Core.Ecs.Systems
             {
                 ref var owner = ref ownerPool.Get(entity);
 
+                // Виновник триггера — читаем И сдвигаем/чистим ОДИН РАЗ здесь, для ЛЮБОГО типа способности,
+                // не только TriggerSubject/TriggerSubjectAllowDead ниже. OnCreatureInvokedTrigger и подобные
+                // шлют subjectEntity в Mark БЕЗУСЛОВНО (см. AbilityFire.Mark) — а «Начальник смены»/«Селекционер»
+                // это AbilityToField с ДВУМЯ триггерами (OnCast + OnCreatureInvoked) на ОДНОЙ способности:
+                // Field-таргетинг компонент вообще не читает. Раньше это было безобидно (следующий Mark
+                // просто перезаписывал значение), но с очередью виновников (AbilityFire.Mark) непрочитанный
+                // компонент повисал НАВСЕГДА — RunResolveAbilityQueueSystem видел «есть виновник» и перевзводил
+                // способность до бесконечности (баг 2026-08-10: «передача хода застряла», Начальник смены
+                // резолвился без остановки с targets=0). Читаем/сдвигаем СРАЗУ для всех — используют его
+                // только ветки TriggerSubject/TriggerSubjectAllowDead, остальные типы просто чистят хвост.
+                var subjPool = world.GetPool<TriggerSubjectComponent>();
+                int triggerSubject = subjPool.Has(entity) ? subjPool.Get(entity).Entity : -1;
+                AdvanceOrClearSubject(subjPool, entity);
+
                 if (targetPool.Has(entity))
                 {
                     ref var tc = ref targetPool.Get(entity);
@@ -48,13 +62,9 @@ namespace Game.Core.Ecs.Systems
                     // (жёлтый) или уже умер, целей нет → способность фуззлится. Синк — target-ключом.
                     if (tc.Selection == TargetSelection.TriggerSubject)
                     {
-                        var subjPool = world.GetPool<TriggerSubjectComponent>();
-                        int subject = subjPool.Has(entity) ? subjPool.Get(entity).Entity : -1;
-                        if (subjPool.Has(entity)) subjPool.Del(entity);   // одноразовый (не протухает)
-
                         var valid = TargetGather.Gather(world, tc.Filters, owner.CardEntity, owner.PlayerEntity, null, tc.Zone, tc.IncludeCommanderInZones);
-                        Queue(world, queuedPool, entity, subject >= 0 && valid.Contains(subject)
-                            ? new[] { subject }
+                        Queue(world, queuedPool, entity, triggerSubject >= 0 && valid.Contains(triggerSubject)
+                            ? new[] { triggerSubject }
                             : Array.Empty<int>());
                         statePool.Del(entity);
                         continue;
@@ -68,12 +78,8 @@ namespace Game.Core.Ecs.Systems
                     // к субъекту (FiltersOk), просто без сверки со списком «живых на поле».
                     if (tc.Selection == TargetSelection.TriggerSubjectAllowDead)
                     {
-                        var subjPool = world.GetPool<TriggerSubjectComponent>();
-                        int subject = subjPool.Has(entity) ? subjPool.Get(entity).Entity : -1;
-                        if (subjPool.Has(entity)) subjPool.Del(entity);
-
-                        bool ok = subject >= 0 && TargetGather.FiltersOk(world, subject, owner.CardEntity, owner.PlayerEntity, tc.Filters);
-                        Queue(world, queuedPool, entity, ok ? new[] { subject } : Array.Empty<int>());
+                        bool ok = triggerSubject >= 0 && TargetGather.FiltersOk(world, triggerSubject, owner.CardEntity, owner.PlayerEntity, tc.Filters);
+                        Queue(world, queuedPool, entity, ok ? new[] { triggerSubject } : Array.Empty<int>());
                         statePool.Del(entity);
                         continue;
                     }
@@ -205,6 +211,25 @@ namespace Game.Core.Ecs.Systems
             return world.GetPool<ActiveState>().Has(playerEntity)
                 || world.GetPool<StartTurnState>().Has(playerEntity)
                 || world.GetPool<EndTurnState>().Has(playerEntity);
+        }
+
+        // Потребляет ТЕКУЩЕГО виновника (TriggerSubjectComponent.Entity уже прочитан вызывающим): если в
+        // очереди Pending есть следующий (ability сработала повторно за тот же кадр — пачка токенов) —
+        // сдвигает его в Entity и оставляет компонент живым (сигнал RunResolveAbilityQueueSystem перезапустить
+        // резолв). Иначе снимает компонент целиком — как раньше, «одноразовый, не протухает».
+        static void AdvanceOrClearSubject(EcsPool<TriggerSubjectComponent> subjPool, int entity)
+        {
+            if (!subjPool.Has(entity)) return;
+            ref var s = ref subjPool.Get(entity);
+            if (s.Pending != null && s.Pending.Count > 0)
+            {
+                s.Entity = s.Pending[0];
+                s.Pending.RemoveAt(0);
+            }
+            else
+            {
+                subjPool.Del(entity);
+            }
         }
 
         static void Queue(EcsWorld world, EcsPool<AbilityQueuedState> pool, int entity, int[] targets)

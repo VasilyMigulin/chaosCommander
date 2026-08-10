@@ -1,8 +1,12 @@
 fileFormatVersion: 2
 guid: e9e9868cb6b4c9a3127b338848176a02
+labels:
+- На
+- На_штурм!
+- штурм!
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000
-  userData:
-  assetBundleName:
-  assetBundleVariant:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

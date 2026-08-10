@@ -88,7 +88,7 @@ MonoBehaviour:
     - rid: 2419360554740613355
       type: {class: OnCreatureInvokedTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
-        AllowFromAnyZone: 1
+        Zone: 31
     - rid: 2419360554740613356
       type: {class: OpponentOwnedTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 

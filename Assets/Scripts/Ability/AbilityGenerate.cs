@@ -343,7 +343,7 @@ namespace Game.Core.Ability
             ref var m = ref pool.Get(target);
             // Как PlayTargetCardEffect: от чужого триггера (OnDiscard и т.п.) игрок физически не выбирает
             // цели копии — форсим random; от OnCast (сам кастует источник) выбор остаётся игроку.
-            bool forceRandom = ForceRandomTarget || AbilityResolveContext.TriggerKey != TriggerKeys.OnCast;
+            bool forceRandom = ForceRandomTarget || !AbilityResolveContext.IsSelfTrigger;
             GenerateCardEffect.Spawn(world, cardEntity, m.ExpansionId, m.ModelId, toHand: false, autoCast: true, forceRandomTarget: forceRandom);
         }
     }
@@ -547,7 +547,7 @@ namespace Game.Core.Ability
             }
             // Интерактивный выбор цели допустим только от OnCast (сам Фокус-покус разыгрывается игроком сейчас);
             // любой другой триггер — не в интерактивном контексте (может сработать и в чужой ход) → форс random.
-            bool forceRandom = ForceRandomTarget || AbilityResolveContext.TriggerKey != TriggerKeys.OnCast;
+            bool forceRandom = ForceRandomTarget || !AbilityResolveContext.IsSelfTrigger;
             GenerateCardEffect.Spawn(world, cardEntity, exp, cardId, toHand: true, autoCast: true, forceRandomTarget: forceRandom);
         }
     }
@@ -578,7 +578,7 @@ namespace Game.Core.Ability
             var modelPool = world.GetPool<CardModelComponent>();
             int selfModel = modelPool.Has(cardEntity) ? modelPool.Get(cardEntity).ModelId : -1;
 
-            bool forceRandom = ForceRandomTarget || AbilityResolveContext.TriggerKey != TriggerKeys.OnCast;
+            bool forceRandom = ForceRandomTarget || !AbilityResolveContext.IsSelfTrigger;
 
             // Снапшот: касты копий будут дописывать журнал — итерируем зафиксированный список.
             var snapshot = log.ToArray();

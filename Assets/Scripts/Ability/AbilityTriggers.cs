@@ -26,6 +26,19 @@ namespace Game.Core.Ability
         public static bool OnBoard(EcsWorld world, int cardEntity)
             => world.GetPool<BoardTag>().Has(cardEntity);
 
+        /// <summary>Карта-источник СЕЙЧАС в одной из разрешённых маской зон? Проверяет фактический тег
+        /// зоны (Board/Hand/Deck/Grave/Sideboard) против TriggerZoneMask — общий гейт для всех триггеров
+        /// с настраиваемым Zone-полем (замена точечных TriggerUtil.OnBoard/HandTag-проверок).</summary>
+        public static bool InAllowedZone(EcsWorld world, int cardEntity, TriggerZoneMask mask)
+        {
+            if ((mask & TriggerZoneMask.Board) != 0 && world.GetPool<BoardTag>().Has(cardEntity)) return true;
+            if ((mask & TriggerZoneMask.Hand) != 0 && world.GetPool<HandTag>().Has(cardEntity)) return true;
+            if ((mask & TriggerZoneMask.Deck) != 0 && world.GetPool<DeckTag>().Has(cardEntity)) return true;
+            if ((mask & TriggerZoneMask.Grave) != 0 && world.GetPool<GraveTag>().Has(cardEntity)) return true;
+            if ((mask & TriggerZoneMask.Sideboard) != 0 && world.GetPool<SideboardTag>().Has(cardEntity)) return true;
+            return false;
+        }
+
         /// <summary>PlayerId владельца карты-источника (через сущность игрока).</summary>
         public static int OwnerPlayerId(EcsWorld world, int playerEntity)
         {
@@ -52,6 +65,10 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class OnTurnStartTrigger : ITrigger
     {
+        [Tooltip("Из какой зоны (зон) источник должен быть, чтобы триггер сработал. По умолчанию — Board, " +
+                 "как было всегда. «Распорядитель королевской тусовки» ставит Hand («Пока в руке: в начале хода…»).")]
+        public TriggerZoneMask Zone = TriggerZoneMask.Board;
+
         EcsWorld _world;
         int _abilityEntity, _cardEntity, _playerEntity;
 
@@ -66,7 +83,7 @@ namespace Game.Core.Ability
         void OnTurnStart(TurnStartedEvent e)
         {
             if (e.ActivePlayerId != TriggerUtil.OwnerPlayerId(_world, _playerEntity)) return; // мой ход?
-            if (!TriggerUtil.OnBoard(_world, _cardEntity)) return;                            // на поле?
+            if (!TriggerUtil.InAllowedZone(_world, _cardEntity, Zone)) return;                // в разрешённой зоне?
             AbilityFire.Mark(_world, _abilityEntity, _cardEntity, _playerEntity, "OnTurnStart"); // множитель (Временная петля)
         }
 
@@ -109,6 +126,9 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class OnTurnEndTrigger : ITrigger
     {
+        [Tooltip("Из какой зоны (зон) источник должен быть, чтобы триггер сработал. По умолчанию — Board, как было всегда.")]
+        public TriggerZoneMask Zone = TriggerZoneMask.Board;
+
         EcsWorld _world;
         int _abilityEntity, _cardEntity, _playerEntity;
 
@@ -123,7 +143,7 @@ namespace Game.Core.Ability
         void OnTurnEnd(TurnEndedEvent e)
         {
             if (e.ActivePlayerId != TriggerUtil.OwnerPlayerId(_world, _playerEntity)) return;
-            if (!TriggerUtil.OnBoard(_world, _cardEntity)) return;
+            if (!TriggerUtil.InAllowedZone(_world, _cardEntity, Zone)) return;
             AbilityFire.Mark(_world, _abilityEntity, _cardEntity, _playerEntity, "OnTurnEnd"); // множитель (Временная петля)
         }
 
@@ -212,10 +232,12 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class OnCreatureInvokedTrigger : ITrigger
     {
-        [Tooltip("Срабатывать, даже когда ИСТОЧНИК НЕ на поле (в руке/колоде/кладбище) — «Медлительный " +
-                 "дворецкий»: сам выпрыгивает на выход дорогого существа оппонента. По умолчанию ВЫКЛ " +
-                 "(аура работает только с поля) — старые ассеты без поля читаются как false.")]
-        public bool AllowFromAnyZone = false;
+        [Tooltip("Из какой зоны (зон) источник должен быть, чтобы триггер сработал. По умолчанию — Board " +
+                 "(аура работает только с поля, как раньше). «Медлительный дворецкий» ставит Any: сам " +
+                 "выпрыгивает на выход дорогого существа оппонента даже из руки/колоды/кладбища. Старое " +
+                 "поле AllowFromAnyZone удалено — эквивалент true был ТОЛЬКО у Any, остальные комбинации " +
+                 "(конкретно Hand/Grave/Deck по отдельности) раньше были недостижимы.")]
+        public TriggerZoneMask Zone = TriggerZoneMask.Board;
 
         EcsWorld _world;
         int _abilityEntity, _cardEntity, _playerEntity;
@@ -229,7 +251,7 @@ namespace Game.Core.Ability
         void OnInvoked(CreatureInvokedEvent e)
         {
             if (e.CardEntity == _cardEntity) return;                           // сам источник — это OnCast
-            if (!AllowFromAnyZone && !TriggerUtil.OnBoard(_world, _cardEntity)) return;   // аура — только с поля
+            if (!TriggerUtil.InAllowedZone(_world, _cardEntity, Zone)) return;  // аура — только в разрешённой зоне
             if (!_world.GetPool<CreatureTag>().Has(e.CardEntity)) return;      // только существа
             // Виновник (вышедшее существо) → TriggerSubjectComponent (для TargetSelection.TriggerSubject).
             AbilityFire.Mark(_world, _abilityEntity, _cardEntity, _playerEntity, subjectEntity: e.CardEntity);
@@ -272,12 +294,14 @@ namespace Game.Core.Ability
     // публикуется только у АКТИВА, пассив реплеит резолв снапшотом). Розыгрыш САМОГО источника не считается.
     // Виновник (разыгранная карта) → TriggerSubjectComponent: ветвление по её свойствам делают ФИЛЬТРЫ
     // таргетинга (Color/WithoutColor/CardType…) — не прошли, способность фуззлится.
-    // AllowFromAnyZone=true → работать из любой зоны (по умолч. только из руки — «пока в руке»).
+    // Zone умолч. = Hand («пока в руке») — ЭТОТ триггер, в отличие от большинства, по смыслу карты живёт
+    // в руке, а не на столе; так было и до рефактора (AllowFromAnyZone=false ⇒ HandTag).
     [Serializable]
     public sealed class OnOwnerCardPlayedTrigger : ITrigger
     {
-        [Tooltip("Работать из ЛЮБОЙ зоны (колода/кладбище/поле), а не только из руки. По умолч. ВЫКЛ — «пока в руке».")]
-        public bool AllowFromAnyZone = false;
+        [Tooltip("Из какой зоны (зон) источник должен быть, чтобы триггер сработал. По умолчанию — Hand " +
+                 "(«пока в руке», как было всегда). Раньше — bool AllowFromAnyZone (true = любая зона).")]
+        public TriggerZoneMask Zone = TriggerZoneMask.Hand;
 
         EcsWorld _world;
         int _abilityEntity, _cardEntity, _playerEntity;
@@ -291,7 +315,7 @@ namespace Game.Core.Ability
         void OnCast(CardCastEvent e)
         {
             if (e.CardEntity == _cardEntity) return;                                   // сам источник — это OnCast
-            if (!AllowFromAnyZone && !_world.GetPool<HandTag>().Has(_cardEntity)) return;   // «пока в руке»
+            if (!TriggerUtil.InAllowedZone(_world, _cardEntity, Zone)) return;          // «пока в руке» (или что настроено)
             var owner = _world.GetPool<OwnerComponent>();
             if (!owner.Has(e.CardEntity) || !owner.Has(_cardEntity)) return;
             if (owner.Get(e.CardEntity).OwnerId != owner.Get(_cardEntity).OwnerId) return;  // разыграл МОЙ владелец
@@ -391,6 +415,9 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class OnCardDrawnTrigger : ITrigger
     {
+        [Tooltip("Из какой зоны (зон) источник должен быть, чтобы триггер сработал. По умолчанию — Board, как было всегда.")]
+        public TriggerZoneMask Zone = TriggerZoneMask.Board;
+
         EcsWorld _world;
         int _abilityEntity, _cardEntity, _playerEntity;
 
@@ -403,7 +430,7 @@ namespace Game.Core.Ability
         void OnDrawn(CardDrawnEvent e)
         {
             if (e.PlayerId != _playerEntity) return;                  // карту взял МОЙ владелец
-            if (!TriggerUtil.OnBoard(_world, _cardEntity)) return;    // источник на поле
+            if (!TriggerUtil.InAllowedZone(_world, _cardEntity, Zone)) return;   // источник в разрешённой зоне
             // Виновник (взятая карта) → TriggerSubjectComponent: TargetSelection.TriggerSubject достанет её
             // («Проходная на свалку»: сбрось ВЗЯТУЮ, ветвление существо/спелл — фильтрами CardType по subject).
             AbilityFire.Mark(_world, _abilityEntity, _cardEntity, _playerEntity, subjectEntity: e.CardEntity);
@@ -423,6 +450,9 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class OnOwnerDiscardTrigger : ITrigger
     {
+        [Tooltip("Из какой зоны (зон) источник должен быть, чтобы триггер сработал. По умолчанию — Board, как было всегда.")]
+        public TriggerZoneMask Zone = TriggerZoneMask.Board;
+
         EcsWorld _world;
         int _abilityEntity, _cardEntity, _playerEntity;
 
@@ -435,7 +465,7 @@ namespace Game.Core.Ability
         void OnDiscarded(CardDiscardedEvent e)
         {
             if (e.CardEntity == _cardEntity) return;                  // сброс самого источника — не про него
-            if (!TriggerUtil.OnBoard(_world, _cardEntity)) return;    // источник (чара) на поле
+            if (!TriggerUtil.InAllowedZone(_world, _cardEntity, Zone)) return;   // источник (чара) в разрешённой зоне
             var owner = _world.GetPool<OwnerComponent>();
             if (!owner.Has(e.CardEntity) || !owner.Has(_cardEntity)) return;
             if (owner.Get(e.CardEntity).OwnerId != owner.Get(_cardEntity).OwnerId) return;   // сбросил МОЙ владелец
@@ -462,6 +492,9 @@ namespace Game.Core.Ability
                            + "true — реагировать на урон в ЛЮБОЙ ход (в т.ч. ход оппонента).")]
         public bool AnyTurn = false;
 
+        [Tooltip("Из какой зоны (зон) источник должен быть, чтобы триггер сработал. По умолчанию — Board, как было всегда.")]
+        public TriggerZoneMask Zone = TriggerZoneMask.Board;
+
         EcsWorld _world;
         int _abilityEntity, _cardEntity, _playerEntity;
 
@@ -476,7 +509,7 @@ namespace Game.Core.Ability
         void OnDamaged(PlayerDamagedEvent e)
         {
             if (e.PlayerEntity != _playerEntity) return;                 // урон ИМЕННО владельцу
-            if (!TriggerUtil.OnBoard(_world, _cardEntity)) return;       // источник (чара) на поле
+            if (!TriggerUtil.InAllowedZone(_world, _cardEntity, Zone)) return;   // источник (чара) в разрешённой зоне
             if (!AnyTurn && !TriggerUtil.IsOwnersTurn(_world, _playerEntity)) return;   // умолч. — «на вашем ходу» (с каскадами начала/конца)
             AbilityFire.Mark(_world, _abilityEntity, _cardEntity, _playerEntity, isReaction: IsReaction);
         }
@@ -493,6 +526,9 @@ namespace Game.Core.Ability
     [Serializable]
     public sealed class OnAllyDiedTrigger : ITrigger
     {
+        [Tooltip("Из какой зоны (зон) источник должен быть, чтобы триггер сработал. По умолчанию — Board, как было всегда.")]
+        public TriggerZoneMask Zone = TriggerZoneMask.Board;
+
         EcsWorld _world;
         int _abilityEntity, _cardEntity, _playerEntity;
 
@@ -507,7 +543,7 @@ namespace Game.Core.Ability
         void OnDied(CreatureDiedEvent e)
         {
             if (e.CardEntity == _cardEntity) return;                       // не сам источник
-            if (!TriggerUtil.OnBoard(_world, _cardEntity)) return;
+            if (!TriggerUtil.InAllowedZone(_world, _cardEntity, Zone)) return;
             var owner = _world.GetPool<OwnerComponent>();
             if (!owner.Has(e.CardEntity) || !owner.Has(_cardEntity)) return;
             if (owner.Get(e.CardEntity).OwnerId != owner.Get(_cardEntity).OwnerId) return; // союзник?

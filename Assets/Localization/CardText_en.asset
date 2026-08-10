@@ -3755,11 +3755,11 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 15980024367669260
-    m_Localized: Poison
+    m_Localized: Toxic
     m_Metadata:
       m_Items: []
   - m_Id: 15980024367669261
-    m_Localized: Property. Takes damage equal to poison stacks each turn
+    m_Localized: Property. Any damage it deals also poisons the target
     m_Metadata:
       m_Items: []
   - m_Id: 15980024367669262
@@ -3809,6 +3809,77 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 16196933193293832
     m_Localized: Your creatures have Double Strike
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184701116416
+    m_Localized: Retaliate
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184755642368
+    m_Localized: Property. If it survives being attacked, it strikes the attacker
+      back
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184764030976
+    m_Localized: Storm the Gates!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184764030977
+    m_Localized: 'Until end of turn: your creatures get +3 Attack'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184764030978
+    m_Localized: Siege Ladder
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184764030979
+    m_Localized: 'Until end of turn: your creatures get +2 Speed'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184764030980
+    m_Localized: Call an Ambulance!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184764030981
+    m_Localized: Restore 4 health to all your characters
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184764030982
+    m_Localized: Field Hospital
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184764030983
+    m_Localized: 'At the start of turn: restores 1 health to all your characters.
+      Improves with each activation'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184764030984
+    m_Localized: Bro
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184764030986
+    m_Localized: Brotherly Aid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184764030987
+    m_Localized: Summons two 2/4/2 Bros with Guardian
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184764030988
+    m_Localized: Princess's Approval
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184764030989
+    m_Localized: Give your creature +5 Attack until end of turn
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184764030990
+    m_Localized: Sweeping Strike
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16328184764030991
+    m_Localized: "Apply to target creature: \xABOn attack: deals 1 damage to all
+      enemy creatures\xBB"
     m_Metadata:
       m_Items: []
   references:

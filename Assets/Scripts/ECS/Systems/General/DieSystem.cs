@@ -62,6 +62,8 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<StealthComponent>    _stealthPool      = default;
         readonly EcsPoolInject<VenomousComponent>   _venomousPool     = default;
         readonly EcsPoolInject<RetaliateTag>        _retaliatePool    = default;
+        readonly EcsPoolInject<VampirismTag>        _vampirismPool    = default;
+        readonly EcsPoolInject<CreatureTimerComponent> _creatureTimerPool = default;   // «умрёт через N ходов»
 
         // БАЗОВЫЙ ДОХОД МАНЫ: убил ВРАЖЕСКОЕ существо (ЛЮБЫМ способом — бой/урон-спелл через
         // TakeDamageSystem, прямое уничтожение через Destroy-эффекты; все пишут KilledByComponent) →
@@ -367,17 +369,38 @@ namespace Game.Core.Ecs.Systems
             if (_manaCostPool.Value.Has(entity))   { ref var c = ref _manaCostPool.Value.Get(entity);   c.ClearModifiers(); }
             if (_healthCostPool.Value.Has(entity)) { ref var c = ref _healthCostPool.Value.Get(entity); c.ClearModifiers(); }
 
-            // Свойства (Двойной удар/Защищённый) — сняты со смертью, как любой другой рантайм-модификатор.
+            // Свойства (Двойной удар/Укреплённый) — сняты со смертью, как любой другой рантайм-модификатор.
             // Печатные (CardCreatureModel.Properties) переживут это молча: возрождение (SummonSelfEffect и
             // т.п.) заново гонит Init → Properties.Apply навесит их обратно с чистого листа.
             if (_doubleAttackPool.Value.Has(entity)) _doubleAttackPool.Value.Del(entity);
-            if (_shieldPool.Value.Has(entity))       _shieldPool.Value.Del(entity);
+            if (_shieldPool.Value.Has(entity))
+            {
+                _shieldPool.Value.Del(entity);
+                GameEventBus.Publish(new CreaturePropertyAuraChangedEvent { CreatureEntity = entity, Key = "Shielded", Active = false });
+            }
             if (_invulnerablePool.Value.Has(entity)) _invulnerablePool.Value.Del(entity);
-            if (_tauntPool.Value.Has(entity))        _tauntPool.Value.Del(entity);
-            if (_poisonPool.Value.Has(entity))       _poisonPool.Value.Del(entity);
+            if (_tauntPool.Value.Has(entity))
+            {
+                _tauntPool.Value.Del(entity);
+                GameEventBus.Publish(new CreaturePropertyAuraChangedEvent { CreatureEntity = entity, Key = "Taunt", Active = false });
+            }
+            if (_poisonPool.Value.Has(entity))
+            {
+                _poisonPool.Value.Del(entity);
+                GameEventBus.Publish(new CreaturePropertyAuraChangedEvent { CreatureEntity = entity, Key = "Poisoned", Active = false });
+            }
             if (_stealthPool.Value.Has(entity))      _stealthPool.Value.Del(entity);
-            if (_venomousPool.Value.Has(entity))     _venomousPool.Value.Del(entity);
-            if (_retaliatePool.Value.Has(entity))    _retaliatePool.Value.Del(entity);
+            if (_venomousPool.Value.Has(entity))      _venomousPool.Value.Del(entity);
+            if (_retaliatePool.Value.Has(entity))     _retaliatePool.Value.Del(entity);
+            if (_vampirismPool.Value.Has(entity))     _vampirismPool.Value.Del(entity);
+
+            // «Умрёт через N ходов» (BuffDeathTimer/AddCreatureTimerEffectComponent) — снимаем со смертью,
+            // как любой другой рантайм-модификатор. Без этого протухший таймер (уже ≤0) переживает смерть
+            // молча (CreatureTimerTickSystem не видит его без BoardTag), а для КОМАНДИРА — единственной
+            // карты, что возвращается на стол ТОЙ ЖЕ сущностью после смерти (кулдаун в руке, не кладбище) —
+            // тут же добивает его на первом ходу владельца после повторного розыгрыша, и так бесконечно
+            // по кругу (баг 2026-08-11: «Лесная милфа» вечно умирала после первого же вражеского дебаффа).
+            if (_creatureTimerPool.Value.Has(entity)) _creatureTimerPool.Value.Del(entity);
         }
 
         private int FindPlayerEntity(int playerId)

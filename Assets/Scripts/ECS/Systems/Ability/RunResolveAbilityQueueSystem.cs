@@ -344,7 +344,9 @@ namespace Game.Core.Ecs.Systems
             // OnDie никогда не срабатывали, независимо от того, назначен ли DefaultAbilityVfxConfig).
             var triggerKeyPool = world.GetPool<AbilityTriggerKeyComponent>();
             string triggerKey = triggerKeyPool.Has(first) ? triggerKeyPool.Get(first).Key : null;
+            bool isSelfTrigger = triggerKeyPool.Has(first) && triggerKeyPool.Get(first).IsSelfTrigger;
             AbilityResolveContext.TriggerKey = triggerKey;
+            AbilityResolveContext.IsSelfTrigger = isSelfTrigger;
 
             // Счётчик применений ЭТОЙ способности (Нечищенный источник: 1,2,3… маны через
             // RepeatEffect{SelfResolves}). Инкремент ДО эффектов → текущее применение = 1 на первом
@@ -401,6 +403,20 @@ namespace Game.Core.Ecs.Systems
                 {
                     if (pcPool.Has(first)) pcPool.Del(first);
                     if (queuedPool.Has(first)) queuedPool.Del(first);
+
+                    // Очередь виновников (TriggerSubject): RunAbilityTargetingSystem (AdvanceOrClearSubject)
+                    // оставляет TriggerSubjectComponent живым, если для этой же ability-сущности в кадре
+                    // призыва уже стоит СЛЕДУЮЩИЙ виновник (пачка токенов — FillRowWithCardEffect{MaxCount>1},
+                    // RepeatEffect). Перезапускаем полный цикл (rules→targeting→resolve) для него — иначе
+                    // «Двойной удар» (и любая другая TriggerSubject-способность) доставался бы только первому
+                    // из пачки. AbilityCastEvent уже снят RunCheckAbilityRulesSystem — можно ставить заново.
+                    var subjPool = world.GetPool<TriggerSubjectComponent>();
+                    if (subjPool.Has(first) && !world.GetPool<AbilityCastEvent>().Has(first))
+                    {
+                        ref var c2 = ref world.GetPool<AbilityCastEvent>().Add(first);
+                        c2.CardEntity = caster;
+                        c2.OwnerPlayerEntity = playerEntity;
+                    }
                 }
             }
 
@@ -417,7 +433,7 @@ namespace Game.Core.Ecs.Systems
             {
                 if (hasCustomVisual && targets.Length > 0)
                     EmitVfx(world, vfxSpec, caster, targets);
-                EmitDefaultTriggerVfx(world, caster, triggerKey);
+                EmitDefaultTriggerVfx(world, caster, triggerKey, isSelfTrigger);
             }
 
             int[] summoned = SummonScratch.Summoned.Count > 0 ? SummonScratch.Summoned.ToArray() : Array.Empty<int>();
@@ -449,14 +465,23 @@ namespace Game.Core.Ecs.Systems
 
         // Универсальный индикатор триггера (как в HS: «черепок» на деатрэттле, «белая аура» на баттлкрае) —
         // вспышка НА КАСТЕРЕ для OnCast/OnDie из DefaultAbilityVfxConfig. Играет ВСЕГДА при этих триггерах,
-        // ДОПОЛНИТЕЛЬНО к любому кастомному VFX способности (не фолбэк — см. вызывающий код). triggerKey
-        // приходит параметром (не читаем AbilityResolveContext.TriggerKey здесь — к этому моменту ResolveAbility
-        // уже вызвал AbilityResolveContext.Clear() в своём finally, так что статик всегда null; вызывающий
-        // передаёт локально захваченную копию до Clear()). Строки совпадают с TriggerKeys.OnCast/OnDie в
-        // Game.Core.Ability, но тот класс internal и в другой сборке — сверяем литералом. Любой другой триггер
-        // (OnAttack/OnTurnStart/…) индикатор не получает — только эти два.
-        void EmitDefaultTriggerVfx(EcsWorld world, int caster, string triggerKey)
+        // ДОПОЛНИТЕЛЬНО к любому кастомному VFX способности (не фолбэк — см. вызывающий код). triggerKey/
+        // isSelfTrigger приходят параметрами (не читаем AbilityResolveContext здесь — к этому моменту
+        // ResolveAbility уже вызвал AbilityResolveContext.Clear() в своём finally; вызывающий передаёт
+        // локально захваченные копии до Clear()). Строки совпадают с TriggerKeys.OnCast/OnDie в
+        // Game.Core.Ability, но тот класс internal и в другой сборке — сверяем литералом.
+        //
+        // isSelfTrigger ОБЯЗАТЕЛЕН: Key="OnCast" сам по себе НЕ означает «это МОЙ каст» — реактивные триггеры
+        // (OnOwnerCardPlayedTrigger: Блаженный дьякон/Упс/Королевский палач — «когда вы разыгрываете ЛЮБУЮ
+        // карту») тоже шлют Key="OnCast" ради множителя CastMultiplierService, реагируя при этом на ЧУЖОЙ
+        // каст. Без этой проверки вспышка играла бы на реактивной карте КАЖДЫЙ РАЗ, когда игрок кастует
+        // что угодно другое — баг 2026-08-11: «эффект каста на аватаре, а на деле на другом существе».
+        // Любой другой триггер (OnAttack/OnTurnStart/…) индикатор не получает — только эти два, и только
+        // когда они реально про себя.
+        void EmitDefaultTriggerVfx(EcsWorld world, int caster, string triggerKey, bool isSelfTrigger)
         {
+            if (!isSelfTrigger) return;
+
             var cfg = _defaultVfx.Value;
             if (cfg == null) return;
 

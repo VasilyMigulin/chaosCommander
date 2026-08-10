@@ -169,6 +169,8 @@ namespace Game.Core.Ecs.Handlers
                 .Add(new GameOverCheckSystem())
                 // --- Отображение статов существ (HP/атака/скорость) в их CreatureView ---
                 .Add(new CreatureStatsViewSystem())
+                // --- Постоянные визуалы свойств (щит-бабл, аура Защитника, значок Отравлен над головой) ---
+                .Add(new PropertyAuraVisualSystem())
                 // --- Подсветка клеток «этим существом ещё можно походить» (слой 2 CellView; дифф набора).
                 //     ПОСЛЕ движения/атаки/смертей/баффов — иначе подсветка отставала бы на кадр. ---
                 .Add(new CellReadyHighlightSystem())

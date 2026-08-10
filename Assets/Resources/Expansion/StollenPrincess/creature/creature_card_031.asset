@@ -30,7 +30,7 @@ MonoBehaviour:
           \u043C\u0430\u0442\u0447\u0435 \u0434\u043B\u044F\u0442\u0441\u044F \u043D\u0430
           1 \u0434\u043E\u043B\u044C\u0448\u0435"
         Rarity: 3
-        Element: 21
+        Element: 23
         ArtImage: {fileID: 0}
         ExpansionId: stolen_princess
         PlayCost: 0
@@ -47,6 +47,7 @@ MonoBehaviour:
         MaxHealth: 6
         Attack: 4
         Speed: 2
+        Properties: []
         ViewPrefab: {fileID: 8026686172653069236, guid: 1ae33bfee18db5e41a0b42ae8fa2a501, type: 3}
         SummonVfx:
           PrePrefab: {fileID: 0}

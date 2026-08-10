@@ -21403,6 +21403,18 @@ PrefabInstance:
       propertyPath: _healthText
       value: 
       objectReference: {fileID: 39039525263054485}
+    - target: {fileID: 9118248777299985194, guid: c10daf0558e24a84892a2996f94af5b9, type: 3}
+      propertyPath: _vfxAttachPoints.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 9118248777299985194, guid: c10daf0558e24a84892a2996f94af5b9, type: 3}
+      propertyPath: _vfxAttachPoints.Array.data[0].Point
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 9118248777299985194, guid: c10daf0558e24a84892a2996f94af5b9, type: 3}
+      propertyPath: _vfxAttachPoints.Array.data[0].Transform
+      value: 
+      objectReference: {fileID: 1764707357853061794}
     m_RemovedComponents: []
     m_RemovedGameObjects:
     - {fileID: 2877190045570988485, guid: c10daf0558e24a84892a2996f94af5b9, type: 3}

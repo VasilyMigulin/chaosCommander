@@ -58,24 +58,28 @@ namespace Game.Core.Shared
         // Poisoned/«Ядовитый»: любой урон носителя навешивает статус «Отравлен» (PoisonComponent) на цель.
         // Одно свойство — ключ Poisoned исторический (класс PoisonedProperty), EN-ярлык нарочно "Toxic",
         // не "Poisoned" (put действия у самого носителя нет, страдает цель).
+        // Shielded/«Укреплённый»: RU-ярлык НАРОЧНО не «Защищённый» — звучало как перевод Divine Shield и
+        // вообще как «щит»; EN-ярлык той же логики ради — «Fortified», не «Shield».
         static readonly Dictionary<string, string> PropertyLabelsRu = new Dictionary<string, string>
         {
             ["DoubleAttack"]  = "Двойной удар",
-            ["Shielded"]      = "Защищённый",
+            ["Shielded"]      = "Укреплённый",
             ["Invulnerable"]  = "Неуязвимый",
             ["Taunt"]         = "Защитник",
             ["Poisoned"]      = "Ядовитый",
             ["Retaliate"]     = "Ответочка",
+            ["Vampirism"]     = "Вампиризм",
             ["Stealthed"]     = "Скрытый",
         };
         static readonly Dictionary<string, string> PropertyLabelsEn = new Dictionary<string, string>
         {
             ["DoubleAttack"]  = "Double Strike",
-            ["Shielded"]      = "Shield",
+            ["Shielded"]      = "Fortified",
             ["Invulnerable"]  = "Invulnerable",
             ["Taunt"]         = "Guardian",
             ["Poisoned"]      = "Toxic",
             ["Retaliate"]     = "Retaliate",
+            ["Vampirism"]     = "Vampirism",
             ["Stealthed"]     = "Stealth",
         };
 

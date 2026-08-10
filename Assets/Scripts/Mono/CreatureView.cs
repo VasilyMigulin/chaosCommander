@@ -69,14 +69,58 @@ namespace Game.Core.Mono
             return transform;
         }
 
+        // Постоянные визуалы статусов/свойств (щит, будущие ауры) — по ключу (обычно ICreatureProperty.Key),
+        // чтобы разные свойства не гасили инстансы друг друга.
+        readonly Dictionary<string, GameObject> _statusVfx = new();
+
+        /// <summary>Постоянный визуал свойства, привязанный к точке атача (щит-бабл и т.п.) — живёт, пока
+        /// active=true, парентится к точке (едет за существом). ИДЕМПОТЕНТЕН: как CreatureView.SetStats,
+        /// рассчитан на покадровый пуш из ECS-системы без ручного диффа — повторный вызов с тем же active
+        /// ничего не переинстанцирует. active=false (или prefab=null) снимает текущий инстанс, если был.</summary>
+        public void SetStatusVfx(string key, GameObject prefab, bool active,
+            Game.Core.Shared.Interface.CreatureAttachPoint point = Game.Core.Shared.Interface.CreatureAttachPoint.Body)
+        {
+            bool showing = _statusVfx.TryGetValue(key, out var existing) && existing != null;
+
+            if (active && prefab != null)
+            {
+                if (showing) return;   // уже показан — идемпотентно
+                var at = GetAttachPoint(point);
+                var go = SpawnVfxInstance(prefab, at.position, at, autoDestroy: false, compensateParentScale: true);
+                if (go != null) _statusVfx[key] = go;
+                return;
+            }
+
+            if (!showing) return;
+            Destroy(existing);
+            _statusVfx.Remove(key);
+        }
+
         /// <summary>Инстанс VFX (parent != null — следует за точкой атача). autoDestroy — прибить по времени
-        /// жизни частиц (как VfxPresenter.AutoDestroy); false — вызывающий гасит сам (follow-аура призыва).</summary>
-        GameObject SpawnVfxInstance(GameObject prefab, Vector3 pos, Transform parent, bool autoDestroy = true)
+        /// жизни частиц (как VfxPresenter.AutoDestroy); false — вызывающий гасит сам (follow-аура призыва).
+        /// compensateParentScale — скорректировать localScale инстанса так, чтобы МИРОВОЙ размер совпадал
+        /// с авторским масштабом префаба независимо от масштаба точки атача (та наследует масштаб скелета/
+        /// модели существа — без компенсации префаб раздувается/схлопывается вместе с ним). По умолчанию
+        /// выключено: у SummonVfx (Resolve-фаза призыва) конкретные префабы уже подогнаны художником под
+        /// текущее поведение БЕЗ компенсации — трогать не нужно, это ломать не просили. Постоянные
+        /// статус-ауры (SetStatusVfx) включают явно.</summary>
+        GameObject SpawnVfxInstance(GameObject prefab, Vector3 pos, Transform parent, bool autoDestroy = true, bool compensateParentScale = false)
         {
             if (prefab == null) return null;
             var go = parent != null
                 ? Instantiate(prefab, pos, Quaternion.identity, parent)
                 : Instantiate(prefab, pos, Quaternion.identity);
+
+            if (compensateParentScale && parent != null)
+            {
+                var parentScale = parent.lossyScale;
+                var prefabScale = prefab.transform.localScale;
+                go.transform.localScale = new Vector3(
+                    parentScale.x != 0 ? prefabScale.x / parentScale.x : prefabScale.x,
+                    parentScale.y != 0 ? prefabScale.y / parentScale.y : prefabScale.y,
+                    parentScale.z != 0 ? prefabScale.z / parentScale.z : prefabScale.z);
+            }
+
             if (autoDestroy)
             {
                 float life = 2.5f;

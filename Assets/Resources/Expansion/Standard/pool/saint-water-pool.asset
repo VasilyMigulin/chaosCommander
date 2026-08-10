@@ -27,6 +27,7 @@ MonoBehaviour:
   ExpansionId: 
   Cards:
   - {fileID: 11400000, guid: 8951a762ba7a4ac418b6dbd3983f189d, type: 2}
+  - {fileID: 11400000, guid: 2785bddec15a6710e24a073ab5982427, type: 2}
   - {fileID: 11400000, guid: a2a71e563fd2cd64a964d0830f46ec6d, type: 2}
   - {fileID: 11400000, guid: 15971902f35f1e4478d3789efb0fe037, type: 2}
   - {fileID: 11400000, guid: 424d6351723d27b448780a6bacfdb5a7, type: 2}

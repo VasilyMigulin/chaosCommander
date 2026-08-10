@@ -24,8 +24,10 @@ MonoBehaviour:
       type: {class: CardSpellModel, ns: Game.Core.Model.Card.Spell, asm: Game.Core.Model.Card.Spell}
       data:
         Id: 93
-        Name: "Штурмовая лестница"
-        Description: "До конца хода: ваши существа получают +2 к скорости"
+        Name: "\u0428\u0442\u0443\u0440\u043C\u043E\u0432\u0430\u044F \u043B\u0435\u0441\u0442\u043D\u0438\u0446\u0430"
+        Description: "\u0414\u043E \u043A\u043E\u043D\u0446\u0430 \u0445\u043E\u0434\u0430:
+          \u0432\u0430\u0448\u0438 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0430
+          \u043F\u043E\u043B\u0443\u0447\u0430\u044E\u0442 +2 \u043A \u0441\u043A\u043E\u0440\u043E\u0441\u0442\u0438"
         Rarity: 1
         Element: 1
         ArtImage: {fileID: 0}
@@ -55,7 +57,7 @@ MonoBehaviour:
         Vfx:
           Kind: 0
           Prefab: {fileID: 0}
-          HitPrefab: {fileID: 0}
+          HitPrefab: {fileID: 131758, guid: 8385b03242e9e7447b9f870756a377b1, type: 3}
           ProjectileSpeed: 12
           MergeArea: 0
           PlayCasterAnimation: 0
@@ -66,10 +68,10 @@ MonoBehaviour:
         IncludeCommanderInZones: 0
     - rid: 3
       type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
-      data:
+      data: 
     - rid: 4
       type: {class: AllyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
-      data:
+      data: 
     - rid: 5
       type: {class: AddBuffEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:

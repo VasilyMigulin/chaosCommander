@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Game.Core.Events;
 using Game.Core.Ecs.Components;
 using Game.Core.Service;
@@ -24,7 +25,7 @@ namespace Game.Core.Ability
         // TriggerSubjectComponent для TargetSelection.TriggerSubject («Неудачная молитва»).
         // isReaction — активация есть РЕАКЦИЯ на чужой резолв (ITrigger.IsReaction): встанет в очередь
         // сразу за своей причиной, а не в конец (см. ActivationKey).
-        public static void Mark(EcsWorld world, int abilityEntity, int cardEntity, int playerEntity, string triggerKey = null, int subjectEntity = -1, bool isReaction = false)
+        public static void Mark(EcsWorld world, int abilityEntity, int cardEntity, int playerEntity, string triggerKey = null, int subjectEntity = -1, bool isReaction = false, bool isSelfTrigger = false)
         {
             // ВРЕМЕННО: видим, что триггер сработал и не загейчен ли пассивом.
             UnityEngine.Debug.Log($"[Mark] card={cardEntity} ability={abilityEntity} trigger={triggerKey ?? "?"} active={TurnGate.IsLocalActive(world)}");
@@ -58,7 +59,42 @@ namespace Game.Core.Ability
             }
 
             var pool = world.GetPool<AbilityCastEvent>();
-            if (pool.Has(abilityEntity)) return;
+            bool alreadyPending = pool.Has(abilityEntity);
+
+            // Виновник: ОЧЕРЕДЬ, а не одиночное значение (баг 2026-08-09 «Двойной удар выдался не всем
+            // Братишкам/Тусовщикам» — Командующий королевской гвардией). Несколько существ могут выйти на
+            // стол ОДНИМ пакетом (FillRowWithCardEffect{MaxCount>1}, RepeatEffect) — CreateCardSystem фигачит
+            // CreatureInvokedEvent синхронно на каждое, и OnCreatureInvokedTrigger дёргает Mark ПОВТОРНО для
+            // ТОЙ ЖЕ ability-сущности ДО того, как AbilityCastEvent первого срабатывания успевает слиться
+            // (снимает его только RunCheckAbilityRulesSystem — отдельный тик). Раньше повторный Mark просто
+            // терялся на «if (pool.Has) return» ниже — Entity перетирался или пропадал вовсе. Теперь: текущий
+            // виновник — в Entity, остальные — в очереди Pending; следующего достаёт RunAbilityTargetingSystem
+            // (AdvanceOrClearSubject), а повторный запуск резолва для него — RunResolveAbilityQueueSystem.
+            var subjPool = world.GetPool<TriggerSubjectComponent>();
+            if (subjectEntity >= 0)
+            {
+                if (!subjPool.Has(abilityEntity))
+                {
+                    subjPool.Add(abilityEntity).Entity = subjectEntity;
+                }
+                else if (alreadyPending)
+                {
+                    ref var s = ref subjPool.Get(abilityEntity);
+                    (s.Pending ??= new List<int>()).Add(subjectEntity);
+                }
+                else
+                {
+                    // AbilityCastEvent уже не висит (протухший компонент от прошлого срабатывания) — свежий.
+                    subjPool.Get(abilityEntity).Entity = subjectEntity;
+                }
+            }
+            else if (subjPool.Has(abilityEntity) && !alreadyPending)
+            {
+                subjPool.Del(abilityEntity);   // без виновника — снимаем (не протухает от прошлого файра)
+            }
+
+            if (alreadyPending) return;   // заявка на каст уже стоит — очередь виновников доедет отдельными резолвами
+
             ref var c = ref pool.Add(abilityEntity);
             c.CardEntity = cardEntity;
             c.OwnerPlayerEntity = playerEntity;
@@ -68,15 +104,7 @@ namespace Game.Core.Ability
             if (!keyPool.Has(abilityEntity)) keyPool.Add(abilityEntity);
             keyPool.Get(abilityEntity).Key = triggerKey;
             keyPool.Get(abilityEntity).IsReaction = isReaction;   // порядок в очереди: реакция идёт за причиной
-
-            // Виновник: ставим/перезаписываем; без виновника — снимаем (не протухает от прошлого файра).
-            var subjPool = world.GetPool<TriggerSubjectComponent>();
-            if (subjectEntity >= 0)
-            {
-                if (!subjPool.Has(abilityEntity)) subjPool.Add(abilityEntity);
-                subjPool.Get(abilityEntity).Entity = subjectEntity;
-            }
-            else if (subjPool.Has(abilityEntity)) subjPool.Del(abilityEntity);
+            keyPool.Get(abilityEntity).IsSelfTrigger = isSelfTrigger;   // OnCast/OnDie ПРО САМ источник, не реактивный тёзка
 
             if (triggerKey != null)
             {
@@ -128,7 +156,7 @@ namespace Game.Core.Ability
             });
 
             AbilityFire.Mark(_world, _abilityEntity, _cardEntity, _playerEntity, TriggerKeys.OnDie,
-                             isReaction: IsReaction); // множитель + порядок в очереди
+                             isReaction: IsReaction, isSelfTrigger: true); // множитель + порядок в очереди
         }
 
         public void Dispose() => GameEventBus.UnsubscribeAll(this);
@@ -152,7 +180,7 @@ namespace Game.Core.Ability
         void OnCast(CardCastEvent e)
         {
             if (e.CardEntity != _cardEntity) return;
-            AbilityFire.Mark(_world, _abilityEntity, _cardEntity, _playerEntity, TriggerKeys.OnCast); // множитель
+            AbilityFire.Mark(_world, _abilityEntity, _cardEntity, _playerEntity, TriggerKeys.OnCast, isSelfTrigger: true); // множитель
         }
 
         public void Dispose() => GameEventBus.UnsubscribeAll(this);

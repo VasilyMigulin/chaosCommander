@@ -318,6 +318,18 @@ namespace Game.Core.Events
         public int Amount;
     }
 
+    /// <summary>ПОСТОЯННЫЙ визуал свойства/статуса (Key: "Shielded"/"Taunt"/"Poisoned"/...) появился/пропал
+    /// на существе — РЕАКТИВНЫЙ сигнал для PropertyAuraVisualSystem, чтобы не пушить состояние покадрово
+    /// по всем существам. Publish-точки: Apply/Remove соответствующего ICreatureProperty (грант/аура-ревёрт),
+    /// TakeDamageSystem (щит спалил заряды в ноль, яд навешен), DieSystem (смерть — служебная зачистка).
+    /// Active=false публикуется ТОЛЬКО если статус реально был — не спамим «выключился», когда и так не горел.</summary>
+    public struct CreaturePropertyAuraChangedEvent : IGameEvent
+    {
+        public int CreatureEntity;
+        public string Key;
+        public bool Active;
+    }
+
     /// <summary>Здоровье существа изменилось НЕ уроном (дебафф/бафф статов, снятие/навешивание HP-модификатора).
     /// Публикуют точки, меняющие HealthComponent модификаторами (BuffStatsEffect, BuffPerCharmSystem…).
     /// LethalHealthSystem реагирует: если Current ≤ 0 → смерть (урон свою смерть разруливает в TakeDamageSystem).</summary>

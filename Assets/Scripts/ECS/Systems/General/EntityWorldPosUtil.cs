@@ -43,6 +43,16 @@ namespace Game.Core.Ecs.Systems
                 if (ac != null) { pos = ac.transform.position; return true; }
             }
 
+            // Сама сущность — ИГРОК (аватар): у неё нет OwnerComponent (см. комментарий в TakeDamageSystem),
+            // только PlayerComponent. Без этой ветки VFX «на аватаре владельца» (Вампиризм и т.п.) молча
+            // не резолвился бы для игрока напрямую — только для существ через их OwnerComponent выше.
+            var playerPool = world.GetPool<PlayerComponent>();
+            if (playerPool.Has(entity))
+            {
+                var ac = bv.GetAvatarCell(playerPool.Get(entity).PlayerId);
+                if (ac != null) { pos = ac.transform.position; return true; }
+            }
+
             return false;
         }
     }

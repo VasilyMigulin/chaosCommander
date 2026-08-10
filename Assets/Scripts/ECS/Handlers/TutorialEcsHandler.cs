@@ -97,6 +97,7 @@ namespace Game.Core.Ecs.Handlers
                 .Add(new RunCommanderCooldownSystem())
                 .Add(new GameOverCheckSystem())
                 .Add(new CreatureStatsViewSystem())
+                .Add(new PropertyAuraVisualSystem())
                 .Add(new PlayerStatsViewSystem())
                 .Add(new CreatureInspectSystem())
                 .Add(new BurnCardSystem())

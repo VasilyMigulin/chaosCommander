@@ -1,8 +1,12 @@
 fileFormatVersion: 2
 guid: 711fb833c98232201bb313ad6775cf07
+labels:
+- Полевой
+- Полевой_госпиталь
+- госпиталь
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000
-  userData:
-  assetBundleName:
-  assetBundleVariant:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

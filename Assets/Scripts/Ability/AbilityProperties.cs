@@ -1,5 +1,6 @@
 using System;
 using Game.Core.Ecs.Components;
+using Game.Core.Events;
 using Game.Core.Shared.Interface;
 using Leopotam.EcsLite;
 using UnityEngine;
@@ -47,12 +48,15 @@ namespace Game.Core.Ability
             var p = world.GetPool<ShieldComponent>();
             if (!p.Has(entity)) p.Add(entity);
             p.Get(entity).Charges = Charges <= 0 ? 1 : Charges;
+            GameEventBus.Publish(new CreaturePropertyAuraChangedEvent { CreatureEntity = entity, Key = Key, Active = true });
         }
 
         public void Remove(EcsWorld world, int entity)
         {
             var p = world.GetPool<ShieldComponent>();
-            if (p.Has(entity)) p.Del(entity);
+            if (!p.Has(entity)) return;
+            p.Del(entity);
+            GameEventBus.Publish(new CreaturePropertyAuraChangedEvent { CreatureEntity = entity, Key = Key, Active = false });
         }
 
         public bool Has(EcsWorld world, int entity)
@@ -91,12 +95,15 @@ namespace Game.Core.Ability
         {
             var p = world.GetPool<TauntTag>();
             if (!p.Has(entity)) p.Add(entity);
+            GameEventBus.Publish(new CreaturePropertyAuraChangedEvent { CreatureEntity = entity, Key = Key, Active = true });
         }
 
         public void Remove(EcsWorld world, int entity)
         {
             var p = world.GetPool<TauntTag>();
-            if (p.Has(entity)) p.Del(entity);
+            if (!p.Has(entity)) return;
+            p.Del(entity);
+            GameEventBus.Publish(new CreaturePropertyAuraChangedEvent { CreatureEntity = entity, Key = Key, Active = false });
         }
 
         public bool Has(EcsWorld world, int entity) => world.GetPool<TauntTag>().Has(entity);
@@ -150,6 +157,28 @@ namespace Game.Core.Ability
         }
 
         public bool Has(EcsWorld world, int entity) => world.GetPool<RetaliateTag>().Has(entity);
+    }
+
+    // «Вампиризм» — любой урон носителя (бой ИЛИ способность) лечит ЕГО ВЛАДЕЛЬЦА (игрока) на ту же
+    // величину. См. TakeDamageSystem.ApplyDamage — та же единая точка урона, что у Ядовитого/Ответочки.
+    [Serializable]
+    public sealed class VampirismProperty : ICreatureProperty
+    {
+        public string Key => "Vampirism";
+
+        public void Apply(EcsWorld world, int entity)
+        {
+            var p = world.GetPool<VampirismTag>();
+            if (!p.Has(entity)) p.Add(entity);
+        }
+
+        public void Remove(EcsWorld world, int entity)
+        {
+            var p = world.GetPool<VampirismTag>();
+            if (p.Has(entity)) p.Del(entity);
+        }
+
+        public bool Has(EcsWorld world, int entity) => world.GetPool<VampirismTag>().Has(entity);
     }
 
     [Serializable]

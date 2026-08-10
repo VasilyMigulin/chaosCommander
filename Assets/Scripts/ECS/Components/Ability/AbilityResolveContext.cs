@@ -21,10 +21,23 @@ namespace Game.Core.Ecs.Components
         /// ability-сущности. Читают PlayTargetCardEffect/PlaySameNameFromHandEffect: цель выбирает ИГРОК
         /// только если разыгрывание идёт от OnCast (игрок сам сейчас играет карту-источник) — любой другой
         /// триггер (OnDie/OnTurnEnd/…) может сработать НЕ в ход владельца/без интерактивного контекста →
-        /// таргетинг форсится случайным (как ForceRandomTargetingComponent у Фокус-покус).</summary>
+        /// таргетинг форсится случайным (как ForceRandomTargetingComponent у Фокус-покус).
+        /// ⚠️ Ключ "OnCast" сам по себе НЕ означает «эту карту сейчас играет игрок» — OnOwnerCardPlayedTrigger
+        /// (Блаженный дьякон/Сказочный волшебник Упс/Королевский палач: «пока в руке/где угодно, когда вы
+        /// разыгрываете ЛЮБУЮ карту») тоже шлёт TriggerKeys.OnCast — ради множителя (CastMultiplierService
+        /// ключуется типом триггера, не тем, ЧЬЯ это карта), но САМ он при этом реагирует на ЧУЖОЙ каст, не
+        /// на свой. Для «это буквально мой собственный OnCast/OnDie» — см. IsSelfTrigger ниже.</summary>
         public static string TriggerKey = null;
 
-        public static void Clear() { OriginOwnerId = -1; ResolveCount = 0; TriggerKey = null; }
+        /// <summary>true — триггер этого резолва РЕАЛЬНО про САМ ИСТОЧНИК (OnCastTrigger: карту играют;
+        /// OnDieTrigger: карта умирает), а не реактивное наблюдение за чужим кастом/смертью с тем же
+        /// TriggerKey (см. предупреждение у TriggerKey). Источник — AbilityTriggerKeyComponent.IsSelfTrigger,
+        /// ставит AbilityFire.Mark(isSelfTrigger). Читают: EmitDefaultTriggerVfx (универсальная вспышка каста/
+        /// смерти — иначе играла бы на КАЖДОЙ реактивной карте при чужом касте, баг 2026-08-11) и
+        /// PlayTargetCardEffect/PlaySameNameFromHandEffect (форс интерактивного выбора цели).</summary>
+        public static bool IsSelfTrigger = false;
+
+        public static void Clear() { OriginOwnerId = -1; ResolveCount = 0; TriggerKey = null; IsSelfTrigger = false; }
 
         // ── ПРИЧИНА для реакций (хрип и т.п.) ────────────────────────────────────────────────────────
         // Живёт ДОЛЬШЕ одного резолва и НЕ чистится в Clear() — намеренно. Смерть от урона обрабатывается
@@ -102,6 +115,11 @@ namespace Game.Core.Ecs.Components
         /// а не собственное действие. Такая встаёт в очередь СРАЗУ ЗА своей причиной, а не в конец
         /// (см. ActivationKey). Источник — ITrigger.IsReaction, передаётся через AbilityFire.Mark.</summary>
         public bool IsReaction;
+
+        /// <summary>true — ТОЛЬКО у OnCastTrigger/OnDieTrigger (карту РЕАЛЬНО играют/она РЕАЛЬНО умирает).
+        /// OnOwnerCardPlayedTrigger шлёт Key="OnCast" тем же путём (ради множителя), но isSelfTrigger
+        /// оставляет false — он реагирует на ЧУЖОЙ каст. См. AbilityResolveContext.IsSelfTrigger.</summary>
+        public bool IsSelfTrigger;
     }
 
     // === struct (Component) ===
@@ -119,9 +137,14 @@ namespace Game.Core.Ecs.Components
     /// <summary>ВИНОВНИК срабатывания триггера (на ability-сущности): сущность, вызвавшая событие
     /// (OnCreatureInvoked → вышедшее существо). Ставит AbilityFire.Mark (subjectEntity), читает
     /// RunAbilityTargetingSystem при TargetSelection.TriggerSubject («Неудачная молитва»: урон ИМЕННО
-    /// вышедшему). Перезаписывается каждым Mark; без виновника — компонент снимается (не протухает).</summary>
+    /// вышедшему). Без виновника — компонент снимается (не протухает).
+    /// Pending — ОЧЕРЕДЬ виновников, если та же ability-сущность сработала ПОВТОРНО (другой субъект), пока
+    /// текущий ещё не резолвнулся (пачка токенов за один кадр — см. AbilityFire.Mark). Entity потребляет и
+    /// сдвигает RunAbilityTargetingSystem (AdvanceOrClearSubject); наличие компонента ПОСЛЕ сдвига — сигнал
+    /// RunResolveAbilityQueueSystem перезапустить резолв для следующего.</summary>
     public struct TriggerSubjectComponent
     {
         public int Entity;
+        public System.Collections.Generic.List<int> Pending;
     }
 }
