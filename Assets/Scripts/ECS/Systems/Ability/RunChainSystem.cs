@@ -1,8 +1,11 @@
 using System.Collections.Generic;
 using Game.Core.Ecs.Components;
 using Game.Core.Events;
+using Game.Core.Mono;
 using Game.Core.Shared.Interface;
 using Leopotam.EcsLite;
+using Leopotam.EcsLite.Di;
+using UnityEngine;
 
 namespace Game.Core.Ecs.Systems
 {
@@ -15,16 +18,65 @@ namespace Game.Core.Ecs.Systems
     ///
     /// Запускается только у активного клиента (ChainStateComponent ставит RunCheckAbilityRulesSystem
     /// по AbilityCastEvent, а тот гейтит пассив через AbilityFire). СИНК стадий (StepIndex) и
-    /// недетерминированная генерация — следующий кусок; сейчас прогон локальный.
+    /// недетерминированная генерация РЕАЛИЗОВАНЫ (см. ReplayActionSystem.ApplyChainStage — пассив
+    /// применяет эффекты стадии к целям ИЗ СНАПШОТА, не пере-резолвит; недетерм. генерация грузится из
+    /// присланных идентичностей через GeneratedCardChannel.LoadReplay). VFX стадии на пассиве — та же
+    /// точка (RunChainSystem там не крутится → ApplyChainStage эмитит косметику САМ, см. её докстринг).
+    ///
+    /// СНАРЯД (2026-08-11): у стадии со Vfx.Kind=Projectile эффекты НЕ применяются сразу — публикуем
+    /// ProjectileVfxEvent на каждую цель, вешаем ChainProjectilePendingComponent (СВОЙ гейт, не
+    /// AbilityCastPendingComponent — тот принадлежит RunResolveAbilityQueueSystem и слушает
+    /// VfxArrivedEvent ГЛОБАЛЬНО; общий токен с ability-сущностью цепочки заставил бы обе системы
+    /// среагировать на один и тот же прилёт) и ждём VfxArrivedEvent. На прилёте (или по таймауту —
+    /// анти-софтлок) применяем эффекты по уже выбранным (не перевыбранным!) целям стадии.
     /// </summary>
-    public sealed class RunChainSystem : IEcsRunSystem
+    public sealed class RunChainSystem : IEcsInitSystem, IEcsRunSystem, IEcsDestroySystem
     {
+        readonly EcsCustomInject<BoardView> _boardView = default;
+
+        const float ProjectileTimeout = 4f;   // сек до форс-резолва стадии, если прилёт не пришёл
+
+        readonly Queue<int> _arrived = new Queue<int>();   // токены приземлившихся снарядов (ability-сущности)
+        bool _subscribed;
+
+        public void Init(IEcsSystems systems) => Subscribe();
+        public void Destroy(IEcsSystems systems)
+        {
+            if (!_subscribed) return;
+            GameEventBus.Unsubscribe<VfxArrivedEvent>(OnArrived);
+            _subscribed = false;
+        }
+        void Subscribe()
+        {
+            if (_subscribed) return;
+            _subscribed = true;
+            GameEventBus.Subscribe<VfxArrivedEvent>(OnArrived);
+        }
+        void OnArrived(VfxArrivedEvent e) => _arrived.Enqueue(e.Token);
+
         public void Run(IEcsSystems systems)
         {
             var world = systems.GetWorld();
             var statePool = world.GetPool<ChainStateComponent>();
             var chainPool = world.GetPool<AbilityChainComponent>();
             var ownerPool = world.GetPool<AbilityOwnerComponent>();
+            var projectilePool = world.GetPool<ChainProjectilePendingComponent>();
+
+            // Прилёт снаряда стадии → форсируем Deadline в прошлое (НЕ удаляем компонент здесь!). Основной
+            // цикл ниже сам снимет pending и применит эффекты — РОВНО в его ветке «projectilePool.Has(entity)».
+            // Баг 2026-08-11 (бесконечный спавн снарядов): удаление pending ЗДЕСЬ означало, что к моменту
+            // цикла ниже projectilePool.Has(entity) уже false, а state.Applied всё ещё false → ветка «стадия
+            // ещё не начата» перевыбирала цели и запускала НОВЫЙ снаряд заново, бесконечно (эффект так и не
+            // применялся). Держим компонент живым до тех пор, пока его явно не снимет ветка обработки.
+            while (_arrived.Count > 0)
+            {
+                int token = _arrived.Dequeue();
+                if (token >= 0 && projectilePool.Has(token))
+                {
+                    ref var p = ref projectilePool.Get(token);
+                    p.Deadline = 0f;
+                }
+            }
 
             var filter = world.Filter<ChainStateComponent>().Inc<AbilityChainComponent>().Inc<AbilityOwnerComponent>().End();
 
@@ -39,27 +91,38 @@ namespace Game.Core.Ecs.Systems
                 if (stages == null || state.Current >= stages.Length)
                 {
                     statePool.Del(entity);
+                    if (projectilePool.Has(entity)) projectilePool.Del(entity);   // цепочку прервали — снаряд не долетит
                     continue;
                 }
 
                 if (!state.Applied)
                 {
+                    if (projectilePool.Has(entity))
+                    {
+                        if (projectilePool.Get(entity).Deadline > Time.time) continue;   // снаряд ещё в полёте
+                        projectilePool.Del(entity);   // анти-софтлок — форсим по уже выбранным LastTargets
+                        FinishStage(world, entity, ref state, stages, ownerPool);
+                        continue;
+                    }
+
                     ref var owner = ref ownerPool.Get(entity);
-                    int card = owner.CardEntity;
-                    int abilityIndex = owner.AbilityIndex;
                     var stage = stages[state.Current];
 
-                    int[] targets = ResolveTargets(world, stage, card, owner.PlayerEntity);
+                    int[] targets = ResolveTargets(world, stage, owner.CardEntity, owner.PlayerEntity);
+                    state.LastTargets = targets;   // ДО возможного ожидания снаряда — Apply на прилёте бьёт ТЕ ЖЕ цели
 
-                    ChainContext.CurrentKilled = state.Killed;   // контекст для эффектов стадии
-                    GeneratedCardChannel.ClearSent();            // соберём случайные генерации стадии для синка
-                    ApplyEffects(world, card, stage?.Effects, targets);
+                    var vfxPool = world.GetPool<AbilityVfxComponent>();
+                    var spec = vfxPool.Has(entity) ? vfxPool.Get(entity).Spec : null;
+                    // ВРЕМЕННО (баг: снаряд цепочки не летит) — видим, почему ветка снаряда не сработала.
+                    UnityEngine.Debug.Log($"[ChainVfx] entity={entity} step={state.Current} targets={targets.Length} hasVfxComp={vfxPool.Has(entity)} spec={(spec == null ? "NULL" : "ok")} kind={spec?.Kind} prefab={(spec?.Prefab != null ? spec.Prefab.name : "NULL")} boardView={(_boardView.Value != null ? "ok" : "NULL")}");
+                    if (targets.Length > 0 && spec != null && spec.Kind == VfxKind.Projectile && spec.Prefab != null && _boardView.Value != null)
+                    {
+                        UnityEngine.Debug.Log($"[ChainVfx] entity={entity} → LaunchStageProjectile");
+                        LaunchStageProjectile(world, entity, owner.CardEntity, targets, spec);
+                        continue;
+                    }
 
-                    // СИНК: снапшот стадии (StepIndex + цели + KilledCount + выбранные случайные карты).
-                    PublishStageResolved(card, abilityIndex, state.Current, targets, state.Killed);
-
-                    state.LastTargets = targets;
-                    state.Applied = true;
+                    FinishStage(world, entity, ref state, stages, ownerPool);
                 }
                 else
                 {
@@ -74,6 +137,37 @@ namespace Game.Core.Ecs.Systems
                         statePool.Del(entity);
                 }
             }
+        }
+
+        // Применяет эффекты стадии (мгновенно ИЛИ на прилёте снаряда/по таймауту) + косметику + снапшот,
+        // помечает Applied. Цели читает из state.LastTargets (выставлены ДО ветвления снаряд/мгновенно —
+        // одни и те же и для запуска снаряда, и для применения на прилёте).
+        void FinishStage(EcsWorld world, int entity, ref ChainStateComponent state, ChainStage[] stages, EcsPool<AbilityOwnerComponent> ownerPool)
+        {
+            ref var owner = ref ownerPool.Get(entity);
+            int card = owner.CardEntity;
+            int abilityIndex = owner.AbilityIndex;
+            var stage = stages[state.Current];
+            var targets = state.LastTargets;
+
+            ChainContext.CurrentKilled = state.Killed;   // контекст для эффектов стадии
+            GeneratedCardChannel.ClearSent();            // соберём случайные генерации стадии для синка
+            ApplyEffects(world, card, stage?.Effects, targets);
+            EmitStageVfx(world, entity, card, targets);  // Hit/Beam/Area на цели ЭТОЙ стадии (см. докстринг метода)
+
+            // СИНК: снапшот стадии (StepIndex + цели + KilledCount + выбранные случайные карты).
+            PublishStageResolved(card, abilityIndex, state.Current, targets, state.Killed);
+
+            state.Applied = true;
+        }
+
+        // Запуск снаряда стадии: ОДНО ProjectileVfxEvent на ВСЕ цели стадии, вешает ChainProjectilePendingComponent.
+        void LaunchStageProjectile(EcsWorld world, int abilityEntity, int caster, int[] targets, VfxSpec spec)
+        {
+            VfxEmitUtil.LaunchProjectile(world, _boardView.Value, spec, caster, targets, abilityEntity);
+
+            ref var pending = ref world.GetPool<ChainProjectilePendingComponent>().Add(abilityEntity);
+            pending.Deadline = Time.time + ProjectileTimeout;
         }
 
         static void PublishStageResolved(int card, int abilityIndex, int step, int[] targets, int killed)
@@ -143,6 +237,22 @@ namespace Game.Core.Ecs.Systems
                         eff.Apply(world, card, target);
         }
 
+        // ── vfx ───────────────────────────────────────────────────────────────
+
+        // Косметика стадии (Hit/Beam/Area) — RunChainSystem раньше ВООБЩЕ не читал AbilityVfxComponent
+        // (баг 2026-08-11: у RepeatAbility/AbilityChain карт с Vfx.HitPrefab визуал молча не играл — только
+        // обычный нецепочечный резолв в RunResolveAbilityQueueSystem.EmitVfx умел эту косметику). Один и
+        // тот же AbilityVfxComponent (авторится ОДИН раз на способность) проигрывается на КАЖДОЙ стадии —
+        // так N независимых активаций RepeatAbility каждая получает свою вспышку на СВОЕЙ цели.
+        // ПРОЕКТИЛЬ — отдельной веткой (LaunchStageProjectile, до применения эффектов), сюда не попадает:
+        // тому нужна асинхронная доставка + гейт ожидания прилёта, см. докстринг класса.
+        void EmitStageVfx(EcsWorld world, int abilityEntity, int caster, int[] targets)
+        {
+            var vfxPool = world.GetPool<AbilityVfxComponent>();
+            if (!vfxPool.Has(abilityEntity)) return;
+            VfxEmitUtil.EmitInstantVfx(world, _boardView.Value, vfxPool.Get(abilityEntity).Spec, caster, targets);
+        }
+
         // ── settle / death count ─────────────────────────────────────────────
 
         static bool WorldSettled(EcsWorld world)
@@ -151,6 +261,7 @@ namespace Game.Core.Ecs.Systems
             if (world.Filter<DeadTag>().Inc<BoardTag>().End().GetEntitiesCount() > 0) return false; // смерти не обработаны
             if (world.Filter<MovingTag>().End().GetEntitiesCount() > 0) return false;
             if (world.Filter<AttackAnimPendingTag>().End().GetEntitiesCount() > 0) return false;
+            if (world.Filter<DeathAnimPendingTag>().End().GetEntitiesCount() > 0) return false;     // анимация смерти ещё доигрывает
             return true;
         }
 

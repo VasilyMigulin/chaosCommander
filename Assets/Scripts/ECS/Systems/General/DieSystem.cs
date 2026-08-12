@@ -100,8 +100,26 @@ namespace Game.Core.Ecs.Systems
         const float GateDeadlineSeconds = 3f;
         readonly System.Collections.Generic.Dictionary<int, float> _gateSince = new();
 
+        // DeathAnimPendingTag (см. её докстринг): вешаем в момент PlayDeath, снимаем по колбэку на
+        // РЕАЛЬНОЕ завершение (тот же FinishEvent, что гасит вьюху) — колбэк приходит из Mono в
+        // произвольный момент, поэтому копим токены в очереди и снимаем компонент здесь, в Run().
+        readonly EcsPoolInject<DeathAnimPendingTag> _deathAnimPool = default;
+        readonly EcsFilterInject<Inc<DeathAnimPendingTag>> _deathAnimFilter = default;
+        readonly System.Collections.Generic.Queue<int> _deathAnimDone = new();
+        const float DeathAnimGateSeconds = 3f;   // анти-софтлок доп. слоем поверх deathMaxSeconds в CreatureView
+
         public void Run(IEcsSystems systems)
         {
+            // DeathAnimPendingTag: снять по реальному завершению (очередь колбэков) + анти-софтлок по дедлайну.
+            while (_deathAnimDone.Count > 0)
+            {
+                int token = _deathAnimDone.Dequeue();
+                if (_deathAnimPool.Value.Has(token)) _deathAnimPool.Value.Del(token);
+            }
+            foreach (var e in _deathAnimFilter.Value)
+                if (_deathAnimPool.Value.Get(e).Deadline <= Time.time)
+                    _deathAnimPool.Value.Del(e);
+
             // ПОРЯДОК СМЕРТЕЙ = порядок ВЫХОДА на стол (тот же закон, что у баунса в RunLeaveBoardSystem
             // и у активаций в очереди). Порядок ecslite-фильтра произвольный (свап-удаления), а от него
             // зависит очередь хрипов: они становятся СЛЕДСТВИЯМИ одной причины и нумеруются по приходу
@@ -239,7 +257,8 @@ namespace Game.Core.Ecs.Systems
             if (_viewPool.Value.Has(entity))
             {
                 ref var vr = ref _viewPool.Value.Get(entity);
-                vr.View?.GetComponent<CreatureView>()?.PlayDeath();
+                var view = vr.View != null ? vr.View.GetComponent<CreatureView>() : null;
+                if (view != null) PlayDeathGated(view, entity);
             }
         }
 
@@ -251,10 +270,21 @@ namespace Game.Core.Ecs.Systems
             if (_viewPool.Value.Has(entity))
             {
                 ref var vr = ref _viewPool.Value.Get(entity);
-                vr.View?.GetComponent<CreatureView>()?.PlayDeath();
+                var view = vr.View != null ? vr.View.GetComponent<CreatureView>() : null;
+                if (view != null) PlayDeathGated(view, entity);
             }
 
             _limboPool.Value.Add(entity);
+        }
+
+        // Вешает DeathAnimPendingTag ДО запуска анимации и снимает его по РЕАЛЬНОМУ завершению (тот же
+        // FinishEvent/таймаут-фолбэк, что гасит вьюху) — см. докстринг DeathAnimPendingTag.
+        void PlayDeathGated(CreatureView view, int entity)
+        {
+            ref var pending = ref _deathAnimPool.Value.Add(entity);
+            pending.Deadline = Time.time + DeathAnimGateSeconds;
+            int token = entity;
+            view.PlayDeath(() => _deathAnimDone.Enqueue(token));
         }
 
         private void ReturnCommanderToHand(int entity, int ownerId)
@@ -297,7 +327,8 @@ namespace Game.Core.Ecs.Systems
                 ref var vr = ref _viewPool.Value.Get(entity);
                 if (vr.View != null)
                 {
-                    vr.View.GetComponent<CreatureView>()?.PlayDeath();
+                    var view = vr.View.GetComponent<CreatureView>();
+                    if (view != null) PlayDeathGated(view, entity);
                     Object.Destroy(vr.View, 3f);
                 }
                 vr.View = null;

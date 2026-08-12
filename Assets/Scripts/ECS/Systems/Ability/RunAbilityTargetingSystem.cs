@@ -107,6 +107,17 @@ namespace Game.Core.Ecs.Systems
 
                     if (tc.Selection == TargetSelection.Selected && !forceRandom)
                     {
+                        // СЕРИАЛИЗАЦИЯ интерактивного выбора ОДНОЙ карты: Board-клик (AbilityTargetPendingState,
+                        // CellView.OnMouseDown/Up) и Pick-окно (AbilityPickPendingState, брокер) — два НЕЗАВИСИМЫХ
+                        // async UI без общего гейта между собой (брокер защищает только несколько Pick-запросов
+                        // друг от друга). Карта с ДВУМЯ Selected-способностями на одном OnCastTrigger (напр. «Граф
+                        // Жракула»: урона по доске + урона по карте в колоде оппонента) раньше открывала ОБА разом —
+                        // и клик по карточке в Pick-окне физически проходит СКВОЗЬ него (OnMouseDown/Up не знают про
+                        // UI поверх), падает в CellClickEvent и отменяет параллельный board-выбор как «мимо цели».
+                        // Откладываем ВТОРУЮ способность (не снимаем AbilityTargetingState — попробуем следующим
+                        // тиком), пока у ЭТОЙ ЖЕ карты уже висит другой интерактивный запрос.
+                        if (HasInteractivePending(world, owner.CardEntity)) continue;
+
                         // нет валидных целей → способность фуззлится, не зависаем в ожидании выбора
                         var valid = TargetGather.Gather(world, tc.Filters, owner.CardEntity, owner.PlayerEntity, null, tc.Zone, tc.IncludeCommanderInZones);
                         if (valid.Count > 0)
@@ -202,6 +213,19 @@ namespace Game.Core.Ecs.Systems
             if (tc.Selection == TargetSelection.MostWounded)    return PickMostWounded(world, candidates, tc.Count);
             if (pref != AiTargetPreference.None)                return PickByPreference(world, candidates, tc.Count, pref);
             return PickRandom(candidates, tc.Count);
+        }
+
+        // У ЭТОЙ ЖЕ карты уже есть другая способность в интерактивном ожидании (Board-клик ИЛИ Pick-окно)?
+        // См. комментарий у места вызова — без этой проверки две Selected-способности одного OnCastTrigger
+        // открывали оба UI разом и гонялись за один и тот же клик.
+        static bool HasInteractivePending(EcsWorld world, int cardEntity)
+        {
+            var ownerPool = world.GetPool<AbilityOwnerComponent>();
+            foreach (var e in world.Filter<AbilityTargetPendingState>().Inc<AbilityOwnerComponent>().End())
+                if (ownerPool.Get(e).CardEntity == cardEntity) return true;
+            foreach (var e in world.Filter<AbilityPickPendingState>().Inc<AbilityOwnerComponent>().End())
+                if (ownerPool.Get(e).CardEntity == cardEntity) return true;
+            return false;
         }
 
         // Владелец в СВОЁМ ходу? (ActiveState или каскад начала/конца) — иначе интерактивный выбор невозможен.

@@ -42,12 +42,23 @@ function revokeInstances(playerId, instanceIds) {
     }
 }
 
-function readWallet(playerId) {
-    var inv = server.GetUserInventory({ PlayFabId: playerId });
+// Карта валют {code: amount} → список для клиента.
+function walletListFrom(vc) {
     var wallet = [];
-    var vc = inv.VirtualCurrency || {};
     for (var code in vc) if (vc.hasOwnProperty(code)) wallet.push({ Code: code, Amount: vc[code] });
     return wallet;
+}
+
+// СНИМОК балансов — именно копия, а не ссылка на объект ответа API: снимок нужен, чтобы сравнить
+// кошелёк до и после выдачи (см. купоны в RedeemPromo), а ссылка менялась бы вместе с оригиналом.
+function copyVc(vc) {
+    var out = {};
+    for (var code in vc) if (vc.hasOwnProperty(code)) out[code] = vc[code];
+    return out;
+}
+
+function readWallet(playerId) {
+    return walletListFrom(server.GetUserInventory({ PlayFabId: playerId }).VirtualCurrency || {});
 }
 
 // Выдать RewardBundle (валюты + карты + бустеры + аватары).
@@ -615,6 +626,214 @@ handlers.DustCard = function (args, context) {
     resp.Success = true; resp.Amount = total; resp.Dusted = dusted; resp.RemainingCount = owned - dusted;
     resp.Wallet = readWallet(playerId);
     return resp;
+};
+
+// ---- Промокоды (крауд-плюшки, кампании, коды бэкеров) ---------------------------
+// Один хендлер — ДВА источника кодов, клиент шлёт просто строку и не знает, какой сработал:
+//   1) СВОИ кампании — Title Data "promoConfig": код многоразовый, но с лимитом на аккаунт, окном
+//      дат, общим потолком активаций и опциональным тегом игрока. Награда — тот же RewardBundle,
+//      что у задач/бустеров (грузится через toRewardBundle → grantReward).
+//   2) ПЕРСОНАЛЬНЫЕ коды бэкеров — НАТИВНЫЕ купоны PlayFab (Game Manager → Economy → Catalogs →
+//      Coupons: генерит N уникальных кодов + CSV). Одноразовость гарантирует сам сервис, хранить
+//      список кодов не надо.
+//
+// Купон умеет выдать РОВНО ОДИН предмет и НЕ умеет валюту напрямую — поэтому на тиры заводим
+// bundle-предмет (bundle_founder_*), он разворачивается при выдаче. Что именно упало, определяем
+// НЕ по конфигу, а по факту: GrantedItems + ДИФФ КОШЕЛЬКА до/после (валюта из бандла иначе не видна).
+
+var PROMO_KEY = "promo";                  // UserReadOnlyData: { redeemed:{KEY:раз}, att:попыток, attHour:час }
+var PROMO_GROUP = "promo_counters";       // Shared Group Data: ключ "code:{KEY}" → { n: активаций }
+var PROMO_MAX_ATTEMPTS_PER_HOUR = 12;     // анти-перебор коротких кампанийных кодов
+var PROMO_MAX_LEN = 64;
+
+// Ключ поиска: регистр и разделители не важны — «shh launch» = «SHH-LAUNCH» = «shhlaunch».
+function promoKey(code) { return ("" + code).toUpperCase().replace(/[^A-Z0-9]/g, ""); }
+
+// "2026-12-31T23:59:59Z" → epoch ms. Разбираем САМИ, а не через new Date(str): парсинг ISO-строк
+// появился только в ES5, и на движке постарше окно дат молча превратилось бы в NaN (= не действует).
+// Время трактуем как UTC — как и весь остальной серверный расчёт периодов.
+function isoToMs(s) {
+    if (!s) return NaN;
+    var m = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?/.exec("" + s);
+    if (!m) return NaN;
+    return Date.UTC(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0));
+}
+
+function readPromoState(playerId) {
+    var ro = server.GetUserReadOnlyData({ PlayFabId: playerId, Keys: [PROMO_KEY] });
+    if (ro.Data && ro.Data[PROMO_KEY]) { try { return JSON.parse(ro.Data[PROMO_KEY].Value); } catch (e) { } }
+    return null;
+}
+function writePromoState(playerId, s) {
+    var d = {}; d[PROMO_KEY] = JSON.stringify(s);
+    server.UpdateUserReadOnlyData({ PlayFabId: playerId, Data: d });
+}
+
+// Общий потолок активаций кода. Читаем/пишем ТОЛЬКО когда globalLimit задан — иначе лишние вызовы API.
+// Гонка (два игрока одновременно) может дать перелив на пару активаций — на 5000 кодов это не важно.
+function readPromoCount(key) {
+    try { server.CreateSharedGroup({ SharedGroupId: PROMO_GROUP }); } catch (e) { /* уже создана */ }
+    var res;
+    try { res = server.GetSharedGroupData({ SharedGroupId: PROMO_GROUP, Keys: ["code:" + key] }); }
+    catch (e2) { return 0; }
+    var cell = res && res.Data && res.Data["code:" + key];
+    if (!cell || !cell.Value) return 0;
+    try { return JSON.parse(cell.Value).n || 0; } catch (e3) { return 0; }
+}
+function writePromoCount(key, n) {
+    var data = {}; data["code:" + key] = JSON.stringify({ n: n });
+    try { server.UpdateSharedGroupData({ SharedGroupId: PROMO_GROUP, Data: data }); } catch (e) { }
+}
+
+// Отказ: считаем попытку (анти-перебор) и сохраняем состояние.
+function promoFail(playerId, state, resp, reason) {
+    state.att = (state.att || 0) + 1;
+    writePromoState(playerId, state);
+    resp.Reason = reason;
+    return resp;
+}
+
+// Имя ошибки PlayFab из исключения server.* (форма объекта не гарантирована → всё в try).
+function apiErrorName(e) {
+    try { if (e && e.apiErrorInfo && e.apiErrorInfo.apiError) return e.apiErrorInfo.apiError.error || ""; }
+    catch (x) { }
+    return "";
+}
+
+// Что реально выдал купон: обёртку (bundle_/container_) прячем — игроку показываем содержимое.
+function rewardFromGrantedItems(items) {
+    var b = emptyReward(), cardMap = {}, i, id;
+    for (i = 0; i < (items ? items.length : 0); i++) {
+        id = items[i].ItemId || "";
+        if (!id || id.indexOf("bundle_") === 0 || id.indexOf("container_") === 0) continue;
+        if (id.indexOf("booster_") === 0) { b.Boosters.push(id); continue; }
+        if (id.indexOf("avatar_") === 0) { b.Avatars.push(id); continue; }
+        cardMap[id] = (cardMap[id] || 0) + 1;
+    }
+    for (id in cardMap) if (cardMap.hasOwnProperty(id)) b.Cards.push({ ItemId: id, Amount: cardMap[id] });
+    return b;
+}
+
+handlers.RedeemPromo = function (args, context) {
+    var playerId = currentPlayerId;
+    var resp = { Success: false, Reason: null, Wallet: null, Reward: emptyReward(), TitleKey: null, Tag: null };
+
+    var raw = (args && args.Code) ? ("" + args.Code).replace(/^\s+|\s+$/g, "") : "";
+    var key = promoKey(raw);
+    if (!raw || !key || raw.length > PROMO_MAX_LEN) { resp.Reason = "bad_request"; return resp; }
+
+    var cfg = getTitleJson("promoConfig") || {};
+    var state = readPromoState(playerId) || {};
+    if (!state.redeemed) state.redeemed = {};
+
+    // Анти-перебор: N попыток в час на аккаунт (успешные обнуляют счётчик).
+    var hour = Math.floor((new Date()).getTime() / 3600000);
+    if (state.attHour !== hour) { state.attHour = hour; state.att = 0; }
+    if (state.att >= (cfg.maxAttemptsPerHour || PROMO_MAX_ATTEMPTS_PER_HOUR)) {
+        resp.Reason = "promo_throttled"; return resp;   // попытку НЕ считаем — иначе бан не кончится
+    }
+
+    // ── 1) Своя кампания из promoConfig ──────────────────────────────────────────
+    var entry = null, list = cfg.codes || [], i;
+    for (i = 0; i < list.length; i++) if (promoKey(list[i].code) === key) { entry = list[i]; break; }
+
+    if (entry) {
+        // Кривую дату в конфиге игнорируем (NaN-сравнения), а не считаем код просроченным:
+        // опечатка в promoConfig не должна гасить живую кампанию.
+        var now = (new Date()).getTime(), from = isoToMs(entry.from), until = isoToMs(entry.until);
+        if (entry.enabled === false) return promoFail(playerId, state, resp, "promo_disabled");
+        if (!isNaN(from) && now < from) return promoFail(playerId, state, resp, "promo_not_started");
+        if (!isNaN(until) && now > until) return promoFail(playerId, state, resp, "promo_expired");
+
+        var perAccount = (typeof entry.perAccount === "number") ? entry.perAccount : 1;   // 0 = без лимита
+        var mine = state.redeemed[key] || 0;
+        if (perAccount > 0 && mine >= perAccount) return promoFail(playerId, state, resp, "promo_used");
+
+        var used = 0;
+        if (entry.globalLimit > 0) {
+            used = readPromoCount(key);
+            if (used >= entry.globalLimit) return promoFail(playerId, state, resp, "promo_limit");
+        }
+
+        var bundle = toRewardBundle(entry.reward);
+        try { grantReward(playerId, bundle); }
+        catch (e) { resp.Reason = "grant_error: " + (e && e.message ? e.message : ("" + e)); return resp; }
+
+        if (entry.tag) { try { server.AddPlayerTag({ PlayFabId: playerId, TagName: entry.tag }); } catch (e2) { } }
+        if (entry.globalLimit > 0) writePromoCount(key, used + 1);
+
+        state.redeemed[key] = mine + 1;
+        state.att = 0;
+        writePromoState(playerId, state);
+
+        resp.Success = true;
+        resp.Reward = bundle;
+        resp.Wallet = readWallet(playerId);
+        resp.TitleKey = entry.titleKey || null;
+        resp.Tag = entry.tag || null;
+        return resp;
+    }
+
+    // ── 2) Нативный купон PlayFab (персональные коды бэкеров) ────────────────────
+    var catalog = cfg.couponCatalog || "main";
+    var before = copyVc(server.GetUserInventory({ PlayFabId: playerId }).VirtualCurrency || {});
+    var redeemed = null, errName = "";
+    try { redeemed = server.RedeemCoupon({ PlayFabId: playerId, CouponCode: raw, CatalogVersion: catalog }); }
+    catch (e3) {
+        errName = apiErrorName(e3);
+        // Коды из Game Manager строчные — игрок мог ввести капсом. Пробуем ещё раз в нижнем регистре.
+        var lower = raw.toLowerCase();
+        if (lower !== raw) {
+            try { redeemed = server.RedeemCoupon({ PlayFabId: playerId, CouponCode: lower, CatalogVersion: catalog }); }
+            catch (e4) { errName = apiErrorName(e4); }
+        }
+    }
+
+    if (!redeemed) {
+        // Разделяем «нет такого» и «уже использован» — иначе бэкер не поймёт, что код сгорел.
+        var reason = (errName.indexOf("Redeemed") >= 0 || errName.indexOf("Used") >= 0) ? "promo_used" : "promo_unknown";
+        return promoFail(playerId, state, resp, reason);
+    }
+
+    var granted = redeemed.GrantedItems || [];
+    var reward = rewardFromGrantedItems(granted);
+
+    // Валюта из бандла в GrantedItems не видна — берём диффом кошелька.
+    var afterVc = server.GetUserInventory({ PlayFabId: playerId }).VirtualCurrency || {};
+    for (var code in afterVc) {
+        if (!afterVc.hasOwnProperty(code)) continue;
+        var delta = (afterVc[code] || 0) - (before[code] || 0);
+        if (delta > 0) reward.Currencies.push({ Code: code, Amount: delta });
+    }
+
+    // Тег тира по выданному предмету (в т.ч. по обёртке-бандлу) — статус «Основатель» переживает вайп инвентаря.
+    var tagMap = cfg.couponTags || {};
+    for (i = 0; i < granted.length; i++) {
+        var gid = granted[i].ItemId || "";
+        if (!tagMap.hasOwnProperty(gid)) continue;   // hasOwnProperty, а не просто [gid]: id предмета
+        var tag = tagMap[gid];                       // может совпасть с именем из прототипа Object
+        if (!tag) continue;
+        try { server.AddPlayerTag({ PlayFabId: playerId, TagName: tag }); } catch (e5) { }
+        resp.Tag = tag;
+    }
+
+    state.redeemed[key] = (state.redeemed[key] || 0) + 1;
+    state.att = 0;
+    writePromoState(playerId, state);
+
+    resp.Success = true;
+    resp.Reward = reward;
+    resp.Wallet = walletListFrom(afterVc);
+    resp.TitleKey = cfg.couponTitleKey || null;
+    return resp;
+};
+
+// Дев: забыть все активированные промокоды этого игрока — прогнать ввод заново.
+// Нативные купоны это НЕ возвращает (они сгорают в сервисе), только свои кампании из promoConfig.
+handlers.DevResetPromo = function (args, context) {
+    if (!devEnabled()) return { Success: false, Reason: "dev_disabled" };
+    server.UpdateUserReadOnlyData({ PlayFabId: currentPlayerId, KeysToRemove: [PROMO_KEY] });
+    return { Success: true, Reason: null };
 };
 
 // ---- Журнал: ежедневные/еженедельные задачи + вход ------------------------------

@@ -39,6 +39,7 @@ MonoBehaviour:
         PlayCostAmount: 4
         IsToken: 0
         ShowAsLinked: 0
+        HideAsLinked: 0
         NonBattleAbilities: []
         RuntimeAbilities: []
         Archetypes: []
@@ -49,6 +50,7 @@ MonoBehaviour:
         MaxHealth: 4
         Attack: 1
         Speed: 2
+        Properties: []
         ViewPrefab: {fileID: 1046069417137952589, guid: f06aa6138ec1c4140ac9af21f0ddde7e, type: 3}
         SummonVfx:
           PrePrefab: {fileID: 0}
@@ -95,12 +97,21 @@ MonoBehaviour:
         MaxActivationsPerTurn: 0
         LimitGroup: 0
         Vfx:
-          Kind: 0
-          Prefab: {fileID: 0}
-          HitPrefab: {fileID: 0}
+          Kind: 2
+          Prefab: {fileID: 1314051614399548, guid: d7c4f1a918ad21244a3ebdacbf454af5, type: 3}
+          HitPrefab: {fileID: 180702, guid: a7c694f0877ea874fa57e033221095c3, type: 3}
           ProjectileSpeed: 12
           MergeArea: 0
-          PlayCasterAnimation: 0
+          Delivery: 0
+          Trajectory: 1
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
+          PlayCasterAnimation: 1
         Selection: 0
         Count: 1
         Zone: 0
@@ -115,9 +126,9 @@ MonoBehaviour:
     - rid: 2425735989079048458
       type: {class: DealDamageEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
-        Amount: 1
         ConditionRoot:
           rid: -2
+        Amount: 1
     - rid: 2425735989079048459
       type: {class: EnemyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
@@ -135,12 +146,21 @@ MonoBehaviour:
         MaxActivationsPerTurn: 0
         LimitGroup: 0
         Vfx:
-          Kind: 0
-          Prefab: {fileID: 0}
-          HitPrefab: {fileID: 0}
+          Kind: 2
+          Prefab: {fileID: 1314051614399548, guid: d7c4f1a918ad21244a3ebdacbf454af5, type: 3}
+          HitPrefab: {fileID: 180702, guid: a7c694f0877ea874fa57e033221095c3, type: 3}
           ProjectileSpeed: 12
           MergeArea: 0
-          PlayCasterAnimation: 0
+          Delivery: 0
+          Trajectory: 1
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
+          PlayCasterAnimation: 1
         Area: 0
         Zone: 0
         Filters:
@@ -153,9 +173,9 @@ MonoBehaviour:
     - rid: 2425735989079048466
       type: {class: DealDamageEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
-        Amount: 1
         ConditionRoot:
           rid: -2
+        Amount: 1
     - rid: 2425735989079048467
       type: {class: EnemyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 

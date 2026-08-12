@@ -35,6 +35,7 @@ MonoBehaviour:
         PlayCostAmount: 4
         IsToken: 0
         ShowAsLinked: 0
+        HideAsLinked: 0
         NonBattleAbilities: []
         RuntimeAbilities:
         - rid: 2425735989079048446
@@ -44,6 +45,7 @@ MonoBehaviour:
         MaxHealth: 4
         Attack: 2
         Speed: 1
+        Properties: []
         ViewPrefab: {fileID: 1046069417137952589, guid: daa44952fa050cf4bb6b8d91d00a0e77, type: 3}
         SummonVfx:
           PrePrefab: {fileID: 0}
@@ -68,12 +70,22 @@ MonoBehaviour:
         MaxActivationsPerTurn: 0
         LimitGroup: 0
         Vfx:
-          Kind: 0
-          Prefab: {fileID: 0}
-          HitPrefab: {fileID: 0}
+          Kind: 2
+          Prefab: {fileID: 108410, guid: 31f9fcfbbcecdd24caf0eb7857420dcd, type: 3}
+          HitPrefab: {fileID: 161470, guid: 002697f32e15ab9429e5db328300f83b, type: 3}
           ProjectileSpeed: 12
+          ProjectileScale: 0.5
           MergeArea: 0
-          PlayCasterAnimation: 0
+          Delivery: 0
+          Trajectory: 1
+          BallisticHeight: 2
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
+          PlayCasterAnimation: 1
         Selection: 0
         Count: 1
         Zone: 0
@@ -94,9 +106,9 @@ MonoBehaviour:
     - rid: 2425735989079048450
       type: {class: DealDamageEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
-        Amount: 4
         ConditionRoot:
           rid: 2425735989079048451
+        Amount: 4
     - rid: 2425735989079048451
       type: {class: Condition, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:

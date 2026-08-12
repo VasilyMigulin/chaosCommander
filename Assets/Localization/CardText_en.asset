@@ -3739,7 +3739,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 15980024367669256
-    m_Localized: Shield
+    m_Localized: Fortified
     m_Metadata:
       m_Items: []
   - m_Id: 15980024367669257
@@ -3880,6 +3880,133 @@ MonoBehaviour:
   - m_Id: 16328184764030991
     m_Localized: "Apply to target creature: \xABOn attack: deals 1 damage to all
       enemy creatures\xBB"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16722508702015488
+    m_Localized: Vampirism
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16722508764930048
+    m_Localized: Property. Any damage it deals heals your hero for the same amount
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16722508769124352
+    m_Localized: Master of the Royal Rager
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16722508769124353
+    m_Localized: 'While in hand: at the start of turn, summons 2 Barrack Partygoers
+      1/1/4'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16722508769124354
+    m_Localized: Servant Triplets
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16722508769124355
+    m_Localized: When played, summons two more Triplets 1/2/2
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16722508769124356
+    m_Localized: Servant Triplets
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16722508769124357
+    m_Localized: Annoying Boss
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16722508769124358
+    m_Localized: Champion of the Royal Party
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16722508769124359
+    m_Localized: Royal Executioner
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16722508769124360
+    m_Localized: When you play a creature with 3 or more Attack, summon this creature
+      wherever it is
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16722508769124361
+    m_Localized: Imp King
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16722508769124362
+    m_Localized: 'At the end of turn: deals damage to a random character equal to
+      the number of Imps you''ve summoned this match'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16943876966178816
+    m_Localized: Mutagen Wave
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16943877054259200
+    m_Localized: Transforms all creatures on the battlefield into random ones costing
+      1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16943877054259201
+    m_Localized: Imp Party
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16943877054259202
+    m_Localized: Fills your row with random Imps, they get +1/+1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16943877054259203
+    m_Localized: Hail of Imp Fire
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16943877054259204
+    m_Localized: Deal 3 damage to a random enemy, repeat the effect for each Imp
+      you've summoned this match
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16943877054259205
+    m_Localized: Mini-Imp
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16943877054259206
+    m_Localized: 'At the end of turn: takes 1 damage, deals 1 damage to a random
+      character'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16943877054259207
+    m_Localized: Imp Invasion
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16943877054259208
+    m_Localized: Fill your row with Mini-Imps 1/3/1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16943877054259209
+    m_Localized: Her Majesty the Cobra
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16943877054259210
+    m_Localized: 'When played: deal 1 damage to all characters'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17255609240903680
+    m_Localized: Petty Cardsharp
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17255609370927104
+    m_Localized: 'When played: return the chosen creature to its owner''s hand'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17255609370927105
+    m_Localized: Cellar Vampire
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17255609370927107
+    m_Localized: Count Chompula
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17255609370927108
+    m_Localized: 'When played: look at 3 cards in the opponent''s deck, deal 3 damage
+      to the chosen creature and to the chosen character on the battlefield'
     m_Metadata:
       m_Items: []
   references:

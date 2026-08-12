@@ -20,21 +20,9 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<ManaCostComponent> _manaCostPool  = default;
         readonly EcsPoolInject<HealthCostComponent> _healthCostPool = default;
         readonly EcsPoolInject<OwnerComponent>    _ownerPool     = default;
-        readonly EcsPoolInject<GoldComponent>     _goldPool      = default;
-        readonly EcsPoolInject<ManaComponent>     _manaPool      = default;
         readonly EcsPoolInject<PlayerComponent>   _playerPool    = default;
-        readonly EcsPoolInject<ActiveState>       _activePool    = default;
-        readonly EcsPoolInject<CommanderTag>      _commanderTagPool = default;
-        readonly EcsPoolInject<CommanderCooldownComponent> _commanderCdPool = default;
-        readonly EcsPoolInject<CharmTag>          _charmTagPool  = default;
 
         readonly EcsFilterInject<Inc<HandTag, OwnCardTag>> _handFilter = default;
-        readonly EcsFilterInject<Inc<CharmTag, BoardTag>>  _boardCharms = default;
-
-        // Максимум чар под контролем игрока — то же число, что и pre-cost гейт в RunCastRouterSystem
-        // (там — страховка «не списывать стоимость зря»; здесь — чтобы карта ВООБЩЕ не подсвечивалась
-        // играбельной и не перетаскивалась, а не отменялась уже после драга).
-        const int CharmLimit = 5;
 
         bool _resourceDirty;
 
@@ -153,58 +141,9 @@ namespace Game.Core.Ecs.Systems
             return false;
         }
 
-        private bool IsAffordable(int cardEntity)
-        {
-            if (!_ownerPool.Value.Has(cardEntity)) return false;
-            int ownerEntity = FindPlayerEntity(_ownerPool.Value.Get(cardEntity).OwnerId);
-            if (ownerEntity < 0) return false;
-
-            // Карта доступна к розыгрышу ТОЛЬКО в свой ход. ActiveState висит на активном игроке;
-            // на чужом ходу его нет → карты не подсвечиваются и не перетаскиваются (см. также гейт
-            // в RunCastRouterSystem — defense-in-depth).
-            if (!_activePool.Value.Has(ownerEntity)) return false;
-
-            // Командир на кулдауне (после гибели) — недоступен к розыгрышу (не перетаскивается, серый).
-            // Компонент снимает RunTurnStartSystem на ходу доступности; здесь перечёт дёргают cooldown-события.
-            if (_commanderTagPool.Value.Has(cardEntity) && _commanderCdPool.Value.Has(cardEntity)) return false;
-
-            // Лимит чар (5) — та же проверка, что pre-cost гейт в RunCastRouterSystem, но ЗДЕСЬ она не даёт
-            // карте вообще подсветиться зелёной/перетащиться, а не отменяет розыгрыш постфактум (юзер 2026-08-06:
-            // "лучше, чтобы вообще нельзя было").
-            if (_charmTagPool.Value.Has(cardEntity) && CharmCount(_ownerPool.Value.Get(cardEntity).OwnerId) >= CharmLimit)
-                return false;
-
-            // Маркер альтернативной уплаты (Букмекер и семейство): карта оплачивается НЕ ресурсом →
-            // играбельность = есть ли ЧЕМ платить (жертва для сброса/жертвы/милла; сама карта — не жертва
-            // своего сброса). DamageSelf играбельна всегда (суицид разрешён, HP не гейтим).
-            var altPool = _world.Value.GetPool<AltCostComponent>();
-            if (altPool.Has(ownerEntity))
-                return AltCostUtil.CanPay(_world.Value, altPool.Get(ownerEntity).Kind,
-                                          _ownerPool.Value.Get(cardEntity).OwnerId, cardEntity);
-
-            if (_goldCostPool.Value.Has(cardEntity) && _goldPool.Value.Has(ownerEntity))
-            {
-                ref var gold = ref _goldPool.Value.Get(ownerEntity);
-                return gold.Current >= CostModifierUtil.Effective(_world.Value, ownerEntity, _goldCostPool.Value.Get(cardEntity).Cost);
-            }
-
-            if (_manaCostPool.Value.Has(cardEntity) && _manaPool.Value.Has(ownerEntity))
-            {
-                ref var mana = ref _manaPool.Value.Get(ownerEntity);
-                return mana.Current >= CostModifierUtil.Effective(_world.Value, ownerEntity, _manaCostPool.Value.Get(cardEntity).Cost);
-            }
-
-            // Карта без стоимости — всегда доступна
-            return true;
-        }
-
-        private int CharmCount(int ownerId)
-        {
-            int n = 0;
-            foreach (var e in _boardCharms.Value)
-                if (_ownerPool.Value.Has(e) && _ownerPool.Value.Get(e).OwnerId == ownerId) n++;
-            return n;
-        }
+        // Логика вынесена в CardAffordabilityUtil — её же переиспользует TurnTimerSystem
+        // (шорткат таймера при отсутствии действий у игрока).
+        private bool IsAffordable(int cardEntity) => CardAffordabilityUtil.IsAffordable(_world.Value, cardEntity);
 
         private int FindPlayerEntity(int playerId)
         {

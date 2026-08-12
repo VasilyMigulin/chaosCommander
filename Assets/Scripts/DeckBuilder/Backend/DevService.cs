@@ -38,6 +38,11 @@ namespace Game.Core.Backend
         public static void ResetBlackMarket(Action onDone = null, Action<string> onError = null)
             => FunctionService.Call<object>(BackendConfig.Fn.DevResetBlackMarket, null, () => onDone?.Invoke(), onError);
 
+        /// <summary>Забыть активированные промокоды — ввести те же коды заново. Нативные купоны PlayFab
+        /// это НЕ возвращает (они сгорают в сервисе), только свои кампании из promoConfig.</summary>
+        public static void ResetPromo(Action onDone = null, Action<string> onError = null)
+            => FunctionService.Call<object>(BackendConfig.Fn.DevResetPromo, null, () => onDone?.Invoke(), onError);
+
         [Serializable] class MmrReq  { public int Mmr; }
         [Serializable] class MmrResp { public bool Success; public string Reason; public int Mmr; }
 

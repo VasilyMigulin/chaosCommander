@@ -106,6 +106,19 @@ namespace Game.Core.Ability
             keyPool.Get(abilityEntity).IsReaction = isReaction;   // порядок в очереди: реакция идёт за причиной
             keyPool.Get(abilityEntity).IsSelfTrigger = isSelfTrigger;   // OnCast/OnDie ПРО САМ источник, не реактивный тёзка
 
+            // RepeatAbility (см. RepeatAbility.cs): N НЕЗАВИСИМЫХ активаций одной стадии-шаблона, N —
+            // динамический (CountSource, как у RepeatEffect). Пересчитываем ЗДЕСЬ, на каждое НОВОЕ срабатывание
+            // (а не один раз в OnInit) — снапшот счётчика на момент каста, а не на момент создания карты.
+            var repeatSpecPool = world.GetPool<RepeatAbilitySpecComponent>();
+            if (repeatSpecPool.Has(abilityEntity))
+            {
+                ref var spec = ref repeatSpecPool.Get(abilityEntity);
+                int n = Math.Max(0, AbilityCount.Resolve(world, playerEntity, cardEntity, spec.Source, spec.FixedCount, spec.CountCard, spec.Archetype));
+                var stages = new ChainStage[n];
+                for (int i = 0; i < n; i++) stages[i] = spec.Template;
+                world.GetPool<AbilityChainComponent>().Get(abilityEntity).Stages = stages;
+            }
+
             if (triggerKey != null)
             {
                 var ownerPool = world.GetPool<OwnerComponent>();
@@ -261,39 +274,27 @@ namespace Game.Core.Ability
 
     // === class (OOP) === Лог-эффект для проверки пайплайна: пишет в консоль при применении.
     [Serializable]
-    public sealed class LogEffect : IEffect
+    public sealed class LogEffect : EffectBase
     {
         public string Message = "effect applied";
-        [SerializeReference] public Condition ConditionRoot;
 
-        public void Init(EcsWorld world, int cardEntity, int playerEntity)
-            => ConditionRoot?.Init(new AbilityContext { World = world, CardEntity = cardEntity, PlayerEntity = playerEntity });
-        public void Dispose() => ConditionRoot?.Dispose();
-        public bool IsReady => ConditionRoot == null || ConditionRoot.IsReady;
-
-        public void Apply(EcsWorld world, int cardEntity, int target)
+        public override void Apply(EcsWorld world, int cardEntity, int target)
             => UnityEngine.Debug.Log($"[Ability] LogEffect: {Message} (target={target}, card={cardEntity})");
     }
 
-    // === class (OOP) === Сэмпл-эффект: держит своё составное условие Condition (null = всегда готов).
+    // === class (OOP) === Сэмпл-эффект: наносит урон, опциональное составное условие через EffectBase.
     [Serializable]
-    public sealed class DealDamageEffect : IEffect, IDynamicValue
+    public sealed class DealDamageEffect : EffectBase, IDynamicValue
     {
-        public Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Damage;
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Damage;
         public int Amount = 1;
-        [SerializeReference] public Condition ConditionRoot;
-
-        public void Init(EcsWorld world, int cardEntity, int playerEntity)
-            => ConditionRoot?.Init(new AbilityContext { World = world, CardEntity = cardEntity, PlayerEntity = playerEntity });
-        public void Dispose() => ConditionRoot?.Dispose();
-        public bool IsReady => ConditionRoot == null || ConditionRoot.IsReady;
 
         // Динамическое значение для описания (*N* → урон). Пока = Amount; когда появятся
         // глобальные модификаторы урона — читать их здесь тем же путём, что и Apply.
         public int DynamicValueCount => 1;
         public int GetDynamicValue(int index, EcsWorld world, int cardEntity, int playerEntity) => Amount;
 
-        public void Apply(EcsWorld world, int cardEntity, int target)
+        public override void Apply(EcsWorld world, int cardEntity, int target)
         {
             // Урон наносим через TakeDamageEvent — его обрабатывает TakeDamageSystem
             // (события урона/смерти, DeadTag). Attacker = карта-источник (у неё есть OwnerComponent).
@@ -309,21 +310,15 @@ namespace Game.Core.Ability
 
     // === class (OOP) === NonTarget-эффект: +мана игроку (target = сущность игрока-владельца).
     [Serializable]
-    public sealed class GainManaEffect : ICasterScopedEffect, IDynamicValue
+    public sealed class GainManaEffect : EffectBase, ICasterScopedEffect, IDynamicValue
     {
-        public Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Resource;
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Resource;
         public int Amount = 1;
-        [SerializeReference] public Condition ConditionRoot;
-
-        public void Init(EcsWorld world, int cardEntity, int playerEntity)
-            => ConditionRoot?.Init(new AbilityContext { World = world, CardEntity = cardEntity, PlayerEntity = playerEntity });
-        public void Dispose() => ConditionRoot?.Dispose();
-        public bool IsReady => ConditionRoot == null || ConditionRoot.IsReady;
 
         public int DynamicValueCount => 1;
         public int GetDynamicValue(int index, EcsWorld world, int cardEntity, int playerEntity) => Amount;
 
-        public void Apply(EcsWorld world, int cardEntity, int target)
+        public override void Apply(EcsWorld world, int cardEntity, int target)
         {
             var pool = world.GetPool<ManaComponent>();
             if (!pool.Has(target)) return;   // target = игрок (NonTarget)

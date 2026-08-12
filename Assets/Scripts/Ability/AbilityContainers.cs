@@ -38,6 +38,8 @@ namespace Game.Core.Ability
                 ? Children.All(c => c.IsReady)
                 : Children.Any(c => c.IsReady);
 
+            // ВРЕМЕННО (баг: не подсвечивается рыжим) — видим, дошёл ли пересчёт до КОМПОЗИТА и есть ли подписчики на Changed.
+            UnityEngine.Debug.Log($"[CondHighlight] Condition.Recompute this={GetHashCode()} now={now} wasReady={IsReady} childCount={Children.Count} hasChangedSubscribers={Changed != null}");
             if (now == IsReady) return;
             IsReady = now;
             Changed?.Invoke();

@@ -151,20 +151,27 @@ namespace Game.Core.Ability
         // реально показалась в руке → у неё уже есть PlayCardView-подписчик).
         void WireConditionHighlight(int abilityEntity, int cardEntity)
         {
+            // ВРЕМЕННО (баг: не подсвечивается рыжим) — видим, вызывается ли метод вообще, и что в Effects.
+            UnityEngine.Debug.Log($"[CondHighlight] WireConditionHighlight ENTER ability={abilityEntity} card={cardEntity} effectsCount={Effects?.Count ?? -1}");
             bool any = false;
             foreach (var effect in Effects)
             {
+                UnityEngine.Debug.Log($"[CondHighlight]   effect type={effect?.GetType().Name} isEffectBase={effect is EffectBase} conditionRoot={(effect is EffectBase ebChk ? (ebChk.ConditionRoot == null ? "null" : ebChk.ConditionRoot.GetHashCode().ToString()) : "n/a")}");
                 if (effect is not EffectBase eb || eb.ConditionRoot == null) continue;
                 any = true;
                 var effectRef = eb;
                 void Publish()
                 {
+                    // ВРЕМЕННО (баг: не подсвечивается рыжим) — видим, что ability-слой вообще пытается опубликовать.
+                    UnityEngine.Debug.Log($"[CondHighlight] ability={abilityEntity} card={cardEntity} ready={effectRef.IsReady}");
                     if (effectRef.IsReady) GameEventBus.Publish(new AbilityReadyEvent { AbilityEntity = abilityEntity, CardEntity = cardEntity });
                     else                   GameEventBus.Publish(new AbilityNotReadyEvent { AbilityEntity = abilityEntity, CardEntity = cardEntity });
                 }
                 effectRef.ConditionRoot.Changed += Publish;
                 _conditionUnsubs.Add(() => effectRef.ConditionRoot.Changed -= Publish);
+                UnityEngine.Debug.Log($"[CondHighlight]   SUBSCRIBED conditionRoot={effectRef.ConditionRoot.GetHashCode()} hasSubscribersNow={effectRef.ConditionRoot != null}");
             }
+            UnityEngine.Debug.Log($"[CondHighlight] WireConditionHighlight EXIT ability={abilityEntity} card={cardEntity} any={any}");
             if (!any) return;
 
             GameEventBus.Subscribe<CardPlacedInHandViewEvent>(this, e =>
@@ -173,6 +180,8 @@ namespace Game.Core.Ability
                 bool ready = false;
                 foreach (var effect in Effects)
                     if (effect is EffectBase eb2 && eb2.ConditionRoot != null && eb2.IsReady) { ready = true; break; }
+                // ВРЕМЕННО (баг: не подсвечивается рыжим) — видим, дошёл ли досыл начального состояния при показе карты.
+                UnityEngine.Debug.Log($"[CondHighlight] CardPlacedInHandViewEvent ability={abilityEntity} card={cardEntity} ready={ready}");
                 if (ready) GameEventBus.Publish(new AbilityReadyEvent { AbilityEntity = abilityEntity, CardEntity = cardEntity });
                 else       GameEventBus.Publish(new AbilityNotReadyEvent { AbilityEntity = abilityEntity, CardEntity = cardEntity });
             });

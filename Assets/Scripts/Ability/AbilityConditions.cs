@@ -286,6 +286,9 @@ namespace Game.Core.Ability
         {
             int ownerId = RuleUtil.OwnerId(_ctx.World, _ctx.CardEntity);
             bool now = ownerId >= 0 && Archetype != null && AnyOnBoard(ownerId);
+            // ВРЕМЕННО (баг: карта с ControlsArchetypeOnBoardCondition не подсвечивается рыжим, хотя
+            // архетип на поле есть) — видим ownerId/результат скана/итоговое IsReady на каждый пересчёт.
+            UnityEngine.Debug.Log($"[CondArchetype] card={_ctx.CardEntity} archetype={Archetype?.Key} ownerId={ownerId} now={now} wasReady={IsReady}");
             if (now == IsReady) return;
             IsReady = now;
             Changed?.Invoke();

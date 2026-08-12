@@ -1,3 +1,5 @@
+using System.Text;
+using Game.Core.Backend;
 using Game.Core.Shared;
 
 namespace AwesomeUI.Feature
@@ -61,6 +63,47 @@ namespace AwesomeUI.Feature
         public static string DustAll(int n) => string.Format(T("ui.card.dustAll", "Порвать дубли (×{0})"), n);
         public static string Sold => T("ui.market.sold", "Продано");  // оверлей недоступного оффера чёрного рынка
 
+        // ── Промокоды (крауд-плюшки, кампании) ──
+        public static string PromoTitle       => T("ui.promo.title", "Промокод");
+        public static string PromoHint        => T("ui.promo.hint", "Код из краудфандинговой кампании или акции");
+        public static string PromoPlaceholder => T("ui.promo.placeholder", "Введите промокод");
+        public static string PromoApply       => T("ui.promo.apply", "Активировать");
+        public static string PromoAccepted    => T("ui.promo.accepted", "Промокод принят!");
+
+        /// <summary>Заголовок попапа награды: сервер присылает ключ локализации (promoConfig.titleKey),
+        /// клиент его резолвит. Ключа нет / он неизвестен → нейтральное «Промокод принят!».</summary>
+        public static string PromoRewardTitle(string titleKey)
+            => string.IsNullOrEmpty(titleKey) ? PromoAccepted : T(titleKey, PromoAccepted);
+
+        /// <summary>Однострочная сводка выданного — для тоста, когда попап награды не подключён:
+        /// «+500 Бабосик · Бустеры: 2 · Карты: 3».</summary>
+        public static string RewardSummary(RewardBundle reward)
+        {
+            if (reward == null || reward.IsEmpty) return "";
+            var sb = new StringBuilder();
+
+            if (reward.Currencies != null)
+                foreach (var c in reward.Currencies) AppendPart(sb, $"+{c.Amount} {CurrencyName(c.Code)}");
+
+            if (reward.Boosters != null && reward.Boosters.Count > 0)
+                AppendPart(sb, $"{T("ui.promo.boosters", "Бустеры")}: {reward.Boosters.Count}");
+            if (reward.Avatars != null && reward.Avatars.Count > 0)
+                AppendPart(sb, $"{T("ui.promo.avatars", "Аватары")}: {reward.Avatars.Count}");
+
+            int cards = 0;
+            if (reward.Cards != null)
+                foreach (var c in reward.Cards) cards += c.Amount > 0 ? c.Amount : 1;
+            if (cards > 0) AppendPart(sb, $"{T("ui.promo.cards", "Карты")}: {cards}");
+
+            return sb.ToString();
+        }
+
+        static void AppendPart(StringBuilder sb, string part)
+        {
+            if (sb.Length > 0) sb.Append("   ·   ");
+            sb.Append(part);
+        }
+
         /// <summary>
         /// Код отказа от сервера → человеческий текст. Сервер отвечает кодами (not_enough_currency,
         /// already_owned…), а не фразами: тексты и языки — дело клиента. Неизвестный код показываем как есть,
@@ -90,6 +133,14 @@ namespace AwesomeUI.Feature
                 case "bid_too_low":         return T("ui.err.bid_too_low", "Ставка ниже минимальной");
                 case "not_found":           return T("ui.err.not_found", "Лот не найден");
                 case "not_owner":           return T("ui.err.not_owner", "Это не ваш лот");
+                // Промокоды
+                case "promo_unknown":       return T("ui.err.promo_unknown", "Такого промокода нет");
+                case "promo_used":          return T("ui.err.promo_used", "Этот промокод уже использован");
+                case "promo_expired":       return T("ui.err.promo_expired", "Срок действия промокода истёк");
+                case "promo_not_started":   return T("ui.err.promo_not_started", "Промокод ещё не действует");
+                case "promo_disabled":      return T("ui.err.promo_disabled", "Промокод отключён");
+                case "promo_limit":         return T("ui.err.promo_limit", "Все активации промокода разобрали");
+                case "promo_throttled":     return T("ui.err.promo_throttled", "Слишком много попыток — попробуйте позже");
                 default:                    return reason;
             }
         }

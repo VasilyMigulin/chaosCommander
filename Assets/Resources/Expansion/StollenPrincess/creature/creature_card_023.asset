@@ -36,15 +36,18 @@ MonoBehaviour:
         PlayCostAmount: 3
         IsToken: 0
         ShowAsLinked: 0
+        HideAsLinked: 0
         NonBattleAbilities: []
         RuntimeAbilities:
         - rid: 2425735989079048433
-        Archetypes: []
+        Archetypes:
+        - rid: 2425736124044673370
         TierSource: 0
         Tiers: []
         MaxHealth: 3
         Attack: 2
         Speed: 2
+        Properties: []
         ViewPrefab: {fileID: 8026686172653069236, guid: 5798755a323c0b14691fd7a672890171, type: 3}
         SummonVfx:
           PrePrefab: {fileID: 0}
@@ -73,7 +76,17 @@ MonoBehaviour:
           Prefab: {fileID: 0}
           HitPrefab: {fileID: 0}
           ProjectileSpeed: 12
+          ProjectileScale: 1
           MergeArea: 0
+          Delivery: 0
+          Trajectory: 0
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
           PlayCasterAnimation: 0
         Area: 0
         Zone: 0
@@ -92,6 +105,8 @@ MonoBehaviour:
           rid: 2425735989079048436
         Tracked: 0
         RevertOnSourceDeath: 1
+        Duration: 0
+        ExpireAt: 0
     - rid: 2425735989079048436
       type: {class: BuffStat, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
@@ -101,4 +116,7 @@ MonoBehaviour:
         Permanent: 0
     - rid: 2425735989079048437
       type: {class: AllyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736124044673370
+      type: {class: WorkerArchetype, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 

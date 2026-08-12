@@ -35,21 +35,15 @@ namespace Game.Core.Ability
 
     // === class (OOP) === Лечение цели-существа (до Max). Target — существо.
     [Serializable]
-    public sealed class HealEffect : IEffect, IDynamicValue
+    public sealed class HealEffect : EffectBase, IDynamicValue
     {
-        public Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Heal;
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Heal;
         public int Amount = 1;
-        [SerializeReference] public Condition ConditionRoot;
-
-        public void Init(EcsWorld world, int cardEntity, int playerEntity)
-            => ConditionRoot?.Init(new AbilityContext { World = world, CardEntity = cardEntity, PlayerEntity = playerEntity });
-        public void Dispose() => ConditionRoot?.Dispose();
-        public bool IsReady => ConditionRoot == null || ConditionRoot.IsReady;
 
         public int DynamicValueCount => 1;
         public int GetDynamicValue(int index, EcsWorld world, int cardEntity, int playerEntity) => Amount;
 
-        public void Apply(EcsWorld world, int cardEntity, int target)
+        public override void Apply(EcsWorld world, int cardEntity, int target)
         {
             var pool = world.GetPool<HealthComponent>();
             if (!pool.Has(target)) return;
@@ -63,21 +57,15 @@ namespace Game.Core.Ability
     // (напр. Тайный воздыхатель — «не до конца», теряется при гибели). Permanent=true → переживает смерть.
     // Для снимаемых аур используйте ApplyTrackedBuff/RevertTrackedBuff, а не этот эффект.
     [Serializable]
-    public sealed class BuffStatsEffect : IEffect, IDynamicValue
+    public sealed class BuffStatsEffect : EffectBase, IDynamicValue
     {
         public int AttackBonus = 0;
         public int HealthBonus = 0;
         public int SpeedBonus  = 0;
         public bool Permanent  = false;   // true → ModifiersPermanent (переживает смерть)
-        [SerializeReference] public Condition ConditionRoot;
-
-        public void Init(EcsWorld world, int cardEntity, int playerEntity)
-            => ConditionRoot?.Init(new AbilityContext { World = world, CardEntity = cardEntity, PlayerEntity = playerEntity });
-        public void Dispose() => ConditionRoot?.Dispose();
-        public bool IsReady => ConditionRoot == null || ConditionRoot.IsReady;
 
         // ИИ: знак бонусов определяет роль — минусовые статы = дебафф врага, плюсовые = бафф своих.
-        public AiEffectRole AiRole
+        public override AiEffectRole AiRole
             => (AttackBonus < 0 || HealthBonus < 0 || SpeedBonus < 0) ? AiEffectRole.DebuffEnemy : AiEffectRole.BuffAlly;
 
         // Только НЕнулевые бонусы, в порядке атака→здоровье→скорость — чтобы число токенов *N*
@@ -94,7 +82,7 @@ namespace Game.Core.Ability
             return 0;
         }
 
-        public void Apply(EcsWorld world, int cardEntity, int target)
+        public override void Apply(EcsWorld world, int cardEntity, int target)
         {
             if (AttackBonus != 0)
             {
@@ -132,17 +120,11 @@ namespace Game.Core.Ability
     // === class (OOP) === Уничтожить цель-существо: вешаем DeadTag → DieSystem
     // разруливает (кладбище/возврат командира/limbo токена). Не урон — нет источника.
     [Serializable]
-    public sealed class DestroyEffect : IEffect
+    public sealed class DestroyEffect : EffectBase
     {
-        public Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Removal;
-        [SerializeReference] public Condition ConditionRoot;
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Removal;
 
-        public void Init(EcsWorld world, int cardEntity, int playerEntity)
-            => ConditionRoot?.Init(new AbilityContext { World = world, CardEntity = cardEntity, PlayerEntity = playerEntity });
-        public void Dispose() => ConditionRoot?.Dispose();
-        public bool IsReady => ConditionRoot == null || ConditionRoot.IsReady;
-
-        public void Apply(EcsWorld world, int cardEntity, int target)
+        public override void Apply(EcsWorld world, int cardEntity, int target)
         {
             if (!world.GetPool<CreatureTag>().Has(target)) return;   // только существа
             var dead = world.GetPool<DeadTag>();
@@ -201,30 +183,19 @@ namespace Game.Core.Ability
     // === class (OOP) === Добор карт владельцу. NonTarget — target = сущность игрока,
     // но добор всегда у ВЛАДЕЛЬЦА (кэшируем на ините), а не у произвольной цели.
     [Serializable]
-    public sealed class DrawCardEffect : ICasterScopedEffect, IDynamicValue
+    public sealed class DrawCardEffect : EffectBase, ICasterScopedEffect, IDynamicValue
     {
-        public Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Draw;
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Draw;
         public int Count = 1;
-        [SerializeReference] public Condition ConditionRoot;
-
-        int _playerEntity;
-
-        public void Init(EcsWorld world, int cardEntity, int playerEntity)
-        {
-            _playerEntity = playerEntity;
-            ConditionRoot?.Init(new AbilityContext { World = world, CardEntity = cardEntity, PlayerEntity = playerEntity });
-        }
-        public void Dispose() => ConditionRoot?.Dispose();
-        public bool IsReady => ConditionRoot == null || ConditionRoot.IsReady;
 
         public int DynamicValueCount => 1;
         public int GetDynamicValue(int index, EcsWorld world, int cardEntity, int playerEntity) => Count;
 
-        public void Apply(EcsWorld world, int cardEntity, int target)
+        public override void Apply(EcsWorld world, int cardEntity, int target)
         {
             var pool = world.GetPool<DrawCardEvent>();
-            if (pool.Has(_playerEntity)) pool.Get(_playerEntity).Count += Count;   // накапливаем
-            else                          pool.Add(_playerEntity).Count  = Count;
+            if (pool.Has(PlayerEntity)) pool.Get(PlayerEntity).Count += Count;   // накапливаем
+            else                        pool.Add(PlayerEntity).Count  = Count;
         }
     }
 
@@ -282,30 +253,19 @@ namespace Game.Core.Ability
 
     // === class (OOP) === +золото владельцу (cap Max). NonTarget-стиль, но владелец — кэш.
     [Serializable]
-    public sealed class GainGoldEffect : ICasterScopedEffect, IDynamicValue
+    public sealed class GainGoldEffect : EffectBase, ICasterScopedEffect, IDynamicValue
     {
-        public Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Resource;
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Resource;
         public int Amount = 1;
-        [SerializeReference] public Condition ConditionRoot;
-
-        int _playerEntity;
-
-        public void Init(EcsWorld world, int cardEntity, int playerEntity)
-        {
-            _playerEntity = playerEntity;
-            ConditionRoot?.Init(new AbilityContext { World = world, CardEntity = cardEntity, PlayerEntity = playerEntity });
-        }
-        public void Dispose() => ConditionRoot?.Dispose();
-        public bool IsReady => ConditionRoot == null || ConditionRoot.IsReady;
 
         public int DynamicValueCount => 1;
         public int GetDynamicValue(int index, EcsWorld world, int cardEntity, int playerEntity) => Amount;
 
-        public void Apply(EcsWorld world, int cardEntity, int target)
+        public override void Apply(EcsWorld world, int cardEntity, int target)
         {
             var pool = world.GetPool<GoldComponent>();
-            if (!pool.Has(_playerEntity)) return;
-            ref var gold = ref pool.Get(_playerEntity);
+            if (!pool.Has(PlayerEntity)) return;
+            ref var gold = ref pool.Get(PlayerEntity);
             // Даём ТОЛЬКО Current, Max не трогаем (не перманентный доход — разовая прибавка). БЕЗ клампа к
             // Max: доход хода (RunTurnStartSystem) синхронно рефиллит Current=Max в САМОМ НАЧАЛЕ хода, а этот
             // эффект чаще всего приходит из интерактивного выбора того же OnTurnStartTrigger (напр. Развилка →
@@ -314,7 +274,7 @@ namespace Game.Core.Ability
             // на СЛЕДУЮЩЕМ старте хода тот же RunTurnStartSystem безусловно перезапишет Current=Max — лишнее
             // само сгорает (как «Освежающий напиток» с временной маной), отдельного возврата не нужно.
             gold.Current += Amount;
-            EffectUtil.RaiseResource(world, _playerEntity, EnumService.ResourceType.Gold, gold.Current, gold.Max);
+            EffectUtil.RaiseResource(world, PlayerEntity, EnumService.ResourceType.Gold, gold.Current, gold.Max);
         }
     }
 

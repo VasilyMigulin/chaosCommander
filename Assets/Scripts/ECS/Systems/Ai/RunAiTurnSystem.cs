@@ -102,6 +102,8 @@ namespace Game.Core.Ecs.Systems
         readonly EcsFilterInject<Inc<MovingTag>> _moving = default;
         readonly EcsFilterInject<Inc<AttackAnimPendingTag>> _attackAnim = default;
         readonly EcsFilterInject<Inc<PendingOnCastComponent>> _pendingOnCast = default;
+        readonly EcsFilterInject<Inc<ChainStateComponent>> _chainResolving = default;   // цепочка (RunChainSystem) в процессе
+        readonly EcsFilterInject<Inc<DeathAnimPendingTag>> _deathAnim = default;         // существо ещё доигрывает анимацию смерти
 
         const int FrontRow = 0;
         const int BackRow = 1;
@@ -168,7 +170,9 @@ namespace Game.Core.Ecs.Systems
             || _castsInProgress.Value.GetEntitiesCount() > 0
             || _moving.Value.GetEntitiesCount() > 0
             || _attackAnim.Value.GetEntitiesCount() > 0
-            || _pendingOnCast.Value.GetEntitiesCount() > 0;
+            || _pendingOnCast.Value.GetEntitiesCount() > 0
+            || _chainResolving.Value.GetEntitiesCount() > 0
+            || _deathAnim.Value.GetEntitiesCount() > 0;
 
         // ── контекст хода (пересобирается на каждое действие — доска меняется) ─────────
 

@@ -52,6 +52,13 @@ namespace Game.Core.Ecs.Systems
         // TurnEndedEvent (см. ForceResolveForEndedTurn), но это отдельная система/следующий тик; ждём, пока
         // её запись реально уйдёт (без этого гейта Step B хендофил бы ход, пока discover-запрос ещё жив).
         readonly EcsFilterInject<Inc<DiscoverRequestComponent>> _discoverPending = default;
+        // Цепочка (RunChainSystem — AbilityChain/RepeatAbility) ещё резолвится (снаряд летит между стадиями
+        // ИЛИ мир оседает между ними) — без этого гейта Step B хендофил бы ход до применения её эффектов.
+        readonly EcsFilterInject<Inc<ChainStateComponent>> _chainResolving = default;
+        // Существо ещё доигрывает ВИЗУАЛЬНУЮ анимацию смерти — DeadTag/BoardTag снимает DieSystem
+        // синхронно ДО запуска анимации, поэтому без этого гейта ход мог хендофиться раньше, чем
+        // предсмертный эффект (напр. Водонос → Водица в руку) успевал прийти (баг 2026-08-11, PvE).
+        readonly EcsFilterInject<Inc<DeathAnimPendingTag>> _deathAnim = default;
 
         public void Run(IEcsSystems systems)
         {
@@ -171,6 +178,8 @@ namespace Game.Core.Ecs.Systems
             Append(sb, "CastEvent",               _castInProgress.Value.GetEntitiesCount());
             Append(sb, "PendingOnCastComponent",  _pendingOnCast.Value.GetEntitiesCount());
             Append(sb, "DiscoverRequestComponent", _discoverPending.Value.GetEntitiesCount());
+            Append(sb, "ChainStateComponent",      _chainResolving.Value.GetEntitiesCount());
+            Append(sb, "DeathAnimPendingTag",      _deathAnim.Value.GetEntitiesCount());
             UnityEngine.Debug.LogError(sb.ToString());
             _waitingSince = -1f;
         }
@@ -187,6 +196,8 @@ namespace Game.Core.Ecs.Systems
             || _castRequest.Value.GetEntitiesCount()    > 0   // форс-плей: каст запрошен, ещё не разрезолвлен
             || _castInProgress.Value.GetEntitiesCount() > 0   // каст в процессе (до OnCast-способностей)
             || _pendingOnCast.Value.GetEntitiesCount()  > 0   // #2: призыв не «дозрел» до OnCast
-            || _discoverPending.Value.GetEntitiesCount() > 0; // раскопка не резолвнута (окно/форс-выбор)
+            || _discoverPending.Value.GetEntitiesCount() > 0  // раскопка не резолвнута (окно/форс-выбор)
+            || _chainResolving.Value.GetEntitiesCount() > 0   // цепочка (RunChainSystem) ещё резолвится
+            || _deathAnim.Value.GetEntitiesCount() > 0;       // существо ещё доигрывает анимацию смерти
     }
 }

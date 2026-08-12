@@ -50,6 +50,7 @@ MonoBehaviour:
         MaxHealth: 2
         Attack: 1
         Speed: 2
+        Properties: []
         ViewPrefab: {fileID: 8026686172653069236, guid: b90aea61042f8d74a84f6a5d03a52746, type: 3}
         SummonVfx:
           PrePrefab: {fileID: 0}
@@ -78,7 +79,17 @@ MonoBehaviour:
           Prefab: {fileID: 0}
           HitPrefab: {fileID: 0}
           ProjectileSpeed: 12
+          ProjectileScale: 1
           MergeArea: 0
+          Delivery: 0
+          Trajectory: 0
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
           PlayCasterAnimation: 0
     - rid: 3
       type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
@@ -94,7 +105,8 @@ MonoBehaviour:
         Modifiers:
         - rid: 5
         Zone: 1
-        Filters: []
+        Filters:
+        - rid: 2425736124044673371
     - rid: 5
       type: {class: RememberCardForLaterPlayEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
@@ -115,7 +127,17 @@ MonoBehaviour:
           Prefab: {fileID: 0}
           HitPrefab: {fileID: 0}
           ProjectileSpeed: 12
+          ProjectileScale: 1
           MergeArea: 0
+          Delivery: 0
+          Trajectory: 0
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
           PlayCasterAnimation: 0
     - rid: 7
       type: {class: OnDieTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
@@ -125,3 +147,6 @@ MonoBehaviour:
       data:
         ConditionRoot:
           rid: -2
+    - rid: 2425736124044673371
+      type: {class: CasterOwnedTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 

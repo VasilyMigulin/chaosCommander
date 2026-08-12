@@ -109,25 +109,10 @@ namespace Game.Core.Ability
 
         // Снять ВСЕ баффы, выданные аурой источника (по трекингу), и очистить трекинг. Мёртвые цели
         // уже очищены DieSystem → RemoveModifier по ним просто no-op. Общий для авто- и ручного ревёрта.
+        // Логика в Ecs.Components.AppliedBuffs (видна и Ecs.Systems — RunTransformSystem откатывает эту же
+        // ауру при полиморфе источника, а Ecs.Systems не видит эту сборку) — тут просто делегируем.
         internal static void RevertTrackedBuffs(EcsWorld world, int source)
-        {
-            var buffsPool = world.GetPool<AppliedBuffsComponent>();
-            if (!buffsPool.Has(source)) return;
-            ref var buffs = ref buffsPool.Get(source);
-            if (buffs.Records == null) return;
-
-            var atkPool = world.GetPool<AttackComponent>();
-            var hpPool  = world.GetPool<HealthComponent>();
-            var spdPool = world.GetPool<SpeedComponent>();
-
-            foreach (var r in buffs.Records)
-            {
-                if (r.Atk   != 0 && atkPool.Has(r.Target)) { ref var a = ref atkPool.Get(r.Target); a.RemoveModifier(r.Atk); }
-                if (r.Hp    != 0 && hpPool.Has(r.Target))  { ref var h = ref hpPool.Get(r.Target);  h.RemoveModifier(r.Hp); GameEventBus.Publish(new CreatureHealthChangedEvent { CreatureEntity = r.Target }); }
-                if (r.Speed != 0 && spdPool.Has(r.Target)) { ref var s = ref spdPool.Get(r.Target); s.RemoveModifier(r.Speed); }
-            }
-            buffs.Records.Clear();
-        }
+            => Game.Core.Ecs.Components.AppliedBuffs.RevertAll(world, source);
     }
 
     // === class (OOP) === РУЧНОЙ ревёрт ауры (NonTarget). Нужен ТОЛЬКО если у ApplyTrackedBuffEffect

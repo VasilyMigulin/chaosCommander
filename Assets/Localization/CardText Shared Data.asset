@@ -3771,6 +3771,130 @@ MonoBehaviour:
     m_Key: card.stolen_princess.99.desc
     m_Metadata:
       m_Items: []
+  - m_Id: 16722508702015488
+    m_Key: ui.keyword.vampirism.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16722508764930048
+    m_Key: ui.keyword.vampirism.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16722508769124352
+    m_Key: card.stolen_princess.102.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16722508769124353
+    m_Key: card.stolen_princess.102.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16722508769124354
+    m_Key: card.stolen_princess.103.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16722508769124355
+    m_Key: card.stolen_princess.103.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16722508769124356
+    m_Key: card.stolen_princess.104.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16722508769124357
+    m_Key: card.stolen_princess.105.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16722508769124358
+    m_Key: card.stolen_princess.106.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16722508769124359
+    m_Key: card.stolen_princess.107.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16722508769124360
+    m_Key: card.stolen_princess.107.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16722508769124361
+    m_Key: card.stolen_princess.108.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16722508769124362
+    m_Key: card.stolen_princess.108.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16943876966178816
+    m_Key: card.stolen_princess.109.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16943877054259200
+    m_Key: card.stolen_princess.109.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16943877054259201
+    m_Key: card.stolen_princess.110.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16943877054259202
+    m_Key: card.stolen_princess.110.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16943877054259203
+    m_Key: card.stolen_princess.111.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16943877054259204
+    m_Key: card.stolen_princess.111.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16943877054259205
+    m_Key: card.stolen_princess.112.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16943877054259206
+    m_Key: card.stolen_princess.112.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16943877054259207
+    m_Key: card.stolen_princess.113.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16943877054259208
+    m_Key: card.stolen_princess.113.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16943877054259209
+    m_Key: card.stolen_princess.114.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16943877054259210
+    m_Key: card.stolen_princess.114.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17255609240903680
+    m_Key: card.stolen_princess.115.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17255609370927104
+    m_Key: card.stolen_princess.115.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17255609370927105
+    m_Key: card.stolen_princess.116.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17255609370927106
+    m_Key: card.stolen_princess.116.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17255609370927107
+    m_Key: card.stolen_princess.117.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17255609370927108
+    m_Key: card.stolen_princess.117.desc
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

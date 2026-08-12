@@ -669,13 +669,22 @@ namespace Game.Core.Mono
             transform.DOPunchScale(Vector3.one * -0.12f, 0.18f, 6, 0.6f);   // лёгкое «сжатие» от удара
         }
 
-        public void PlayDeath()
+        /// <param name="onFinished">Опц. колбэк на РЕАЛЬНОЕ завершение анимации смерти (тот же FinishEvent/
+        /// таймаут-фолбэк, что гасит вьюху) — DieSystem вешает сюда снятие DeathAnimPendingTag, чтобы гейты
+        /// «мир осел» (конец хода и т.п.) не срабатывали раньше, чем смерть визуально доиграла.</param>
+        public void PlayDeath(Action onFinished = null)
         {
             _isDying = true;   // ДО всего остального — гейтит PlayHit() из SetStats() в этом же кадре (см. SetStats)
 
+            void Finish()
+            {
+                HideAfterDeath();
+                onFinished?.Invoke();
+            }
+
             if (animator != null && HasParam(DeathHash))
             {
-                _currentFinish = HideAfterDeath;
+                _currentFinish = Finish;
                 animator.SetTrigger(DeathHash);
                 // Гасим вьюшку, когда анимация смерти закончится (Animation Event "FinishEvent" через реле).
                 // Страховка по таймауту — если ивента в клипе нет, всё равно выключим.
@@ -688,7 +697,7 @@ namespace Game.Core.Mono
                 // а плавно ужимаем и гасим. Вьюшку не уничтожаем — просто выключаем (HideAfterDeath).
                 transform.DOKill();
                 transform.DOScale(Vector3.zero, 0.35f).SetEase(Ease.InBack)
-                    .OnComplete(HideAfterDeath);
+                    .OnComplete(Finish);
             }
         }
 

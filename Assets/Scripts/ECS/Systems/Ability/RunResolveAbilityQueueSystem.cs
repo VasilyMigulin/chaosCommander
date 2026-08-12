@@ -147,9 +147,18 @@ namespace Game.Core.Ecs.Systems
             // и без этой проверки кастер всё равно проигрывал бы анимацию/VFX «в никуда» (эффект и так не
             // применится, но выглядело бы как сработавшая способность). NonTarget/Self всегда дают ≥1 цель
             // (игрок-владелец/сам кастер), так их анимация не задевается.
+            // КАСТЕР УЖЕ МЁРТВ (DeadTag): GetCasterView проверяет только activeInHierarchy — если кастер
+            // погиб МГНОВЕНИЕ назад (напр. добит чужой способностью того же конца хода) и его вьюха ещё
+            // физически активна (Death-анимация доигрывает), она пройдёт эту проверку. PlayAbilityCast тогда
+            // перезапишет _currentFinish (ОБЩЕЕ поле конца анимации — см. CreatureView) поверх Death'ового
+            // Finish-колбэка → HideAfterDeath/DeathAnimPendingTag-снятие никогда не вызовутся, а вместо
+            // анимации смерти кастер молча триггерит "Cast" (баг: Мини-черт исчезает без анимации смерти,
+            // если чужой рандом-урон конца хода добивает его, пока его СОБСТВЕННАЯ способность ещё в очереди).
+            var deadPoolCheck = world.GetPool<DeadTag>();
+            bool casterAlive = !deadPoolCheck.Has(ownerPool.Get(first).CardEntity);
             var vfxPoolCheck = world.GetPool<AbilityVfxComponent>();
             bool hasTargets = (queuedPool.Get(first).Targets?.Length ?? 0) > 0;
-            if (hasTargets && vfxPoolCheck.Has(first) && vfxPoolCheck.Get(first).Spec?.PlayCasterAnimation == true)
+            if (casterAlive && hasTargets && vfxPoolCheck.Has(first) && vfxPoolCheck.Get(first).Spec?.PlayCasterAnimation == true)
             {
                 var casterView = GetCasterView(world, ownerPool.Get(first).CardEntity);
                 if (casterView != null && casterView.HasCastAnimation)
@@ -236,18 +245,12 @@ namespace Game.Core.Ecs.Systems
             ResolveAbility(world, first);
         }
 
-        // Запуск снаряда: публикуем ProjectileVfxEvent на каждую цель, вешаем pending (гейт) + блок инпута.
-        // Эффекты НЕ применяем и AbilityQueuedState НЕ снимаем — ждём прилёта.
+        // Запуск снаряда: ОДНО ProjectileVfxEvent на ВСЕ цели разом (Delivery решает, лететь параллельно
+        // или эстафетой — презентер), вешаем pending (гейт) + блок инпута. Эффекты НЕ применяем и
+        // AbilityQueuedState НЕ снимаем — ждём ОДНОГО VfxArrivedEvent по завершении всей доставки.
         void LaunchProjectile(EcsWorld world, int ability, int caster, int[] targets, VfxSpec spec)
         {
-            Vector3 from = WorldPos(world, caster);
-            foreach (var t in targets)
-                GameEventBus.Publish(new ProjectileVfxEvent
-                {
-                    From = from, To = WorldPos(world, t),
-                    Prefab = spec.Prefab, HitPrefab = spec.HitPrefab,
-                    Speed = spec.ProjectileSpeed, Token = ability,
-                });
+            VfxEmitUtil.LaunchProjectile(world, _boardView.Value, spec, caster, targets, ability);
 
             ref var pending = ref world.GetPool<AbilityCastPendingComponent>().Add(ability);
             pending.Deadline = Time.time + ProjectileTimeout;
@@ -286,16 +289,18 @@ namespace Game.Core.Ecs.Systems
         }
 
         // Прилёт снаряда (или форс по таймауту): снимаем pending, разблокируем инпут, применяем эффекты.
+        // skipRecompute=true — снаряд уже ФИЗИЧЕСКИ долетел до конкретной, заранее выбранной цели; нельзя
+        // пере-роллить её здесь (см. ResolveAbility).
         void LandAndResolve(EcsWorld world, int ability)
         {
             world.GetPool<AbilityCastPendingComponent>().Del(ability);
             GameEventBus.Publish(new InputRestoredEvent());
-            ResolveAbility(world, ability);
+            ResolveAbility(world, ability, skipRecompute: true);
         }
 
         // Применение эффектов + сбор синка + снапшот + косметика (Beam/Area). Вызывается мгновенно
         // (Beam/Area/без-VFX) или на прилёте снаряда (Projectile).
-        void ResolveAbility(EcsWorld world, int first)
+        void ResolveAbility(EcsWorld world, int first, bool skipRecompute = false)
         {
             var queuedPool = world.GetPool<AbilityQueuedState>();
             var ownerPool  = world.GetPool<AbilityOwnerComponent>();
@@ -317,7 +322,13 @@ namespace Game.Core.Ecs.Systems
             // Так соблюдается порядок: призыв раньше → существо учитывается; бафф/урон раньше → нет (его ещё нет).
             // ТОЛЬКО на АКТИВЕ: пассив реплеит финальный набор целей по ключам (AbilityResolvedNetEvent) — пересбор
             // у него дал бы рассинхрон. Selected/TriggerSubject/NonTarget/Self пересбор НЕ трогает (вернёт null).
-            if (TurnGate.IsLocalActive(world))
+            //
+            // skipRecompute (баг 2026-08-11): снаряд (LaunchProjectile) уже отправлен ЛЕТЕТЬ в targets ДО
+            // этого вызова — для Random-выбора пересбор здесь означает ВТОРОЙ независимый бросок кубика
+            // (не «подтверждение» той же цели, а новый ролл), из-за чего эффект резолвился в ДРУГУЮ цель,
+            // чем та, куда визуально прилетел снаряд. LandAndResolve (вызывается ТОЛЬКО на прилёте снаряда/
+            // по таймауту) просит пропустить пересбор — targets остаются ТЕМИ ЖЕ, что летели.
+            if (!skipRecompute && TurnGate.IsLocalActive(world))
             {
                 var recomputed = RunAbilityTargetingSystem.RecomputeNonInteractive(world, first);
                 if (recomputed != null) targets = recomputed;
@@ -498,73 +509,9 @@ namespace Game.Core.Ecs.Systems
 
         // Публикует косметику Beam/Area (Projectile запускается в LaunchProjectile с токеном ожидания).
         void EmitVfx(EcsWorld world, VfxSpec spec, int caster, int[] targets)
-        {
-            if (spec == null) return;
+            => VfxEmitUtil.EmitInstantVfx(world, _boardView.Value, spec, caster, targets);
 
-            // Kind=None, но задан HitPrefab — простая вспышка на КАЖДОЙ цели без луча/области/снаряда (нет
-            // геометрии каст→цель, просто «эффект попадания»; напр. Голубой волшебник: мана себе).
-            if (spec.Kind == VfxKind.None)
-            {
-                if (spec.HitPrefab == null) return;
-                foreach (var t in targets)
-                    GameEventBus.Publish(new HitVfxEvent { At = WorldPos(world, t), Prefab = spec.HitPrefab });
-                return;
-            }
-
-            if (spec.Prefab == null) return;
-            var bv = _boardView.Value;
-
-            switch (spec.Kind)
-            {
-                case VfxKind.Beam:
-                    Vector3 from = WorldPos(world, caster);
-                    foreach (var t in targets)
-                        GameEventBus.Publish(new BeamVfxEvent
-                        { From = from, To = WorldPos(world, t), Prefab = spec.Prefab, HitPrefab = spec.HitPrefab });
-                    break;
-
-                case VfxKind.Area:
-                    var centers = new Vector3[targets.Length];
-                    for (int i = 0; i < targets.Length; i++) centers[i] = WorldPos(world, targets[i]);
-                    GameEventBus.Publish(new AreaVfxEvent
-                    { CellCenters = centers, CellSize = bv.CellSize, Prefab = spec.Prefab, HitPrefab = spec.HitPrefab, Merge = spec.MergeArea });
-                    break;
-            }
-        }
-
-        // Мировая позиция сущности для VFX: клетка борда → аватар (игрок) → инстанс вью → аватар владельца
-        // (спелл из руки) → центр доски (фолбэк).
-        Vector3 WorldPos(EcsWorld world, int entity)
-        {
-            var bv = _boardView.Value;
-
-            var posPool = world.GetPool<BoardPositionComponent>();
-            if (posPool.Has(entity))
-            {
-                ref var p = ref posPool.Get(entity);
-                var cell = bv.GetCell(p.Row, p.Col, p.OwnerId);
-                if (cell != null) return cell.transform.position;
-            }
-
-            var playerPool = world.GetPool<PlayerComponent>();
-            if (playerPool.Has(entity))
-            {
-                var ac = bv.GetAvatarCell(playerPool.Get(entity).PlayerId);
-                if (ac != null) return ac.transform.position;
-            }
-
-            var viewPool = world.GetPool<ViewRefComponent>();
-            if (viewPool.Has(entity) && viewPool.Get(entity).View != null)
-                return viewPool.Get(entity).View.transform.position;
-
-            var ownerPool = world.GetPool<OwnerComponent>();
-            if (ownerPool.Has(entity))
-            {
-                var ac = bv.GetAvatarCell(ownerPool.Get(entity).OwnerId);
-                if (ac != null) return ac.transform.position;
-            }
-
-            return bv.BoardCenter;
-        }
+        // Мировая позиция сущности для VFX (см. VfxEmitUtil.WorldPos — общая логика).
+        Vector3 WorldPos(EcsWorld world, int entity) => VfxEmitUtil.WorldPos(world, _boardView.Value, entity);
     }
 }

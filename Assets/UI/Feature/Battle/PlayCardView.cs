@@ -617,6 +617,8 @@ namespace AwesomeUI.Feature.Battle
 
         private void OnAbilityReadyChanged(CardAbilityReadyChangedEvent evt)
         {
+            // ВРЕМЕННО (баг: не подсвечивается рыжим) — видим ВСЕ входящие события и матч по CardEntity.
+            UnityEngine.Debug.Log($"[CondHighlight] PlayCardView.OnAbilityReadyChanged evt.CardEntity={evt.CardEntity} this.CardEntity={CardEntity} ready={evt.IsReady} match={evt.CardEntity == CardEntity}");
             if (evt.CardEntity != CardEntity) return;
             _isAbilityReady = evt.IsReady;
             SetHighlight(CardHighlightEffect.HighlightType.AbilityReady, _isAbilityReady);

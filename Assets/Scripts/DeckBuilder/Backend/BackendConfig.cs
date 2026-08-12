@@ -52,6 +52,9 @@ namespace Game.Core.Backend
             // Распыление карты → Обрывки (по редкости)
             public const string DustCard         = "DustCard";
 
+            // Промокоды: свои кампании (Title Data promoConfig) + нативные купоны PlayFab — одним вызовом
+            public const string RedeemPromo      = "RedeemPromo";
+
             // Рейтинг (Elo по взаимному подтверждению исходов, см. RatingService)
             public const string GetRating        = "GetRating";
             public const string ReportMatchResult = "ReportMatchResult";
@@ -65,6 +68,7 @@ namespace Game.Core.Backend
             public const string DevResetJournal      = "DevResetJournal";
             public const string DevCompleteTasks     = "DevCompleteTasks";
             public const string DevResetBlackMarket  = "DevResetBlackMarket";
+            public const string DevResetPromo        = "DevResetPromo";      // забыть активированные промокоды
 
             // REVIEW-билд для издателя: пометить аккаунт (тег review_account) + выдать стартовые бустеры.
             // Серверный гейт — Title Data reviewSetup=true. См. InitState.IsReviewBuild.

@@ -31,6 +31,12 @@ namespace Game.Core.Ability
         [Tooltip("Модификаторы порождённого существа (умрёт через N, +X/+X, ...). Пусто → просто создание.")]
         [SerializeReference] public List<IEffect> SummonModifiers = new();
 
+        [Tooltip("Свой эффект ПОЯВЛЕНИЯ у самой способности призыва (портал/аура/финальный аккорд) — " +
+                 "ЗАМЕНЯЕТ и встроенный SummonVfx карты-модели порождённого существа, и дефолтный фолбэк " +
+                 "(DefaultAbilityVfxConfig.DefaultSummonVfxPrefab). Пусто (ни одной фазы) — существо " +
+                 "появляется как обычно (свой SummonVfx / дефолт).")]
+        public Game.Core.Shared.Interface.SummonVfxSpec AbilitySummonVfx;
+
         public override void Init(EcsWorld world, int cardEntity, int playerEntity)
         {
             base.Init(world, cardEntity, playerEntity);
@@ -45,6 +51,40 @@ namespace Game.Core.Ability
             if (SummonModifiers != null)
                 foreach (var mod in SummonModifiers)
                     mod?.Dispose();
+        }
+
+        // Модификаторы, реально идущие в GenerateCardEffect.SpawnToBoard: SummonModifiers + (если задан)
+        // неявный оверрайд SummonVfxComponent порождённой сущности спекой AbilitySummonVfx. Оверрайд НЕ
+        // авторится как элемент SummonModifiers — добавляется автоматически, последним (гарантированно
+        // перезаписывает то, что успела выставить CardCreatureModel.OnInit до применения модификаторов).
+        protected List<IEffect> EffectiveModifiers()
+        {
+            if (AbilitySummonVfx == null || !AbilitySummonVfx.HasAny) return SummonModifiers;
+            var list = new List<IEffect>(SummonModifiers ?? new List<IEffect>()) { new OverrideSummonVfxEffect(AbilitySummonVfx) };
+            return list;
+        }
+    }
+
+    // === class (OOP) === Служебный модификатор (не авторится в инспекторе, см. SpawnOnBoardEffect.
+    // EffectiveModifiers): ставит ОДНОРАЗОВЫЙ AbilitySummonVfxOverrideComponent на порождённую сущность —
+    // SpawnCreatureViewSystem прочтёт и СРАЗУ УДАЛИТ его при первом спауне вида. НЕ трогаем сам
+    // SummonVfxComponent (интринзик существа) — иначе оверрайд пережил бы баунс/воскрешение (те снимают
+    // только ViewSpawnedTag) и подменял бы вид существу навсегда даже при возврате на стол НЕ через эту
+    // способность.
+    sealed class OverrideSummonVfxEffect : IEffect
+    {
+        readonly Game.Core.Shared.Interface.SummonVfxSpec _spec;
+        public OverrideSummonVfxEffect(Game.Core.Shared.Interface.SummonVfxSpec spec) => _spec = spec;
+
+        public void Init(EcsWorld world, int cardEntity, int playerEntity) { }
+        public void Dispose() { }
+        public bool IsReady => true;
+
+        public void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            var pool = world.GetPool<AbilitySummonVfxOverrideComponent>();
+            if (pool.Has(target)) pool.Get(target).Spec = _spec;
+            else pool.Add(target).Spec = _spec;
         }
     }
 
@@ -66,7 +106,7 @@ namespace Game.Core.Ability
 
             int col = BoardFrontRow.ClaimFreeCell(world, ownerId);
             if (col < 0) return;   // фронт полон
-            GenerateCardEffect.SpawnToBoard(world, cardEntity, c.ExpansionId, c.CardId, BoardFrontRow.FrontRow, col, SummonModifiers);
+            GenerateCardEffect.SpawnToBoard(world, cardEntity, c.ExpansionId, c.CardId, BoardFrontRow.FrontRow, col, EffectiveModifiers());
         }
     }
 
@@ -127,7 +167,7 @@ namespace Game.Core.Ability
                 exp = pick.ExpansionId; cardId = pick.CardId;
                 GeneratedCardChannel.Record(exp, cardId);
             }
-            GenerateCardEffect.SpawnToBoard(world, cardEntity, exp, cardId, BoardFrontRow.FrontRow, col, SummonModifiers);
+            GenerateCardEffect.SpawnToBoard(world, cardEntity, exp, cardId, BoardFrontRow.FrontRow, col, EffectiveModifiers());
         }
     }
 
@@ -151,12 +191,13 @@ namespace Game.Core.Ability
             if (!ownerPool.Has(cardEntity)) return;
             int ownerId = ownerPool.Get(cardEntity).OwnerId;
 
+            var mods = EffectiveModifiers();
             int placed = 0;
             while (MaxCount <= 0 || placed < MaxCount)
             {
                 int col = BoardFrontRow.ClaimFreeCell(world, ownerId);
                 if (col < 0) break;
-                GenerateCardEffect.SpawnToBoard(world, cardEntity, exp, id, BoardFrontRow.FrontRow, col, SummonModifiers);
+                GenerateCardEffect.SpawnToBoard(world, cardEntity, exp, id, BoardFrontRow.FrontRow, col, mods);
                 placed++;
             }
         }

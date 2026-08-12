@@ -26,6 +26,8 @@ namespace Game.Core.Ecs.Systems
         readonly EcsFilterInject<Inc<MovingTag>>              _moving         = default;
         readonly EcsFilterInject<Inc<AttackAnimPendingTag>>   _attackAnim     = default;
         readonly EcsFilterInject<Inc<PendingOnCastComponent>> _pendingOnCast  = default;   // #2: призыв → OnCast
+        readonly EcsFilterInject<Inc<ChainStateComponent>>    _chainResolving = default;   // цепочка (RunChainSystem) в процессе
+        readonly EcsFilterInject<Inc<DeathAnimPendingTag>>    _deathAnim      = default;   // существо ещё доигрывает анимацию смерти
 
         public void Run(IEcsSystems systems)
         {
@@ -36,7 +38,9 @@ namespace Game.Core.Ecs.Systems
                      || _abilityQueued.Value.GetEntitiesCount() > 0
                      || _moving.Value.GetEntitiesCount()        > 0
                      || _attackAnim.Value.GetEntitiesCount()    > 0
-                     || _pendingOnCast.Value.GetEntitiesCount() > 0;   // #2: ждём призыв → OnCast
+                     || _pendingOnCast.Value.GetEntitiesCount() > 0    // #2: ждём призыв → OnCast
+                     || _chainResolving.Value.GetEntitiesCount() > 0   // цепочка ещё резолвится (снаряд/оседание стадий)
+                     || _deathAnim.Value.GetEntitiesCount()      > 0;  // баг 2026-08-11: ход не начинался, пока смерть доигрывает
 
             if (busy) return;
 

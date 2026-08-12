@@ -58,11 +58,21 @@ MonoBehaviour:
         MaxActivationsPerTurn: 0
         LimitGroup: 0
         Vfx:
-          Kind: 0
-          Prefab: {fileID: 0}
+          Kind: 3
+          Prefab: {fileID: 184608, guid: 9edc33f62cf3ae849badc4cc12fe5f8a, type: 3}
           HitPrefab: {fileID: 1636806931387756, guid: 448e8d4f82f29da4298ec7ad31825184, type: 3}
           ProjectileSpeed: 12
-          MergeArea: 0
+          ProjectileScale: 1
+          MergeArea: 1
+          Delivery: 0
+          Trajectory: 0
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
           PlayCasterAnimation: 0
         Area: 2
         Zone: 0
@@ -78,9 +88,9 @@ MonoBehaviour:
     - rid: 5
       type: {class: DealDamageEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
-        Amount: 5
         ConditionRoot:
           rid: -2
+        Amount: 5
     - rid: 6
       type: {class: AbilityToSelf, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
@@ -91,11 +101,21 @@ MonoBehaviour:
         MaxActivationsPerTurn: 0
         LimitGroup: 0
         Vfx:
-          Kind: 0
-          Prefab: {fileID: 0}
+          Kind: 3
+          Prefab: {fileID: 184608, guid: 9edc33f62cf3ae849badc4cc12fe5f8a, type: 3}
           HitPrefab: {fileID: 1636806931387756, guid: 448e8d4f82f29da4298ec7ad31825184, type: 3}
           ProjectileSpeed: 12
-          MergeArea: 0
+          ProjectileScale: 1
+          MergeArea: 1
+          Delivery: 0
+          Trajectory: 0
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
           PlayCasterAnimation: 0
     - rid: 7
       type: {class: SetCostWhileConditionEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}

@@ -406,9 +406,17 @@ namespace Game.Core.Ecs.Systems
             // Модификатор мог УВЕСТИ карту прямо здесь («выберите и разыграйте» — PlayTargetCardEffect,
             // «Приглашение»): существо уже едет на борд (MoveCardToBoardEvent), спелл/чара ждёт авто-каста
             // (AutoCastComponent). Регистрировать такую карту в Dest-зоне нельзя — фантом руки/колоды
-            // (тот же случай, что StillInDeclaredZone у CreateCardSystem).
+            // (тот же случай, что StillInDeclaredZone у CreateCardSystem). ТРЕТИЙ случай — RememberCardFor-
+            // LaterPlayEffect (Контрабандист/Королевский шут): карта должна остаться ЗОНО-НЕЗАВИСИМОЙ до
+            // OnDie (см. RememberedPlayTargetComponent) — у FromPool-раскопки это уже работает (материализация
+            // идёт через CreateCardSystem, у которого есть тот же гейт), а у DiscoverFromZoneEffect карта
+            // СУЩЕСТВУЮЩАЯ и идёт через PlacePicked — без этой проверки Dest ниже тут же возвращал её в
+            // руку/колоду/кладбище, стирая эффект «запомнить» (баг: Контрабандист клал карту в руку сразу,
+            // а не по смерти).
+            var rememberPool = _world.Value.GetPool<RememberedPlayTargetComponent>();
             bool leftByModifier = _world.Value.GetPool<MoveCardToBoardEvent>().Has(card)
-                               || _world.Value.GetPool<AutoCastComponent>().Has(card);
+                               || _world.Value.GetPool<AutoCastComponent>().Has(card)
+                               || (rememberPool.Has(r.SourceCardEntity) && rememberPool.Get(r.SourceCardEntity).Entity == card);
 
             if (!leftByModifier)
                 switch (r.Dest)

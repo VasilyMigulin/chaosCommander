@@ -1,0 +1,54 @@
+{
+  "_comment": "Title Data key = 'promoConfig'. Читает CloudScript handlers.RedeemPromo. Это конфиг ТОЛЬКО для СВОИХ кампанийных кодов (многоразовых, с лимитом на аккаунт). Персональные одноразовые коды бэкеров сюда НЕ пишутся — они генерятся нативными купонами PlayFab (Game Manager → Economy → Catalogs → Coupons), сервер сам фолбэчит на них, если код не найден здесь.",
+  "_reward": "reward: currencies[{code,amount}] / cards[{itemId,amount}] / boosters[itemId] / avatars[itemId] — тот же формат, что в taskConfig. Все itemId НИЖНИМ РЕГИСТРОМ.",
+  "_fields": "code — как игрок вводит (регистр и дефисы при сверке игнорируются). perAccount: сколько раз может активировать ОДИН аккаунт (0 = без лимита). globalLimit: общий потолок активаций (0 = без потолка). from/until — окно в UTC ISO (можно опустить). tag — тег игрока в PlayFab (сегментация + вечный статус, инвентарь его не теряет). titleKey — ключ локализации для заголовка попапа награды.",
+
+  "couponCatalog": "main",
+  "maxAttemptsPerHour": 12,
+  "couponTitleKey": "ui.promo.founder_title",
+
+  "_couponTags": "itemId предмета, который выдаёт купон → тег игрока. Работает и для обёртки-бандла.",
+  "couponTags": {
+    "bundle_founder_bronze": "founder_bronze",
+    "bundle_founder_silver": "founder_silver",
+    "bundle_founder_gold": "founder_gold"
+  },
+
+  "codes": [
+    {
+      "code": "SHH-LAUNCH",
+      "enabled": false,
+      "perAccount": 1,
+      "globalLimit": 5000,
+      "until": "2026-12-31T23:59:59Z",
+      "titleKey": "ui.promo.launch_title",
+      "reward": {
+        "currencies": [ { "code": "GD", "amount": 500 } ],
+        "boosters": [ "booster_standard", "booster_standard" ]
+      }
+    },
+    {
+      "code": "PLANETA",
+      "enabled": false,
+      "perAccount": 1,
+      "globalLimit": 0,
+      "titleKey": "ui.promo.founder_title",
+      "tag": "founder_bronze",
+      "reward": {
+        "currencies": [ { "code": "GD", "amount": 1000 }, { "code": "GM", "amount": 100 } ],
+        "boosters": [ "booster_standard", "booster_standard", "booster_standard" ],
+        "avatars": [ "avatar_founder_bronze" ]
+      }
+    },
+    {
+      "code": "TEST-PROMO",
+      "enabled": false,
+      "perAccount": 0,
+      "globalLimit": 0,
+      "titleKey": "ui.promo.title",
+      "reward": {
+        "currencies": [ { "code": "GD", "amount": 100 } ]
+      }
+    }
+  ]
+}

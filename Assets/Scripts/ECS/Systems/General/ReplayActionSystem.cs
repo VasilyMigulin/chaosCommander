@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Game.Core.Ecs.Components;
 using Game.Core.Events;
+using Game.Core.Mono;
 using Game.Core.Network;
 using Game.Core.Shared.Interface;
 using Leopotam.EcsLite;
@@ -43,6 +44,8 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<DeadTag>              _deadPool      = default;
         readonly EcsPoolInject<AbilityEffectContainerComponent> _abilityEffectPool = default;
         readonly EcsPoolInject<AbilityChainComponent> _abilityChainPool = default;
+        readonly EcsPoolInject<AbilityVfxComponent> _abilityVfxPool = default;
+        readonly EcsCustomInject<BoardView> _boardView = default;
         readonly EcsPoolInject<DeckComponent>  _deckPool     = default;
         readonly EcsPoolInject<HandComponent>  _handPool     = default;
         readonly EcsPoolInject<DeckTag>        _deckTagPool  = default;
@@ -364,6 +367,11 @@ namespace Game.Core.Ecs.Systems
         /// эффекты (урон) ре-ранятся; недетерминированная генерация (GainRandomCardEffect) берёт
         /// присланные идентичности из GeneratedCardChannel. KilledCount — из снапшота (не пересчитываем).
         /// Эффекты стадии лежат в AbilityChainComponent (ChainStage.Effects = IEffect, видны Systems).
+        ///
+        /// VFX (2026-08-11): RunChainSystem (у которого эмиссия VFX стадии) крутится ТОЛЬКО у активного
+        /// клиента — пассив раньше применял эффекты молча, без единого снаряда/луча/хита на экране
+        /// оппонента. Эмитим ТУ ЖЕ косметику здесь, отдельно: Projectile — token=-1 (эффекты уже применены
+        /// синхронно из снапшота выше, ждать прилёта нечего — снаряд летит чисто на вид).
         /// </summary>
         private void ApplyChainStage(int abilityEntity, int card, int stepIndex, List<int> targets,
                                      int killedCount, string[] genExps, int[] genIds)
@@ -387,6 +395,17 @@ namespace Game.Core.Ecs.Systems
                             eff.Apply(_world.Value, card, t);
 
             GeneratedCardChannel.ClearReplay();
+
+            if (targets.Count > 0 && _abilityVfxPool.Value.Has(abilityEntity) && _boardView.Value != null)
+            {
+                var spec = _abilityVfxPool.Value.Get(abilityEntity).Spec;
+                var targetsArr = targets.ToArray();
+                if (spec != null && spec.Kind == VfxKind.Projectile && spec.Prefab != null)
+                    VfxEmitUtil.LaunchProjectile(_world.Value, _boardView.Value, spec, card, targetsArr, -1);
+                else
+                    VfxEmitUtil.EmitInstantVfx(_world.Value, _boardView.Value, spec, card, targetsArr);
+            }
+
             Debug.Log($"[Replay] Chain stage: card={card} step={stepIndex} targets={targets.Count} killed={killedCount}");
         }
 

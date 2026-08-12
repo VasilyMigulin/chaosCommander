@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
   m_Name: creature_card_000
   m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
   CardData:
     rid: 8401024898135228492
   references:
@@ -27,12 +28,24 @@ MonoBehaviour:
         Rules: []
         Effects:
         - rid: 1051486475324227774
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
         Vfx:
-          Kind: 0
-          Prefab: {fileID: 0}
-          HitPrefab: {fileID: 131758, guid: 8385b03242e9e7447b9f870756a377b1, type: 3}
+          Kind: 2
+          Prefab: {fileID: 1692925882083106, guid: d2e12f11e1f9a8f41a018e2f56fd9589, type: 3}
+          HitPrefab: {fileID: 1636806931387756, guid: 448e8d4f82f29da4298ec7ad31825184, type: 3}
           ProjectileSpeed: 12
+          ProjectileScale: 1
           MergeArea: 0
+          Delivery: 0
+          Trajectory: 1
+          BallisticHeight: 2
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
           PlayCasterAnimation: 1
         Selection: 0
         Count: 1
@@ -44,6 +57,7 @@ MonoBehaviour:
         - rid: 1051486475324227770
         - rid: 1051486475324227771
         - rid: 1051486475324227772
+        IncludeCommanderInZones: 0
     - rid: 1051486475324227768
       type: {class: NotSelfTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
@@ -61,13 +75,14 @@ MonoBehaviour:
       data: 
     - rid: 1051486475324227773
       type: {class: OnTurnEndTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
-      data: 
+      data:
+        Zone: 1
     - rid: 1051486475324227774
       type: {class: DealDamageEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
-        Amount: 1
         ConditionRoot:
           rid: -2
+        Amount: 1
     - rid: 1051486497689043255
       type: {class: ImpArchetype, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
@@ -87,15 +102,18 @@ MonoBehaviour:
         PlayCostAmount: 1
         IsToken: 0
         ShowAsLinked: 1
-        MulliganStartingHand: 0
-        MulliganUnlimitedReplace: 0
+        HideAsLinked: 0
+        NonBattleAbilities: []
         RuntimeAbilities:
         - rid: 1051486475324227767
         Archetypes:
         - rid: 1051486497689043255
+        TierSource: 0
+        Tiers: []
         MaxHealth: 2
         Attack: 1
         Speed: 1
+        Properties: []
         ViewPrefab: {fileID: 1046069417137952589, guid: f06aa6138ec1c4140ac9af21f0ddde7e, type: 3}
         SummonVfx:
           PrePrefab: {fileID: 0}

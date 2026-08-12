@@ -85,8 +85,12 @@ namespace Game.Core.Ecs.Systems
             // ── Старая начинка долой: способности (клоны отписываются от шины), архетипы, теги модели.
             // СНАЧАЛА откатываем ауры, выданные ЭТИМ существом: после DisposeAbilities эффекты отписаны от
             // CreatureDiedEvent, а смерти тут и не происходит — баффы остались бы на целях навсегда
-            // (баг 2026-08-02: полиморф «Начальника смены» оставлял «Работяге» повышенные статы).
+            // (баг 2026-08-02: полиморф «Начальника смены» оставлял «Работяге» повышенные статы). ДВА
+            // параллельных трекинга ауры в проекте (AddBuffEffect{Tracked} → TrackedBuffsComponent,
+            // ApplyTrackedBuffEffect/«Начальник смены» → AppliedBuffsComponent) — откатываем ОБА, иначе
+            // полиморф через второй механизм (напр. Чертовщина) воспроизводит тот же баг заново.
             TrackedBuffs.RevertAll(world, target);
+            AppliedBuffs.RevertAll(world, target);
             CardModel.DisposeAbilities(world, target);
             if (world.GetPool<ArchetypeComponent>().Has(target)) world.GetPool<ArchetypeComponent>().Del(target);
             SetRarityTag(world, target, oldRarity, on: false);

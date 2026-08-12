@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
   m_Name: creature_card_050
   m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
   CardData:
     rid: 2419359952424665192
   references:
@@ -35,14 +36,18 @@ MonoBehaviour:
         PlayCostAmount: 1
         IsToken: 0
         ShowAsLinked: 1
-        MulliganStartingHand: 0
-        MulliganUnlimitedReplace: 0
+        HideAsLinked: 0
+        NonBattleAbilities: []
         RuntimeAbilities:
         - rid: 2419359952424665193
-        Archetypes: []
+        Archetypes:
+        - rid: 2425736124044673237
+        TierSource: 0
+        Tiers: []
         MaxHealth: 2
         Attack: 1
         Speed: 2
+        Properties: []
         ViewPrefab: {fileID: 1046069417137952589, guid: f06aa6138ec1c4140ac9af21f0ddde7e, type: 3}
         SummonVfx:
           PrePrefab: {fileID: 0}
@@ -64,12 +69,24 @@ MonoBehaviour:
         Rules: []
         Effects:
         - rid: 2419359952424665195
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
         Vfx:
-          Kind: 0
-          Prefab: {fileID: 0}
+          Kind: 2
+          Prefab: {fileID: 108410, guid: 31f9fcfbbcecdd24caf0eb7857420dcd, type: 3}
           HitPrefab: {fileID: 131758, guid: 8385b03242e9e7447b9f870756a377b1, type: 3}
           ProjectileSpeed: 12
+          ProjectileScale: 1
           MergeArea: 0
+          Delivery: 0
+          Trajectory: 1
+          BallisticHeight: 2
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
           PlayCasterAnimation: 1
         Selection: 0
         Count: 1
@@ -81,15 +98,16 @@ MonoBehaviour:
         - rid: 2419359952424665198
         - rid: 2419359952424665199
         - rid: 2419359952424665200
+        IncludeCommanderInZones: 0
     - rid: 2419359952424665194
       type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
     - rid: 2419359952424665195
       type: {class: DealDamageEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
-        Amount: 1
         ConditionRoot:
           rid: -2
+        Amount: 1
     - rid: 2419359952424665196
       type: {class: AllyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
@@ -104,4 +122,7 @@ MonoBehaviour:
       data: 
     - rid: 2419359952424665200
       type: {class: OpponentTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736124044673237
+      type: {class: ImpArchetype, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 

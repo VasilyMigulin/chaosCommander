@@ -34,6 +34,7 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<OwnerComponent>         _ownerPool   = default;
         readonly EcsPoolInject<ViewSpawnFromComponent> _spawnFromPool = default;
         readonly EcsPoolInject<SummonVfxComponent>     _summonVfxPool = default;
+        readonly EcsPoolInject<AbilitySummonVfxOverrideComponent> _abilitySummonVfxPool = default;
 
         // Дефолтная спека «пыль на клетке» для существ БЕЗ собственной SummonVfx (кэш — не плодим по объекту
         // на каждый спавн). Собирается лениво из DefaultAbilityVfxConfig.DefaultSummonVfxPrefab.
@@ -70,11 +71,22 @@ namespace Game.Core.Ecs.Systems
                     creatureView?.FitToBounds(cell?.FitBounds);   // автоскейл под клетку — ДО поворота/поп-анимации
                 creatureView?.SetOwnerFacing(pos.OwnerId);   // владелец 2 смотрит на оппонента
 
-                // Спека появления (Pre-портал/Resolve-аура/Finish-аккорд): своя с CardCreatureModel
-                // (леги/экзоты) или дефолтная «пыль на клетке» из DefaultAbilityVfxConfig (все остальные).
-                var summonVfx = _summonVfxPool.Value.Has(entity)
-                    ? _summonVfxPool.Value.Get(entity).Spec
-                    : DefaultSummonSpec();
+                // Спека появления (Pre-портал/Resolve-аура/Finish-аккорд): приоритет — ОДНОРАЗОВЫЙ оверрайд
+                // способности призыва (AbilitySummonVfx у SpawnOnBoardEffect, потребляется сразу же — не
+                // переживает будущие респауны вида), иначе своя с CardCreatureModel (леги/экзоты), иначе
+                // дефолтная «пыль на клетке» из DefaultAbilityVfxConfig.
+                SummonVfxSpec summonVfx;
+                if (_abilitySummonVfxPool.Value.Has(entity))
+                {
+                    summonVfx = _abilitySummonVfxPool.Value.Get(entity).Spec;
+                    _abilitySummonVfxPool.Value.Del(entity);
+                }
+                else
+                {
+                    summonVfx = _summonVfxPool.Value.Has(entity)
+                        ? _summonVfxPool.Value.Get(entity).Spec
+                        : DefaultSummonSpec();
+                }
 
                 // Драг-розыгрыш: вью «въезжает» из точки под пальцем (ViewSpawnFrom) в клетку + Invoke.
                 // Иначе — обычное появление с поп-масштабом (PlaySummon). Оба держат IsSummoning (гейт OnCast).

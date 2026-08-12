@@ -35,6 +35,7 @@ namespace AwesomeUI.Feature
         string _cardId = "standard_50";   // id ВСЕГДА нижним регистром: standard_<cardId> (как в каталоге/CardConfig)
         string _avatarId = "avatar_prince";
         string _mmr = "";
+        string _promoCode = "TEST-PROMO";   // код из Title Data promoConfig (или купон PlayFab)
         string _status = "";
 
         string[] _expIds;   // список экспеншенов (из CardConfig) для дропдауна «выдать коллекцию»
@@ -191,6 +192,15 @@ namespace AwesomeUI.Feature
             if (GUILayout.Button("Сбросить журнал")) DevService.ResetJournal(() => { Ok("журнал сброшен"); RefreshJournal(); }, Fail);
             GUILayout.EndHorizontal();
             if (GUILayout.Button("Сбросить чёрный рынок")) DevService.ResetBlackMarket(() => Ok("чёрный рынок сброшен"), Fail);
+
+            GUILayout.Space(8);
+            GUILayout.Label("ПРОМОКОД", Bold);
+            _promoCode = GUILayout.TextField(_promoCode);
+            if (GUILayout.Button("Активировать промокод")) RedeemPromo();
+            // Сбрасывает только СВОИ кампании (promoConfig). Нативный купон PlayFab сгорает в сервисе —
+            // повторно его не активировать даже здесь, для теста генерь новую пачку купонов.
+            if (GUILayout.Button("Забыть активированные (свои кампании)"))
+                DevService.ResetPromo(() => Ok("промокоды сброшены"), Fail);
             if (GUILayout.Button("Рассчитать аукционы (крон)"))
                 AuctionService.ResolveNow(r => Ok($"рассчитано лотов: {(r != null ? r.Resolved : 0)}"), Fail);
 
@@ -288,6 +298,21 @@ namespace AwesomeUI.Feature
             var sb = new System.Text.StringBuilder();
             foreach (var c in reward.Cards) { if (sb.Length > 0) sb.Append(", "); sb.Append(c.ItemId).Append(" x").Append(c.Amount); }
             return sb.ToString();
+        }
+
+        // Промокод «как из UI»: сервер решает всё сам, здесь только показываем итог и, если попап
+        // награды есть в сцене, гоняем его же — чтобы проверить и выдачу, и визуал разом.
+        void RedeemPromo()
+        {
+            PromoService.Redeem(_promoCode,
+                r =>
+                {
+                    if (r == null || !r.Success) { Fail($"отказ: {r?.Reason}"); return; }
+                    Ok($"принят: {UIStrings.RewardSummary(r.Reward)}");
+                    var v = FindObjectOfType<RewardPopupView>();
+                    if (v != null) v.Show(r.Reward, UIStrings.PromoRewardTitle(r.TitleKey));
+                },
+                Fail);
         }
 
         void ShowRewardPopup()
