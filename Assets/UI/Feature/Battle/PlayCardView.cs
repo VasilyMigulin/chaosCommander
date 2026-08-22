@@ -37,14 +37,17 @@ namespace AwesomeUI.Feature.Battle
 
         [Header("Hold Zoom (предпросмотр карты в руке удержанием)")]
         [Tooltip("Во сколько раз увеличить карту при удержании (чтобы прочитать текст).")]
-        [SerializeField] private float _zoomScale = 1.6f;
-        [Tooltip("Подъём карты вверх при зуме, px — чтобы палец не закрывал текст.")]
-        [SerializeField] private float _zoomLift = 90f;
-        [SerializeField] private float _zoomDuration = 0.15f;
+        [SerializeField] private float _zoomScale = 2.1f;
+        [Tooltip("Куда улетает карта при удержании — точка на экране в долях от его размера (0..1, " +
+                 "считая от нижнего левого угла). 0.5/0.5 — геометрический центр; по умолчанию чуть выше " +
+                 "центра, чтобы не оказаться над нижней панелью руки, откуда карта стартовала.")]
+        [SerializeField] private Vector2 _zoomScreenAnchor = new Vector2(0.5f, 0.53f);
+        [SerializeField] private float _zoomDuration = 0.22f;
         [Tooltip("Порог сдвига пальца (px экрана) ПОСЛЕ срабатывания зума, после которого предпросмотр " +
                  "сменяется обычным перетаскиванием карты. Меньшие движения зум игнорирует — иначе любое " +
-                 "дрожание руки схлопывало бы уже открытый предпросмотр.")]
-        [SerializeField] private float _zoomDragThreshold = 60f;
+                 "дрожание руки схлопывало бы уже открытый предпросмотр. С учётом того, что карта теперь " +
+                 "улетает к центру экрана (далеко от пальца), порог сделан щедрее.")]
+        [SerializeField] private float _zoomDragThreshold = 90f;
 
         public int  CardEntity { get; private set; }
         public bool IsOccupied { get; private set; }
@@ -79,7 +82,7 @@ namespace AwesomeUI.Feature.Battle
         // ── Zoom-предпросмотр (hold-механика CardBaseView: OnHoldTriggered/OnHoldReleased) ──
         // Работает для ЛЮБОЙ карты руки — доступной и недоступной к розыгрышу (это чтение, не действие).
         private bool    _zoomActive;
-        private Vector3 _zoomStartLocalPos;   // ТОЛЬКО база для подъёма (lift ОТНОСИТЕЛЬНО неё), не «куда вернуть»
+        private Vector3 _zoomStartLocalPos;   // база для возврата, если экранную точку не удалось разрешить
 
         /// <summary>Зумится ли карта прямо сейчас — CardLayout.RefreshFan замораживает её на время
         /// удержания (не трогает позицию/поворот/порядок), пока палец не отпущен.</summary>
@@ -89,8 +92,14 @@ namespace AwesomeUI.Feature.Battle
         /// у зума: позиция карты «под пальцем», а не в слоте веера, второй твин туда — гонка с драгом.</summary>
         public bool IsDragging => _isDragging;
 
-        /// <summary>Удержание ≥ порога: карта увеличивается, приподнимается и выходит на первый план —
-        /// прочитать текст. Розыгрыш при этом не стартует (драг начнётся только с движения пальца).</summary>
+        // Пока карта зумится, потеря наведения — следствие того, что карта САМА улетела из-под пальца
+        // к центру экрана, а не что палец соскользнул с неё. Схлопнуть предпросмотр должно только
+        // реальное отпускание (OnPointerUp) или переход в настоящий драг (см. CancelZoom в OnDrag).
+        protected override bool SuppressExitRelease => _zoomActive;
+
+        /// <summary>Удержание ≥ порога: карта улетает к центру экрана, укрупняется и выходит на первый
+        /// план — прочитать текст вдали от пальца, который иначе его же и закрывает. Розыгрыш при этом
+        /// не стартует (драг начнётся только с движения пальца, см. _zoomDragThreshold).</summary>
         protected override void OnHoldTriggered()
         {
             if (!IsOccupied || _isDragging || _pendingPlay || _zoomActive) return;
@@ -101,7 +110,32 @@ namespace AwesomeUI.Feature.Battle
             _rectTransform.SetAsLastSibling();   // поверх соседних карт
             _rectTransform.DOKill();
             _rectTransform.DOScale(_zoomScale, _zoomDuration).SetEase(Ease.OutCubic);
-            _rectTransform.DOLocalMoveY(_zoomStartLocalPos.y + _zoomLift, _zoomDuration).SetEase(Ease.OutCubic);
+            _rectTransform.DOLocalMove(ZoomTargetLocalPos(), _zoomDuration).SetEase(Ease.OutCubic);
+            // Карта читается лицом к игроку, а не под своим наклоном в веере — тот наклон нужен только
+            // ВНУТРИ строя (см. CardLayout.GetFanPose), у предпросмотра ему взяться неоткуда не должно.
+            // Возврат к наклону веера делает CancelZoom (через CardLayout.RefreshFanNow/SnapCardIntoFan).
+            _rectTransform.DOLocalRotate(Vector3.zero, _zoomDuration).SetEase(Ease.OutCubic);
+        }
+
+        // Точка предпросмотра — экранный центр (см. _zoomScreenAnchor), а не «поднять карту над своим
+        // местом»: у краевых карт веера подъём на месте всё равно оставлял карту у края экрана, где
+        // половина текста уезжала за рамку/палец. Считаем заново при каждом срабатывании (не кэшируем) —
+        // ориентация/разрешение экрана могли смениться между удержаниями.
+        private Vector3 ZoomTargetLocalPos() => ScreenPointToLocalPos(
+            new Vector2(Screen.width * _zoomScreenAnchor.x, Screen.height * _zoomScreenAnchor.y), _zoomStartLocalPos);
+
+        // Перевод экранной точки в локальные координаты родителя карты — тот же приём, что и у
+        // CardLayout.ResolveDealFrom. Общий хелпер: зовёт и ZoomTargetLocalPos (точка предпросмотра),
+        // и переход зум→драг в OnDrag (подхват карты под текущим пальцем).
+        private Vector3 ScreenPointToLocalPos(Vector2 screenPoint, Vector3 fallback)
+        {
+            var parent = _rectTransform.parent as RectTransform;
+            if (parent == null) return fallback;
+
+            Camera cam = _canvas != null && _canvas.renderMode != RenderMode.ScreenSpaceOverlay ? _canvas.worldCamera : null;
+            return RectTransformUtility.ScreenPointToLocalPointInRectangle(parent, screenPoint, cam, out var local)
+                ? new Vector3(local.x, local.y, 0f)
+                : fallback;
         }
 
         /// <summary>Палец отпущен/увели после сработавшего удержания — плавно вернуть карту на место.</summary>
@@ -116,13 +150,24 @@ namespace AwesomeUI.Feature.Battle
         // тогда указывал бы на СТАРОЕ место — карта визуально проваливалась под уже переехавших
         // соседей и путала свой sibling-индекс (баг 2026-08-04). Вместо этого спрашиваем у CardLayout
         // АКТУАЛЬНУЮ позу. Масштаб — не вееровое свойство, его как был, так и возвращаем сами.
-        private void CancelZoom(bool instant)
+        // repositionToFan=false — старт настоящего драга ПОСЛЕ зума (см. OnDrag): карту подхватываем ровно
+        // там, где она сейчас (в центре экрана, куда улетела на удержании), а не телепортируем сперва
+        // обратно в слот веера. С «подъёмом на месте» (до 2026-08-17) этот скачок был на десяток пикселей и
+        // не читался; теперь карта летит через весь экран — мгновенный прыжок назад «в слот» и обратно под
+        // палец выглядел как «дёрнуло на место», хотя это ещё не отпускание, а самое начало перетаскивания.
+        private void CancelZoom(bool instant, bool repositionToFan = true)
         {
             _zoomDragPending = false;   // зума больше нет — незачем ждать порог сдвига для несуществующего зума
             if (!_zoomActive) return;
             _zoomActive = false;
 
             _rectTransform.DOKill();
+
+            if (!repositionToFan)
+            {
+                _rectTransform.localScale = Vector3.one;   // масштаб — не вееровое свойство, гасим сами
+                return;                                     // позицию/поворот НЕ трогаем — драг продолжит отсюда
+            }
 
             if (instant || !gameObject.activeInHierarchy)
             {
@@ -299,6 +344,45 @@ namespace AwesomeUI.Feature.Battle
             });
         }
 
+        /// <summary>Замешивание в колоду: та же дуговая механика, что у PlayDrawInAnimation (два
+        /// DOLocalMove с Out/In-изингом сшиваются в одну плавную кривую через промежуточную точку), но
+        /// прогнутая ВНИЗ, а не вверх — карта ныряет, а не взлетает. 1) Уход вниз-в-сторону до точки
+        /// зависания + рост крупным планом. 2) Зависание — читаемая пауза (holdDuration), как у форс-каста
+        /// добора (CardLayout.ShowcaseTail._autoPlayHoldDuration) — дать игроку прочитать, ЧТО именно
+        /// замешивается. 3) Уход в offscreen-точку колоды (реверс направления добора — «ушло туда, откуда
+        /// приходят карты»), схлопывание (уменьшение + фейд) вместо посадки в слот.
+        /// from — точка появления (обычно позиция источника эффекта), to — offscreen-точка добора
+        /// (_dealInOffset у CardLayout).</summary>
+        public void PlayShuffleToDeckAnimation(Vector3 from, Vector3 to, float riseDuration, float holdDuration, float awayDuration, System.Action onComplete = null)
+        {
+            _rectTransform.DOKill();
+            _rectTransform.SetAsLastSibling();
+            if (_canvasGroup != null) _canvasGroup.blocksRaycasts = false;
+
+            // Прогиб ВНИЗ (в отличие от PlayDrawInAnimation, где апекс выше обеих точек) — ниже обеих точек.
+            Vector3 dip = new Vector3((from.x + to.x) * 0.5f, Mathf.Min(from.y, to.y) - 180f, 0f);
+
+            _rectTransform.localPosition = from;
+            _rectTransform.localScale    = Vector3.one * 0.55f;
+            _rectTransform.localRotation = Quaternion.identity;
+            if (_canvasGroup != null) _canvasGroup.alpha = 1f;
+
+            var seq = DOTween.Sequence();
+            seq.Append(_rectTransform.DOLocalMove(dip, riseDuration).SetEase(Ease.OutQuad));
+            seq.Join(_rectTransform.DOScale(1.5f, riseDuration).SetEase(Ease.OutCubic));
+            seq.AppendInterval(holdDuration);
+            seq.Append(_rectTransform.DOLocalMove(to, awayDuration).SetEase(Ease.InQuad));
+            seq.Join(_rectTransform.DOScale(0.2f, awayDuration).SetEase(Ease.InCubic));
+            if (_canvasGroup != null) seq.Join(_canvasGroup.DOFade(0f, awayDuration).SetEase(Ease.InCubic));
+            seq.OnComplete(() =>
+            {
+                if (_canvasGroup != null) { _canvasGroup.alpha = 1f; _canvasGroup.blocksRaycasts = true; }
+                _rectTransform.localScale    = Vector3.one;
+                _rectTransform.localRotation = Quaternion.identity;
+                onComplete?.Invoke();
+            });
+        }
+
         public void PlayDiscardAnimation(System.Action onComplete, float duration = 1f)
         {
             _zoomActive = false;   // дискард (в т.ч. эффектом оппонента ПОКА карту держат) главнее зума
@@ -340,8 +424,13 @@ namespace AwesomeUI.Feature.Battle
             });
         }
 
-        /// <summary>Очистить View и деактивировать для повторного использования.</summary>
-        public virtual void ClearCard()
+        /// <summary>Очистить View и деактивировать для повторного использования. <paramref name="keepEntity"/> —
+        /// НЕ сбрасывать CardEntity: нужно командиру, чей UI-слот прячется, пока он на столе (ClearCard тут не
+        /// «отдать слот другой карте», а «временно спрятать СВОЮ же»), а тем временем ECS-события на его
+        /// entity (напр. CommanderOnCooldownUIEvent при возврате) продолжают приходить и матчатся по CardEntity
+        /// независимо от того, вызвал ли CardLayout.SetCard уже свой обратный показ — раньше сброс в -1 ронял
+        /// такое событие НАВСЕГДА (оно одноразовое, не повторяется), если оно успевало прийти раньше показа.</summary>
+        public virtual void ClearCard(bool keepEntity = false)
         {
             // Компонент уже уничтожен (teardown сцены/выход из приложения: SourceLayout.Dispose приходит
             // после разрушения объектов) — обращение к .gameObject кинуло бы NullReferenceException прямо
@@ -355,7 +444,7 @@ namespace AwesomeUI.Feature.Battle
             _dragToPlace  = false;
             if (_canvasGroup != null) { _canvasGroup.DOKill(); _canvasGroup.alpha = 1f; _canvasGroup.blocksRaycasts = true; }
             gameObject.SetActive(false);
-            CardEntity      = -1;
+            if (!keepEntity) CardEntity = -1;
             IsOccupied      = false;
             IsSelected      = false;
             _isAffordable   = false;
@@ -422,11 +511,24 @@ namespace AwesomeUI.Feature.Battle
                 if (Vector2.Distance(eventData.position, _zoomDragStartScreenPos) < _zoomDragThreshold) return;
 
                 _zoomDragPending = false;
-                CancelZoom(instant: true);   // мгновенно схлопнуть зум — карта ещё стояла на месте, не «уезжала»
-                if (!IsOccupied || !_isAffordable) return;   // недоступна — зум снят, драг не начинаем
+
+                if (!IsOccupied || !_isAffordable)
+                {
+                    // Недоступна — драга не будет, ведём как обычное отпускание (плавный возврат в слот
+                    // веера). ВАЖНО звать именно так (repositionToFan остаётся true по умолчанию) — раньше
+                    // тут снимали зум БЕЗ возврата в слот и без старта драга, и карта застревала «сжатой»
+                    // на месте, где её застал порог (баг юзера, скрин: карта висит уменьшенная и мёртвая).
+                    CancelZoom(instant: false);
+                    return;
+                }
+
+                // Подхватываем карту под текущим пальцем (а не оставляем висеть в старой зум-точке — это
+                // уже отдельный кадр с новой позицией пальца) и сразу готовим её к перетаскиванию.
+                CancelZoom(instant: true, repositionToFan: false);
+                _rectTransform.localPosition = ScreenPointToLocalPos(eventData.position, _rectTransform.localPosition);
                 StartRealDrag();
                 // Эту дельту (уже потраченную на «примерку» порога) не проматываем в позицию — драг
-                // просто продолжит со СЛЕДУЮЩЕГО кадра от текущей (уже верной, снятой в StartRealDrag) точки.
+                // просто продолжит со СЛЕДУЮЩЕГО кадра от текущей (уже верной) точки.
             }
 
             if (!_isDragging) return;

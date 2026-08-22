@@ -157,6 +157,7 @@ namespace Game.Core.Ability
                     IsEnemy            = !p.IsLocalPlayer,
                     InHand             = false,            // → колода
                     RegisterInZoneList = true,
+                    SourceEntity       = sourceCard,        // UI-анимация «замешалось в колоду» летит ОТ карты-источника (см. CardShuffledToDeckEvent)
                 });
                 GameEventBus.Publish(new CardGeneratedEvent { ModelId = cardId, GeneratorPlayerId = Attribution(sourceOwnerId) });
                 return;
@@ -446,6 +447,26 @@ namespace Game.Core.Ability
         [Tooltip("Ручной пул ассетов CardInstanceData (если PoolAsset не задан).")]
         public List<ScriptableObject> Pool = new();
 
+        [Tooltip("Модификаторы КАЖДОЙ порождённой карты (напр. AddHandDiscardTimerEffect — Сделка с чертом: " +
+                 "«сброшены через N ходов»). Пусто → просто в руку/колоду, без довеска.")]
+        [SerializeReference] public List<IEffect> Modifiers = new();
+
+        public override void Init(EcsWorld world, int cardEntity, int playerEntity)
+        {
+            base.Init(world, cardEntity, playerEntity);
+            if (Modifiers != null)
+                foreach (var mod in Modifiers)
+                    mod?.Init(world, cardEntity, playerEntity);
+        }
+
+        public override void Dispose()
+        {
+            base.Dispose();
+            if (Modifiers != null)
+                foreach (var mod in Modifiers)
+                    mod?.Dispose();
+        }
+
         public override void Apply(EcsWorld world, int cardEntity, int target)
         {
             for (int i = 0; i < Count; i++)
@@ -467,7 +488,7 @@ namespace Game.Core.Ability
                 }
 
                 // toHand:false → колода (втасовка по детерм. ключу, DeckShuffleUtil — синхронно на обоих).
-                GenerateCardEffect.Spawn(world, cardEntity, exp, cardId, toHand: !ToDeck);
+                GenerateCardEffect.Spawn(world, cardEntity, exp, cardId, toHand: !ToDeck, modifiers: Modifiers);
             }
         }
     }
@@ -518,7 +539,14 @@ namespace Game.Core.Ability
     // ForceRandomTarget=true форсит случайный ВСЕГДА, даже от OnCast. «N штук» = обернуть в RepeatEffect
     // (Фокус-покус → Fixed=2). СИНК: ролл идёт в GeneratedCardChannel (→ снапшот Generated*), пассив TryReplay
     // создаёт ту же карту (детерм. ключ); каст синкается обычными ActionCastData/ActionAbilityData (таргетинг-
-    // выбор едет в ключах целей).
+    // выбор едет в ключах целей). Карта играется ПО-НАСТОЯЩЕМУ (CreateCardEvent{InHand}+AutoCast → реальный
+    // CardCastEvent на резолве) — в отличие от InBoard-спавна (SpawnCardOnBoardEffect и т.п.), тут работают
+    // и OnCastTrigger-эффекты порождённой карты, и любые «когда я разыгран» пассивы на столе.
+    //
+    // «ЗА X» (FilterByCost, Мерлин-пародия: «разыграйте случайную чару за ТУ ЖЕ стоимость») — тот же
+    // PoolUtil.PickByCost, что у SpawnRandomCardOnBoardEffect/«Попаданцы»; X через общий AbilityCount.Resolve.
+    // CostSource=Stat + CostStatSource=Target читает стат ЦЕЛИ способности (target параметра Apply — обычно
+    // TriggerSubject только что разыгранной владельцем карты, если способность AbilityToTarget{TriggerSubject}).
     [Serializable]
     public sealed class PlayRandomFromPoolEffect : EffectBase
     {
@@ -531,6 +559,28 @@ namespace Game.Core.Ability
                  "разыгрывается через OnCast (где по умолчанию цель выбирает игрок).")]
         public bool ForceRandomTarget = false;
 
+        [Tooltip("Брать из пула карту ЗАДАННОЙ стоимости (иначе — любую случайную).")]
+        public bool FilterByCost = false;
+        [Tooltip("Откуда берётся стоимость X. Stat+CostStatSource=Target — стоимость ЦЕЛИ способности " +
+                 "(TriggerSubject разыгранной карты); любой другой счётчик проекта тоже годится.")]
+        public RepeatEffect.CountSource CostSource = RepeatEffect.CountSource.Stat;
+        [Tooltip("Стоимость для CostSource=Fixed.")]
+        public int FixedCost = 1;
+        [Tooltip("Для счётчиков по конкретной карте (MatchPlayedCard и т.п.).")]
+        public ScriptableObject CostCountCard;
+        [Tooltip("Для счётчика по архетипу (MatchArchetypeInvoked).")]
+        [SerializeReference] public ICreatureTag CostArchetype;
+        [Tooltip("Для CostSource=Stat: какой стат читаем (обычно Cost).")]
+        public StatKind CostStat = StatKind.Cost;
+        [Tooltip("Для CostSource=Stat: чья сущность — Self/Owner/Target.")]
+        public StatSourceEntity CostStatSource = StatSourceEntity.Self;
+
+        [Tooltip("Форсить TokenTag на разыгранной карте НЕЗАВИСИМО от IsToken её ассета (пул может содержать " +
+                 "«настоящие» карты — Мерлин-пародия и т.п.). Токен не уходит на кладбище/не тратит лимит " +
+                 "копий, но НЕ обходит рантайм-лимиты вида RunCastRouterSystem.CharmLimit=5 — те считают ЛЮБЫЕ " +
+                 "чары под контролем игрока, токен или нет.")]
+        public bool MakeToken = false;
+
         public override void Apply(EcsWorld world, int cardEntity, int target)
         {
             string exp; int cardId;
@@ -540,7 +590,10 @@ namespace Game.Core.Ability
             }
             else
             {
-                var pick = PoolUtil.Pick(PoolAsset, Pool);
+                int cost = FilterByCost
+                    ? AbilityCount.Resolve(world, PlayerEntity, cardEntity, CostSource, FixedCost, CostCountCard, CostArchetype, CostStat, CostStatSource, target)
+                    : -1;
+                var pick = PoolUtil.PickByCost(PoolAsset, Pool, cost);
                 if (pick == null) return;
                 exp = pick.ExpansionId; cardId = pick.CardId;
                 GeneratedCardChannel.Record(exp, cardId);
@@ -548,7 +601,28 @@ namespace Game.Core.Ability
             // Интерактивный выбор цели допустим только от OnCast (сам Фокус-покус разыгрывается игроком сейчас);
             // любой другой триггер — не в интерактивном контексте (может сработать и в чужой ход) → форс random.
             bool forceRandom = ForceRandomTarget || !AbilityResolveContext.IsSelfTrigger;
-            GenerateCardEffect.Spawn(world, cardEntity, exp, cardId, toHand: true, autoCast: true, forceRandomTarget: forceRandom);
+            var mods = MakeToken ? ForceTokenModifier : null;
+            GenerateCardEffect.Spawn(world, cardEntity, exp, cardId, toHand: true, autoCast: true, forceRandomTarget: forceRandom, modifiers: mods);
+        }
+
+        static readonly List<IEffect> ForceTokenModifier = new() { new ForceTokenEffect() };
+    }
+
+    // === class (OOP) === Служебный модификатор (не авторится в инспекторе, см. PlayRandomFromPoolEffect.
+    // MakeToken): форсит TokenTag на порождённой сущности НЕЗАВИСИМО от IsToken ассета-источника. TokenTag —
+    // единственное, от чего зависит вся «токенная» логика движка (не уходит на кладбище — BurnCardSystem/
+    // CharmDieSystem/DieSystem, лимбо вместо кладбища при полной руке — RunLeaveBoardSystem, исключение из
+    // статистики — PlayerStatsViewSystem) — форсить именно его достаточно, модель/ассет трогать не нужно.
+    sealed class ForceTokenEffect : IEffect
+    {
+        public void Init(EcsWorld world, int cardEntity, int playerEntity) { }
+        public void Dispose() { }
+        public bool IsReady => true;
+
+        public void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            var pool = world.GetPool<TokenTag>();
+            if (!pool.Has(target)) pool.Add(target);
         }
     }
 
@@ -613,7 +687,17 @@ namespace Game.Core.Ability
             // Снапшот — на случай если чья-то реакция дополнит журнал во время призыва.
             var snapshot = log.ToArray();
             foreach (var rec in snapshot)
-                GenerateCardEffect.SpawnToBoard(world, cardEntity, rec.ExpansionId, rec.ModelId, -1, -1);
+            {
+                // Исходник ещё жив и что-то умеет (собранная графтом чара — «Проклятье для принцессы» и
+                // подобные) → клонируем его ЖИВЫЕ способности на пересозданную копию, а не только печатный
+                // шаблон по ModelId (тот у базового тира пуст — RuntimeAbilities: []). Исходник умер/сгорел —
+                // модификатор молча ничего не найдёт (CloneEntityAbilitiesEffect.Apply — Has-гард), копия
+                // выйдет как раньше, голым шаблоном.
+                IReadOnlyList<IEffect> mods = rec.SourceEntity >= 0
+                    ? new IEffect[] { new CloneEntityAbilitiesEffect { SourceEntity = rec.SourceEntity } }
+                    : null;
+                GenerateCardEffect.SpawnToBoard(world, cardEntity, rec.ExpansionId, rec.ModelId, -1, -1, mods);
+            }
         }
     }
 
@@ -633,6 +717,7 @@ namespace Game.Core.Ability
                 GenerateCardEffect.SpawnToBoard(world, cardEntity, c.ExpansionId, c.CardId, -1, -1);   // чара без клетки
         }
     }
+
 
     // === class (OOP) === Замешать Count карт из ассета в КОЛОДУ ОППОНЕНТА (Старый колдун → 2 вонючих
     // облака; Дать газу — внутри цепочки за каждого погибшего; Гнидальф — обернуть в RepeatEffect{MatchCounter}).

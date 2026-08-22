@@ -1,0 +1,159 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: spell_token_016
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
+  CardData:
+    rid: 1
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 1
+      type: {class: CardSpellModel, ns: Game.Core.Model.Card.Spell, asm: Game.Core.Model.Card.Spell}
+      data:
+        Id: 154
+        Name: "Проклятье долгов"
+        Description: "Карты оппонента в
+          руке и колоде становятся на 1 дороже"
+        Rarity: 3
+        Element: 32
+        ArtImage: {fileID: 0}
+        ExpansionId: stolen_princess
+        PlayCost: 1
+        PlayCostAmount: 0
+        RequiresAdditionalCost: 0
+        AdditionalCostKind: 0
+        AdditionalCostAmount: 1
+        IsToken: 1
+        ShowAsLinked: 0
+        HideAsLinked: 1
+        NonBattleAbilities: []
+        RuntimeAbilities:
+        - rid: 2
+        - rid: 8
+        Archetypes: []
+        TierSource: 0
+        Tiers: []
+        RequiresTarget: 0
+    - rid: 2
+      type: {class: AbilityToField, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 3
+        Rules: []
+        Effects:
+        - rid: 4
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 0}
+          ProjectileSpeed: 12
+          ProjectileScale: 1
+          MergeArea: 0
+          Delivery: 0
+          Trajectory: 0
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
+          PlayCasterAnimation: 0
+        Area: 0
+        Zone: 2
+        Filters:
+        - rid: 5
+        IncludeCommanderInZones: 0
+    - rid: 3
+      type: {class: OnTurnStartTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Zone: 1
+    - rid: 4
+      type: {class: AddBuffEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        Buff:
+          rid: 6
+        Tracked: 0
+        RevertOnSourceDeath: 1
+        Duration: 0
+        ExpireAt: 0
+    - rid: 5
+      type: {class: OpponentOwnedTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+    - rid: 6
+      type: {class: BuffCost, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Delta: 1
+        Permanent: 0
+    - rid: 8
+      type: {class: AbilityToField, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 9
+        Rules: []
+        Effects:
+        - rid: 10
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 0}
+          ProjectileSpeed: 12
+          ProjectileScale: 1
+          MergeArea: 0
+          Delivery: 0
+          Trajectory: 0
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
+          PlayCasterAnimation: 0
+        Area: 0
+        Zone: 1
+        Filters:
+        - rid: 11
+        IncludeCommanderInZones: 0
+    - rid: 9
+      type: {class: OnTurnStartTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Zone: 1
+    - rid: 10
+      type: {class: AddBuffEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        Buff:
+          rid: 12
+        Tracked: 0
+        RevertOnSourceDeath: 1
+        Duration: 0
+        ExpireAt: 0
+    - rid: 11
+      type: {class: OpponentOwnedTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+    - rid: 12
+      type: {class: BuffCost, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Delta: 1
+        Permanent: 0

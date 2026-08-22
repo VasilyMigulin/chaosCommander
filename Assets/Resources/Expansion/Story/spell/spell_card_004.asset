@@ -1,0 +1,93 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: spell_card_004
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
+  CardData:
+    rid: 2425736258364637347
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 2425736258364637347
+      type: {class: CardSpellModel, ns: Game.Core.Model.Card.Spell, asm: Game.Core.Model.Card.Spell}
+      data:
+        Id: 14
+        Name: "\u0421\u043B\u043E\u0432\u0438\u0442\u044C \u0432\u044B\u0433\u043E\u0440\u0430\u043D\u0438\u0435"
+        Description: "\u041D\u0430\u043D\u0435\u0441\u0438\u0442\u0435 8 \u0443\u0440\u043E\u043D\u0430
+          \u0432\u0441\u0435\u043C \u0432\u0440\u0430\u0433\u0430\u043C"
+        Rarity: 0
+        Element: 1
+        ArtImage: {fileID: 0}
+        ExpansionId: 
+        PlayCost: 1
+        PlayCostAmount: 5
+        IsToken: 0
+        ShowAsLinked: 0
+        HideAsLinked: 0
+        NonBattleAbilities: []
+        RuntimeAbilities:
+        - rid: 2425736258364637348
+        Archetypes: []
+        TierSource: 0
+        Tiers: []
+        RequiresTarget: 0
+    - rid: 2425736258364637348
+      type: {class: AbilityToField, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 2425736258364637349
+        Rules: []
+        Effects:
+        - rid: 2425736258364637350
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
+        Vfx:
+          Kind: 3
+          Prefab: {fileID: 130346, guid: 07bf9ced87963e24299c2c2a22bfeeb6, type: 3}
+          HitPrefab: {fileID: 1573430751113452, guid: 0f22b44ec7df41a49adb3c3269118434, type: 3}
+          ProjectileSpeed: 12
+          ProjectileScale: 1
+          MergeArea: 1
+          Delivery: 0
+          Trajectory: 0
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
+          PlayCasterAnimation: 0
+        Area: 0
+        Zone: 0
+        Filters:
+        - rid: 2425736258364637351
+        - rid: 2425736258364637352
+        IncludeCommanderInZones: 0
+    - rid: 2425736258364637349
+      type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736258364637350
+      type: {class: DealDamageEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        Amount: 8
+    - rid: 2425736258364637351
+      type: {class: OpponentTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736258364637352
+      type: {class: EnemyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 

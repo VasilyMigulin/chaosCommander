@@ -17,3 +17,10 @@ MonoBehaviour:
     Keys:
     - standard
     - stolen_princess
+  - Name: Archetype
+    Keys:
+    - Flora
+    - Imp
+    - Prince
+    - Worker
+    - Skeleton

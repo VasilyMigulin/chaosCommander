@@ -12,10 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4398f9797977492bb5aca1d44acdad03, type: 3}
   m_Name: stolen_princess_deck_preset_1
   m_EditorClassIdentifier: Game.Core.Configs::Game.Core.Configs.DeckPreset
-  DeckName: "\u041A\u043E\u043B\u043E\u0434\u0430"
-  Commander: {fileID: 11400000, guid: d6f36af567cf38c43abd4cd01c686dbc, type: 2}
+  DeckName: "\u041A\u043E\u043B\u043E\u0434\u0430 \u043F\u0440\u0438\u043D\u0446\u0430
+    I"
+  Commander: {fileID: 11400000, guid: 2fd12be07ea2de62388be986b9e03a89, type: 2}
   Cards:
-  - Card: {fileID: 11400000, guid: fc0aec35f27e7e447a49e7b2fabeb2a4, type: 2}
+  - Card: {fileID: 11400000, guid: d74f2f0c85f20e34cbbfe9ec6d8560f4, type: 2}
     Count: 4
-  - Card: {fileID: 11400000, guid: 235ed8323e6ce784d8fa0705acec199f, type: 2}
+  - Card: {fileID: 11400000, guid: 6f95e5189fe2877458cb12eb73a9f0f5, type: 2}
+    Count: 3
+  - Card: {fileID: 11400000, guid: 50ce96f78fef5e95ff8ff8ba1d1059b2, type: 2}
     Count: 4

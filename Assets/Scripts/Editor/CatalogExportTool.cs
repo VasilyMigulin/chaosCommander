@@ -200,6 +200,8 @@ namespace Game.Core.EditorTools
                                       new List<string> { "booster" }));
             items.Add(CatalogItemJson("booster_premium", "Бустер «Премиум»", "booster", catalogVersion,
                                       new List<string> { "booster" }));
+            items.Add(CatalogItemJson("booster_stolen_princess", "Бустер «Похищение принцессы»", "booster", catalogVersion,
+                                      new List<string> { "booster" }));
             items.Add(CatalogItemJson("avatar_prince", "Аватар «Шальной принц»", "avatar", catalogVersion,
                                       new List<string> { "avatar" }));
             items.Add(CatalogItemJson("avatar_gnidalf", "Аватар «Гнидальф»", "avatar", catalogVersion,

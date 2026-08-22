@@ -183,6 +183,13 @@ namespace Game.Core.Ecs.Systems
                 // При смерти чистим МЯГКИЕ стат-модификаторы (ауры/«мягкий перм»); перманентные остаются.
                 ClearStatModifiers(entity);
 
+                // Убираем цель из трекинга ЛЮБЫХ Tracked-аур (см. TrackedBuffs.RemoveTarget) — иначе для
+                // командира (та же ecs-сущность после смерти) идемпотентность ауры навсегда блокирует
+                // повторный бафф при повторном розыгрыше. ДВА параллельных механизма трекинга — снимаем
+                // из ОБОИХ (AppliedBuffs — тот же повод, для ApplyTrackedBuffEffect).
+                TrackedBuffs.RemoveTarget(_world.Value, entity);
+                AppliedBuffs.RemoveTarget(_world.Value, entity);
+
                 bool isCommander = _commanderPool.Value.Has(entity);
                 bool isToken = _tokenPool.Value.Has(entity);
 

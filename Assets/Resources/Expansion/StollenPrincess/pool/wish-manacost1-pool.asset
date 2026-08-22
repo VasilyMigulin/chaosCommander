@@ -25,6 +25,9 @@ MonoBehaviour:
     rid: -2
   IncludeTokens: 0
   ExpansionId: 
+  IncludeStoryOnly: 0
+  FilterCharmDuration: 0
+  CharmDuration: 0
   Cards:
   - {fileID: 11400000, guid: 0dda19f8d1445574b84e0b21f7f5586f, type: 2}
   - {fileID: 11400000, guid: ced2f33b65c570245b4c5214f39e74ce, type: 2}
@@ -51,6 +54,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: bf7083169ac73f54ca47ebb93be65b28, type: 2}
   - {fileID: 11400000, guid: 7c2f526840e72554a8d172634a197b23, type: 2}
   - {fileID: 11400000, guid: 38f5860e3e956ea458179e57c6f89d39, type: 2}
+  - {fileID: 11400000, guid: 50d1b49fbee0ba844a6b705ecc4444e9, type: 2}
   - {fileID: 11400000, guid: 131dc260119d99b478fb4f0c3b666f3f, type: 2}
   references:
     version: 2

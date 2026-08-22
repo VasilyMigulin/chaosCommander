@@ -33,4 +33,20 @@ namespace Game.Core.Ecs.Components
         public int Amount;      // DamageSelf: величина урона
         public string[] Keys;   // жертвы (discard/sacrifice/mill): NetworkEntityKey для реплея у пассива
     }
+
+    /// <summary>Доп. цена карты ПОВЕРХ обычной (Gold/Mana) — печатное свойство карты (CardModel.
+    /// RequiresAdditionalCost), в отличие от AltCostComponent: тот временный маркер ИГРОКА, ЗАМЕНЯЕТ обычную
+    /// оплату СЛЕДУЮЩЕГО каста любой карты. Здесь Kind тот же AltCostKind (переиспользуем — те же 4 вида
+    /// уплаты уже есть и проверены), но это ТОЛЬКО ГЕЙТ кастуемости (CardAffordabilityUtil/
+    /// RunCastRouterSystem, через AltCostUtil.CanPay — нет чем платить → карта вообще не разыгрывается, как
+    /// нехватка маны). Саму уплату (сброс/урон/жертва/милл) исполняет СОБСТВЕННЫЙ OnCast-эффект карты
+    /// (DiscardEffect и т.п.) — router её не списывает автоматически, в отличие от AltCost.
+    /// Amount: для DiscardHand/SacrificeCreature/MillDeck — сколько карт/существ (гейт проверяет только
+    /// «есть хотя бы одна цель», Amount>1 точно не считает — под текущие карты этого достаточно); для
+    /// DamageSelf — величина урона (не используется гейтом: DamageSelf всегда оплатим).</summary>
+    public struct RequiresAdditionalCostComponent
+    {
+        public AltCostKind Kind;
+        public int Amount;
+    }
 }

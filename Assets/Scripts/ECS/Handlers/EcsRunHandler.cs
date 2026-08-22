@@ -97,6 +97,7 @@ namespace Game.Core.Ecs.Handlers
                 .Add(new MatchCounterTrackerSystem())
                 .Add(new LastPlayedSpellTrackerSystem())
                 .Add(new CreatureTimerTickSystem())
+                .Add(new HandDiscardTimerTickSystem())   // Сделка с чертом: сброс карты руки через N ходов
                 .Add(new RecurringDamageTickSystem())   // Напустить саранчу: урон всем помеченным в конце хода
                 .Add(new PoisonTickSystem())   // «Ядовитый»: урон в конце хода ВЛАДЕЛЬЦА поражённого
                 .Add(new StealthTickSystem())   // «Скрытый»: декремент в начале хода владельца
@@ -135,6 +136,7 @@ namespace Game.Core.Ecs.Handlers
                 // --- Добор + UI-трансляция ---
                 .Add(new DrawCardSystem())
                 .Add(new HandUISystem())
+                .Add(new DeckShuffleUISystem())
                 // --- Спаун визуала существа на доске ---
                 .Add(new SpawnCreatureViewSystem())
                 // --- Гейт «призыв → OnCast» (#2): CardCastEvent после анимации призыва ---
@@ -153,6 +155,7 @@ namespace Game.Core.Ecs.Handlers
                 .Add(new MoveSystem())
                 // --- Бой ---
                 .Add(new AttackSystem())
+                .Add(new AvatarAttackSystem())   // аватар атакует row0 своей стороны (тот же AttackRequestEvent, но на entity игрока)
                 .Add(new ReflectDamageSystem())   // Вуду-будду: БЛОК урона владельцу на его ходу (до TakeDamage)
                 .Add(new TakeDamageSystem())
                 .Add(new LethalHealthSystem())   // смерть по HP≤0 из НЕ-урона (дебафф статов / снятие HP-ауры) → DeadTag

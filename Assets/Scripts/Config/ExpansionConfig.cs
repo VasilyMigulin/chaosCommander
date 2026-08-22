@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Game.Core.Instance.Card;
 using Game.Core.Model.Card;
+using Game.Core.Service;
 using UnityEngine;
 
 namespace Game.Core.Configs
@@ -20,6 +21,12 @@ namespace Game.Core.Configs
                  "владение), но НЕ попадают в коллекцию (PlayerLibrary.FillFullCollection их пропускает). " +
                  "Для боссов и стори-эксклюзивных карт вне PvP. Бустеры и так их не выбьют (свой пул в Title Data).")]
         public bool StoryOnly;
+
+        [Tooltip("Экран «Коллекция» (DeckBuildPanel) покажет этот аддон в выпадающем списке дополнений, только " +
+                 "если этот флаг выключен, ИЛИ сюжетная кампания пройдена (CampaignProgress.Load().Completed). " +
+                 "Стандартный аддон держим с флагом выключенным (всегда доступен); включаем на аддонах, которые " +
+                 "должны открываться прохождением истории.")]
+        public bool RequiresCampaignCompletion;
 
         public List<CardInstanceData> Cards = new List<CardInstanceData>();
 

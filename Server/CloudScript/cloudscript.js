@@ -149,6 +149,15 @@ handlers.OpenBooster = function (args, context) {
     var cfg = cfgAll[boosterId];
     if (!cfg) { resp.Reason = "unknown_booster"; return resp; }
 
+    // Бустер привязан к прохождению стори-кампании (Похищение принцессы и т.п.) — флаг пишет
+    // ClaimCampaignReward ПОСЛЕ выдачи награды, единственного источника такого бустера. Проверка тут —
+    // защита на будущее (дев-грант вне прохождения, возможная продажа в магазине), а не основной путь.
+    if (cfg.requiresCampaign) {
+        var campaignFlagKey = "campaign_done_" + cfg.requiresCampaign;
+        var campaignRo = server.GetUserReadOnlyData({ PlayFabId: playerId, Keys: [campaignFlagKey] });
+        if (!campaignRo.Data || !campaignRo.Data[campaignFlagKey]) { resp.Reason = "campaign_not_completed"; return resp; }
+    }
+
     // собрать до want инстансов бустера (сколько есть в наличии)
     var inv = server.GetUserInventory({ PlayFabId: playerId });
     var instanceIds = [];
@@ -181,6 +190,44 @@ handlers.OpenBooster = function (args, context) {
 
     resp.Success = true;
     resp.Opened = opened;
+    return resp;
+};
+
+// ---- Кампании: разовая награда за ПОЛНОЕ прохождение стори-кампании ---------------
+// Конфиг — Title Data "campaignRewards" (CampaignId → {boosterId, count}). Идемпотентно: флаг
+// UserReadOnlyData["campaign_done_"+CampaignId] проверяется/пишется здесь же (тот же паттерн, что
+// library_migrated у MigrateLibrary) — повторный вызов ничего не выдаёт. Прохождение САМО подтверждает
+// клиент (PlayerPrefs-прогресс кампании, как и остальной PvE-прогресс в проекте на этой фазе) — сервер
+// не переигрывает бои, а лишь не даёт вызвать это дважды. Флаг заодно читает OpenBooster (requiresCampaign).
+handlers.ClaimCampaignReward = function (args, context) {
+    var playerId = currentPlayerId;
+    var resp = { Success: false, Reason: null, Wallet: null, Reward: emptyReward() };
+
+    var campaignId = args && args.CampaignId;
+    if (!campaignId) { resp.Reason = "bad_request"; return resp; }
+
+    var flagKey = "campaign_done_" + campaignId;
+    var ro = server.GetUserReadOnlyData({ PlayFabId: playerId, Keys: [flagKey] });
+    if (ro.Data && ro.Data[flagKey]) { resp.Reason = "already_claimed"; return resp; }
+
+    var cfg = (getTitleJson("campaignRewards") || {})[campaignId];
+    if (!cfg || !cfg.boosterId) { resp.Reason = "unknown_campaign"; return resp; }
+
+    var count = cfg.count > 0 ? cfg.count : 1;
+    var ids = [];
+    for (var i = 0; i < count; i++) ids.push(cfg.boosterId);
+
+    try { grantItems(playerId, ids); }
+    catch (e) { resp.Reason = "grant_error: " + (e && e.message ? e.message : ("" + e)); return resp; }
+
+    // Флаг ПОСЛЕ успешной выдачи — если grantItems упал, повторный вызов не будет заблокирован "already_claimed".
+    var data = {};
+    data[flagKey] = (new Date()).toISOString();
+    server.UpdateUserReadOnlyData({ PlayFabId: playerId, Data: data });
+
+    resp.Success = true;
+    resp.Reward.Boosters = ids;
+    resp.Wallet = readWallet(playerId);
     return resp;
 };
 

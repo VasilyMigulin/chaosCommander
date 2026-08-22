@@ -1,0 +1,114 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: creature_card_002
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
+  CardData:
+    rid: 1
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 1
+      type: {class: CardCreatureModel, ns: Game.Core.Model.Card.Creature, asm: Game.Core.Model.Card.Creature}
+      data:
+        Id: 2
+        Name: Распрекрасная принцесса
+        Description: 'При разыгрывании: все ваши существа получают +2/+2 и полностью восстанавливают здоровье'
+        Rarity: 3
+        Element: 16
+        ArtImage: {fileID: 0}
+        ExpansionId: story
+        PlayCost: 0
+        PlayCostAmount: 5
+        IsToken: 0
+        ShowAsLinked: 0
+        HideAsLinked: 0
+        NonBattleAbilities: []
+        RuntimeAbilities:
+        - rid: 2
+        Archetypes: []
+        TierSource: 0
+        Tiers: []
+        MaxHealth: 8
+        Attack: 4
+        Speed: 2
+        Properties: []
+        ViewPrefab: {fileID: 1046069417137952589, guid: f06aa6138ec1c4140ac9af21f0ddde7e, type: 3}
+        SummonVfx:
+          PrePrefab: {fileID: 0}
+          PreLeadSeconds: 0
+          ResolvePrefab: {fileID: 0}
+          ResolveAttach: 1
+          ResolveDelaySeconds: 0.1
+          ResolveFollow: 1
+          FinishPrefab: {fileID: 0}
+          FinishAnchor: 1
+          FinishAttach: 0
+        TurnsAlive: 0
+        IsCommander: 0
+    - rid: 2
+      type: {class: AbilityToField, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 3
+        Rules: []
+        Effects:
+        - rid: 4
+        - rid: 5
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 0}
+          ProjectileSpeed: 12
+          ProjectileScale: 1
+          MergeArea: 0
+          Delivery: 0
+          Trajectory: 0
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
+          PlayCasterAnimation: 0
+        Area: 0
+        Zone: 0
+        Filters:
+        - rid: 6
+        IncludeCommanderInZones: 0
+    - rid: 3
+      type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+    - rid: 4
+      type: {class: BuffStatsEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        AttackBonus: 2
+        HealthBonus: 2
+        SpeedBonus: 0
+        Permanent: 0
+    - rid: 5
+      type: {class: HealEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        Amount: 99
+    - rid: 6
+      type: {class: AllyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:

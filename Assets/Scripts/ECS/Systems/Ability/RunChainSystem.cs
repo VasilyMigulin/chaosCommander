@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Game.Core.Ecs.Components;
 using Game.Core.Events;
 using Game.Core.Mono;
+using Game.Core.Service;
 using Game.Core.Shared.Interface;
 using Leopotam.EcsLite;
 using Leopotam.EcsLite.Di;
@@ -33,10 +34,14 @@ namespace Game.Core.Ecs.Systems
     public sealed class RunChainSystem : IEcsInitSystem, IEcsRunSystem, IEcsDestroySystem
     {
         readonly EcsCustomInject<BoardView> _boardView = default;
+        readonly EcsPoolInject<ViewRefComponent> _viewPool = default;
 
         const float ProjectileTimeout = 4f;   // сек до форс-резолва стадии, если прилёт не пришёл
+        const float AbilityAnimTimeout = 4f;  // сек до форс-резолва, если клип не прислал CastEvent/FinishEvent
 
-        readonly Queue<int> _arrived = new Queue<int>();   // токены приземлившихся снарядов (ability-сущности)
+        readonly Queue<int> _arrived = new Queue<int>();          // токены приземлившихся снарядов (ability-сущности)
+        readonly Queue<int> _castPointReached = new Queue<int>(); // CastEvent анимации кастера стадии
+        readonly Queue<int> _animFinished = new Queue<int>();     // FinishEvent анимации кастера стадии
         bool _subscribed;
 
         public void Init(IEcsSystems systems) => Subscribe();
@@ -78,6 +83,18 @@ namespace Game.Core.Ecs.Systems
                 }
             }
 
+            // Анимация кастера стадии (opt-in, VfxSpec.PlayCasterAnimation): CastEvent → применить эффекты
+            // стадии/запустить снаряд (РОВНО один раз, CastApplied-гард), FinishEvent → снять гейт. Тот же
+            // принцип, что у RunResolveAbilityQueueSystem, только гейт свой (ChainCastAnimPendingComponent) —
+            // блокирует продвижение СТАДИЙ этой цепочки (см. WorldSettled), а не глобальную очередь.
+            var castAnimPool = world.GetPool<ChainCastAnimPendingComponent>();
+            while (_castPointReached.Count > 0) CompleteChainCastPoint(world, _castPointReached.Dequeue());
+            while (_animFinished.Count > 0)     CompleteChainAnimGate(world, _animFinished.Dequeue());
+            foreach (var e in world.Filter<ChainCastAnimPendingComponent>().End())
+            {
+                if (castAnimPool.Get(e).Deadline <= Time.time) { CompleteChainAnimGate(world, e); break; }
+            }
+
             var filter = world.Filter<ChainStateComponent>().Inc<AbilityChainComponent>().Inc<AbilityOwnerComponent>().End();
 
             var buffer = new List<int>();
@@ -97,6 +114,8 @@ namespace Game.Core.Ecs.Systems
 
                 if (!state.Applied)
                 {
+                    if (castAnimPool.Has(entity)) continue;   // анимация кастера стадии ещё играет (ждём CastEvent/FinishEvent)
+
                     if (projectilePool.Has(entity))
                     {
                         if (projectilePool.Get(entity).Deadline > Time.time) continue;   // снаряд ещё в полёте
@@ -109,12 +128,28 @@ namespace Game.Core.Ecs.Systems
                     var stage = stages[state.Current];
 
                     int[] targets = ResolveTargets(world, stage, owner.CardEntity, owner.PlayerEntity);
-                    state.LastTargets = targets;   // ДО возможного ожидания снаряда — Apply на прилёте бьёт ТЕ ЖЕ цели
+                    state.LastTargets = targets;   // ДО возможного ожидания снаряда/анимации — резолв на прилёте/CastEvent бьёт ТЕ ЖЕ цели
 
                     var vfxPool = world.GetPool<AbilityVfxComponent>();
                     var spec = vfxPool.Has(entity) ? vfxPool.Get(entity).Spec : null;
                     // ВРЕМЕННО (баг: снаряд цепочки не летит) — видим, почему ветка снаряда не сработала.
                     UnityEngine.Debug.Log($"[ChainVfx] entity={entity} step={state.Current} targets={targets.Length} hasVfxComp={vfxPool.Has(entity)} spec={(spec == null ? "NULL" : "ok")} kind={spec?.Kind} prefab={(spec?.Prefab != null ? spec.Prefab.name : "NULL")} boardView={(_boardView.Value != null ? "ok" : "NULL")}");
+
+                    // Анимация кастера (opt-in, PlayCasterAnimation=true) — ДО решения снаряд/мгновенно, как
+                    // в RunResolveAbilityQueueSystem: без неё эффекты стадии применяются молча без анимации
+                    // на кастере (баг: RepeatAbility/AbilityChain карты, напр. Чертяга-король, просто стояли).
+                    // Дохлый кастер (DeadTag) — не играем, чтобы не гнаться с его собственной анимацией смерти
+                    // (тот же кейс гонки Cast/Death, что и у одиночного резолва).
+                    if (targets.Length > 0 && spec != null && spec.PlayCasterAnimation && !world.GetPool<DeadTag>().Has(owner.CardEntity))
+                    {
+                        var casterView = GetCasterView(world, owner.CardEntity);
+                        if (casterView != null && casterView.HasCastAnimation)
+                        {
+                            StartChainCasterAnim(world, entity, casterView);
+                            continue;
+                        }
+                    }
+
                     if (targets.Length > 0 && spec != null && spec.Kind == VfxKind.Projectile && spec.Prefab != null && _boardView.Value != null)
                     {
                         UnityEngine.Debug.Log($"[ChainVfx] entity={entity} → LaunchStageProjectile");
@@ -126,7 +161,8 @@ namespace Game.Core.Ecs.Systems
                 }
                 else
                 {
-                    if (!WorldSettled(world)) continue;   // ждём, пока урон/смерти прошлой стадии осядут
+                    if (!WorldSettled(world)) continue;              // ждём, пока урон/смерти прошлой стадии осядут
+                    if (Time.time < state.NextAdvanceAt) continue;    // пауза читаемости (ActionPacing.GapSeconds)
 
                     state.Killed += CountDead(world, state.LastTargets);
                     state.Current++;
@@ -153,12 +189,90 @@ namespace Game.Core.Ecs.Systems
             ChainContext.CurrentKilled = state.Killed;   // контекст для эффектов стадии
             GeneratedCardChannel.ClearSent();            // соберём случайные генерации стадии для синка
             ApplyEffects(world, card, stage?.Effects, targets);
-            EmitStageVfx(world, entity, card, targets);  // Hit/Beam/Area на цели ЭТОЙ стадии (см. докстринг метода)
+            EmitStageVfx(world, entity, card, owner.PlayerEntity, targets, stage);  // Hit/Beam/Area на цели ЭТОЙ стадии (см. докстринг метода)
 
             // СИНК: снапшот стадии (StepIndex + цели + KilledCount + выбранные случайные карты).
             PublishStageResolved(card, abilityIndex, state.Current, targets, state.Killed);
 
             state.Applied = true;
+            state.NextAdvanceAt = Time.time + ActionPacing.GapSeconds;
+        }
+
+        // ── анимация кастера стадии ──────────────────────────────────────────
+
+        // Живая CreatureView кастера — как в RunResolveAbilityQueueSystem.GetCasterView (см. её докстринг:
+        // null, если карта не существо/визуал не заспавнен/уже скрыт).
+        CreatureView GetCasterView(EcsWorld world, int caster)
+        {
+            if (!_viewPool.Value.Has(caster)) return null;
+            var go = _viewPool.Value.Get(caster).View;
+            if (go == null || !go.activeInHierarchy) return null;
+            return go.GetComponent<CreatureView>();
+        }
+
+        // Запускает анимацию "Cast" на кастере СТАДИИ: вешает гейт (блокирует продвижение цепочки — см.
+        // WorldSettled), резолв стадии откладывается до Animation Event'ов клипа (CastEvent/FinishEvent).
+        void StartChainCasterAnim(EcsWorld world, int abilityEntity, CreatureView casterView)
+        {
+            ref var pending = ref world.GetPool<ChainCastAnimPendingComponent>().Add(abilityEntity);
+            pending.Deadline = Time.time + AbilityAnimTimeout;
+            pending.CastApplied = false;
+            GameEventBus.Publish(new InputBlockedEvent());
+
+            int token = abilityEntity;
+            casterView.PlayAbilityCast(
+                onCastPoint: () => _castPointReached.Enqueue(token),
+                onFinished:  () => _animFinished.Enqueue(token));
+        }
+
+        // CastEvent пришёл (или форсирован таймаутом) → применить эффекты/запустить снаряд стадии РОВНО
+        // один раз (CastApplied-гард) — та же точка, что дошла бы сюда и без анимации.
+        void CompleteChainCastPoint(EcsWorld world, int abilityEntity)
+        {
+            var pool = world.GetPool<ChainCastAnimPendingComponent>();
+            if (!pool.Has(abilityEntity)) return;
+            ref var p = ref pool.Get(abilityEntity);
+            if (p.CastApplied) return;
+            p.CastApplied = true;
+            ResolveOrLaunchStage(world, abilityEntity);
+        }
+
+        // FinishEvent пришёл (или форсирован таймаутом) → снять гейт. Страховка: если клип прислал ТОЛЬКО
+        // FinishEvent (без CastEvent) — сначала всё равно применяем эффекты стадии.
+        void CompleteChainAnimGate(EcsWorld world, int abilityEntity)
+        {
+            var pool = world.GetPool<ChainCastAnimPendingComponent>();
+            if (!pool.Has(abilityEntity)) return;
+            CompleteChainCastPoint(world, abilityEntity);
+            pool.Del(abilityEntity);
+            GameEventBus.Publish(new InputRestoredEvent());
+        }
+
+        // Общая точка «применить эффекты стадии ИЛИ запустить снаряд» — используется и мгновенным резолвом
+        // (нет анимации кастера), и CastEvent-веткой (анимация кастера сыграла до момента применения).
+        // Пересобирает state/stage заново по entity — сюда приходят из очереди колбэков, не из основного цикла.
+        void ResolveOrLaunchStage(EcsWorld world, int abilityEntity)
+        {
+            var statePool = world.GetPool<ChainStateComponent>();
+            var chainPool = world.GetPool<AbilityChainComponent>();
+            var ownerPool = world.GetPool<AbilityOwnerComponent>();
+            if (!statePool.Has(abilityEntity) || !chainPool.Has(abilityEntity) || !ownerPool.Has(abilityEntity)) return;
+
+            ref var state = ref statePool.Get(abilityEntity);
+            var stages = chainPool.Get(abilityEntity).Stages;
+            if (stages == null || state.Current >= stages.Length) return;
+
+            var targets = state.LastTargets ?? System.Array.Empty<int>();
+            var vfxPool = world.GetPool<AbilityVfxComponent>();
+            var spec = vfxPool.Has(abilityEntity) ? vfxPool.Get(abilityEntity).Spec : null;
+
+            if (targets.Length > 0 && spec != null && spec.Kind == VfxKind.Projectile && spec.Prefab != null && _boardView.Value != null)
+            {
+                LaunchStageProjectile(world, abilityEntity, ownerPool.Get(abilityEntity).CardEntity, targets, spec);
+                return;
+            }
+
+            FinishStage(world, abilityEntity, ref state, stages, ownerPool);
         }
 
         // Запуск снаряда стадии: ОДНО ProjectileVfxEvent на ВСЕ цели стадии, вешает ChainProjectilePendingComponent.
@@ -246,11 +360,25 @@ namespace Game.Core.Ecs.Systems
         // так N независимых активаций RepeatAbility каждая получает свою вспышку на СВОЕЙ цели.
         // ПРОЕКТИЛЬ — отдельной веткой (LaunchStageProjectile, до применения эффектов), сюда не попадает:
         // тому нужна асинхронная доставка + гейт ожидания прилёта, см. докстринг класса.
-        void EmitStageVfx(EcsWorld world, int abilityEntity, int caster, int[] targets)
+        void EmitStageVfx(EcsWorld world, int abilityEntity, int caster, int casterPlayer, int[] targets, ChainStage stage)
         {
             var vfxPool = world.GetPool<AbilityVfxComponent>();
             if (!vfxPool.Has(abilityEntity)) return;
-            VfxEmitUtil.EmitInstantVfx(world, _boardView.Value, vfxPool.Get(abilityEntity).Spec, caster, targets);
+
+            // NonTarget-стадия технически целит в САМОГО КАСТЕРА (ResolveTargets: нет цели → [casterPlayer]) —
+            // бить визуально почти всегда нечего. Общий Vfx способности (один на ВСЮ цепочку, см. докстринг
+            // класса) иначе играет на аватаре кастера и для чисто бухгалтерских стадий («Дать газу!»: 2-я
+            // стадия просто замешивает карты в колоду оппонента, ничего не «бьёт») — см. ForceVfxOnNonTarget,
+            // если конкретной стадии VFX на кастере всё же нужен.
+            if (stage == null || (stage.Mode == ChainStage.TargetingMode.NonTarget && !stage.ForceVfxOnNonTarget)) return;
+
+            // Field-стадия (RepeatAbility «по всем врагам/своим» и т.п.) — Area-VFX красит ЗОНУ (половину/
+            // всё поле), а не баунды фактических целей (см. VfxEmitUtil.ZoneBounds).
+            Bounds? zone = stage != null && stage.Mode == ChainStage.TargetingMode.Field
+                ? VfxEmitUtil.ZoneBounds(world, _boardView.Value, stage.Area, caster, casterPlayer)
+                : null;
+
+            VfxEmitUtil.EmitInstantVfx(world, _boardView.Value, vfxPool.Get(abilityEntity).Spec, caster, targets, zone);
         }
 
         // ── settle / death count ─────────────────────────────────────────────
@@ -262,6 +390,7 @@ namespace Game.Core.Ecs.Systems
             if (world.Filter<MovingTag>().End().GetEntitiesCount() > 0) return false;
             if (world.Filter<AttackAnimPendingTag>().End().GetEntitiesCount() > 0) return false;
             if (world.Filter<DeathAnimPendingTag>().End().GetEntitiesCount() > 0) return false;     // анимация смерти ещё доигрывает
+            if (world.Filter<ChainCastAnimPendingComponent>().End().GetEntitiesCount() > 0) return false; // анимация каста стадии ещё доигрывает
             return true;
         }
 
@@ -270,11 +399,22 @@ namespace Game.Core.Ecs.Systems
             if (targets == null) return 0;
             var dead = world.GetPool<DeadTag>();
             var hp = world.GetPool<HealthComponent>();
+            var board = world.GetPool<BoardTag>();
+            var creature = world.GetPool<CreatureTag>();
             int n = 0;
             foreach (var t in targets)
             {
                 if (dead.Has(t)) { n++; continue; }
-                if (hp.Has(t) && hp.Get(t).Current <= 0) n++;
+                if (hp.Has(t) && hp.Get(t).Current <= 0) { n++; continue; }
+                // Командир: DieSystem лечит его и снимает DeadTag В ТОМ ЖЕ кадре (ReturnCommanderToHand) —
+                // к моменту WorldSettled он снова «жив» по DeadTag/HP, обычные проверки выше его не видят
+                // (баг: Дать газу не замешивало Вонючее облако, добив командира — RepeatEffect{Killed}
+                // насчитывал 0). Но BoardTag снимается ПРИ ЛЮБОЙ смерти безусловно (и обычной, и
+                // командирской), а вернуться на стол в рамках ЭТОГО ЖЕ резолва стадии командир не может
+                // (возврат — только в руку, повторный розыгрыш отдельным действием игрока). «Цель стадии
+                // была существом, а сейчас без BoardTag» — надёжный признак смерти для обоих случаев.
+                // Гейт CreatureTag — не считать так игроков-аватаров (у тех BoardTag нет вообще, не из-за смерти).
+                if (creature.Has(t) && !board.Has(t)) n++;
             }
             return n;
         }

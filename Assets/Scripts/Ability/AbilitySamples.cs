@@ -113,7 +113,26 @@ namespace Game.Core.Ability
             if (repeatSpecPool.Has(abilityEntity))
             {
                 ref var spec = ref repeatSpecPool.Get(abilityEntity);
-                int n = Math.Max(0, AbilityCount.Resolve(world, playerEntity, cardEntity, spec.Source, spec.FixedCount, spec.CountCard, spec.Archetype));
+                int n;
+                if (spec.Source == RepeatEffect.CountSource.SelfResolves)
+                {
+                    // AbilityResolveCounterComponent НЕ подходит: RepeatAbility строит N стадий ЗДЕСЬ, в Mark, —
+                    // способность в этот момент ЕЩЁ НЕ дошла до RunResolveAbilityQueueSystem (тот инкрементит
+                    // AbilityResolveCounterComponent, но только для ОБЫЧНОГО прохода одной способности; сами
+                    // стадии RepeatAbility резолвятся через AbilityChain/RunChainSystem — см. явный каveat в
+                    // AbilityResolveCounterComponent.cs: «стадии цепочек... SelfResolves внутри AbilityChain не
+                    // использовать»). Раньше читал именно его — n всегда получался 1 (баг 2026-08-21, «Болезненное
+                    // проклятье» не масштабировалось; нашёл юзер, сравнив с «Запустить фейерверк» на Fixed).
+                    // Отдельный счётчик, инкремент ПРЯМО тут — Mark вызывается симметрично на активе и пассиве
+                    // (тем же триггером), как и весь остальной код этой функции.
+                    var actCountPool = world.GetPool<RepeatAbilityActivationCounterComponent>();
+                    if (!actCountPool.Has(abilityEntity)) actCountPool.Add(abilityEntity);
+                    n = ++actCountPool.Get(abilityEntity).Count;
+                }
+                else
+                {
+                    n = Math.Max(0, AbilityCount.Resolve(world, playerEntity, cardEntity, spec.Source, spec.FixedCount, spec.CountCard, spec.Archetype, spec.Stat, spec.StatSource));
+                }
                 var stages = new ChainStage[n];
                 for (int i = 0; i < n; i++) stages[i] = spec.Template;
                 world.GetPool<AbilityChainComponent>().Get(abilityEntity).Stages = stages;
@@ -126,7 +145,11 @@ namespace Game.Core.Ability
                 // Множитель ключуется комбинацией «ТипКарты/Триггер» (Spell/OnCast и т.п.) + wildcard "*/Триггер".
                 var modelPool = world.GetPool<CardModelComponent>();
                 var cardType = modelPool.Has(cardEntity) ? modelPool.Get(cardEntity).CardType : EnumService.CardType.Creature;
-                int casts = CastMultiplierService.Casts(ownerId, cardType, triggerKey);
+
+                // Карта разыграна КАК СЛЕДСТВИЕ другого эффекта (Развилка и подобные) — множитель частоты
+                // (Упс и подобные) её не касается: иначе единственный пик из дискавера мог бы сработать
+                // N раз бесплатно. См. CauseStamp.IsCaused.
+                int casts = CauseStamp.IsCaused(world, cardEntity) ? 1 : CastMultiplierService.Casts(ownerId, cardType, triggerKey);
                 if (casts > 1)
                 {
                     // Заряд съедаемых источников тратится ЗДЕСЬ — один раз на СРАБАТЫВАНИЕ (не на каждый из

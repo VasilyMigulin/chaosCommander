@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Game.Core.Ecs.Components;
 using Game.Core.Events;
 using Game.Core.Mono;
+using Game.Core.Shared.Interface;
 using Leopotam.EcsLite;
 using Leopotam.EcsLite.Di;
 
@@ -76,8 +77,11 @@ namespace Game.Core.Ecs.Systems
                 else if (_targetPool.Value.Has(abilityEntity))
                 {
                     ref var t = ref _targetPool.Value.Get(abilityEntity);
+                    // blockStealthed — только для Selected: превью должно совпадать с реальной кликабельностью
+                    // (см. TargetGather.Gather / RunAbilityTargetingSystem). Random/Strongest и пр. Скрытых не прячут.
                     candidates = TargetGather.Gather(_world.Value, t.Filters, cardEntity, playerEntity,
-                                                     null, t.Zone, t.IncludeCommanderInZones);
+                                                     null, t.Zone, t.IncludeCommanderInZones,
+                                                     blockStealthed: t.Selection == TargetSelection.Selected);
                 }
                 if (candidates == null) continue;
 

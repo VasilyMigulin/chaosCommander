@@ -226,6 +226,29 @@ namespace Game.Core.Ability
         }
     }
 
+    // === class (OOP) === Вешает цели-командиру блокировку розыгрыша на N ходов (Проклятье для принцессы:
+    // «если командира нет на поле — заблокируйте на 3 хода») — тот же CommanderCooldownComponent, что
+    // RunCommanderCooldownSystem вешает при возврате в руку после смерти; тикает RunTurnStartSystem как
+    // обычно. Max, не перезапись — не сокращаем уже висящий более долгий кулдаун.
+    [Serializable]
+    public sealed class ApplyCommanderCooldownEffect : EffectBase, IDynamicValue
+    {
+        public int Turns = 3;
+
+        public int DynamicValueCount => 1;
+        public int GetDynamicValue(int index, EcsWorld world, int cardEntity, int playerEntity) => Turns;
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            if (Turns <= 0 || target < 0) return;
+            if (!world.GetPool<CommanderTag>().Has(target)) return;
+            var pool = world.GetPool<CommanderCooldownComponent>();
+            if (!pool.Has(target)) pool.Add(target);
+            ref var cd = ref pool.Get(target);
+            cd.TurnsRemaining = System.Math.Max(cd.TurnsRemaining, Turns);
+        }
+    }
+
     // === class (OOP) === Вешает цели-существу таймер смерти (умрёт через N своих ходов).
     // Тикает CreatureTimerTickSystem на старте хода владельца. Самостоятельный target-эффект:
     // годится и как модификатор призыва (SummonEffect.SummonModifiers), и как обычный эффект
@@ -243,6 +266,27 @@ namespace Game.Core.Ability
             if (Turns <= 0) return;
             if (!world.GetPool<CreatureTag>().Has(target)) return;
             var pool = world.GetPool<CreatureTimerComponent>();
+            if (!pool.Has(target)) pool.Add(target);
+            pool.Get(target).TurnsRemaining = Turns;
+        }
+    }
+
+    // === class (OOP) === Вешает цели-карте таймер сброса (сброшена через N своих ходов, пока лежит в
+    // руке — Сделка с чертом). Тикает HandDiscardTimerTickSystem на старте хода владельца. Как
+    // DeathTimerEffect, но для карт руки: самостоятельный target-эффект, годится и как модификатор
+    // генерации (GainRandomCardEffect.Modifiers), и как обычный эффект на уже выбранной карте.
+    [Serializable]
+    public sealed class AddHandDiscardTimerEffect : EffectBase, IDynamicValue
+    {
+        public int Turns = 3;
+
+        public int DynamicValueCount => 1;
+        public int GetDynamicValue(int index, EcsWorld world, int cardEntity, int playerEntity) => Turns;
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            if (Turns <= 0 || target < 0) return;
+            var pool = world.GetPool<HandDiscardTimerComponent>();
             if (!pool.Has(target)) pool.Add(target);
             pool.Get(target).TurnsRemaining = Turns;
         }
@@ -385,7 +429,21 @@ namespace Game.Core.Ability
             if (Amount == 0 || target < 0) return;   // NonTarget → target = сущность игрока-владельца
             var playerPool = world.GetPool<PlayerComponent>();
             if (!playerPool.Has(target)) return;
-            CharmDurationBonusService.Add(playerPool.Get(target).PlayerId, Amount);
+            int ownerId = playerPool.Get(target).PlayerId;
+            CharmDurationBonusService.Add(ownerId, Amount);
+
+            // Ретроактивно: продлеваем и УЖЕ РАЗЫГРАННЫЕ чары владельца на столе, не только будущие (юзер
+            // 2026-08-21: «Зачарованный не продлевает уже разыгранные» — было осознанным дизайном, юзер
+            // решил сделать симметрично). RefreshDescription (CardConfig) отсюда не позвать — цикл сборок
+            // Ability→Configs, поэтому только правим сам TurnsRemaining и просим Ecs.Systems перерендерить.
+            var ownerPool = world.GetPool<OwnerComponent>();
+            var timerPool = world.GetPool<CharmTimerComponent>();
+            foreach (var e in world.Filter<CharmTag>().Inc<BoardTag>().Inc<CharmTimerComponent>().Inc<OwnerComponent>().End())
+            {
+                if (ownerPool.Get(e).OwnerId != ownerId) continue;
+                timerPool.Get(e).TurnsRemaining += Amount;
+                GameEventBus.Publish(new CharmTimerBumpedEvent { CardEntity = e });
+            }
         }
     }
 
@@ -519,10 +577,16 @@ namespace Game.Core.Ability
             MatchSpellsPlayedSelf = 10, // сколько ЗАКЛИНАНИЙ разыграно владельцем в матче (Моментум)
             SelfResolves = 11,          // порядковый номер ТЕКУЩЕГО применения этой способности: 1,2,3… (Нечищенный источник). НЕ для цепочек (AbilityChain)
             ChainDiscardedCost = 12,    // стоимость карты, СБРОШЕННОЙ прошлой стадией цепочки (Утилизация: урон = ей). Читает ChainContext.LastDiscardedCost
+            Stat = 13,                  // ТЕКУЩИЙ стат (StatKind) источника или его владельца (StatSource) — «повторить по атаке существа»
         }
 
         public CountSource Source = CountSource.Fixed;
         public int FixedCount = 1;
+
+        [Tooltip("Для Source=Stat: какой стат читаем.")]
+        public StatKind Stat = StatKind.Attack;
+        [Tooltip("Для Source=Stat: чей стат — сам источник или его владелец-игрок (нужно для Mana/Gold).")]
+        public StatSourceEntity StatSource = StatSourceEntity.Self;
 
         [Tooltip("Показывать число повторов в описании как *N* (карты-с-уровнями/динамический count). По умолчанию " +
                  "ВЫКЛ — чтобы не добавлять лишний слот и не сдвигать *N* в описаниях уже настроенных карт.")]
@@ -553,7 +617,7 @@ namespace Game.Core.Ability
         public override void Apply(EcsWorld world, int cardEntity, int target)
         {
             if (Inner == null) return;
-            int n = ResolveCount(world, cardEntity);
+            int n = ResolveCount(world, cardEntity, target);
             // ВРЕМЕННАЯ ДИАГНОСТИКА (Вонючее облако «не наносит урон»): видим источник счёта, n, модель карты,
             // сущность игрока и счётчик. n=0 → проблема в трекинге (CountsByModelId не инкрементнулся / не тот
             // playerEntity / не та модель). n≥1, но урона нет → проблема в Inner/цели (target<0 или не тот).
@@ -568,13 +632,13 @@ namespace Game.Core.Ability
                     Inner.Apply(world, cardEntity, target);
         }
 
-        int ResolveCount(EcsWorld world, int cardEntity)
-            => AbilityCount.Resolve(world, PlayerEntity, cardEntity, Source, FixedCount, CountCard, Archetype);
+        int ResolveCount(EcsWorld world, int cardEntity, int target)
+            => AbilityCount.Resolve(world, PlayerEntity, cardEntity, Source, FixedCount, CountCard, Archetype, Stat, StatSource, target);
 
         // IDynamicValue (opt-in): *N* = резолвнутое число повторов. Та же величина, что читает Apply (инвариант).
         public int DynamicValueCount => ShowCountInDescription ? 1 : 0;
         public int GetDynamicValue(int index, EcsWorld world, int cardEntity, int playerEntity)
-            => AbilityCount.Resolve(world, playerEntity, cardEntity, Source, FixedCount, CountCard, Archetype);
+            => AbilityCount.Resolve(world, playerEntity, cardEntity, Source, FixedCount, CountCard, Archetype, Stat, StatSource);
     }
 
     // === helper === резолв «сколько» для RepeatEffect И count-driven эффектов (SummonTokensByCount).
@@ -583,11 +647,18 @@ namespace Game.Core.Ability
     {
         public static int Resolve(EcsWorld world, int playerEntity, int cardEntity,
                                   RepeatEffect.CountSource source, int fixedCount,
-                                  ScriptableObject countCard, ICreatureTag archetype)
+                                  ScriptableObject countCard, ICreatureTag archetype,
+                                  StatKind statKind = StatKind.Attack, StatSourceEntity statSource = StatSourceEntity.Self,
+                                  int target = -1)
         {
             if (source == RepeatEffect.CountSource.Fixed) return fixedCount;
             if (source == RepeatEffect.CountSource.ChainKilled) return ChainContext.CurrentKilled;
             if (source == RepeatEffect.CountSource.ChainDiscardedCost) return ChainContext.LastDiscardedCost;
+            if (source == RepeatEffect.CountSource.Stat)
+            {
+                int statEntity = StatSourceUtil.Resolve(world, cardEntity, statSource, target);
+                return StatCompareTargetFilter.TryRead(world, statEntity, statKind, out int sv) ? sv : 0;
+            }
 
             // SelfResolves — номер текущего применения способности (скрэтч ставит RunResolveAbilityQueueSystem
             // ДО эффектов → в обычном резолве всегда ≥1, первое срабатывание = 1; на пассиве резолв идёт тем же

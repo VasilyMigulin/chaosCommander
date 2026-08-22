@@ -38,6 +38,7 @@ namespace Game.Core.Mono
         Coroutine _attackFallback;
         Coroutine _deathFallback;
         Coroutine _abilityCastFallback;
+        Tween _hitPunchTween;
 
         static readonly int AttackHash = Animator.StringToHash("Attack");
         static readonly int DeathHash  = Animator.StringToHash("Death");
@@ -659,14 +660,19 @@ namespace Game.Core.Mono
         }
 
         /// <summary>Реакция цели на удар (#3): триггер аниматора "Hit" + короткий «флинч» масштабом,
-        /// который виден ДАЖЕ без клипа. Пунч масштаба не конфликтует с DOMove/DORotate (разные свойства),
-        /// поэтому DOKill не нужен.</summary>
+        /// который виден ДАЖЕ без клипа. Пунч масштаба не конфликтует с DOMove/DORotate (разные свойства) —
+        /// но конфликтует САМ С СОБОЙ: если PlayHit придёт снова, пока предыдущий панч ещё не доиграл
+        /// (Двойной удар, почти одновременные попадания), новый DOPunchScale стартует от ТЕКУЩЕГО, ещё не
+        /// вернувшегося к базе, масштаба — существо ужимается с каждым ударом и в норму уже не возвращается
+        /// (баг: существа «усыхают» после серии хитов). Достраиваем прошлый панч (Kill(true) = его законный
+        /// финал, то есть true-база) ПЕРЕД тем, как начать новый.</summary>
         public void PlayHit()
         {
             if (animator != null && HasParam(HitHash))
                 animator.SetTrigger(HitHash);
 
-            transform.DOPunchScale(Vector3.one * -0.12f, 0.18f, 6, 0.6f);   // лёгкое «сжатие» от удара
+            _hitPunchTween?.Kill(true);
+            _hitPunchTween = transform.DOPunchScale(Vector3.one * -0.12f, 0.18f, 6, 0.6f);   // лёгкое «сжатие» от удара
         }
 
         /// <param name="onFinished">Опц. колбэк на РЕАЛЬНОЕ завершение анимации смерти (тот же FinishEvent/

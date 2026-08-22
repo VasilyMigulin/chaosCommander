@@ -18,7 +18,7 @@ namespace Game.Core.EditorTools
         [MenuItem("Tools/Backend/Export Booster Config (Title Data 'boosterConfig')")]
         public static void Export()
         {
-            var asset = FindAsset();
+            var asset = TitleDataExportUtil.FindSingleAsset<BoosterConfigAsset>("[BoosterExport]");
             if (asset == null)
             {
                 Debug.LogWarning("[BoosterExport] Нет ассета BoosterConfigAsset. Создай: Create → Game → Booster Config.");
@@ -49,15 +49,6 @@ namespace Game.Core.EditorTools
             EditorUtility.RevealInFinder(outPath);
         }
 
-        static BoosterConfigAsset FindAsset()
-        {
-            var guids = AssetDatabase.FindAssets("t:BoosterConfigAsset");
-            if (guids.Length == 0) return null;
-            if (guids.Length > 1)
-                Debug.LogWarning($"[BoosterExport] Ассетов BoosterConfigAsset: {guids.Length} — беру первый.");
-            return AssetDatabase.LoadAssetAtPath<BoosterConfigAsset>(AssetDatabase.GUIDToAssetPath(guids[0]));
-        }
-
         static string BuildJson(List<BoosterConfigAsset.Booster> boosters)
         {
             var sb = new StringBuilder();
@@ -69,9 +60,11 @@ namespace Game.Core.EditorTools
                 string exp = b.Expansion != null ? (b.Expansion.ExpansionId ?? "").ToLowerInvariant() : "";
                 int count = b.Slots != null ? b.Slots.Length : 0;
 
-                sb.Append($"  \"{Esc(id)}\": {{\n");
-                sb.Append($"    \"expansion\": \"{Esc(exp)}\",\n");
+                sb.Append($"  \"{TitleDataExportUtil.Esc(id)}\": {{\n");
+                sb.Append($"    \"expansion\": \"{TitleDataExportUtil.Esc(exp)}\",\n");
                 sb.Append($"    \"cardCount\": {count},\n");
+                if (!string.IsNullOrEmpty(b.RequiresCampaign))
+                    sb.Append($"    \"requiresCampaign\": \"{TitleDataExportUtil.Esc(b.RequiresCampaign.ToLowerInvariant())}\",\n");
                 sb.Append("    \"slots\": [\n");
 
                 if (b.Slots != null)
@@ -102,7 +95,5 @@ namespace Game.Core.EditorTools
             }
             return string.Join(", ", parts);
         }
-
-        static string Esc(string s) => string.IsNullOrEmpty(s) ? "" : s.Replace("\\", "\\\\").Replace("\"", "\\\"");
     }
 }

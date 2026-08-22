@@ -21388,6 +21388,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 9118248777299985194, guid: c10daf0558e24a84892a2996f94af5b9, type: 3}
+      propertyPath: animator
+      value: 
+      objectReference: {fileID: 7711360992523442033}
+    - target: {fileID: 9118248777299985194, guid: c10daf0558e24a84892a2996f94af5b9, type: 3}
       propertyPath: _speedText
       value: 
       objectReference: {fileID: 6442107980964980579}

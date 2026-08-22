@@ -1,3 +1,4 @@
+using System.Collections;
 using Game.Core.Events;
 using UnityEngine;
 
@@ -33,6 +34,19 @@ namespace Game.Core.Mono
         // Ведёт CellReadyHighlightSystem. ──
         [Header("Подсветка — «ещё можно ходить»")]
         [SerializeField] GameObject readyVisual;
+
+        // ── Мисклик при выборе цели способности (пустая клетка / не подходящее существо) — короткая
+        // красная вспышка ПОВЕРХ текущей подсветки (слой 1 не трогаем: способность продолжает ждать
+        // валидный клик, Target-подсветка остаётся как была). Отдельный слой специально НЕЗАВИСИМ от
+        // _mode/SetHighlight — RunAbilityTargetSelectionSystem.ShowHighlights не перевызывается на каждый
+        // клик, так что мигание не рискует быть затёртым/оборванным гонкой с обычной подсветкой.
+        [Header("Мисклик при выборе цели — красная вспышка")]
+        [Tooltip("GameObject, который мигает при невалидном клике во время выбора цели (Selected). Не " +
+                 "назначен → фолбэк быстрым покраснением меша (тот же Renderer, что и обычная подсветка).")]
+        [SerializeField] GameObject invalidFlashVisual;
+        [SerializeField] Color invalidFlashColor = new Color(1f, 0.15f, 0.15f, 1f);
+
+        Coroutine _flashRoutine;
 
         // ── СЛОЙ 0 — обычный вид клетки (декор в покое). Антагонист подсветок: горит, пока НИ ОДНА
         // подсветка (слой 1 или слой 2) не активна, и гаснет под любой из них — рамки/свечения рисуются
@@ -119,6 +133,35 @@ namespace Game.Core.Mono
             if (_ready == on) return;
             _ready = on;
             ApplyVisuals();
+        }
+
+        /// <summary>Мисклик во время выбора цели способности: короткая красная вспышка (2 мигания по
+        /// умолчанию), НЕ отменяет текущую подсветку (слой 1) — только сигналит «сюда нельзя», ожидание
+        /// цели продолжается. Повторный вызов до завершения предыдущей вспышки перезапускает её.</summary>
+        public void FlashInvalid(int blinks = 2, float interval = 0.09f)
+        {
+            if (_flashRoutine != null) StopCoroutine(_flashRoutine);
+            _flashRoutine = StartCoroutine(FlashRoutine(blinks, interval));
+        }
+
+        IEnumerator FlashRoutine(int blinks, float interval)
+        {
+            for (int i = 0; i < blinks; i++)
+            {
+                SetFlash(true);
+                yield return new WaitForSecondsRealtime(interval);
+                SetFlash(false);
+                yield return new WaitForSecondsRealtime(interval);
+            }
+            _flashRoutine = null;
+        }
+
+        void SetFlash(bool on)
+        {
+            if (invalidFlashVisual != null) { invalidFlashVisual.SetActive(on); return; }
+            if (cellRenderer == null) return;
+            if (on) cellRenderer.material.color = invalidFlashColor;
+            else    ApplyVisuals();   // вернуть цвет, который реально должен сейчас гореть (_mode/_ready)
         }
 
         public void SetAvatarPlace()

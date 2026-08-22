@@ -10,6 +10,7 @@ using Game.Core.Match;
 using Game.Core.Mono;
 using Game.Core.Network;
 using Game.Core.Photon;
+using Game.Core.Service;
 using Game.Core.Shared.Interface;
 using Leopotam.EcsLite;
 using System.Collections.Generic;
@@ -43,6 +44,10 @@ namespace Game.Core.States
         [SerializeField] private BoardView _boardView;
         [SerializeField] private CardConfig _cardConfig;
         [SerializeField] private DefaultAbilityVfxConfig _defaultAbilityVfxConfig;
+
+        [Tooltip("Пауза между соседними действиями очереди (резолв способностей/автокаст ИИ/реплей на " +
+                 "пассиве/шаг RepeatAbility) — читаемость каскада. См. ActionPacing.GapSeconds.")]
+        [SerializeField] private float _actionGapSeconds = ActionPacing.GapSeconds;
 
         [HideInInspector] public EcsRunHandler EcsHandler;
         [HideInInspector] public PhotonRunHandler PhotonRunHandler;
@@ -128,6 +133,7 @@ namespace Game.Core.States
         public override void Awake()
         {
             _pve = Game.Core.Service.PveMode.Enabled;
+            ActionPacing.GapSeconds = _actionGapSeconds;
 
             if (!_pve && PhotonRunHandler == null)
             {
@@ -292,7 +298,16 @@ namespace Game.Core.States
                 }
             }
 
-            if (encounter != null && encounter.Commander != null)
+            // Пул колод (DeckPool): InitPveOpponentSystem уже отработал (EcsHandler.Init выше по каскаду) и
+            // положил свой случайный пик сюда — читаем ЕГО, а не рандомим заново (иначе VS показал бы другого
+            // командира, чем реально попал в бой). Пул пуст/не задан → как раньше, Commander энкаунтера.
+            var pickedDeck = PveEncounterLocator.CurrentOpponentDeckPick;
+            if (pickedDeck != null && pickedDeck.Commander != null)
+            {
+                oppExp = pickedDeck.Commander.ExpansionId;
+                oppId  = pickedDeck.Commander.CardId;
+            }
+            else if (encounter != null && encounter.Commander != null)
             {
                 oppExp = encounter.Commander.ExpansionId;
                 oppId  = encounter.Commander.CardId;
@@ -340,6 +355,31 @@ namespace Game.Core.States
 
             if (firstWin && enc != null && enc.RewardCards != null)
                 GrantEncounterRewards(enc);
+
+            if (firstWin)
+                CheckCampaignCompletion();
+        }
+
+        // Кампания могла ЗАВЕРШИТЬСЯ этой победой (последний энкаунтер) → разовая награда (боевые бустеры
+        // и т.п., Title Data "campaignRewards"). Ищем кампанию текущего энкаунтера локально (сканируем
+        // Resources/Campaign) — не через CampaignProgress (UI-сборка, BattleState её не видит). Сам клейм
+        // и идемпотентность — в CampaignRewardService.ClaimIfCompleted (он же ретроактивно подчищает
+        // игроков, прошедших кампанию ДО появления награды — см. StoryModePanel).
+        private static void CheckCampaignCompletion()
+        {
+            var enc = PveEncounterLocator.Current;
+            if (enc == null) return;
+
+            foreach (var campaign in Resources.LoadAll<Game.Core.Configs.CampaignConfig>("Campaign"))
+            {
+                if (campaign == null || campaign.Encounters == null) continue;
+                bool belongs = false;
+                foreach (var e in campaign.Encounters) if (e == enc) { belongs = true; break; }
+                if (!belongs) continue;
+
+                Game.Core.Backend.CampaignRewardService.ClaimIfCompleted(campaign);
+                return;   // энкаунтер принадлежит ровно одной кампании
+            }
         }
 
         // Выдача карт-наград в библиотеку игрока + тосты «получена карта» + сохранение в облако.

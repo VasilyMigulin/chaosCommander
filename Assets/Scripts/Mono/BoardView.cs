@@ -15,6 +15,12 @@ namespace Game.Core.Mono
         public int Height => height;
         /// <summary>Мировой размер клетки.</summary>
         public float CellSize => cellSize;
+
+        /// <summary>Клетки уже построены (BuildBoard прошёл — доска реально существует в мире). BuildBoard
+        /// гоняется в Awake() процедурным Instantiate, поэтому ДО Play (чистый Edit Mode без запущенной
+        /// игры) клеток ещё нет — GetSideBounds/GetFieldBounds в этот момент вернули бы вырожденный
+        /// «1 клетка у transform.position» вместо реального стола. Проверяй ПЕРЕД тем, как доверять боундам.</summary>
+        public bool IsBuilt => _cellMap.Count > 0;
         [SerializeField] CellView cellPrefab;
         [SerializeField] AvatarPlayerView avatarPlayerPrefab;
 
@@ -193,6 +199,37 @@ namespace Game.Core.Mono
                 foreach (var kv in _cellMap) sum += kv.Value.transform.position;
                 return sum / _cellMap.Count;
             }
+        }
+
+        /// <summary>Мировые границы ПОЛОВИНЫ поля одного игрока (все его клетки + опц. аватар) — для
+        /// area-VFX, что должны закрашивать «половину стола», а не баунды конкретных задетых целей
+        /// (AOE-по-стороне: 1 существо на стороне не должен схлопывать эффект в точку — как в HS).</summary>
+        public Bounds GetSideBounds(int ownerId, bool includeAvatar = true)
+        {
+            var cell = new Vector3(cellSize, 0.3f, cellSize);
+            Bounds? b = null;
+            foreach (var kv in _cellMap)
+            {
+                if (kv.Key.owner != ownerId) continue;
+                EncapsulateBounds(ref b, new Bounds(kv.Value.transform.position, cell));
+            }
+            if (includeAvatar && _avatarCells.TryGetValue(ownerId, out var avatarCell))
+                EncapsulateBounds(ref b, new Bounds(avatarCell.transform.position, cell));
+            return b ?? new Bounds(transform.position, cell);
+        }
+
+        /// <summary>Мировые границы ВСЕГО поля (обе стороны + опц. аватары).</summary>
+        public Bounds GetFieldBounds(bool includeAvatars = true)
+        {
+            Bounds b = GetSideBounds(1, includeAvatars);
+            b.Encapsulate(GetSideBounds(2, includeAvatars));
+            return b;
+        }
+
+        static void EncapsulateBounds(ref Bounds? total, Bounds b)
+        {
+            if (total == null) { total = b; return; }
+            var t = total.Value; t.Encapsulate(b); total = t;
         }
 
         public CellView GetCell(int row, int col, int ownerId)

@@ -26,17 +26,18 @@ MonoBehaviour:
         Id: 58
         Name: "\u041F\u043E\u0436\u0435\u043B\u0430\u0442\u044C \u0437\u0430\u043A\u043B\u0438\u043D\u0430\u043D\u0438\u0435
           \u0437\u0430 3"
-        Description: "\u0420\u0430\u0437\u044B\u0433\u0440\u0430\u0439\u0442\u0435
-          \u0441\u043B\u0443\u0447\u0430\u0439\u043D\u043E\u0435 \u0437\u0430\u043A\u043B\u0438\u043D\u0430\u043D\u0438\u0435
-          \u0437\u0430 3 \u0438\u043B\u0438 \u0434\u0435\u0448\u0435\u0432\u043B\u0435"
+        Description: "\u041F\u043E\u0441\u043C\u043E\u0442\u0440\u0438\u0442\u0435
+          3 \u0437\u0430\u043A\u043B\u0438\u043D\u0430\u043D\u0438\u044F \u0437\u0430
+          3, \u0432\u044B\u0431\u0435\u0440\u0438\u0442\u0435 1 \u0438 \u0440\u0430\u0437\u044B\u0433\u0440\u0430\u0439\u0442\u0435"
         Rarity: 4
         Element: 2
         ArtImage: {fileID: 0}
-        ExpansionId: 
+        ExpansionId: stolen_princess
         PlayCost: 1
         PlayCostAmount: 0
         IsToken: 1
         ShowAsLinked: 0
+        HideAsLinked: 0
         NonBattleAbilities: []
         RuntimeAbilities:
         - rid: 2425735989079048502
@@ -51,7 +52,7 @@ MonoBehaviour:
         - rid: 2425735989079048503
         Rules: []
         Effects:
-        - rid: 2425735989079048504
+        - rid: 2425736258364637341
         MaxActivationsPerTurn: 0
         LimitGroup: 0
         Vfx:
@@ -59,16 +60,36 @@ MonoBehaviour:
           Prefab: {fileID: 0}
           HitPrefab: {fileID: 0}
           ProjectileSpeed: 12
+          ProjectileScale: 1
           MergeArea: 0
+          Delivery: 0
+          Trajectory: 0
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
           PlayCasterAnimation: 0
     - rid: 2425735989079048503
       type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
-    - rid: 2425735989079048504
-      type: {class: PlayRandomFromPoolEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+    - rid: 2425736258364637341
+      type: {class: DiscoverFromPoolEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
         ConditionRoot:
           rid: -2
+        OfferCount: 3
+        Dest: 0
+        TakeOwnership: 0
+        Modifiers:
+        - rid: 2425736258364637342
         PoolAsset: {fileID: 11400000, guid: f6737f20a29a5124db7e663aa0a92191, type: 2}
         Pool: []
+    - rid: 2425736258364637342
+      type: {class: PlayTargetCardEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
         ForceRandomTarget: 1

@@ -92,6 +92,33 @@ namespace Game.Core.Ability
         }
     }
 
+    // === class (OOP) === Командир ОППОНЕНТА сейчас на поле (Negate=true — наоборот, «его нет на поле»:
+    // либо ещё не разыгран, либо мёртв и в руке на кулдауне). Для ветвления «убить, если есть / иначе
+    // заблокировать» (Проклятье для принцессы) — две способности с противоположным Negate на одном
+    // триггере, срабатывает ровно одна.
+    [Serializable]
+    public sealed class EnemyCommanderOnBoardRule : IRule
+    {
+        public bool Negate = false;
+
+        public bool Evaluate(EcsWorld world, int cardEntity, int playerEntity)
+        {
+            int mine = RuleUtil.OwnerId(world, cardEntity);
+            bool onBoard = false;
+            if (mine >= 0)
+            {
+                var owner = world.GetPool<OwnerComponent>();
+                foreach (var e in world.Filter<CommanderTag>().Inc<BoardTag>().Inc<OwnerComponent>().End())
+                {
+                    if (owner.Get(e).OwnerId == mine) continue;
+                    onBoard = true;
+                    break;
+                }
+            }
+            return Negate ? !onBoard : onBoard;
+        }
+    }
+
     // === class (OOP) === Оппонент контролирует не меньше MinCount существ на поле.
     [Serializable]
     public sealed class EnemyControlsCreatureRule : IRule

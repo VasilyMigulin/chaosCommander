@@ -18,7 +18,7 @@ namespace Game.Core.EditorTools
         [MenuItem("Tools/Backend/Export Black Market Config (Title Data 'blackMarketConfig')")]
         public static void Export()
         {
-            var asset = FindAsset();
+            var asset = TitleDataExportUtil.FindSingleAsset<BlackMarketPoolAsset>("[BlackMarketExport]");
             if (asset == null)
             {
                 Debug.LogWarning("[BlackMarketExport] Нет ассета BlackMarketPoolAsset. Создай: Create → Game → Black Market Pool.");
@@ -69,15 +69,6 @@ namespace Game.Core.EditorTools
             EditorUtility.RevealInFinder(outPath);
         }
 
-        static BlackMarketPoolAsset FindAsset()
-        {
-            var guids = AssetDatabase.FindAssets("t:BlackMarketPoolAsset");
-            if (guids.Length == 0) return null;
-            if (guids.Length > 1)
-                Debug.LogWarning($"[BlackMarketExport] Ассетов BlackMarketPoolAsset: {guids.Length} — беру первый. Выбор появится позже.");
-            return AssetDatabase.LoadAssetAtPath<BlackMarketPoolAsset>(AssetDatabase.GUIDToAssetPath(guids[0]));
-        }
-
         static string BuildJson(BlackMarketPoolAsset a, Dictionary<string, int> slots,
             Dictionary<string, string> priceCode, Dictionary<string, int> priceAmount, Dictionary<string, List<string>> pools)
         {
@@ -93,14 +84,14 @@ namespace Game.Core.EditorTools
             // prices.
             var priceParts = new List<string>();
             foreach (var r in Order) if (priceCode.ContainsKey(r))
-                priceParts.Add($"    \"{r}\": {{ \"code\": \"{priceCode[r]}\", \"amount\": {priceAmount[r]} }}");
+                priceParts.Add($"    \"{r}\": {{ \"code\": \"{TitleDataExportUtil.Esc(priceCode[r])}\", \"amount\": {priceAmount[r]} }}");
             sb.Append("  \"prices\": {\n").Append(string.Join(",\n", priceParts)).Append("\n  },\n");
 
             // pools.
             var poolParts = new List<string>();
             foreach (var r in Order) if (pools.ContainsKey(r))
             {
-                var quoted = pools[r].ConvertAll(id => $"\"{id}\"");
+                var quoted = pools[r].ConvertAll(id => $"\"{TitleDataExportUtil.Esc(id)}\"");
                 poolParts.Add($"    \"{r}\": [{string.Join(", ", quoted)}]");
             }
             sb.Append("  \"pools\": {\n").Append(string.Join(",\n", poolParts)).Append("\n  }\n");

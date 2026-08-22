@@ -31,9 +31,12 @@ MonoBehaviour:
         Rarity: 0
         Element: 0
         ArtImage: {fileID: 0}
-        ExpansionId: 
+        ExpansionId: stolen_princess
         PlayCost: 0
         PlayCostAmount: 0
+        RequiresAdditionalCost: 0
+        AdditionalCostKind: 0
+        AdditionalCostAmount: 1
         IsToken: 1
         ShowAsLinked: 0
         HideAsLinked: 1
@@ -62,13 +65,24 @@ MonoBehaviour:
           Prefab: {fileID: 0}
           HitPrefab: {fileID: 0}
           ProjectileSpeed: 12
+          ProjectileScale: 1
           MergeArea: 0
+          Delivery: 0
+          Trajectory: 0
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
           PlayCasterAnimation: 0
         Area: 0
         Zone: 0
         Filters:
         - rid: 2425736124044673221
         - rid: 2425736124044673222
+        - rid: 2425736393348874554
         IncludeCommanderInZones: 0
     - rid: 2425736124044673212
       type: {class: AbilityToTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
@@ -85,7 +99,17 @@ MonoBehaviour:
           Prefab: {fileID: 0}
           HitPrefab: {fileID: 0}
           ProjectileSpeed: 12
+          ProjectileScale: 1
           MergeArea: 0
+          Delivery: 0
+          Trajectory: 0
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
           PlayCasterAnimation: 0
         Selection: 3
         Count: 1
@@ -94,11 +118,12 @@ MonoBehaviour:
         Filters:
         - rid: 2425736124044673214
         - rid: 2425736124044673217
+        - rid: 2425736393348874555
         IncludeCommanderInZones: 0
     - rid: 2425736124044673213
       type: {class: OnCreatureInvokedTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
-        AllowFromAnyZone: 0
+        Zone: 1
     - rid: 2425736124044673214
       type: {class: AllyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
@@ -149,4 +174,10 @@ MonoBehaviour:
       data: 
     - rid: 2425736124044673222
       type: {class: NotAlreadyTrackedTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736393348874554
+      type: {class: TokenTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736393348874555
+      type: {class: TokenTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 

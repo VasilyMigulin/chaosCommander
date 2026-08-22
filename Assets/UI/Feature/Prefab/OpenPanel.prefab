@@ -407,7 +407,7 @@ MonoBehaviour:
   isOpenOnInit: 0
   isAlwaysOpen: 0
   _panelId: 
-  _boosterConfig: {fileID: 0}
+  _boosterConfig: {fileID: 11400000, guid: 14e38fc7c27131541bdcde790bc1b1bb, type: 2}
   _boostersRoot: {fileID: 5388930540747200384}
   _boosterSlotPrefab: {fileID: 3915308952944946633, guid: 9cda821b75a21324ba483a9ce68ccdcb, type: 3}
   _boosterReveal: {fileID: 6701818082281941885}

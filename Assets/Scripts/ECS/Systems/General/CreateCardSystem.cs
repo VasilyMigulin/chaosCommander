@@ -238,6 +238,14 @@ namespace Game.Core.Ecs.Systems
                     deck.CardEntities.Insert(idx, cardEntity);
                     deck.Count = deck.CardEntities.Count;
                 }
+
+                // UI-анимация «замешалось в колоду» — только СВОЯ колода (чужая не визуализируется, как и
+                // чужая рука). Мировой добор при старте матча сюда не попадает (RegisterInZoneList=false
+                // у обычной раздачи) — спамить анимацией на весь стартовый шафл некому. SourceEntity — как
+                // у CardDrawnEvent (карта летит ОТ кастера); DeckShuffleUISystem резолвит мировую позицию
+                // САМ, лениво (см. её докстринг — источник на момент трансляции обычно ещё на столе).
+                if (!evt.IsEnemy)
+                    GameEventBus.Publish(new CardShuffledToDeckEvent { CardEntity = cardEntity, PlayerId = pe, SourceEntity = evt.SourceEntity });
             }
         }
 

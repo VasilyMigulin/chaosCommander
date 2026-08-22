@@ -3,6 +3,7 @@ using Game.Core.Ecs.Components;
 using Game.Core.Events;
 using Game.Core.Mono;
 using Game.Core.Network;
+using Game.Core.Service;
 using Game.Core.Shared.Interface;
 using Leopotam.EcsLite;
 using Leopotam.EcsLite.Di;
@@ -109,6 +110,7 @@ namespace Game.Core.Ecs.Systems
                     case ActionCardPickedData pick:   ReplayPicked(pick);     break;
                     case ActionAbilityData   ability: ReplayAbility(ability); break;
                     case ActionDeathData     death:   ReplayDeath(death);     break;
+                    case ActionDiscardData   discard: ReplayDiscard(discard); break;
                     case ActionDrawReplacementData dr: ReplayDrawReplacement(dr); break;
                     case ActionDrawData      draw:    ReplayDraw(draw);       break;
                     case ActionControlRevertData cr:  ReplayControlRevert(cr); break;
@@ -254,7 +256,8 @@ namespace Game.Core.Ecs.Systems
 
         private void ReplayAttack(ActionAttackData s)
         {
-            if (!_state.Value.TryGetEntity(s.AttackerEntityKey, out int attacker))
+            int attacker = ResolveTargetKey(s.AttackerEntityKey);   // "PLAYER:{id}" → атакующий аватар, иначе существо
+            if (attacker < 0)
             {
                 Debug.LogError($"[Replay] Attack: attacker not found '{s.AttackerEntityKey}'");
                 return;
@@ -396,14 +399,27 @@ namespace Game.Core.Ecs.Systems
 
             GeneratedCardChannel.ClearReplay();
 
-            if (targets.Count > 0 && _abilityVfxPool.Value.Has(abilityEntity) && _boardView.Value != null)
+            // NonTarget-стадия целит технически в кастера (targets=[casterPlayer], без Selected -интерактива
+            // здесь этого даже не видно) — бить нечего, общий Vfx способности не играем. Зеркалит
+            // RunChainSystem.EmitStageVfx (см. её докстринг/ForceVfxOnNonTarget) — иначе тот же баг
+            // («Дать газу!» подсвечивает кастера на бухгалтерской стадии) вылезал бы у пассива отдельно.
+            bool suppressVfx = stage == null || (stage.Mode == ChainStage.TargetingMode.NonTarget && !stage.ForceVfxOnNonTarget);
+            if (!suppressVfx && targets.Count > 0 && _abilityVfxPool.Value.Has(abilityEntity) && _boardView.Value != null)
             {
                 var spec = _abilityVfxPool.Value.Get(abilityEntity).Spec;
                 var targetsArr = targets.ToArray();
                 if (spec != null && spec.Kind == VfxKind.Projectile && spec.Prefab != null)
                     VfxEmitUtil.LaunchProjectile(_world.Value, _boardView.Value, spec, card, targetsArr, -1);
                 else
-                    VfxEmitUtil.EmitInstantVfx(_world.Value, _boardView.Value, spec, card, targetsArr);
+                {
+                    // Field-стадия — та же зона, что видит актив (см. RunChainSystem.EmitStageVfx), иначе
+                    // Area-VFX на пассиве красит баунды целей, а на активе — половину/всё поле (визуальный
+                    // разнобой между клиентами; на game-state не влияет — чистая косметика).
+                    Bounds? zone = stage != null && stage.Mode == ChainStage.TargetingMode.Field
+                        ? VfxEmitUtil.ZoneBounds(_world.Value, _boardView.Value, stage.Area, card, -1)
+                        : null;
+                    VfxEmitUtil.EmitInstantVfx(_world.Value, _boardView.Value, spec, card, targetsArr, zone);
+                }
             }
 
             Debug.Log($"[Replay] Chain stage: card={card} step={stepIndex} targets={targets.Count} killed={killedCount}");
@@ -490,6 +506,19 @@ namespace Game.Core.Ecs.Systems
             }
             if (!_deadPool.Value.Has(entity)) _deadPool.Value.Add(entity);
             Debug.Log($"[Replay] Death (timer): entity={entity}");
+        }
+
+        /// <summary>Сброс от системного таймера (актив посчитал) — AltCostUtil.Discard напрямую (не
+        /// «гибель»: DeadTag/DieSystem тут ни при чём, тот же путь, что у AltCost DiscardHand выше).</summary>
+        private void ReplayDiscard(ActionDiscardData s)
+        {
+            if (!_state.Value.TryGetEntity(s.EntityKey, out int entity))
+            {
+                Debug.LogError($"[Replay] Discard: entity not found '{s.EntityKey}' — desync");
+                return;
+            }
+            AltCostUtil.Discard(_world.Value, entity);
+            Debug.Log($"[Replay] Discard (timer): entity={entity}");
         }
 
         /// <summary>

@@ -39,6 +39,10 @@ namespace Game.Core.Ability
         public ScriptableObject CountCard;
         [Tooltip("Для MatchArchetypeInvoked: архетип, чьи призывы считаем. Ключ берётся из него.")]
         [SerializeReference] public ICreatureTag Archetype;
+        [Tooltip("Для Source=Stat: какой стат читаем.")]
+        public StatKind Stat = StatKind.Attack;
+        [Tooltip("Для Source=Stat: чей стат — сам источник или его владелец-игрок (нужно для Mana/Gold).")]
+        public StatSourceEntity StatSource = StatSourceEntity.Self;
 
         protected override void OnInit(EcsWorld world, int abilityEntity)
         {
@@ -62,6 +66,8 @@ namespace Game.Core.Ability
                 FixedCount = FixedCount,
                 CountCard = CountCard,
                 Archetype = Archetype,
+                Stat = Stat,
+                StatSource = StatSource,
             };
 
             // Stages пуст до первого AbilityFire.Mark — он пересчитает N и наполнит массив ПЕРЕД тем, как
@@ -82,5 +88,7 @@ namespace Game.Core.Ability
         public int FixedCount;
         public ScriptableObject CountCard;
         public ICreatureTag Archetype;
+        public StatKind Stat;
+        public StatSourceEntity StatSource;
     }
 }

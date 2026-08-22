@@ -94,6 +94,31 @@ namespace Game.Core.Shared
             return GetText("property." + propertyKey + ".label", fallback);
         }
 
+        // ── Название аддона (дропдаун «Коллекция» в DeckBuildPanel) по ExpansionId ──
+        // Тот же приём, что TypeLabel/PropertyLabel: встроенный RU/EN-фоллбэк + переопределение из
+        // таблицы по ключу expansion.<id>.label. Новый аддон — новая пара строк здесь.
+        static readonly Dictionary<string, string> ExpansionLabelsRu = new Dictionary<string, string>
+        {
+            ["standard"]        = "Стандартный",
+            ["stolen_princess"] = "Похищенная принцесса",
+        };
+        static readonly Dictionary<string, string> ExpansionLabelsEn = new Dictionary<string, string>
+        {
+            ["standard"]        = "Standard",
+            ["stolen_princess"] = "Stolen Princess",
+        };
+
+        /// <summary>Дефолтное название аддона по ExpansionId. Неизвестный ключ → сам ExpansionId
+        /// (лучше показать техническое имя, чем упасть на пустую строку).</summary>
+        public static string ExpansionLabel(string expansionId)
+        {
+            if (string.IsNullOrEmpty(expansionId)) return string.Empty;
+            bool en = (Language ?? "ru").StartsWith("en");
+            var dict = en ? ExpansionLabelsEn : ExpansionLabelsRu;
+            string fallback = dict.TryGetValue(expansionId, out var v) ? v : expansionId;
+            return GetText("expansion." + expansionId + ".label", fallback);
+        }
+
         // ── Ключевые фразы, которые форматтер автоматически делает жирными (<b>…</b>) ──
         // Длинные раньше коротких, чтобы вложенные совпадения не ломали болд.
         static readonly Dictionary<string, string[]> Keywords = new Dictionary<string, string[]>

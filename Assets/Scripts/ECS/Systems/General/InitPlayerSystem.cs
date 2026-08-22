@@ -32,6 +32,7 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<RemoteComponent> _remotePool = default;
         readonly EcsPoolInject<AiPlayerComponent> _aiPool = default;
         readonly EcsPoolInject<HealthComponent> _healthPool = default;
+        readonly EcsPoolInject<AttackComponent> _attackPool = default;
         readonly EcsPoolInject<AvatarViewComponent> _avatarViewPool = default;
         readonly EcsCustomInject<BoardView> _boardView = default;
 
@@ -108,6 +109,10 @@ namespace Game.Core.Ecs.Systems
                 healthComp.Current = 30;
                 healthComp.Max = 30;
                 healthComp.BaseMax = 30;   // без этого RecalculateValue (после DrainHealth и любого HP-модификатора) обнулит базу → Max = Σмодов
+
+                ref var attackComp = ref _attackPool.Value.Add(entity);
+                attackComp.Base = 1;   // базовая атака аватара — «отбиваться» от захватчиков row0 своей стороны
+                attackComp.RecalculateValue();
 
                 if (_boardView.Value != null)
                 {
@@ -227,6 +232,10 @@ namespace Game.Core.Ecs.Systems
             ref var health = ref _healthPool.Value.Add(entity);
             health.Current = 30; health.Max = 30; health.BaseMax = 30;   // точные HP приедут снэпшотом
 
+            ref var attack = ref _attackPool.Value.Add(entity);
+            attack.Base = 1;
+            attack.RecalculateValue();
+
             if (_boardView.Value != null)
             {
                 var avatarView = _boardView.Value.GetAvatarView(side);
@@ -293,6 +302,10 @@ namespace Game.Core.Ecs.Systems
 
             ref var health = ref _healthPool.Value.Add(entity);
             health.Current = 30; health.Max = 30; health.BaseMax = 30;   // BaseMax обязателен для RecalculateValue; HP ИИ переопределит InitPveOpponentSystem
+
+            ref var attack = ref _attackPool.Value.Add(entity);
+            attack.Base = 1;
+            attack.RecalculateValue();
 
             if (_boardView.Value != null)
             {

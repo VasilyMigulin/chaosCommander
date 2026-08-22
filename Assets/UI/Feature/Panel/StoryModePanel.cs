@@ -63,6 +63,14 @@ namespace AwesomeUI.Feature
             var progress = CampaignProgress.Load();
             var encounters = progress.Encounters;
 
+            // Ретроактивный клейм награды за кампанию: если прогресс боёв обогнал сервер (кампанию прошли
+            // ДО того, как награда/каталог появились), обычный триггер в BattleState (firstWin) для этого
+            // игрока больше никогда не наступит. Экран кампании — надёжное место подхватить это: игрок
+            // сюда обязательно зайдёт. IsClaimed внутри фильтрует повтор — сетевой запрос уйдёт максимум
+            // один раз за реальную непройденную выдачу.
+            if (progress.Campaign != null)
+                Game.Core.Backend.CampaignRewardService.ClaimIfCompleted(progress.Campaign);
+
             if (!progress.HasLevels)
             {
                 Debug.LogWarning($"[StoryModePanel] Нет уровней: ни кампании в Resources/{CampaignProgress.CampaignsFolder}/, " +

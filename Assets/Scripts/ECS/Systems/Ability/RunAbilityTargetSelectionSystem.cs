@@ -103,8 +103,12 @@ namespace Game.Core.Ecs.Systems
             {
                 ref var click = ref _clickPool.Value.Get(clickEnt);
                 int candidate = FindCandidate(in click, owner.CardEntity, owner.PlayerEntity, tc.Filters);
+                // Мисклик (пустая клетка / не подходящее существо) БОЛЬШЕ НЕ отменяет способность — карта
+                // уже оплачена/снята с руки к этому моменту (RunCastRouterSystem), молчаливая отмена просто
+                // сжигала карту впустую. Вместо этого — короткая красная вспышка по кликнутой клетке,
+                // ожидание валидной цели продолжается. Явная отмена — только правым кликом (см. выше).
                 if (candidate >= 0) Choose(ability, candidate, tc.Count);
-                else Cancel(ability);
+                else FlashInvalidCell(in click);
                 break;   // один клик за кадр
             }
         }
@@ -168,6 +172,15 @@ namespace Game.Core.Ecs.Systems
                 int side = _sidePool.Value.Get(pe).Side;
                 _boardView.Value.GetAvatarCell(side)?.SetHighlight(CellHighlight.Target);
             }
+        }
+
+        // Резолвит CellView под кликом ТОЙ ЖЕ конвенцией, что FindCandidate (Row=-1,Col=-1 → аватар по Side).
+        void FlashInvalidCell(in CellClickEvent click)
+        {
+            var cell = (click.Row == -1 && click.Col == -1)
+                ? _boardView.Value.GetAvatarCell(click.OwnerId)
+                : _boardView.Value.GetCell(click.Row, click.Col, click.OwnerId);
+            cell?.FlashInvalid();
         }
 
         int FindCandidate(in CellClickEvent click, int casterCard, int casterPlayer, ITargetFilter[] filters)

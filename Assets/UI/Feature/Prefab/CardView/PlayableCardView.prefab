@@ -546,9 +546,10 @@ MonoBehaviour:
   _holdInspectEnabled: 1
   _holdThreshold: 0.45
   _returnDuration: 0.25
-  _zoomScale: 1.6
-  _zoomLift: 90
-  _zoomDuration: 0.15
+  _zoomScale: 2.1
+  _zoomScreenAnchor: {x: 0.5, y: 0.53}
+  _zoomDuration: 0.22
+  _zoomDragThreshold: 90
 --- !u!114 &8871178683873642745 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 211998503917613914, guid: 18590e748cd6a6e428842617eed1d81b, type: 3}

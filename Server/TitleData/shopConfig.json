@@ -41,6 +41,16 @@
       "enabled": true
     },
     {
+      "itemId": "booster_stolen_princess",
+      "displayName": "Бустер «Похищение принцессы»",
+      "category": "booster",
+      "priceCode": "GD",
+      "priceAmount": 200,
+      "quantity": 1,
+      "enabled": true,
+      "_note": "Продаётся всегда — ОТКРЫТЬ можно только после полного прохождения кампании stolen_princess (гейт в OpenBooster/requiresCampaign, boosterConfig.json). Купить и придержать до победы — ожидаемо."
+    },
+    {
       "itemId": "avatar_prince",
       "displayName": "Аватар «Шальной принц»",
       "category": "avatar",

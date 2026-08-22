@@ -96,6 +96,11 @@ namespace Game.Core.Ecs.Systems
                     }
                 }
 
+                // Уже был в кладбище ДО этого хода (Скелетон «при смерти→в руку»: DieSystem уже отправил его
+                // в GraveTag и уже отпубликовал CreatureDiedEvent один раз, ПРЕЖДЕ чем его же OnDie-хрип
+                // попытался баунснуть его в руку) — см. использование ниже (hand-full фолбэк).
+                bool cameFromGrave = _graveTagPool.Value.Has(entity);
+
                 // снять с текущей зоны (любой — Скелетон «при смерти→в руку» уже в кладбище через DieSystem)
                 if (_boardPool.Value.Has(entity))    _boardPool.Value.Del(entity);
                 if (_deckTagPool.Value.Has(entity))  _deckTagPool.Value.Del(entity);
@@ -115,20 +120,26 @@ namespace Game.Core.Ecs.Systems
                     case LeaveDestination.Hand:
                         // РУКА ПОЛНА → карта УНИЧТОЖАЕТСЯ (правило ХС для баунса; баг 2026-07-31: «Призвать
                         // ураган» возвращал ВСЕХ, и в руке оказывалось 7 карт при лимите 6). Токен — в лимбо
-                        // (он и так не идёт на кладбище). CreatureDiedEvent НЕ публикуем: это не гибель на
-                        // поле, предсмертные хрипы не срабатывают (как в ХС — существо уже покинуло стол).
-                        // Командир — исключение: у него отдельный слот, он возвращается всегда.
+                        // (он и так не идёт на кладбище). Командир — исключение: у него отдельный слот, он
+                        // возвращается всегда.
                         if (!_commanderPool.Value.Has(entity)
                             && !HandSpace.HasRoomForOwner(_world.Value, OwnerIdOf(entity)))
                         {
                             HandSpace.Burn(_world.Value, entity, "баунс в полную руку");
 
-                            // ПРЕДСМЕРТНЫЕ ХРИПЫ СРАБАТЫВАЮТ (решение юзера 2026-07-31 — в ХС наоборот, там
-                            // такая карта гибнет молча). Существо реально погибло, поэтому шлём обычный
-                            // сигнал смерти: OnDie-способности + авто-ревёрт выданных им аур. DieEvent не
-                            // ставим — сущность уже вне борда, DieSystem её не обрабатывает.
-                            if (!_diePool.Value.Has(entity)) _diePool.Value.Add(entity);
-                            GameEventBus.Publish(new CreatureDiedEvent { CardEntity = entity, KillerEntity = -1 });
+                            // ПРЕДСМЕРТНЫЕ ХРИПЫ СРАБАТЫВАЮТ — но ТОЛЬКО если это первая гибель (живое
+                            // существо не смогло уйти в руку, напр. «Призвать ураган»). Если карта попала
+                            // сюда УЖЕ БУДУЧИ в кладбище (cameFromGrave — Скелетон «при смерти→в руку»:
+                            // DieSystem уже отправил её в грав и один раз опубликовал CreatureDiedEvent) —
+                            // повторная публикация здесь снова триггерит ТОТ ЖЕ OnDie-хрип «вернись в руку»,
+                            // рука всё ещё полна → снова Burn → снова CreatureDiedEvent → БЕСКОНЕЧНЫЙ ЦИКЛ
+                            // (баг 2026-08-19). Карта и так уже в кладбище (Burn выше) — хрипы своё уже
+                            // отыграли на настоящей смерти, второй раз им играть нечего.
+                            if (!cameFromGrave)
+                            {
+                                if (!_diePool.Value.Has(entity)) _diePool.Value.Add(entity);
+                                GameEventBus.Publish(new CreatureDiedEvent { CardEntity = entity, KillerEntity = -1 });
+                            }
                             break;
                         }
 
@@ -169,6 +180,15 @@ namespace Game.Core.Ecs.Systems
             // Счётчик атак за ход — иначе вернувшееся существо не сможет атаковать в ход повторного розыгрыша
             // (сброс на старте хода касается только существ НА борде).
             if (_attacksUsedPool.Value.Has(entity)) _attacksUsedPool.Value.Get(entity).Value = 0;
+
+            // Та же ловушка, что и со смертью командира (см. DieSystem.ProcessDeath): баунс — ТА ЖЕ ecs-
+            // сущность, возвращается в игру и может быть переиграна. Без этого идемпотентность Tracked-ауры
+            // («эту цель уже баффали») навсегда блокирует повторную выдачу — только тут это грозит ЛЮБОМУ
+            // существу, не только командиру. Permanent-баффы RemoveTarget не трогает (симметрично). ДВА
+            // параллельных механизма трекинга — снимаем из ОБОИХ (AppliedBuffs — тот же повод, для
+            // ApplyTrackedBuffEffect, у которого раньше не было своего RemoveTarget вовсе, баг 2026-08-21).
+            TrackedBuffs.RemoveTarget(_world.Value, entity);
+            AppliedBuffs.RemoveTarget(_world.Value, entity);
         }
 
         void AddToZoneList(int entity, bool toHand, Vector3? fromWorld = null)

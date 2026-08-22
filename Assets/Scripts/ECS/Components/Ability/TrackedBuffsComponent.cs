@@ -53,5 +53,35 @@ namespace Game.Core.Ecs.Components
             foreach (var it in t.Items) it.Buff?.Revert(world, source, it.Target);
             t.Items.Clear();
         }
+
+        /// <summary>Убрать ЦЕЛЬ из трекинга ВСЕХ источников (зовётся при смерти цели). Без этого запись
+        /// {Target} переживает смерть навсегда — для обычного существа безобидно (новой целью оно уже не
+        /// станет), но КОМАНДИР возвращается в игру ТОЙ ЖЕ ecs-сущностью (DieSystem.ReturnCommanderToHand),
+        /// и при повторном розыгрыше идемпотентность ауры (AddBuffEffect{Tracked}: «эту цель уже баффали»)
+        /// навсегда блокирует повторную выдачу баффа той же реактивной аурой (баг: «Королевский шарм»
+        /// переставал действовать на убитого-и-переигранного командира).
+        ///
+        /// PERMANENT-баффы (Buff.Permanent) НЕ трогаем вообще — ни Revert, ни удаление записи. Их стат
+        /// физически не снимается смертью (ModifiersPermanent/Override, RemoveModifier/Revert по ним и так
+        /// no-op), а вот удаление ЗАПИСИ было бы опасно: следующий триггер той же реактивной ауры увидел бы
+        /// цель как «не баффанную» и навесил бы ВТОРОЙ такой же перманентный модификатор поверх уже
+        /// стоящего (двойной стек на командире после каждой его смерти). Оставляем запись как есть —
+        /// ровно то же поведение, что было ДО этого метода.</summary>
+        public static void RemoveTarget(Leopotam.EcsLite.EcsWorld world, int target)
+        {
+            var pool = world.GetPool<TrackedBuffsComponent>();
+            foreach (var source in world.Filter<TrackedBuffsComponent>().End())
+            {
+                ref var t = ref pool.Get(source);
+                if (t.Items == null) continue;
+                for (int i = t.Items.Count - 1; i >= 0; i--)
+                {
+                    if (t.Items[i].Target != target) continue;
+                    if (t.Items[i].Buff != null && t.Items[i].Buff.Permanent) continue;   // переживает смерть — трекинг не трогаем
+                    t.Items[i].Buff?.Revert(world, source, target);
+                    t.Items.RemoveAt(i);
+                }
+            }
+        }
     }
 }

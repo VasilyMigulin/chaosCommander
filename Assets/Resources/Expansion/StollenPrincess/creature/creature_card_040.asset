@@ -86,8 +86,18 @@ MonoBehaviour:
           Prefab: {fileID: 0}
           HitPrefab: {fileID: 161470, guid: 002697f32e15ab9429e5db328300f83b, type: 3}
           ProjectileSpeed: 12
+          ProjectileScale: 1
           MergeArea: 0
-          PlayCasterAnimation: 0
+          Delivery: 0
+          Trajectory: 0
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
+          PlayCasterAnimation: 1
         Mode: 1
         Selection: 0
         Count: 1
@@ -104,6 +114,8 @@ MonoBehaviour:
         CountCard: {fileID: 0}
         Archetype:
           rid: 2425736124044673307
+        Stat: 1
+        StatSource: 0
     - rid: 2425736124044673301
       type: {class: OnTurnEndTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
@@ -111,9 +123,9 @@ MonoBehaviour:
     - rid: 2425736124044673302
       type: {class: DealDamageEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
-        Amount: 1
         ConditionRoot:
           rid: -2
+        Amount: 1
     - rid: 2425736124044673303
       type: {class: AllyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 

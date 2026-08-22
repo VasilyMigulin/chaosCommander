@@ -24,6 +24,11 @@ namespace AwesomeUI.Feature.DeckBuilder
     /// Клик по легендарному существу в библиотеке → выбрать как командира.
     /// Клик по остальным картам → добавить в колоду (до 20 карт).
     ///
+    /// ПОДБОР КОМАНДИРА: пока он не выбран, рядом с поиском и тоглом «Show commanders» (_commanderFilterToggle)
+    /// доступна ещё панель доп. фильтров (_collectionFilterBar — цвет/тип/аддон/стоимость), чтобы было
+    /// проще найти нужную легендарку среди всей своей библиотеки. Как только командир выбран, оба этих
+    /// блока прячутся (RefreshMeta) — дальше библиотека работает как обычно (см. RefreshLibrary).
+    ///
     /// ЧТО РЕДАКТИРУЕМ, решает DeckEditContext (его ставит DeckViewPanel перед открытием):
     ///   • Edit   — существующая колода: подтягиваем её в редактор, при сохранении ЗАМЕНЯЕМ (даже если
     ///              переименовали — за это отвечает OriginalName);
@@ -88,6 +93,13 @@ namespace AwesomeUI.Feature.DeckBuilder
 
         [SerializeField] ElementColorEntry[] _colorIndicators;
 
+        [Header("Collection Filters")]
+        [Tooltip("Панель доп. фильтров библиотеки (цвет/тип/аддон/стоимость) — рядом с _commanderFilterToggle " +
+                 "и _searchInput. Видна и активна, только пока не выбран командир (RefreshMeta) — как только " +
+                 "командир выбран, теряет смысл (колода уже строится вокруг его цвета) и прячется, как и " +
+                 "_commanderFilterToggle.")]
+        [SerializeField] CollectionFilterBarView _collectionFilterBar;
+
         [Header("Info")]
         [SerializeField] TMP_InputField     _deckNameInput;
         [SerializeField] TextMeshProUGUI    _feedbackText;
@@ -126,6 +138,9 @@ namespace AwesomeUI.Feature.DeckBuilder
         public override void OnInject()
         {
             base.OnInject();
+            if (_collectionFilterBar == null)
+                Debug.LogWarning("[DeckBuildPanel] _collectionFilterBar не назначен — доп. фильтры библиотеки (цвет/тип/аддон/стоимость) не будут работать.", this);
+
             _saveButton?.onClick.AddListener(OnSaveClicked);
             _clearButton?.onClick.AddListener(OnClearClicked);
             _searchInput?.onValueChanged.AddListener(OnSearchChanged);
@@ -133,6 +148,7 @@ namespace AwesomeUI.Feature.DeckBuilder
             _copyCodeButton?.onClick.AddListener(OnCopyCodeClicked);
             _sideboardBackButton?.onClick.AddListener(OnSideboardBack);
             _commanderFilterToggle?.onValueChanged.AddListener(OnCommanderFilterChanged);
+            if (_collectionFilterBar != null) _collectionFilterBar.Changed += OnCollectionFilterChanged;
 
             PlayerLibrary.Changed += OnLibraryChanged;   // выдали карты (грант/бустер) → библиотека обновится в рантайме
 
@@ -145,6 +161,10 @@ namespace AwesomeUI.Feature.DeckBuilder
             base.OnOpen(onComplete);
             ResetFilters();        // фильтры не должны «залипать» с прошлого редактирования (см. ниже)
             BuildLibraryViews();   // библиотека могла измениться, пока панель была закрыта — пересобираем
+            // Опции аддона зависят от прогресса кампании — пересобираем при каждом открытии; notify:false,
+            // чтобы не дёргать RefreshLibrary раньше времени — его и так вызовет LoadFromContext → RefreshAll.
+            _collectionFilterBar?.Init(_cardConfig);
+            _collectionFilterBar?.ResetToDefaults(notify: false);
             LoadFromContext();     // что редактируем — решил DeckViewPanel
         }
 
@@ -179,6 +199,7 @@ namespace AwesomeUI.Feature.DeckBuilder
             _copyCodeButton?.onClick.RemoveListener(OnCopyCodeClicked);
             _commanderFilterToggle?.onValueChanged.RemoveListener(OnCommanderFilterChanged);
             _sideboardBackButton?.onClick.RemoveListener(OnSideboardBack);
+            if (_collectionFilterBar != null) _collectionFilterBar.Changed -= OnCollectionFilterChanged;
 
             foreach (var v in _libraryViews) v.OnAddRequested -= OnLibraryCardAdd;
             foreach (var v in _deckViews)
@@ -253,6 +274,22 @@ namespace AwesomeUI.Feature.DeckBuilder
                     if (_service.TryAdd(model) != DeckBuilderService.AddResult.Ok) skipped++;
                 }
             }
+
+            // Отложенные (Сказочник) — ТЕРЯЛИСЬ при каждом открытии существующей колоды: LoadDeck грузил
+            // только deck.Cards, а _sideboardEntries оставался пустым. Счётчик показывал 0/3, и любое
+            // сохранение ПОСЛЕ такого открытия затирало реально сохранённый сайдборд пустым (баг 2026-08-21).
+            // Грузим ПОСЛЕ deck.Cards — HasSideboard/SideboardSize зависят от карты-владельца зоны в _deckEntries.
+            if (deck.Sideboard != null)
+            {
+                foreach (var saved in deck.Sideboard)
+                {
+                    var model = _cardConfig.Get(saved.ExpansionId, saved.CardId)?.CardData;
+                    if (model == null) { skipped += saved.Count; continue; }
+
+                    for (int i = 0; i < saved.Count; i++)
+                        if (_service.TryAddToSideboard(model) != DeckBuilderService.AddResult.Ok) skipped++;
+                }
+            }
             return skipped;
         }
 
@@ -288,6 +325,7 @@ namespace AwesomeUI.Feature.DeckBuilder
         {
             var entries = new List<CardEntry>(PlayerLibrary.Entries.Values);
             bool hasCommander = _service.Commander != null;
+            bool commanderOnly = _commanderFilterToggle != null && _commanderFilterToggle.isOn;
 
             int i = 0;
             foreach (var entry in entries)
@@ -310,9 +348,19 @@ namespace AwesomeUI.Feature.DeckBuilder
                 if (hasCommander && visible && !_sideboardMode && !_service.IsColorAllowed(entry.Model))
                     visible = false;
 
+                // Доп. фильтры библиотеки (цвет/тип/аддон/стоимость) — ТОЛЬКО пока не выбран командир:
+                // после выбора колода уже строится вокруг его цвета, эти фильтры прячутся вместе с
+                // _commanderFilterToggle (см. RefreshMeta), а видимость снова решают только правила выше.
+                // «Показать командиров» переопределяет цвет/тип/стоимость, но не аддон — иначе легендарки
+                // из недоступного/непоказанного аддона перемешаются с выбранным.
+                if (!hasCommander && visible && _collectionFilterBar != null)
+                {
+                    var f = _collectionFilterBar.Filter;
+                    visible = commanderOnly ? f.InSelectedExpansion(entry.Model) : f.Matches(entry.Model);
+                }
+
                 // Фильтр «только командиры» (легендарные существа)
-                if (visible && _commanderFilterToggle != null && _commanderFilterToggle.isOn
-                    && !DeckBuilderService.IsValidCommander(entry.Model))
+                if (visible && commanderOnly && !DeckBuilderService.IsValidCommander(entry.Model))
                     visible = false;
 
                 string key = PlayerLibrary.MakeKey(entry.Model.ExpansionId, entry.Model.Id);
@@ -452,6 +500,13 @@ namespace AwesomeUI.Feature.DeckBuilder
             bool hasCmd = _service.Commander != null;
             _noCommanderHint?.SetActive(!hasCmd);
 
+            // «Show commanders» и доп. фильтры (цвет/тип/аддон/стоимость) нужны только пока подбираешь
+            // командира среди своих карт — после выбора колода уже строится вокруг его цвета, и эта
+            // панель прячется (решение юзера: фильтры живут в этой же панели, без отдельного режима,
+            // но выключаются одновременно с хинтом «выберите командира»).
+            _commanderFilterToggle?.gameObject.SetActive(!hasCmd);
+            if (_collectionFilterBar != null) _collectionFilterBar.gameObject.SetActive(!hasCmd);
+
             // Включить нужный индикатор цвета, остальные выключить
             if (_colorIndicators != null)
             {
@@ -542,6 +597,14 @@ namespace AwesomeUI.Feature.DeckBuilder
         }
 
         void OnCommanderFilterChanged(bool value)
+        {
+            // «Только командиры» переопределяет цвет/тип/стоимость (см. RefreshLibrary) — гасим эти
+            // контролы визуально, чтобы не выглядело так, будто они всё ещё что-то решают.
+            _collectionFilterBar?.SetSecondaryFiltersInteractable(!value);
+            RefreshLibrary(_searchInput != null ? _searchInput.text : "");
+        }
+
+        void OnCollectionFilterChanged()
         {
             RefreshLibrary(_searchInput != null ? _searchInput.text : "");
         }

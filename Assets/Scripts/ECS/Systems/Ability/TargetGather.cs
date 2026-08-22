@@ -14,10 +14,16 @@ namespace Game.Core.Ecs.Systems
         /// неуязвим к дискарду/миллу/похищению. Но для БЛАГОТВОРНЫХ выборок (аура «ваши существа в руке
         /// получают +1/+1» — Шальной десница) он обязан попадать в цели: иначе командир-в-руке молча
         /// не баффался, хотя на столе такая же аура его задевает. true → командира не отсекаем.</param>
+        /// <param name="blockStealthed">«Скрытый» прячет существо ТОЛЬКО от интерактивного выбора игрока
+        /// (TargetSelection.Selected — кастер физически кликает цель). Для всего остального (Random/
+        /// Strongest/MostExpensive/TriggerSubject, area-эффекты вроде «Королевского шарма») Скрытность не
+        /// должна защищать — это не «невидимость от игры», а «нельзя ткнуть пальцем». По умолчанию false;
+        /// в true ставит ТОЛЬКО ветка Selected в RunAbilityTargetingSystem (+ её drag-превью).</param>
         public static List<int> Gather(EcsWorld world, ITargetFilter[] filters,
                                        int casterCard, int casterPlayer, FieldArea? area,
                                        TargetZone zone = TargetZone.Board,
-                                       bool includeCommanderInZones = false)
+                                       bool includeCommanderInZones = false,
+                                       bool blockStealthed = false)
         {
             var result = new List<int>();
             int casterOwnerId = OwnerId(world, casterCard);
@@ -27,10 +33,10 @@ namespace Game.Core.Ecs.Systems
             // каждой зоны сохраняются как есть (в не-Board зонах исключаются источник и командир).
             if (zone == TargetZone.Any)
             {
-                result.AddRange(Gather(world, filters, casterCard, casterPlayer, area, TargetZone.Board, includeCommanderInZones));
-                result.AddRange(Gather(world, filters, casterCard, casterPlayer, area, TargetZone.Hand,  includeCommanderInZones));
-                result.AddRange(Gather(world, filters, casterCard, casterPlayer, area, TargetZone.Deck,  includeCommanderInZones));
-                result.AddRange(Gather(world, filters, casterCard, casterPlayer, area, TargetZone.Grave, includeCommanderInZones));
+                result.AddRange(Gather(world, filters, casterCard, casterPlayer, area, TargetZone.Board, includeCommanderInZones, blockStealthed));
+                result.AddRange(Gather(world, filters, casterCard, casterPlayer, area, TargetZone.Hand,  includeCommanderInZones, blockStealthed));
+                result.AddRange(Gather(world, filters, casterCard, casterPlayer, area, TargetZone.Deck,  includeCommanderInZones, blockStealthed));
+                result.AddRange(Gather(world, filters, casterCard, casterPlayer, area, TargetZone.Grave, includeCommanderInZones, blockStealthed));
                 return result;
             }
 
@@ -40,9 +46,9 @@ namespace Game.Core.Ecs.Systems
                 foreach (var e in world.Filter<CreatureTag>().Inc<BoardTag>().Exc<DeadTag>().End())
                 {
                     int side = ownerPool.Has(e) ? ownerPool.Get(e).OwnerId : -1;
-                    // «Скрытый»: недоступен ВРАЖЕСКОМУ таргетингу (своя сторона по-прежнему может выбрать
-                    // свой скрытый существо — напр. лечащим спеллом).
-                    if (side != casterOwnerId && stealthPool.Has(e)) continue;
+                    // «Скрытый»: недоступен ВРАЖЕСКОМУ ИНТЕРАКТИВНОМУ выбору (игрок физически не может
+                    // ткнуть в него). Random/Strongest/Field и т.п. — не «выбор», Скрытность их не блокирует.
+                    if (side != casterOwnerId && stealthPool.Has(e) && blockStealthed) continue;
                     if (!AreaOk(area, side, casterOwnerId)) continue;
                     if (!FiltersOk(world, e, casterCard, casterPlayer, filters)) continue;
                     result.Add(e);

@@ -25,10 +25,14 @@ namespace Game.Core.Ecs.Handlers
         public TutorialEcsHandler(IGameStateContext state)
         {
             // См. EcsRunHandler — та же защита от гонки с предыдущим Dispose (статические поля не должны
-            // переживать в новый туториал-запуск).
+            // переживать в новый туториал-запуск). Раньше тут не хватало двух из пяти статиков ниже
+            // (баг 2026-08-21) — переход матч↔туториал↔матч мог протащить чужую причину реакций/завис-
+            // ший замок анимации.
             Game.Core.Ecs.Components.MatchState.Clear();
             Game.Core.Ecs.Components.CastMultiplierService.Clear();
             Game.Core.Ecs.Components.CharmDurationBonusService.Clear();
+            Game.Core.Ecs.Components.AbilityResolveContext.ClearCause();   // причина реакций из прошлого матча/туториала
+            Game.Core.Events.PresentationLock.Clear();                     // замок анимации из прошлого матча/туториала
 
             World = new EcsWorld();
 
@@ -49,6 +53,7 @@ namespace Game.Core.Ecs.Handlers
                 .Add(new MatchCounterTrackerSystem())
                 .Add(new LastPlayedSpellTrackerSystem())
                 .Add(new CreatureTimerTickSystem())
+                .Add(new HandDiscardTimerTickSystem())
                 .Add(new RecurringDamageTickSystem())
                 .Add(new PoisonTickSystem())
                 .Add(new StealthTickSystem())
@@ -74,6 +79,7 @@ namespace Game.Core.Ecs.Handlers
                 .Add(new RunScrySystem())
                 .Add(new DrawCardSystem())
                 .Add(new HandUISystem())
+                .Add(new DeckShuffleUISystem())
                 .Add(new SpawnCreatureViewSystem())
                 .Add(new RunPendingOnCastSystem())
                 .Add(new TeamTintSystem())
@@ -187,6 +193,8 @@ namespace Game.Core.Ecs.Handlers
             Game.Core.Events.GameEventBus.Clear();
             Game.Core.Ecs.Components.CastMultiplierService.Clear();
             Game.Core.Ecs.Components.CharmDurationBonusService.Clear();
+            Game.Core.Ecs.Components.AbilityResolveContext.ClearCause();   // причина реакций — не переживает в следующий матч/туториал
+            Game.Core.Events.PresentationLock.Clear();                     // замок анимации — аналогично
             Game.Core.Ecs.Components.MatchState.Clear();
             World.Destroy();
             World = null;

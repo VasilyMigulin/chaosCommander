@@ -141,6 +141,8 @@ namespace AwesomeUI.Feature
                 case "promo_disabled":      return T("ui.err.promo_disabled", "Промокод отключён");
                 case "promo_limit":         return T("ui.err.promo_limit", "Все активации промокода разобрали");
                 case "promo_throttled":     return T("ui.err.promo_throttled", "Слишком много попыток — попробуйте позже");
+                // Бустеры, привязанные к стори-кампании
+                case "campaign_not_completed": return T("ui.err.campaign_not_completed", "Пройдите кампанию полностью, чтобы открыть этот бустер");
                 default:                    return reason;
             }
         }

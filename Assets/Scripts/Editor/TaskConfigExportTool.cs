@@ -17,7 +17,7 @@ namespace Game.Core.EditorTools
         [MenuItem("Tools/Backend/Export Task Config (Title Data 'taskConfig')")]
         public static void Export()
         {
-            var asset = FindAsset();
+            var asset = TitleDataExportUtil.FindSingleAsset<TaskConfigAsset>("[TaskExport]");
             if (asset == null)
             {
                 Debug.LogWarning("[TaskExport] Нет ассета TaskConfigAsset. Создай: Create → Game → Task Config.");
@@ -31,14 +31,6 @@ namespace Game.Core.EditorTools
             System.IO.File.WriteAllText(outPath, BuildJson(asset), Encoding.UTF8);
             Debug.Log($"[TaskExport] taskConfig (daily {asset.Daily.Count}, weekly {asset.Weekly.Count}, login {asset.LoginRewards.Count}) → {outPath}.");
             EditorUtility.RevealInFinder(outPath);
-        }
-
-        static TaskConfigAsset FindAsset()
-        {
-            var guids = AssetDatabase.FindAssets("t:TaskConfigAsset");
-            if (guids.Length == 0) return null;
-            if (guids.Length > 1) Debug.LogWarning($"[TaskExport] Ассетов TaskConfigAsset: {guids.Length} — беру первый.");
-            return AssetDatabase.LoadAssetAtPath<TaskConfigAsset>(AssetDatabase.GUIDToAssetPath(guids[0]));
         }
 
         static string BuildJson(TaskConfigAsset a)
@@ -75,7 +67,7 @@ namespace Game.Core.EditorTools
                 string id = t.ResolveId(weekly);
                 if (!seen.Add(id))
                     Debug.LogWarning($"[TaskExport] Дубль id '{id}' в '{key}' — задайте уникальный Id (сервер клеймит по id).");
-                sb.Append($"    {{ \"id\": \"{Esc(id)}\", \"type\": \"{TaskConfigAsset.TypeString(t.Type)}\", \"target\": {Mathf.Max(1, t.Target)}, \"reward\": {BuildReward(t.Reward)} }}");
+                sb.Append($"    {{ \"id\": \"{TitleDataExportUtil.Esc(id)}\", \"type\": \"{TaskConfigAsset.TypeString(t.Type)}\", \"target\": {Mathf.Max(1, t.Target)}, \"reward\": {BuildReward(t.Reward)} }}");
                 sb.Append(i < tasks.Count - 1 ? ",\n" : "\n");
             }
             sb.Append("  ]");
@@ -92,7 +84,7 @@ namespace Game.Core.EditorTools
                     var items = new List<string>();
                     foreach (var c in r.Currencies)
                         if (c != null && !string.IsNullOrEmpty(c.Code) && c.Amount != 0)
-                            items.Add($"{{ \"code\": \"{Esc(c.Code)}\", \"amount\": {c.Amount} }}");
+                            items.Add($"{{ \"code\": \"{TitleDataExportUtil.Esc(c.Code)}\", \"amount\": {c.Amount} }}");
                     if (items.Count > 0) parts.Add($"\"currencies\": [ {string.Join(", ", items)} ]");
                 }
                 if (r.Cards != null && r.Cards.Count > 0)
@@ -101,30 +93,24 @@ namespace Game.Core.EditorTools
                     foreach (var c in r.Cards)
                     {
                         string id = c?.ResolveItemId();
-                        if (!string.IsNullOrEmpty(id)) items.Add($"{{ \"itemId\": \"{Esc(id)}\", \"amount\": {Mathf.Max(1, c.Amount)} }}");
+                        if (!string.IsNullOrEmpty(id)) items.Add($"{{ \"itemId\": \"{TitleDataExportUtil.Esc(id)}\", \"amount\": {Mathf.Max(1, c.Amount)} }}");
                     }
                     if (items.Count > 0) parts.Add($"\"cards\": [ {string.Join(", ", items)} ]");
                 }
                 if (r.Boosters != null && r.Boosters.Count > 0)
                 {
                     var items = new List<string>();
-                    foreach (var b in r.Boosters) if (!string.IsNullOrEmpty(b)) items.Add($"\"{Esc(b.ToLowerInvariant())}\"");
+                    foreach (var b in r.Boosters) if (!string.IsNullOrEmpty(b)) items.Add($"\"{TitleDataExportUtil.Esc(b.ToLowerInvariant())}\"");
                     if (items.Count > 0) parts.Add($"\"boosters\": [ {string.Join(", ", items)} ]");
                 }
                 if (r.Avatars != null && r.Avatars.Count > 0)
                 {
                     var items = new List<string>();
-                    foreach (var av in r.Avatars) if (!string.IsNullOrEmpty(av)) items.Add($"\"{Esc(av.ToLowerInvariant())}\"");
+                    foreach (var av in r.Avatars) if (!string.IsNullOrEmpty(av)) items.Add($"\"{TitleDataExportUtil.Esc(av.ToLowerInvariant())}\"");
                     if (items.Count > 0) parts.Add($"\"avatars\": [ {string.Join(", ", items)} ]");
                 }
             }
             return parts.Count > 0 ? "{ " + string.Join(", ", parts) + " }" : "{ }";
-        }
-
-        static string Esc(string s)
-        {
-            if (string.IsNullOrEmpty(s)) return "";
-            return s.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n").Replace("\r", "");
         }
     }
 }

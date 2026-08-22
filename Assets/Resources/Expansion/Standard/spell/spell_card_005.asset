@@ -36,11 +36,13 @@ MonoBehaviour:
         PlayCostAmount: 4
         IsToken: 0
         ShowAsLinked: 0
-        MulliganStartingHand: 0
-        MulliganUnlimitedReplace: 0
+        HideAsLinked: 0
+        NonBattleAbilities: []
         RuntimeAbilities:
         - rid: 1051486497689043104
         Archetypes: []
+        TierSource: 0
+        Tiers: []
         RequiresTarget: 0
     - rid: 1051486497689043104
       type: {class: AbilityToTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
@@ -53,12 +55,24 @@ MonoBehaviour:
           - rid: 2419360282373259706
         Effects:
         - rid: 1051486497689043106
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
         Vfx:
           Kind: 0
           Prefab: {fileID: 0}
-          HitPrefab: {fileID: 131758, guid: 8385b03242e9e7447b9f870756a377b1, type: 3}
+          HitPrefab: {fileID: 1883610838541854, guid: aa72280b4bb67cb468b0ffc37bcfc9c0, type: 3}
           ProjectileSpeed: 12
+          ProjectileScale: 1
           MergeArea: 0
+          Delivery: 0
+          Trajectory: 0
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
           PlayCasterAnimation: 0
         Selection: 1
         Count: 1
@@ -66,6 +80,7 @@ MonoBehaviour:
         OfferCount: 3
         Filters:
         - rid: 1051486497689043105
+        IncludeCommanderInZones: 0
     - rid: 1051486497689043105
       type: {class: EnemyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 

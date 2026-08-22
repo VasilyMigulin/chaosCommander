@@ -47,6 +47,7 @@ namespace Game.Core.Ecs.Systems
         readonly EcsFilterInject<Inc<PlayerComponent, AiPlayerComponent>> _aiFilter = default;
         readonly EcsFilterInject<Inc<PlayerComponent, LocalComponent>> _humanFilter = default;
         readonly EcsPoolInject<PlayerComponent> _playerPool = default;
+        readonly EcsPoolInject<PlayerSideComponent> _sidePool = default;   // сторона аватара — для row0-атаки (#A)
         readonly EcsPoolInject<ActiveState> _activePool = default;
         readonly EcsPoolInject<GoldComponent> _goldPool = default;
         readonly EcsPoolInject<ManaComponent> _manaPool = default;
@@ -366,6 +367,11 @@ namespace Game.Core.Ecs.Systems
             // стоящие бьют, идущие шагают по путям — никаких разменов по дороге.
             if (TryLethalRush(ctx)) return true;
 
+            // 1.6) Аватар может ударить row0 своей стороны (#A) — свободное действие (не тратит мана/спорт
+            // существ), бьём всегда, как только доступно. AttacksUsedComponent сам гарантирует, что после
+            // первого успеха следующие тики этого хода сюда больше не зайдут.
+            if (TryAvatarAttack(ctx)) return true;
+
             // 2) Лучшая карта руки по полезности (roles + контекст); играем только если ≥ порога.
             int bestCard = -1, bestScore = PlayThreshold - 1;
             foreach (var card in _handCards.Value)
@@ -397,6 +403,45 @@ namespace Game.Core.Ecs.Systems
 
             // 3) Лучшее действие существ (атака/шаг) по всем существам сразу.
             return TryBestCreatureAction(ctx);
+        }
+
+        // ── аватар атакует row0 своей стороны (#A) ──────────────────────────────────────
+        // Своя копия row0-таргетинга — см. RunSelectCellSystem.GetAvatarTargets (докстринг класса просит
+        // не шарить код с человеческим вводом: правила не меняются, копия отдельная).
+
+        bool TryAvatarAttack(in Ctx ctx)
+        {
+            int used = _attacksUsedPool.Value.Has(ctx.Ai) ? _attacksUsedPool.Value.Get(ctx.Ai).Value : 0;
+            if (used >= 1) return false;
+
+            int mySide = _sidePool.Value.Has(ctx.Ai) ? _sidePool.Value.Get(ctx.Ai).Side : -1;
+            if (mySide < 0) return false;
+
+            int target = BestAvatarTarget(mySide, ctx.AiId);
+            if (target < 0) return false;
+
+            if (!_attackPool.Value.Has(ctx.Ai)) _attackPool.Value.Add(ctx.Ai).TargetEntity = target;
+            if (!_attacksUsedPool.Value.Has(ctx.Ai)) _attacksUsedPool.Value.Add(ctx.Ai);
+            _attacksUsedPool.Value.Get(ctx.Ai).Value = used + 1;   // паритет с человеком — лимит ведём сами (см. MarkAttacked)
+            Debug.Log($"[AI] аватар атакует существо {target} (row0 своей стороны)");
+            return true;
+        }
+
+        // Приоритет — «Защитник» (как у обычных атак), иначе первая найденная вражеская цель в row0.
+        int BestAvatarTarget(int side, int playerId)
+        {
+            int fallback = -1;
+            foreach (var ce in _boardCreatures.Value)
+            {
+                ref var p = ref _posPool.Value.Get(ce);
+                if (p.Row != 0 || p.OwnerId != side) continue;
+                if (_ownerPool.Value.Get(ce).OwnerId == playerId) continue;
+                if (_stealthPool.Value.Has(ce)) continue;
+
+                if (_tauntPool.Value.Has(ce)) return ce;
+                if (fallback < 0) fallback = ce;
+            }
+            return fallback;
         }
 
         // ── оценка карт ─────────────────────────────────────────────────────────────────

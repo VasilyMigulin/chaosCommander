@@ -79,6 +79,12 @@ namespace Game.Core.Events
         public GameObject Prefab;
         public GameObject HitPrefab;   // опц. вспышка по каждой клетке
         public bool Merge;
+
+        /// <summary>ЗОНА способности (Own/Enemy/All половина стола), если способность Field-режима —
+        /// вместо баундов по фактическим CellCenters (те схлопываются в точку, если задета всего 1 цель,
+        /// а Field-AOE концептуально бьёт по ВСЕЙ стороне, не по конкретным существам на ней). null →
+        /// как раньше, баунды считаются по CellCenters (Target-способность/точка).</summary>
+        public Bounds? ZoneBounds;
     }
 
     /// <summary>Разовая вспышка попадания в точке.</summary>

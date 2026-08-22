@@ -48,8 +48,13 @@ namespace Game.Core.Ecs.Systems
             }
 
             // Аватар-клетка: показать карту командира стороны e.OwnerId.
+            // СВОЙ аватар — попап не нужен (он ложится поверх aura/charm-бара над своим аватаром и не
+            // даёт нажать на миниатюры аур: просьба юзера 2026-08-21). Чужой — оставляем, это осмысленный
+            // просмотр вражеского командира.
             if (e.Row == -1 && e.Col == -1)
             {
+                if (IsLocalSide(e.OwnerId)) return;
+
                 int commander = FindCommanderBySide(e.OwnerId);
                 if (commander < 0) return;
                 GameEventBus.Publish(new CardDetailUIEvent
@@ -73,6 +78,14 @@ namespace Game.Core.Ecs.Systems
                 : default;
 
             GameEventBus.Publish(new CardDetailUIEvent { Visual = visual, Show = true });
+        }
+
+        // Сторона side принадлежит ЛОКАЛЬНОМУ игроку (для гейта «не показывать попап над своим аватаром»).
+        bool IsLocalSide(int side)
+        {
+            foreach (var pe in _playersFilter.Value)
+                if (_sidePool.Value.Get(pe).Side == side) return _playerPool.Value.Get(pe).IsLocalPlayer;
+            return false;
         }
 
         // Командир игрока, чья сторона доски = side (аватар-клетка несёт сторону, не playerId).

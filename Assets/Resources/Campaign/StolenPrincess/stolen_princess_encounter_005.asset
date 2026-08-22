@@ -1,0 +1,104 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 94fdf3306b821744da4c1a68d4e68c38, type: 3}
+  m_Name: stolen_princess_encounter_005
+  m_EditorClassIdentifier: Game.Core.Configs::Game.Core.Configs.PveEncounterConfig
+  EncounterName: "\u0413\u043B\u0430\u0432\u0430\u0440\u044C \u043F\u0440\u0435\u0438\u0441\u043F\u043E\u0434\u043D\u0435\u0439"
+  Commander: {fileID: 11400000, guid: 21c30d438d5c7c941831ae6f0cef749b, type: 2}
+  Cards:
+  - Card: {fileID: 11400000, guid: 0eea8ec59bc3265448eb94206d9a8920, type: 2}
+    Count: 3
+  - Card: {fileID: 11400000, guid: d492078b7d8a5f04ea013e0b0ec9167f, type: 2}
+    Count: 4
+  - Card: {fileID: 11400000, guid: 96e674cd316928b41bb51164593af945, type: 2}
+    Count: 3
+  - Card: {fileID: 11400000, guid: 031f56ea523a28c4e85b6ed6b53f3a4d, type: 2}
+    Count: 1
+  - Card: {fileID: 11400000, guid: cb6b539d6059feb459e0f432335b8128, type: 2}
+    Count: 1
+  - Card: {fileID: 11400000, guid: ff2f2af11f63b7a47b3838a160c5168a, type: 2}
+    Count: 3
+  - Card: {fileID: 11400000, guid: 78076986f0e86b845ba847d655634377, type: 2}
+    Count: 4
+  StartingHand: 4
+  Health: 30
+  PlayerDeck: {fileID: 11400000, guid: 5c4fc7d3c1de72f3443f6f5ec123ab44, type: 2}
+  IntroLines:
+  - Portrait: {fileID: 21300000, guid: ea0d15c8ad5814d68ba5d1f53bae6247, type: 3}
+    SpeakerKey: story.prince.name
+    TextKey: story.c1e5.intro.1
+    FallbackText: "\u041F\u0440\u0435\u0438\u0441\u043F\u043E\u0434\u043D\u044F\u044F.
+      \u0422\u0435\u043F\u043B\u043E, \u043B\u044E\u0434\u043D\u043E, \u043D\u0430\u0447\u0430\u043B\u044C\u0441\u0442\u0432\u043E.
+      \u041A\u0430\u043A \u043F\u043E\u043D\u0435\u0434\u0435\u043B\u044C\u043D\u0438\u043A."
+    Duration: 3.5
+  - Portrait: {fileID: 21300000, guid: ea0d15c8ad5814d68ba5d1f53bae6247, type: 3}
+    SpeakerKey: story.prince.name
+    TextKey: story.c1e5.intro.2
+    FallbackText: "\u0422\u044B \u043D\u0435 \u0413\u043D\u0438\u0434\u0430\u043B\u044C\u0444.
+      \u0422\u044B \u0435\u0433\u043E \u043F\u043E\u0434\u0440\u044F\u0434\u0447\u0438\u043A."
+    Duration: 3.5
+  VictoryLines:
+  - Portrait: {fileID: 21300000, guid: ea0d15c8ad5814d68ba5d1f53bae6247, type: 3}
+    SpeakerKey: story.prince.name
+    TextKey: story.c1e5.victory.1
+    FallbackText: "\u041F\u0435\u0440\u0435\u0434\u0430\u0439 \u043D\u0430\u0432\u0435\u0440\u0445:
+      \u043F\u0440\u0438\u043D\u0446 \u0443\u0436\u0435 \u0432 \u043F\u0443\u0442\u0438.
+      \u0418 \u043E\u043D \u0437\u043E\u043B."
+    Duration: 3.5
+  DefeatLines:
+  - Portrait: {fileID: 21300000, guid: ea0d15c8ad5814d68ba5d1f53bae6247, type: 3}
+    SpeakerKey: story.prince.name
+    TextKey: story.c1e5.defeat.1
+    FallbackText: "\u041C\u0435\u043D\u044F \u0437\u0430\u043A\u0438\u0434\u0430\u043B\u0438
+      \u0447\u0435\u0440\u0442\u044F\u043C\u0438. \u041C\u0435\u043B\u043A\u0438\u043C\u0438.
+      \u041E\u0431\u0438\u0434\u043D\u043E \u0432\u0434\u0432\u043E\u0439\u043D\u0435."
+    Duration: 3.5
+  ScriptedEvents:
+  - Note: 
+    Trigger: 0
+    TurnNumber: 6
+    HpThreshold: 0
+    Lines:
+    - Portrait: {fileID: 21300000, guid: 1b08f23842693de4582cf063e7d4bec1, type: 3}
+      SpeakerKey: story.devilboss.name
+      TextKey: story.c1e5.event.1
+      FallbackText: "\u0413\u043B\u0430\u0432\u043D\u043E\u0435, \u043D\u0435 \u0441\u0433\u043E\u0440\u0435\u0442\u044C
+        \u043D\u0430 \u0440\u0430\u0431\u043E\u0442\u0435!"
+      Duration: 3.6
+    Actions:
+    - Kind: 3
+      Card: {fileID: 11400000, guid: 6b73ad4e592f67044979afac2cb53af7, type: 2}
+      Amount: 1
+      TargetPlayer: 0
+  - Note:
+    Trigger: 0
+    TurnNumber: 12
+    HpThreshold: 0
+    Lines:
+    - Portrait: {fileID: 21300000, guid: 1b08f23842693de4582cf063e7d4bec1, type: 3}
+      SpeakerKey: story.devilboss.name
+      TextKey: story.c1e5.event.2
+      FallbackText: "\u041F\u043E\u0437\u0432\u0430\u0442\u044C \u0417\u0432\u0435\u0440\u044F!
+        \u041F\u0435\u0440\u0435\u0434 \u044D\u0442\u0438\u043C, \u0443\u0431\u0435\u0440\u0438\u0442\u0435\u0441\u044C
+        \u0442\u0443\u0442"
+      Duration: 3.6
+    Actions:
+    - Kind: 3
+      Card: {fileID: 11400000, guid: a4d144337803dca40af61a96c3d0db63, type: 2}
+      Amount: 1
+      TargetPlayer: 0
+    - Kind: 3
+      Card: {fileID: 11400000, guid: 1dbd2a8101d4e3943b1402b202e21921, type: 2}
+      Amount: 1
+      TargetPlayer: 0
+  RewardCards: []
+  ActionInterval: 0.9

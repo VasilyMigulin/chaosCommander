@@ -1,6 +1,7 @@
 using Game.Core.Ecs.Components;
 using Game.Core.Events;
 using Game.Core.Mono;
+using Game.Core.Shared.Interface;
 using Leopotam.EcsLite;
 using UnityEngine;
 
@@ -22,7 +23,9 @@ namespace Game.Core.Ecs.Systems
         // Hit(Kind=None+HitPrefab)/Beam/Area — МГНОВЕННАЯ косметика (эффекты уже применены к этому моменту,
         // ждать нечего). Projectile — отдельно, см. LaunchProjectile (там решение «ждать ли прилёт» разное
         // у разных вызывающих).
-        public static void EmitInstantVfx(EcsWorld world, BoardView bv, VfxSpec spec, int caster, int[] targets)
+        // zoneBounds — для Field-способностей (см. ZoneBounds ниже): Area+Merge красит ЗОНУ (половину/всё
+        // поле), а не баунды фактических целей (иначе 1 задетая цель схлопывает эффект в точку).
+        public static void EmitInstantVfx(EcsWorld world, BoardView bv, VfxSpec spec, int caster, int[] targets, Bounds? zoneBounds = null)
         {
             if (spec == null || bv == null || targets == null || targets.Length == 0) return;
 
@@ -56,10 +59,40 @@ namespace Game.Core.Ecs.Systems
                     var centers = new Vector3[targets.Length];
                     for (int i = 0; i < targets.Length; i++) centers[i] = WorldPos(world, bv, targets[i]);
                     GameEventBus.Publish(new AreaVfxEvent
-                    { CellCenters = centers, CellSize = bv.CellSize, Prefab = spec.Prefab, HitPrefab = spec.HitPrefab, Merge = spec.MergeArea });
+                    {
+                        CellCenters = centers, CellSize = bv.CellSize, Prefab = spec.Prefab,
+                        HitPrefab = spec.HitPrefab, Merge = spec.MergeArea, ZoneBounds = zoneBounds,
+                    });
                     break;
                 }
             }
+        }
+
+        // Зона Field-способности (Own/Enemy/All) → мировые границы половины/всего поля для Area-VFX с
+        // Merge=true. «Сторона» кастера — по OwnerComponent карты (владелец мог смениться — Обращение),
+        // фолбэк на PlayerComponent игрока. Не удалось определить сторону → null (вызывающий откатится на
+        // баунды по фактическим целям — старое поведение).
+        public static Bounds? ZoneBounds(EcsWorld world, BoardView bv, FieldArea area, int casterCard, int casterPlayer)
+        {
+            if (bv == null) return null;
+
+            var ownerPool = world.GetPool<OwnerComponent>();
+            int casterSide = ownerPool.Has(casterCard) ? ownerPool.Get(casterCard).OwnerId : -1;
+            if (casterSide < 0)
+            {
+                var playerPool = world.GetPool<PlayerComponent>();
+                if (playerPool.Has(casterPlayer)) casterSide = playerPool.Get(casterPlayer).PlayerId;
+            }
+            if (casterSide < 0) return null;
+            int enemySide = casterSide == 1 ? 2 : 1;
+
+            return area switch
+            {
+                FieldArea.Own   => bv.GetSideBounds(casterSide),
+                FieldArea.Enemy => bv.GetSideBounds(enemySide),
+                FieldArea.All   => bv.GetFieldBounds(),
+                _               => (Bounds?)null,
+            };
         }
 
         // Публикует ProjectileVfxEvent (Kind=Projectile, Prefab задан — проверяется ВЫЗЫВАЮЩИМ, у него

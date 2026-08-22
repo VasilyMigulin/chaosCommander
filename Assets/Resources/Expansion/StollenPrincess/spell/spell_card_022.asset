@@ -59,25 +59,39 @@ MonoBehaviour:
           Prefab: {fileID: 0}
           HitPrefab: {fileID: 185366, guid: 6dcff98dc6fbe6e4bbbdac7b196f0c5e, type: 3}
           ProjectileSpeed: 12
+          ProjectileScale: 1
           MergeArea: 0
+          Delivery: 0
+          Trajectory: 0
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
           PlayCasterAnimation: 1
         Area: 0
         Zone: 4
         Filters:
         - rid: 5
+        - rid: 6
         IncludeCommanderInZones: 1
     - rid: 3
       type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
-      data: 
+      data:
     - rid: 4
       type: {class: BuffStatsEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
+        ConditionRoot:
+          rid: -2
         AttackBonus: 0
         HealthBonus: 2
         SpeedBonus: 0
         Permanent: 1
-        ConditionRoot:
-          rid: -2
     - rid: 5
       type: {class: CommanderTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
-      data: 
+      data:
+    - rid: 6
+      type: {class: AllyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:

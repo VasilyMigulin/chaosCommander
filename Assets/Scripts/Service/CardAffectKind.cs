@@ -7,5 +7,5 @@ namespace Game.Core.Service
     /// (Game.Core.Ability, публикуют через CardFeedbackUtil). Game.Core.Shared не подходит — на неё
     /// не ссылается Game.Core.Ability.
     /// </summary>
-    public enum CardAffectKind { Generic, Copied, CostChanged, Buffed, Discarded }
+    public enum CardAffectKind { Generic, Copied, CostChanged, Buffed, Discarded, Damaged }
 }

@@ -235,6 +235,10 @@ namespace Game.Core.Ability
             if (!owner.Has(e.CardEntity) || !owner.Has(_ctx.CardEntity)) return;
             if (owner.Get(e.CardEntity).OwnerId != owner.Get(_ctx.CardEntity).OwnerId) return;   // только СВОИ карты владельца
 
+            // Карта разыграна КАК СЛЕДСТВИЕ другого эффекта (Развилка и подобные дискавер-с-автоигрой) —
+            // не самостоятельный ход игрока, в «N-е заклинание» считаться не должна. См. CauseStamp.IsCaused.
+            if (CauseStamp.IsCaused(_ctx.World, e.CardEntity)) return;
+
             if (CardScope != MultiplierCardScope.Any)
             {
                 var model = _ctx.World.GetPool<CardModelComponent>();

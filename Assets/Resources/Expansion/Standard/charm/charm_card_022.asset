@@ -37,10 +37,13 @@ MonoBehaviour:
         ExpansionId: standard
         PlayCost: 1
         PlayCostAmount: 3
+        RequiresAdditionalCost: 0
+        AdditionalCostKind: 0
+        AdditionalCostAmount: 1
         IsToken: 0
         ShowAsLinked: 0
-        MulliganStartingHand: 0
-        MulliganUnlimitedReplace: 0
+        HideAsLinked: 0
+        NonBattleAbilities: []
         RuntimeAbilities:
         - rid: 2419359952424665671
         Archetypes: []
@@ -48,6 +51,7 @@ MonoBehaviour:
         Tiers: []
         TurnsAlive: 3
         TickMoment: 1
+        FixTurns: 0
     - rid: 2419359952424665671
       type: {class: AbilityToField, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
@@ -59,20 +63,32 @@ MonoBehaviour:
         MaxActivationsPerTurn: 0
         LimitGroup: 0
         Vfx:
-          Kind: 0
-          Prefab: {fileID: 0}
-          HitPrefab: {fileID: 0}
+          Kind: 3
+          Prefab: {fileID: 1503314963399906, guid: b179a4b6ccaf1ad459bbd10cfc2e1ca4, type: 3}
+          HitPrefab: {fileID: 160620, guid: 084b5d8b03e0910468842580b7c7b8ba, type: 3}
           ProjectileSpeed: 12
-          MergeArea: 0
+          ProjectileScale: 1
+          MergeArea: 1
+          Delivery: 0
+          Trajectory: 0
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
           PlayCasterAnimation: 0
         Area: 0
         Zone: 0
         Filters:
         - rid: 2419359952424665675
         - rid: 2419359952424665676
+        IncludeCommanderInZones: 0
     - rid: 2419359952424665672
       type: {class: OnTurnStartTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
-      data: 
+      data:
+        Zone: 1
     - rid: 2419359952424665673
       type: {class: RepeatEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
@@ -80,6 +96,8 @@ MonoBehaviour:
           rid: -2
         Source: 11
         FixedCount: 1
+        Stat: 1
+        StatSource: 0
         ShowCountInDescription: 0
         CountCard: {fileID: 0}
         Archetype:
@@ -89,9 +107,9 @@ MonoBehaviour:
     - rid: 2419359952424665674
       type: {class: DealDamageEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
-        Amount: 1
         ConditionRoot:
           rid: -2
+        Amount: 1
     - rid: 2419359952424665675
       type: {class: AllyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 

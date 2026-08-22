@@ -119,13 +119,13 @@ namespace Game.Core.Ecs.Systems
             {
                 c.SpellsPlayed++;   // «за каждый спелл в матче» (Моментум); событие на обоих → зеркально
                 (c.SpellsPlayedLog ??= new System.Collections.Generic.List<SpellPlayRecord>())
-                    .Add(new SpellPlayRecord { ExpansionId = model.ExpansionId, ModelId = model.ModelId });
+                    .Add(new SpellPlayRecord { ExpansionId = model.ExpansionId, ModelId = model.ModelId, SourceEntity = e.CardEntity });
             }
             else if (model.CardType == Game.Core.Service.EnumService.CardType.Charm
                      && !_tokenPool.Value.Has(e.CardEntity))   // токены не реплеим (Мистер Постоянство)
             {
                 (c.CharmsPlayedLog ??= new System.Collections.Generic.List<SpellPlayRecord>())
-                    .Add(new SpellPlayRecord { ExpansionId = model.ExpansionId, ModelId = model.ModelId });
+                    .Add(new SpellPlayRecord { ExpansionId = model.ExpansionId, ModelId = model.ModelId, SourceEntity = e.CardEntity });
             }
         }
 

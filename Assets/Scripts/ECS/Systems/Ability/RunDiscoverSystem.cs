@@ -238,8 +238,22 @@ namespace Game.Core.Ecs.Systems
         void BuildPoolOffer(in DiscoverRequestComponent r, out int[] tokens, out string[] exp, out int[] ids, out CardVisualData[] visuals)
         {
             int total = r.PoolExp != null ? r.PoolExp.Length : 0;
+
+            // Фильтр «уже выбрано» — ЗДЕСЬ, при показе, а не в Configure (см. коммент у ExcludeAlreadyPicked):
+            // к этому моменту HasEarlierPending уже гарантировал резолв более раннего запроса ИСТОЧНИКА,
+            // так что RecordDiscoverPickEffect предыдущего прохода успел записать выбор.
+            List<string> used = null;
+            if (r.ExcludeAlreadyPicked)
+            {
+                var exclPool = _world.Value.GetPool<DiscoverExclusionComponent>();
+                if (exclPool.Has(r.SourceCardEntity)) used = exclPool.Get(r.SourceCardEntity).UsedKeys;
+            }
+            var poolExp    = r.PoolExp;
+            var poolCardId = r.PoolCardId;
+            bool Allowed(int p) => used == null || !used.Contains(DiscoverExclusionComponent.KeyOf(poolExp[p], poolCardId[p]));
+
             var idx = new List<int>(total);
-            for (int i = 0; i < total; i++) idx.Add(i);
+            for (int i = 0; i < total; i++) if (Allowed(i)) idx.Add(i);
             TakeRandom(idx, r.OfferCount);
 
             int n = idx.Count;
@@ -367,6 +381,18 @@ namespace Game.Core.Ecs.Systems
         // и списков, при воровстве меняет OwnerComponent + Own/EnemyCardTag (клиент-относительные).
         void PlacePicked(int card, in DiscoverRequestComponent r)
         {
+            // None — карту вообще не трогаем: ни снятия/установки зональных тегов, ни списков, ни
+            // CardDrawnEvent/CardRemovedFromHandUIEvent. Только модификаторы (Королевский указ: разыграть
+            // копии выбранной карты руки, сама она остаётся на месте без визуального «дёрга»).
+            if (r.Dest == DiscoverDest.None)
+            {
+                if (r.Modifiers != null)
+                    foreach (var mod in r.Modifiers)
+                        if (mod != null && mod.IsReady)
+                            mod.Apply(_world.Value, r.SourceCardEntity, card);
+                return;
+            }
+
             int curOwner = OwnerId(card);
             bool wasInHand = _handTagPool.Value.Has(card);
 

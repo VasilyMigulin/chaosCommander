@@ -1,0 +1,7 @@
+{
+  "_comment": "Title Data key = 'campaignRewards'. Одноразовая награда за ПОЛНОЕ прохождение стори-кампании. Читает handlers.ClaimCampaignReward (cloudscript.js). Ключ верхнего уровня = CampaignConfig.name (имя ассета кампании в Unity, см. CampaignProgress.State.Campaign.name), совпадает с ExpansionId набора для читаемости — но формально это два независимых пространства имён.",
+  "stolen_princess": {
+    "boosterId": "booster_stolen_princess",
+    "count": 5
+  }
+}

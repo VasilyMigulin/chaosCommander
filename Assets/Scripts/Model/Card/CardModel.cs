@@ -26,6 +26,18 @@ namespace Game.Core.Model.Card
         public EnumService.ResourceType PlayCost;
         public int PlayCostAmount;
 
+        /// <summary>Доп. цена ПОВЕРХ обычной (Gold/Mana), тем же набором видов, что AltCostKind (сброс
+        /// карты руки/жертва существа/карта из колоды/урон себе) — печатное свойство, в отличие от
+        /// AltCostComponent (тот временный, ставится ДРУГИМ эффектом и заменяет обычную оплату СЛЕДУЮЩЕГО
+        /// каста ЛЮБОЙ карты). Без цели/жертвы карта вообще не разыгрывается (CardAffordabilityUtil/
+        /// RunCastRouterSystem, через AltCostUtil.CanPay), как нехватка маны — не «каст без эффекта».
+        /// Саму уплату исполняет СОБСТВЕННЫЙ OnCast-эффект карты (DiscardEffect и т.п.), не движок.</summary>
+        public bool RequiresAdditionalCost;
+        public AltCostKind AdditionalCostKind;
+        [Tooltip("DiscardHand/SacrificeCreature/MillDeck: не используется гейтом (тот проверяет только " +
+                 "«есть хотя бы одна цель»). DamageSelf: величина урона себе.")]
+        public int AdditionalCostAmount = 1;
+
         /// <summary>
         /// Токен-карта. Не попадает на кладбище после использования/смерти — просто исчезает.
         /// При инициализации entity автоматически получает TokenTag.
@@ -74,6 +86,14 @@ namespace Game.Core.Model.Card
             // Токен-карта
             if (IsToken)
                 world.GetPool<TokenTag>().Add(entity);
+
+            // Доп. цена ПОВЕРХ обычной (см. RequiresAdditionalCost).
+            if (RequiresAdditionalCost)
+            {
+                ref var ac = ref world.GetPool<RequiresAdditionalCostComponent>().Add(entity);
+                ac.Kind = AdditionalCostKind;
+                ac.Amount = AdditionalCostAmount;
+            }
 
             // Заполняем CardModelComponent данными из модели
             ref var modelComp = ref world.GetPool<CardModelComponent>().Add(entity);

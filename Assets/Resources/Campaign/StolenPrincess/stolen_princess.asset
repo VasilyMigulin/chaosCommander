@@ -12,6 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 147b916d525073343872fa5f9f249a43, type: 3}
   m_Name: stolen_princess
   m_EditorClassIdentifier: Game.Core.Configs::Game.Core.Configs.CampaignConfig
-  CampaignName: "\u041F\u043E\u0445\u0438\u0449\u0435\u043D\u043D\u0430\u044F \u043F\u0440\u0438\u043D\u0446\u0435\u0441\u0441\u0430"
+  CampaignName: ui.story.campaign.stolen_princess
   Encounters:
   - {fileID: 11400000, guid: 020f39d882f41a44da646bb146829e8d, type: 2}
+  - {fileID: 11400000, guid: 19fb2a5b99eb5f8b584823abd757cad7, type: 2}
+  - {fileID: 11400000, guid: 549241e6f2aea8ed7291b0104b6b92b8, type: 2}
+  - {fileID: 11400000, guid: 3128fb0e364fd4ec070d7d75eb4dabb6, type: 2}
+  - {fileID: 11400000, guid: d112d776120cd21232be15d83070da3f, type: 2}
+  - {fileID: 11400000, guid: 9a253740d38c56ca1c9369561b118d49, type: 2}

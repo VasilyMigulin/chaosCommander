@@ -76,13 +76,25 @@ namespace AwesomeUI.Feature
                 string name = def != null && !string.IsNullOrEmpty(def.DisplayName)
                     ? Game.Core.Shared.CardTextLocalization.GetText(def.DisplayName, def.DisplayName)
                     : PrettyName(kv.Key);
+                bool locked = IsLocked(def);
 
                 var slot = Instantiate(_boosterSlotPrefab, _boostersRoot);
                 slot.gameObject.SetActive(true);
                 slot.Init();
-                slot.SetData(kv.Key, name, kv.Value, icon, OnOpen, OnHold);   // тап = 1, удержание = окно выбора
+                slot.SetData(kv.Key, name, kv.Value, icon, OnOpen, OnHold, locked);   // тап = 1, удержание = окно выбора
                 _slots.Add(slot);
             }
+        }
+
+        // Гейт RequiresCampaign — тот же ключ, что и OpenBooster на сервере (campaign_done_*), но с
+        // клиентской стороны: CampaignRewardService.IsClaimed читает флаг, который BattleState ставит
+        // ТОЛЬКО после подтверждённого ClaimCampaignReward. НЕ CampaignProgress.Completed — прогресс боёв
+        // мог стать "пройдено" раньше, чем сервер реально выдал награду (напр. кампанию прошли ДО того,
+        // как каталог/Title Data для бустера залили) — в этом случае бустер обязан остаться locked.
+        static bool IsLocked(BoosterConfigAsset.Booster def)
+        {
+            if (def == null || string.IsNullOrEmpty(def.RequiresCampaign)) return false;
+            return !CampaignRewardService.IsClaimed(def.RequiresCampaign);
         }
 
         // "booster_standard" → "Standard"

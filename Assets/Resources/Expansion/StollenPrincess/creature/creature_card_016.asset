@@ -31,13 +31,14 @@ MonoBehaviour:
           \u0432\u043E\u0437\u044C\u043C\u0438\u0442\u0435 \u043E\u0434\u043D\u0443
           \u0438\u0437 \u043D\u0438\u0445 \u0432 \u0440\u0443\u043A\u0443"
         Rarity: 3
-        Element: 2
+        Element: 0
         ArtImage: {fileID: 0}
         ExpansionId: stolen_princess
         PlayCost: 0
         PlayCostAmount: 4
         IsToken: 0
         ShowAsLinked: 0
+        HideAsLinked: 0
         NonBattleAbilities:
         - rid: 2419360282373260101
         RuntimeAbilities:
@@ -48,6 +49,7 @@ MonoBehaviour:
         MaxHealth: 4
         Attack: 3
         Speed: 2
+        Properties: []
         ViewPrefab: {fileID: 1046069417137952589, guid: f06aa6138ec1c4140ac9af21f0ddde7e, type: 3}
         SummonVfx:
           PrePrefab: {fileID: 0}
@@ -80,7 +82,17 @@ MonoBehaviour:
           Prefab: {fileID: 0}
           HitPrefab: {fileID: 0}
           ProjectileSpeed: 12
+          ProjectileScale: 1
           MergeArea: 0
+          Delivery: 0
+          Trajectory: 0
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
           PlayCasterAnimation: 1
     - rid: 2419360282373260103
       type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}

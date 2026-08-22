@@ -39,6 +39,12 @@ namespace Game.Core.Ecs.Systems
         readonly EcsFilterInject<Inc<SelectTag>> _selectedFilter = default;
         readonly EcsPoolInject<SelectTag> _selectPool = default;
 
+        // Аватар выбран как атакующий (row0 своей стороны) — параллель SelectTag, но на entity игрока
+        // (нет BoardPositionComponent/SpeedComponent, на которые опирается ветка SelectTag ниже).
+        readonly EcsFilterInject<Inc<AvatarSelectTag>> _avatarSelectedFilter = default;
+        readonly EcsPoolInject<AvatarSelectTag> _avatarSelectPool = default;
+        readonly EcsPoolInject<AttackRequestEvent> _avatarAttackReqPool = default;
+
         readonly EcsPoolInject<PathMoveComponent> _pathPool = default;
         readonly EcsFilterInject<Inc<PathMoveComponent>> _pathFilter = default;
         readonly EcsPoolInject<AttacksUsedComponent> _attacksUsedPool = default;
@@ -74,6 +80,7 @@ namespace Game.Core.Ecs.Systems
             if (activePlayerId < 0)
             {
                 foreach (var se in _selectedFilter.Value) { Deselect(se); break; }
+                foreach (var ae in _avatarSelectedFilter.Value) { Deselect(ae); break; }
                 return;
             }
 
@@ -95,6 +102,15 @@ namespace Game.Core.Ecs.Systems
                 int row         = click.Row;
                 int col         = click.Col;
                 int ownerId     = click.OwnerId;
+
+                int avatarSelectedEntity = -1;
+                foreach (var ae in _avatarSelectedFilter.Value) { avatarSelectedEntity = ae; break; }
+
+                if (avatarSelectedEntity >= 0)
+                {
+                    HandleAvatarSelectedClick(avatarSelectedEntity, row, col, ownerId, activePlayerId);
+                    continue;
+                }
 
                 int selectedEntity = -1;
                 foreach (var se in _selectedFilter.Value) { selectedEntity = se; break; }
@@ -185,7 +201,11 @@ namespace Game.Core.Ecs.Systems
                 int found = FindCreatureAt(row, col, ownerId, playerId, isEnemy: false);
                 if (found < 0)
                 {
-                    UnityEngine.Debug.Log($"[Select] no OWN creature at ({row},{col},owner{ownerId}) for player {playerId}");
+                    // Клик по СВОЕЙ аватар-клетке без выбранного существа — попытка выбрать аватара атакующим.
+                    if (row == -1 && col == -1)
+                        TrySelectAvatar(ownerId, playerId);
+                    else
+                        UnityEngine.Debug.Log($"[Select] no OWN creature at ({row},{col},owner{ownerId}) for player {playerId}");
                     return;
                 }
 
@@ -202,6 +222,109 @@ namespace Game.Core.Ecs.Systems
                 UnityEngine.Debug.Log($"[Select] selected creature {found} at ({row},{col},owner{ownerId}) speed={speed.Remaining}");
             }
 
+            // #A: клик по СВОЕЙ аватар-клетке — выбрать аватара как атакующего (row0 своей стороны), если
+            // атака ещё не потрачена в этом ходу и есть хотя бы одна вражеская цель.
+            void TrySelectAvatar(int ownerId, int playerId)
+            {
+                int mySide = FindSideByPlayer(playerId);
+                if (ownerId != mySide) return;   // клик по ЧУЖОМУ аватару без выбранного существа — не атакующий
+
+                int avatarEntity = FindPlayerBySide(mySide);
+                if (avatarEntity < 0) return;
+
+                int used = _attacksUsedPool.Value.Has(avatarEntity) ? _attacksUsedPool.Value.Get(avatarEntity).Value : 0;
+                if (used >= 1)
+                {
+                    UnityEngine.Debug.Log("[Select] avatar attack already used this turn");
+                    return;
+                }
+
+                var targets = GetAvatarTargets(mySide, playerId);
+                if (targets.Count == 0)
+                {
+                    UnityEngine.Debug.Log("[Select] avatar has no valid targets in own row0");
+                    return;
+                }
+
+                _avatarSelectPool.Value.Add(avatarEntity);
+                HighlightAvatarOptions(mySide, targets);
+                UnityEngine.Debug.Log($"[Select] selected avatar {avatarEntity} (side {mySide}) — {targets.Count} target(s) in row0");
+            }
+
+            // Клик, когда аватар уже выбран атакующим: повторный клик по своей аватар-клетке — деселект;
+            // клик по валидной цели (row0 своей стороны) — атака; промах по своему существу — переселект.
+            void HandleAvatarSelectedClick(int avatarEntity, int row, int col, int ownerId, int playerId)
+            {
+                int mySide = FindSideByPlayer(playerId);
+
+                if (row == -1 && col == -1 && ownerId == mySide)
+                {
+                    Deselect(avatarEntity);
+                    return;
+                }
+
+                var targets = GetAvatarTargets(mySide, playerId);
+                int targetCreature = -1;
+                foreach (var t in targets)
+                {
+                    ref var tp = ref _posPool.Value.Get(t);
+                    if (tp.Row == row && tp.Col == col && tp.OwnerId == ownerId) { targetCreature = t; break; }
+                }
+
+                Deselect(avatarEntity);
+
+                if (targetCreature >= 0)
+                {
+                    ref var req = ref _avatarAttackReqPool.Value.Add(avatarEntity);
+                    req.TargetEntity = targetCreature;
+                    req.Free = false;
+                    return;
+                }
+
+                int allyOnCell = FindCreatureAt(row, col, ownerId, playerId, isEnemy: false);
+                if (allyOnCell >= 0) TrySelectCreature(row, col, ownerId, playerId);
+            }
+
+            // Валидные цели атаки аватара: живые вражеские существа в row0 ЕГО стороны (клетка рядом с
+            // аватаром), без «Скрытых» (не выбираются кликом); если среди них есть «Защитник» — только он
+            // (та же семантика, что HasAdjacentEnemyTaunt у существ, но без BFS — аватар не двигается).
+            List<int> GetAvatarTargets(int side, int playerId)
+            {
+                var targets = new List<int>();
+                bool hasTaunt = false;
+                foreach (var ce in _creaturesFilter.Value)
+                {
+                    ref var p = ref _posPool.Value.Get(ce);
+                    if (p.Row != 0 || p.OwnerId != side) continue;
+                    ref var o = ref _ownerPool.Value.Get(ce);
+                    if (o.OwnerId == playerId) continue;          // свои — не цель
+                    if (_stealthPool.Value.Has(ce)) continue;     // «Скрытый» не выбирается кликом
+
+                    if (_tauntPool.Value.Has(ce)) hasTaunt = true;
+                    targets.Add(ce);
+                }
+                if (hasTaunt) targets.RemoveAll(t => !_tauntPool.Value.Has(t));
+                return targets;
+            }
+
+            int FindSideByPlayer(int playerId)
+            {
+                foreach (var pe in _playersFilter.Value)
+                    if (_playerPool.Value.Get(pe).PlayerId == playerId) return _sidePool.Value.Get(pe).Side;
+                return -1;
+            }
+
+            void HighlightAvatarOptions(int side, List<int> targets)
+            {
+                if (_boardView.Value == null) return;
+                _boardView.Value.GetAvatarCell(side)?.SetHighlight(CellHighlight.Select);
+                foreach (var t in targets)
+                {
+                    ref var tp = ref _posPool.Value.Get(t);
+                    _boardView.Value.GetCell(tp.Row, tp.Col, tp.OwnerId)?.SetHighlight(CellHighlight.Attack);
+                }
+            }
+
             // Маршрут одним кликом: шаги (может быть пусто — «ударить с места») + опциональная цель атаки.
             // Исполняет RunPathMoveSystem по одному шагу за оседание анимации; клики на время исполнения
             // блокируются гейтом PathMove выше.
@@ -216,8 +339,12 @@ namespace Game.Core.Ecs.Systems
 
             void Deselect(int entity)
             {
-                if (!_selectPool.Value.Has(entity)) return;
-                _selectPool.Value.Del(entity);
+                bool hadCreature = _selectPool.Value.Has(entity);
+                bool hadAvatar   = _avatarSelectPool.Value.Has(entity);
+                if (!hadCreature && !hadAvatar) return;
+
+                if (hadCreature) _selectPool.Value.Del(entity);
+                if (hadAvatar)   _avatarSelectPool.Value.Del(entity);
                 GameEventBus.Publish(new CreatureDeselectedEvent());
                 if (_boardView.Value != null)
                 {

@@ -47,6 +47,11 @@ namespace Game.Core.Configs
             public ExpansionConfig Expansion;
             [Tooltip("Слоты дропа: сколько карт (= число слотов) и с какими весами редкостей.")]
             public Slot[] Slots;
+            [Tooltip("Имя ассета CampaignConfig (Resources/Campaign), которую нужно пройти ПОЛНОСТЬЮ, чтобы " +
+                     "открыть этот бустер. Пусто = без гейта. Зеркалит серверный requiresCampaign в boosterConfig " +
+                     "(OpenBooster) — клиент читает это же поле, чтобы заранее заблокировать слот в BoosterPanel, " +
+                     "а не молча получать campaign_not_completed после клика.")]
+            public string RequiresCampaign;
         }
 
         public List<Booster> Boosters = new List<Booster>();

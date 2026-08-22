@@ -379,6 +379,30 @@ namespace Game.Core.Ability
         }
     }
 
+    // === class (OOP) === Призыв КОНКРЕТНОЙ уже выбранной сущности (Вернуть на работу: раскопка по
+    // кладбищу → «призовите» выбранное, не «разыграйте» — в отличие от PlayTargetCardEffect, тут БЕЗ
+    // своего OnCastTrigger, как у любого другого SummonEffect). Модификатор Discover/таргет-эффект.
+    // target приходит через Apply, а SelectSummonEntities его не получает (сигнатура базового класса
+    // фиксирована) — кэшируем на время вызова в поле; конкурентного резолва нет (эффект — клон на
+    // ability-сущность, Apply вызывается синхронно и не реентерабелен).
+    [Serializable]
+    public sealed class SummonTargetEffect : SummonEffect
+    {
+        int _target = -1;
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            _target = target;
+            base.Apply(world, cardEntity, target);
+        }
+
+        protected override IEnumerable<int> SelectSummonEntities(EcsWorld world, int cardEntity)
+        {
+            if (_target >= 0 && world.GetPool<CreatureTag>().Has(_target) && !world.GetPool<BoardTag>().Has(_target))
+                yield return _target;
+        }
+    }
+
     // === class (OOP) === ПРИЗЫВ существа из РУКИ владельца на борд (тихий призыв — БЕЗ форса CastEvent, в
     // отличие от PlaySameNameFromHand/PlayCardFromZone, которые РАЗЫГРЫВАЮТ). Выбор как у SummonFromDeck
     // (MostExpensive/LeastExpensive/SameAsSelf/Specific), общий SummonPickUtil. Существо снимается из руки

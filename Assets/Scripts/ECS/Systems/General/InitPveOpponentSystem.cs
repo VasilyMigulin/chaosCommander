@@ -59,9 +59,37 @@ namespace Game.Core.Ecs.Systems
             hp.BaseMax = encounter.Health;   // без BaseMax RecalculateValue (DrainHealth и пр.) обнулит базу
             hp.Current = encounter.Health;
 
+            // ── Колода: пул пресетов (если задан) СЛУЧАЙНО выбирает ОДНУ колоду вместо фиксированных
+            // Commander/Cards — тренировка не должна каждый раз биться против одной и той же (юзер 2026-08-21).
+            // Пик — ОДИН РАЗ за матч (Init — IEcsInitSystem), пишем в PveEncounterLocator, чтобы BattleState.
+            // StartPveIntro (VS-экран, читает СТРОГО ПОСЛЕ) видел ТОТ ЖЕ командира, а не рандомил заново —
+            // иначе VS показал бы одного, а в бою оказался бы другой (или пусто, если Commander/Cards пустые).
+            PveEncounterLocator.CurrentOpponentDeckPick = null;
+            var commanderCard = encounter.Commander;
+            IReadOnlyList<PveEncounterConfig.DeckEntry> cardEntries = encounter.Cards;
+            if (encounter.DeckPool != null && encounter.DeckPool.Count > 0)
+            {
+                var preset = encounter.DeckPool[Random.Range(0, encounter.DeckPool.Count)];
+                if (preset == null)
+                {
+                    Debug.LogWarning("[InitPveOpponentSystem] В DeckPool есть пустой (null) элемент — откатываюсь " +
+                                     "на Commander/Cards энкаунтера. Проверь список DeckPool в инспекторе.");
+                }
+                else
+                {
+                    commanderCard = preset.Commander;
+                    var fromPreset = new List<PveEncounterConfig.DeckEntry>(preset.Cards.Count);
+                    foreach (var e in preset.Cards)
+                        fromPreset.Add(new PveEncounterConfig.DeckEntry { Card = e.Card, Count = e.Count });
+                    cardEntries = fromPreset;
+                    PveEncounterLocator.CurrentOpponentDeckPick = preset;
+                    Debug.Log($"[InitPveOpponentSystem] Колода ИИ из пула: '{preset.DeckName}'.");
+                }
+            }
+
             // ── Колода ──
             var deckEntities = new List<int>();
-            foreach (var entry in encounter.Cards)
+            foreach (var entry in cardEntries)
             {
                 if (entry.Card == null || entry.Card.CardData == null) continue;
                 int copies = Mathf.Max(1, entry.Count);
@@ -81,9 +109,9 @@ namespace Game.Core.Ecs.Systems
             ref var hand = ref _handPool.Value.Get(aiEntity);
 
             // ── Командир → рука (index 0), как у человека ──
-            if (encounter.Commander != null && encounter.Commander.CardData != null)
+            if (commanderCard != null && commanderCard.CardData != null)
             {
-                int commander = CreateAiCard(encounter.Commander.CardData, aiEntity, aiPlayerId, isCommander: true);
+                int commander = CreateAiCard(commanderCard.CardData, aiEntity, aiPlayerId, isCommander: true);
                 if (commander >= 0)
                 {
                     if (_deckTagPool.Value.Has(commander)) _deckTagPool.Value.Del(commander);

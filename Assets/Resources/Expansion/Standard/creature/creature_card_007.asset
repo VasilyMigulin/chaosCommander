@@ -20,30 +20,52 @@ MonoBehaviour:
     RefIds:
     - rid: -2
       type: {class: , ns: , asm: }
-    - rid: 1051486567619100833
-      type: {class: AbilityNonTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
+    - rid: 2425736258364637359
+      type: {class: AbilityToTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
         Triggers:
-        - rid: 2419360061758898325
+        - rid: 2425736258364637360
         Rules: []
         Effects:
-        - rid: 1051486567619100835
+        - rid: 2425736258364637361
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
         Vfx:
           Kind: 0
           Prefab: {fileID: 0}
           HitPrefab: {fileID: 185366, guid: 2f98e91049e674d43b96757a89dceecc, type: 3}
           ProjectileSpeed: 12
+          ProjectileScale: 1
           MergeArea: 0
-          PlayCasterAnimation: 1
-    - rid: 1051486567619100835
+          Delivery: 0
+          Trajectory: 0
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
+          PlayCasterAnimation: 0
+        Selection: 0
+        Count: 1
+        Zone: 0
+        OfferCount: 3
+        Filters:
+        - rid: 2425736258364637362
+        IncludeCommanderInZones: 0
+    - rid: 2425736258364637360
+      type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736258364637361
       type: {class: GenerateToOpponentDeckEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
         ConditionRoot:
           rid: -2
         Source: {fileID: 11400000, guid: 33f54471ec41a3240b3e53008c0c944f, type: 2}
         Count: 1
-    - rid: 2419360061758898325
-      type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+    - rid: 2425736258364637362
+      type: {class: OpponentTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
     - rid: 8072968609180155914
       type: {class: CardCreatureModel, ns: Game.Core.Model.Card.Creature, asm: Game.Core.Model.Card.Creature}
@@ -62,14 +84,17 @@ MonoBehaviour:
         PlayCostAmount: 3
         IsToken: 0
         ShowAsLinked: 0
-        MulliganStartingHand: 0
-        MulliganUnlimitedReplace: 0
+        HideAsLinked: 0
+        NonBattleAbilities: []
         RuntimeAbilities:
-        - rid: 1051486567619100833
+        - rid: 2425736258364637359
         Archetypes: []
+        TierSource: 0
+        Tiers: []
         MaxHealth: 4
         Attack: 1
         Speed: 1
+        Properties: []
         ViewPrefab: {fileID: 1046069417137952589, guid: daa44952fa050cf4bb6b8d91d00a0e77, type: 3}
         SummonVfx:
           PrePrefab: {fileID: 0}

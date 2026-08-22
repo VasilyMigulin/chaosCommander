@@ -2,6 +2,7 @@ using Leopotam.EcsLite;
 using Leopotam.EcsLite.Di;
 using Game.Core.Ecs.Components;
 using Game.Core.Events;
+using Game.Core.Mono;
 using System.Collections.Generic;
 
 namespace Game.Core.Ecs.Systems
@@ -22,6 +23,7 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<PlayerComponent> _playerPool = default;
         readonly EcsPoolInject<HealthComponent> _hpPool     = default;
         readonly EcsPoolInject<ActiveState>     _activePool = default;
+        readonly EcsPoolInject<AvatarViewComponent> _avatarViewPool = default;   // визуальная реакция проигравшего (PlayDeath)
 
         // «Каскад в работе»: способности резолвятся/целятся, идёт бой или ждёт необработанный урон.
         readonly EcsFilterInject<Inc<AbilityCastEvent>>      _abilityCast   = default;
@@ -54,6 +56,14 @@ namespace Game.Core.Ecs.Systems
                 {
                     losers.Add(p.PlayerId);
                     if (p.IsLocalPlayer) localIsLoser = true;
+
+                    // Визуальная реакция проигравшего аватара — fire-and-forget, ничего дальше её не ждёт
+                    // (см. AvatarPlayerView.PlayDeath: матч и так закрывается попапом результата ниже).
+                    if (_avatarViewPool.Value.Has(pe))
+                    {
+                        var avatarGo = _avatarViewPool.Value.Get(pe).View;
+                        if (avatarGo != null) avatarGo.GetComponent<AvatarPlayerView>()?.PlayDeath();
+                    }
                 }
                 else
                 {

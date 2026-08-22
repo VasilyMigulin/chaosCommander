@@ -36,7 +36,20 @@ namespace Game.Core.Ecs.Systems
                     // обычная → обычный этап таргетинга.
                     if (chainPool.Has(entity))
                     {
-                        if (!chainStatePool.Has(entity)) chainStatePool.Add(entity);
+                        if (!chainStatePool.Has(entity))
+                        {
+                            chainStatePool.Add(entity);
+
+                            // Свежая цепочка стартует БЕЗ хвоста от чего бы то ни было постороннего: у
+                            // LastDiscardedCost нет своей границы сброса (баг 2026-08-21) — DiscardEffect
+                            // пишет его БЕЗУСЛОВНО, в т.ч. вне цепочек ("Свежий зомби", "Расхититель"), а
+                            // читает следующая стадия через RepeatEffect{ChainDiscardedCost} ("Утилизация").
+                            // Если ЭТА цепочка ещё не успела сама сбросить карту к моменту такого чтения —
+                            // читатель не должен увидеть чужой (посторонний/прошлоходовый) сброс. Дальше
+                            // значение переживает МЕЖДУ стадиями естественно (стадия N пишет — N+1 читает),
+                            // поэтому сброс только ЗДЕСЬ, на старте цепочки, а не перед каждой стадией.
+                            ChainContext.LastDiscardedCost = 0;
+                        }
                     }
                     else if (!targetingPool.Has(entity))
                     {

@@ -1,0 +1,106 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: spell_token_017
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
+  CardData:
+    rid: 1
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 1
+      type: {class: CardSpellModel, ns: Game.Core.Model.Card.Spell, asm: Game.Core.Model.Card.Spell}
+      data:
+        Id: 155
+        Name: "\u041A\u0440\u044B\u0441\u0438\u043D\u043E\u0435 \u043F\u0440\u043E\u043A\u043B\u044F\u0442\u044C\u0435"
+        Description: "\u041F\u0440\u0435\u0432\u0440\u0430\u0449\u0430\u0435\u0442
+          \u0441\u043B\u0443\u0447\u0430\u0439\u043D\u043E\u0435 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u043E
+          \u043E\u043F\u043F\u043E\u043D\u0435\u043D\u0442\u0430 \u0432 \u041A\u0440\u044B\u0441\u0451\u043D\u044B\u0448\u0430"
+        Rarity: 3
+        Element: 32
+        ArtImage: {fileID: 0}
+        ExpansionId: stolen_princess
+        PlayCost: 1
+        PlayCostAmount: 0
+        RequiresAdditionalCost: 0
+        AdditionalCostKind: 0
+        AdditionalCostAmount: 1
+        IsToken: 1
+        ShowAsLinked: 0
+        HideAsLinked: 1
+        NonBattleAbilities: []
+        RuntimeAbilities:
+        - rid: 2
+        Archetypes: []
+        TierSource: 0
+        Tiers: []
+        RequiresTarget: 0
+    - rid: 2
+      type: {class: AbilityToTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 3
+        Rules: []
+        Effects:
+        - rid: 2425736393348874514
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
+        Vfx:
+          Kind: 2
+          Prefab: {fileID: 119216, guid: 76ba45486129a794dacdf382b14fd11d, type: 3}
+          HitPrefab: {fileID: 193442, guid: 377f3190c5c9d6649b40899362d5feba, type: 3}
+          ProjectileSpeed: 12
+          ProjectileScale: 1
+          MergeArea: 0
+          Delivery: 0
+          Trajectory: 1
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
+          PlayCasterAnimation: 0
+        Selection: 0
+        Count: 1
+        Zone: 0
+        OfferCount: 3
+        Filters:
+        - rid: 5
+        - rid: 6
+        IncludeCommanderInZones: 0
+    - rid: 3
+      type: {class: OnTurnStartTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Zone: 1
+    - rid: 5
+      type: {class: EnemyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 6
+      type: {class: NotTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Inner:
+          rid: 7
+    - rid: 7
+      type: {class: CommanderTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736393348874514
+      type: {class: TransformEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        Source: {fileID: 11400000, guid: 7740c84ba34c81143bf33956f9073a19, type: 2}
+        TransferOwnership: 0

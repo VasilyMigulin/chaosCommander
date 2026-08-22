@@ -3,6 +3,7 @@ using Leopotam.EcsLite;
 using Leopotam.EcsLite.Di;
 using Game.Core.Ecs.Components;
 using Game.Core.Events;
+using Game.Core.Service;
 using UnityEngine;
 
 namespace Game.Core.Ecs.Systems

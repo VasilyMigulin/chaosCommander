@@ -40,7 +40,8 @@ MonoBehaviour:
         MulliganUnlimitedReplace: 0
         RuntimeAbilities:
         - rid: 2419360282373259967
-        Archetypes: []
+        Archetypes:
+        - rid: 100001
         MaxHealth: 4
         Attack: 2
         Speed: 2
@@ -81,3 +82,7 @@ MonoBehaviour:
         ConditionRoot:
           rid: -2
         ForceRandomTarget: 1
+    - rid: 100001
+      type: {class: CustomFamilyTag, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        TagKey: Prince

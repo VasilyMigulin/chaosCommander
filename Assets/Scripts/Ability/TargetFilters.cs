@@ -266,6 +266,35 @@ namespace Game.Core.Ability
         Health = 2,   // текущее HP
         MaxHealth = 3,
         Speed  = 4,
+        Mana   = 5,   // ТЕКУЩИЙ пул маны ИГРОКА (ManaComponent.Current) — читать с сущности-ИГРОКА, не карты
+        Gold   = 6,   // ТЕКУЩИЙ пул золота ИГРОКА (GoldComponent.Current) — читать с сущности-ИГРОКА, не карты
+    }
+
+    /// <summary>ЧЬЮ сущность подставлять в StatCompareTargetFilter.TryRead / StatSourceUtil.Resolve: сам
+    /// источник способности (существо/карта), его ВЛАДЕЛЕЦ-игрок, или ЦЕЛЬ способности (Target — параметр
+    /// target у EffectBase.Apply; например TriggerSubject разыгранной владельцем карты — «та же стоимость,
+    /// что у только что разыгранного заклинания», Мерлин-пародия). Mana/Gold физически есть только у
+    /// игрока — с Self для них TryRead просто не найдёт компонент и вернёт false/0.</summary>
+    public enum StatSourceEntity { Self = 0, Owner = 1, Target = 2 }
+
+    /// <summary>Резолвит StatSourceEntity в конкретную сущность для чтения стата (RepeatEffect.CountSource.Stat,
+    /// DealDamageEqualToStatEffect и т.п.). Owner читает АКТУАЛЬНОГО владельца через OwnerComponent, а не
+    /// кэшированный PlayerEntity — карта могла сменить хозяина (Обращение) уже после Init. Target приходит
+    /// СНАРУЖИ (у резолва счёта своей цели нет) — 3-арг. перегрузка сохранена для старых вызовов, Target
+    /// без явного targetEntity резолвится в -1 (TryRead просто не найдёт сущность).</summary>
+    public static class StatSourceUtil
+    {
+        public static int Resolve(EcsWorld world, int cardEntity, StatSourceEntity source)
+            => Resolve(world, cardEntity, source, -1);
+
+        public static int Resolve(EcsWorld world, int cardEntity, StatSourceEntity source, int targetEntity)
+        {
+            if (source == StatSourceEntity.Target) return targetEntity;
+            if (source == StatSourceEntity.Self) return cardEntity;
+            var ownerPool = world.GetPool<OwnerComponent>();
+            if (!ownerPool.Has(cardEntity)) return -1;
+            return HandSpace.FindPlayerEntity(world, ownerPool.Get(cardEntity).OwnerId);
+        }
     }
 
     /// <summary>
@@ -311,6 +340,7 @@ namespace Game.Core.Ability
         public static bool TryRead(EcsWorld world, int e, StatKind stat, out int value)
         {
             value = 0;
+            if (e < 0) return false;
             switch (stat)
             {
                 case StatKind.Cost:
@@ -338,12 +368,25 @@ namespace Game.Core.Ability
                     if (!p.Has(e)) return false;
                     value = p.Get(e).Max; return true;
                 }
-                default:
+                case StatKind.Speed:
                 {
                     var p = world.GetPool<SpeedComponent>();
                     if (!p.Has(e)) return false;
                     value = p.Get(e).Max; return true;
                 }
+                case StatKind.Mana:
+                {
+                    var p = world.GetPool<ManaComponent>();
+                    if (!p.Has(e)) return false;
+                    value = p.Get(e).Current; return true;
+                }
+                case StatKind.Gold:
+                {
+                    var p = world.GetPool<GoldComponent>();
+                    if (!p.Has(e)) return false;
+                    value = p.Get(e).Current; return true;
+                }
+                default: return false;
             }
         }
     }

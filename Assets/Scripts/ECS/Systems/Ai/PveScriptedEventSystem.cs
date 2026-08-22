@@ -25,8 +25,12 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<PlayerComponent> _playerPool = default;
         readonly EcsPoolInject<HealthComponent> _healthPool = default;
         readonly EcsPoolInject<TakeDamageEvent> _damagePool = default;
+        readonly EcsPoolInject<AutoCastComponent> _autoCastPool = default;
+        readonly EcsPoolInject<ForceRandomTargetingComponent> _forceRandomPool = default;
+        readonly EcsPoolInject<OwnerComponent> _ownerPool = default;
         readonly EcsFilterInject<Inc<PlayerComponent, LocalComponent>> _humanFilter = default;
         readonly EcsFilterInject<Inc<PlayerComponent, AiPlayerComponent>> _aiFilter = default;
+        readonly EcsFilterInject<Inc<CommanderTag, HandTag, OwnerComponent>> _commanderInHandFilter = default;
 
         readonly HashSet<int> _fired = new();   // индексы уже сработавших событий
         int _currentGlobalTurn;
@@ -118,7 +122,15 @@ namespace Game.Core.Ecs.Systems
                 {
                     case PveEncounterConfig.ScriptedActionKind.ShuffleCardToDeck:
                     case PveEncounterConfig.ScriptedActionKind.AddCardToHand:
-                        SpawnCards(action, target, toHand: action.Kind == PveEncounterConfig.ScriptedActionKind.AddCardToHand);
+                        SpawnCards(action, target, ai, toHand: action.Kind == PveEncounterConfig.ScriptedActionKind.AddCardToHand);
+                        break;
+
+                    case PveEncounterConfig.ScriptedActionKind.PlayCard:
+                        PlayCard(action, target);
+                        break;
+
+                    case PveEncounterConfig.ScriptedActionKind.PlayCommander:
+                        PlayCommander(target);
                         break;
 
                     case PveEncounterConfig.ScriptedActionKind.DealDamage:
@@ -135,7 +147,7 @@ namespace Game.Core.Ecs.Systems
             }
         }
 
-        void SpawnCards(in PveEncounterConfig.ScriptedAction action, int targetPlayerEntity, bool toHand)
+        void SpawnCards(in PveEncounterConfig.ScriptedAction action, int targetPlayerEntity, int aiPlayerEntity, bool toHand)
         {
             if (action.Card == null || action.Card.CardData == null)
             {
@@ -157,9 +169,85 @@ namespace Game.Core.Ecs.Systems
                     IsEnemy            = !player.IsLocalPlayer,
                     InHand             = toHand,                      // false → колода (детерм. втасовка)
                     RegisterInZoneList = true,
+                    // UI-анимация «замешалось в колоду» (CardShuffledToDeckEvent) — у сюжетного триггера нет
+                    // карты-кастера на столе (портрет — не сущность), источник ВСЕГДА аватар ИИ («злодей
+                    // проклял вашу колоду»). Для AddCardToHand (toHand=true) поле не участвует — у добора
+                    // в руку своя, отдельная логика источника (CardDrawnEvent), эту не трогаем.
+                    SourceEntity       = toHand ? (int?)null : aiPlayerEntity,
                 });
             }
             Debug.Log($"[PveScript] {(toHand ? "выдал в руку" : "втасовал в колоду")} {count}× '{action.Card.name}' игроку {player.PlayerId}");
+        }
+
+        /// <summary>PlayCard: НАСТОЯЩИЙ розыгрыш карты (не тихий спавн) — «Главарь зовёт Зверя!» и Зверь
+        /// приходит СО своим «при разыгрывании». Путь — тот же, что у Фокус-покуса/Йогг-Сарона (см.
+        /// AbilityGenerate.Spawn): создаём карту в руке владельца с AutoCastComponent, дальше её ведёт
+        /// штатный пайплайн — AutoCastSystem кладёт в очередь (по одной, с пейсингом) → RequestCardCastEvent →
+        /// RunCastRouterSystem: бесплатная оплата (Free), делегирование по типу (существо/спелл/чары),
+        /// для существа БЕЗ живого игрока — автовыбор свободной клетки фронт-ряда И InvokeEvent (своё
+        /// OnCast сработает на размещении), для спелла/чар — CardCastEvent сразу (эффект резолвится по-настоящему).
+        /// RegisterInZoneList=false — карта не всплывает в UI руки перед тем, как тут же уйти в каст.
+        /// ForceRandomTarget=true — спросить некого (как у прочих авто-кастов), карта сама решит цель.</summary>
+        void PlayCard(in PveEncounterConfig.ScriptedAction action, int targetPlayerEntity)
+        {
+            if (action.Card == null || action.Card.CardData == null)
+            {
+                Debug.LogWarning("[PveScript] действие PlayCard без карты — пропущено");
+                return;
+            }
+
+            ref var player = ref _playerPool.Value.Get(targetPlayerEntity);
+            int ownerId = player.PlayerId;
+            int count = Mathf.Max(1, action.Amount);
+            for (int i = 0; i < count; i++)
+            {
+                GameEventBus.Publish(new CreateCardEvent
+                {
+                    ExpansionId        = action.Card.ExpansionId,
+                    CardId             = action.Card.CardId,
+                    NetworkEntityKey   = "scr-" + _spawnCounter++,
+                    PlayerOwnerEntity  = targetPlayerEntity,
+                    OwnerId            = ownerId,
+                    IsEnemy            = !player.IsLocalPlayer,
+                    InHand             = true,
+                    RegisterInZoneList = false,
+                    AutoCast           = true,
+                    ForceRandomTarget  = true,
+                });
+            }
+            Debug.Log($"[PveScript] разыграл {count}× '{action.Card.name}' игроку {ownerId} (полноценный каст, не тихий спавн)");
+        }
+
+        /// <summary>PlayCommander: форс-розыгрыш КОМАНДИРА цели из его РУКИ (тот же AutoCast-путь, что у
+        /// PlayCard — RunCastRouterSystem бесплатно оплатит и разыграет по-настоящему). В отличие от PlayCard
+        /// не создаёт карту — командир уже существует сущностью (CardCreatureModel ставит CommanderTag при
+        /// инициализации, DieSystem возвращает его В РУКУ ТОЙ ЖЕ сущностью), просто вешаем AutoCastComponent
+        /// на неё. Командира сейчас нет в руке (уже на столе / на кулдауне после смерти) → предупреждение,
+        /// RunCastRouterSystem и так отклонил бы кулдаун — но там уже списалась бы попытка впустую.</summary>
+        void PlayCommander(int targetPlayerEntity)
+        {
+            ref var player = ref _playerPool.Value.Get(targetPlayerEntity);
+            int commander = FindCommanderInHand(player.PlayerId);
+            if (commander < 0)
+            {
+                Debug.LogWarning($"[PveScript] PlayCommander: у игрока {player.PlayerId} нет командира в руке (уже на столе или на кулдауне) — пропущено");
+                return;
+            }
+
+            if (!_autoCastPool.Value.Has(commander)) _autoCastPool.Value.Add(commander);
+            _autoCastPool.Value.Get(commander).Free = true;
+            // Спросить некого (форс от сюжета, не рукой игрока) — как у прочих авто-кастов: если у
+            // командира есть «при разыгрывании» с выбором цели, оно само решит (Random).
+            if (!_forceRandomPool.Value.Has(commander)) _forceRandomPool.Value.Add(commander);
+
+            Debug.Log($"[PveScript] форс-розыгрыш командира игрока {player.PlayerId}");
+        }
+
+        int FindCommanderInHand(int ownerId)
+        {
+            foreach (var e in _commanderInHandFilter.Value)
+                if (_ownerPool.Value.Get(e).OwnerId == ownerId) return e;
+            return -1;
         }
     }
 }

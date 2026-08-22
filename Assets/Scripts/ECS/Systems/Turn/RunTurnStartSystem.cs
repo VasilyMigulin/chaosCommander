@@ -27,6 +27,8 @@ namespace Game.Core.Ecs.Systems
         // Адовый червь: замена механики добора начала хода — вместо DrawCardEvent ставим маркер замены.
         readonly EcsPoolInject<DrawReplacementComponent>    _drawReplPool = default;
         readonly EcsPoolInject<DrawReplacementDueComponent> _drawDuePool  = default;
+        // Проклятье для принцессы: пропуск добора, пока жив источник (см. DrawBlockComponent).
+        readonly EcsPoolInject<DrawBlockComponent> _drawBlockPool = default;
         readonly EcsPoolInject<LocalComponent>   _localPool  = default;
         readonly EcsFilterInject<Inc<StartTurnState, PlayerComponent>> _filter = default;
 
@@ -70,6 +72,9 @@ namespace Game.Core.Ecs.Systems
                     sp.Remaining = sp.Max;
                     if (_attacksUsedPool.Value.Has(ce)) _attacksUsedPool.Value.Get(ce).Value = 0;
                 }
+
+                // 1a) Аватар может атаковать row0 своей стороны — тот же лимит 1/ход, свой счётчик на entity игрока.
+                if (_attacksUsedPool.Value.Has(entity)) _attacksUsedPool.Value.Get(entity).Value = 0;
 
                 // 1b) Лимиты активаций способностей (Ability.MaxActivationsPerTurn) — обнуляем у карт
                 //     ВЛАДЕЛЬЦА, чей ход начался. Компонент висит только на ability-сущностях с лимитом.
@@ -130,7 +135,12 @@ namespace Game.Core.Ecs.Systems
                 //    игрок смотрит N верхних и выбирает. Решается ЗДЕСЬ, у источника — перехватывать
                 //    DrawCardEvent ниже по течению нельзя: DrawCardEffect суммирует Count в уже
                 //    существующее событие, и базовый добор от эффектных там уже не отличить.
-                if (_drawReplPool.Value.Has(entity))
+                if (_drawBlockPool.Value.Has(entity))
+                {
+                    // маркер сам не снимается — он живёт, пока жив источник (AddBuffEffect.RevertAll при
+                    // смерти чары), не «на один ход» (см. DrawBlockComponent).
+                }
+                else if (_drawReplPool.Value.Has(entity))
                 {
                     if (!_drawDuePool.Value.Has(entity)) _drawDuePool.Value.Add(entity);
                 }

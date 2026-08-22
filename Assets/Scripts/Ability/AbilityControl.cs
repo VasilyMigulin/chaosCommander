@@ -427,8 +427,37 @@ namespace Game.Core.Ability
             if (!rememberPool.Has(cardEntity)) rememberPool.Add(cardEntity);
             rememberPool.Get(cardEntity).Entity = target;
 
+            // Снимаем ПОЛНОСТЬЮ, как Graft снимает донора — иначе визуальная карточка (CardLayout) остаётся
+            // висеть в своём слоте живьём (сняли только ECS-тег, UI об уходе никто не известил), а
+            // PutRememberedCardToHandEffect в конце сборки кладёт СВЕЖУЮ карточку в ДРУГОЙ слот с уже
+            // смёрженным текстом — игрок продолжает держать/видеть СТАРУЮ, не убранную (баг 2026-08-21:
+            // «описание не переносится», хотя данные в CardViewDataComponent были верны).
             var handTag = world.GetPool<HandTag>();
-            if (handTag.Has(target)) handTag.Del(target);
+            if (handTag.Has(target))
+            {
+                handTag.Del(target);
+                var ownerPool = world.GetPool<OwnerComponent>();
+                if (ownerPool.Has(target)) ZoneListUtil.RemoveFromHand(world, target, ownerPool.Get(target).OwnerId);
+                GameEventBus.Publish(new CardRemovedFromHandUIEvent { CardEntity = target });
+            }
+        }
+    }
+
+    // === class (OOP) === Снимает TokenTag с target. Донор-ассеты пула (спелл-«кирпичи» Проклятья для
+    // принцессы и подобные) держат IsToken=1 НА АССЕТЕ ради CardPool.Matches (IncludeTokens=false по
+    // умолчанию — иначе они бы выпадали как обычные карты из бустеров/генераторов). Но собранная из них
+    // ИТОГОВАЯ карта — не расходник, а обычная чара, которой играют как всем остальным: лимит чар на столе
+    // (CharmCount) исключает токены, и без этого шага собранное проклятье обошло бы лимит в 5 чар бесплатно.
+    // Ставить Modifier'ом на раскопку БАЗОВОГО тира (target — только что материализованная база, ДО
+    // RememberCardForLaterPlayEffect неважно, до или после — компонент не трогает HandTag/remember).
+    [Serializable]
+    public sealed class RemoveTokenTagEffect : EffectBase
+    {
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            if (target < 0) return;
+            var tokenPool = world.GetPool<TokenTag>();
+            if (tokenPool.Has(target)) tokenPool.Del(target);
         }
     }
 
@@ -487,6 +516,129 @@ namespace Game.Core.Ability
 
             // SourceEntity = кастер (Контрабандист) — UI летит визуально от него/его трупа, а не «из-за края экрана».
             GameEventBus.Publish(new CardDrawnEvent { CardEntity = remembered, PlayerId = playerEntity, SourceEntity = cardEntity });
+        }
+    }
+
+    // === class (OOP) === Запоминает ИДЕНТИЧНОСТЬ target (ExpansionId+CardId) в DiscoverExclusionComponent
+    // карты-источника — «Проклятье для принцессы»: второй проход по тому же пулу эффектов должен видеть,
+    // что первый уже взял (DiscoverFromPoolEffect.ExcludeAlreadyPicked читает этот список). Ставить ПЕРВЫМ
+    // Modifier'ом (до Graft/прочих) на КАЖДОЙ раскопке, чью цель нужно исключить из следующих проходов.
+    [Serializable]
+    public sealed class RecordDiscoverPickEffect : EffectBase
+    {
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            if (target < 0) return;
+            var modelPool = world.GetPool<CardModelComponent>();
+            if (!modelPool.Has(target)) return;
+            ref var m = ref modelPool.Get(target);
+            string key = DiscoverExclusionComponent.KeyOf(m.ExpansionId, m.ModelId);
+
+            var pool = world.GetPool<DiscoverExclusionComponent>();
+            if (!pool.Has(cardEntity)) pool.Add(cardEntity).UsedKeys = new List<string>();
+            ref var comp = ref pool.Get(cardEntity);
+            comp.UsedKeys ??= new List<string>();
+            if (!comp.UsedKeys.Contains(key)) comp.UsedKeys.Add(key);
+        }
+    }
+
+    // === class (OOP) === Клонирует ЖИВЫЕ способности с target на сущность, ЗАПОМНЕННУЮ
+    // RememberCardForLaterPlayEffect (Проклятье для принцессы — «Elise/Kazakus»: несколько раскопок-эффектов
+    // подряд на ОДНОЙ карте грузят способности в ОДНУ строящуюся чару). target — уже ПОЛНОСТЬЮ материализован
+    // (DiscoverFromPoolEffect создаёт карту через CreateCardSystem → CardModel.Init ДО применения Modifiers,
+    // у target уже настоящий AbilityContainerComponent) — берём его живые Ability-объекты (AbilityRefComponent),
+    // DeepClone (та же процедура, что CardModel.InitOneAbility при обычном ините) и дописываем в контейнер
+    // цели-стройки, не заменяя то, что уже там (несколько проходов копятся). Сам RememberedPlayTargetComponent
+    // не трогает и не снимает — ставить ДО PutRememberedCardToHandEffect/PlayRememberedCardEffect (те
+    // потребляют компонент одноразово финальным шагом).
+    //
+    // ДОНОР (target) после копирования — расходник, сам по себе он не нужен и НЕ должен повиснуть в руке
+    // (DiscoverFromPoolEffect кладёт раскопанное в руку владельца безусловно): сжигаем через HandSpace.Burn
+    // (IsToken на ассете-доноре ОБЯЗАТЕЛЕН — иначе он «сгорит» в кладбище вместо лимбо, некрасиво, но не баг).
+    [Serializable]
+    public sealed class GraftAbilitiesFromTargetEffect : EffectBase
+    {
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            if (target < 0) return;
+            var rememberPool = world.GetPool<RememberedPlayTargetComponent>();
+            if (!rememberPool.Has(cardEntity)) return;
+            int dest = rememberPool.Get(cardEntity).Entity;
+            if (dest < 0) return;
+
+            var containerPool = world.GetPool<AbilityContainerComponent>();
+            var refPool = world.GetPool<AbilityRefComponent>();
+            if (containerPool.Has(target))
+            {
+                var srcEntities = containerPool.Get(target).AbilityEntities;
+                if (srcEntities != null && srcEntities.Length > 0)
+                {
+                    if (!containerPool.Has(dest)) containerPool.Add(dest).AbilityEntities = Array.Empty<int>();
+                    ref var destContainer = ref containerPool.Get(dest);
+                    var merged = new List<int>(destContainer.AbilityEntities ?? Array.Empty<int>());
+                    int index = merged.Count;
+
+                    foreach (var srcAbilityEntity in srcEntities)
+                    {
+                        if (!refPool.Has(srcAbilityEntity)) continue;
+                        var clone = (Ability)AbilityCloneUtil.DeepClone(refPool.Get(srcAbilityEntity).Ability);
+                        int newAbilityEntity = world.NewEntity();
+                        refPool.Add(newAbilityEntity).Ability = clone;
+                        clone.Init(world, newAbilityEntity, dest, PlayerEntity, index++);
+                        merged.Add(newAbilityEntity);
+                    }
+                    destContainer.AbilityEntities = merged.ToArray();
+                }
+            }
+
+            // Текст донора переезжает в описание стройки — иначе готовая чара так и осталась бы с текстом
+            // одной лишь основы, без слов о собранных эффектах. Каждый проход дописывает СВОЮ строку.
+            var viewPool = world.GetPool<CardViewDataComponent>();
+            if (viewPool.Has(target) && viewPool.Has(dest))
+            {
+                string donorText = viewPool.Get(target).Description;
+                if (!string.IsNullOrEmpty(donorText))
+                {
+                    ref var destView = ref viewPool.Get(dest);
+                    string current = destView.Description ?? string.Empty;
+                    if (string.IsNullOrEmpty(current))
+                    {
+                        destView.Description = donorText;
+                    }
+                    else
+                    {
+                        // dest — ЧАРА: у неё С САМОГО Init уже есть строка длительности («Действует N ходов»),
+                        // description НИКОГДА не пуст — старая проверка «пусто?» всегда шла в else и клеила
+                        // текст донора ПОСЛЕ неё, длительность залезала в середину, а не в конец (баг 2026-08-21,
+                        // видно на скрине: «Действует 7 ходов» дважды). Вставляем донор-текст ПЕРЕД последней
+                        // строкой — длительность остаётся последней и после нескольких проходов графта.
+                        int lastNl = current.LastIndexOf('\n');
+                        string head = lastNl >= 0 ? current.Substring(0, lastNl) : string.Empty;
+                        string tail = lastNl >= 0 ? current.Substring(lastNl) : ("\n" + current);
+                        destView.Description = (string.IsNullOrEmpty(head) ? donorText : head + "\n" + donorText) + tail;
+                    }
+
+                    // dest ЕЩЁ прячется в руке (HandTag снят RememberCardForLaterPlayEffect) — правка
+                    // CardViewDataComponent тут НЕВИДИМА сама по себе: HandUISystem снимает Description
+                    // в CardAddedToHandUIEvent только ОДИН раз, на самое первое появление в руке (базовый
+                    // тир), а второй показ (PutRememberedCardToHandEffect) просто переиздаёт HandTag без
+                    // нового прихода. Живой перерендер уже есть готовым — тот же канал, что у Charm-таймера
+                    // (CharmHandDurationPreviewSystem) — PlayCardView сам фильтрует по CardEntity (баг 2026-08-21:
+                    // «текст описания в неё не положился» после сборки «Проклятья для принцессы»).
+                    GameEventBus.Publish(new CardDescriptionChangedUIEvent { CardEntity = dest, Description = destView.Description });
+                }
+            }
+
+            // Донор — расходник, убираем из руки (см. коммент класса выше).
+            var ownerPool = world.GetPool<OwnerComponent>();
+            var handTag = world.GetPool<HandTag>();
+            if (handTag.Has(target))
+            {
+                handTag.Del(target);
+                if (ownerPool.Has(target)) ZoneListUtil.RemoveFromHand(world, target, ownerPool.Get(target).OwnerId);
+                GameEventBus.Publish(new CardRemovedFromHandUIEvent { CardEntity = target });
+            }
+            HandSpace.Burn(world, target, "Проклятье для принцессы: донор эффекта потрачен");
         }
     }
 

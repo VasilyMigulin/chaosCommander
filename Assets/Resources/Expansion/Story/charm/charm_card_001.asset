@@ -1,0 +1,106 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: charm_card_001
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
+  CardData:
+    rid: 2425736258364637363
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 2425736258364637363
+      type: {class: CardCharmModel, ns: Game.Core.Model.Card.Charm, asm: Game.Core.Model.Card.Charm}
+      data:
+        Id: 16
+        Name: "\u0417\u043B\u043E\u0432\u043E\u043D\u043D\u043E\u0435 \u0431\u043E\u043B\u043E\u0442\u043E"
+        Description: "\u0412 \u043D\u0430\u0447\u0430\u043B\u0435 \u0445\u043E\u0434\u0430:
+          \u043D\u0430\u043A\u043B\u0430\u0434\u044B\u0432\u0430\u0435\u0442 1 \u044F\u0434
+          \u043D\u0430 \u0432\u0441\u0435\u0445 \u0432\u0440\u0430\u0433\u043E\u0432"
+        Rarity: 3
+        Element: 0
+        ArtImage: {fileID: 0}
+        ExpansionId: story
+        PlayCost: 1
+        PlayCostAmount: 0
+        IsToken: 0
+        ShowAsLinked: 0
+        HideAsLinked: 0
+        NonBattleAbilities: []
+        RuntimeAbilities:
+        - rid: 2425736258364637364
+        Archetypes: []
+        TierSource: 0
+        Tiers: []
+        TurnsAlive: 0
+        TickMoment: 1
+        FixTurns: 0
+    - rid: 2425736258364637364
+      type: {class: AbilityToField, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 2425736258364637365
+        Rules: []
+        Effects:
+        - rid: 2425736258364637366
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
+        Vfx:
+          Kind: 3
+          Prefab: {fileID: 1498603475414312, guid: d2c389d721b3e97408fddc78db6e4cc0, type: 3}
+          HitPrefab: {fileID: 183846, guid: eb8eb977f3a1f0341ac06e638d078a1c, type: 3}
+          ProjectileSpeed: 12
+          ProjectileScale: 1
+          MergeArea: 1
+          Delivery: 0
+          Trajectory: 0
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
+          PlayCasterAnimation: 0
+        Area: 0
+        Zone: 0
+        Filters:
+        - rid: 2425736258364637368
+        - rid: 2425736258364637369
+        IncludeCommanderInZones: 0
+    - rid: 2425736258364637365
+      type: {class: OnTurnStartTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Zone: 1
+    - rid: 2425736258364637366
+      type: {class: AddBuffEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        Buff:
+          rid: 2425736258364637367
+        Tracked: 0
+        RevertOnSourceDeath: 1
+        Duration: 0
+        ExpireAt: 0
+    - rid: 2425736258364637367
+      type: {class: BuffPoison, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Stacks: 1
+    - rid: 2425736258364637368
+      type: {class: OpponentTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736258364637369
+      type: {class: EnemyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 

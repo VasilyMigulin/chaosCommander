@@ -1,0 +1,103 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: spell_card_001
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
+  CardData:
+    rid: 2425736258364637283
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 2425736258364637283
+      type: {class: CardSpellModel, ns: Game.Core.Model.Card.Spell, asm: Game.Core.Model.Card.Spell}
+      data:
+        Id: 8
+        Name: "\u041F\u043E\u0449\u0435\u0447\u0438\u043D\u0430 \u043F\u0440\u0438\u043D\u0446\u0430"
+        Description: "\u041D\u0430\u043D\u0435\u0441\u0438\u0442\u0435 1 \u0443\u0440\u043E\u043D\u0430
+          \u0432\u0440\u0430\u0433\u0443, \u0434\u043E\u0431\u0435\u0440\u0438\u0442\u0435
+          \u043A\u0430\u0440\u0442\u0443"
+        Rarity: 0
+        Element: 1
+        ArtImage: {fileID: 0}
+        ExpansionId: 
+        PlayCost: 1
+        PlayCostAmount: 0
+        IsToken: 0
+        ShowAsLinked: 0
+        HideAsLinked: 0
+        NonBattleAbilities: []
+        RuntimeAbilities:
+        - rid: 2425736258364637284
+        Archetypes: []
+        TierSource: 0
+        Tiers: []
+        RequiresTarget: 0
+    - rid: 2425736258364637284
+      type: {class: AbilityToTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 2425736258364637287
+        Rules: []
+        Effects:
+        - rid: 2425736258364637288
+        - rid: 2425736258364637289
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 131758, guid: 8385b03242e9e7447b9f870756a377b1, type: 3}
+          ProjectileSpeed: 12
+          ProjectileScale: 1
+          MergeArea: 0
+          Delivery: 0
+          Trajectory: 0
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
+          PlayCasterAnimation: 0
+        Selection: 1
+        Count: 1
+        Zone: 0
+        OfferCount: 3
+        Filters:
+        - rid: 2425736258364637285
+        - rid: 2425736258364637286
+        IncludeCommanderInZones: 0
+    - rid: 2425736258364637285
+      type: {class: EnemyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736258364637286
+      type: {class: OpponentTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736258364637287
+      type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736258364637288
+      type: {class: DealDamageEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        Amount: 1
+    - rid: 2425736258364637289
+      type: {class: DrawCardEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        Count: 1

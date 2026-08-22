@@ -15,5 +15,8 @@ namespace Game.Core.Ecs.Components
         public int Killed;
         /// <summary>Цели текущей применённой стадии — по ним считаем смерти после оседания.</summary>
         public int[] LastTargets;
+        /// <summary>Time.time, раньше которого нельзя шагать к следующей стадии (ActionPacing.GapSeconds —
+        /// та же пауза читаемости, что у очереди резолва/автокаста/реплея, см. RunChainSystem).</summary>
+        public float NextAdvanceAt;
     }
 }

@@ -25,10 +25,14 @@ MonoBehaviour:
     rid: 1051486623036866646
   IncludeTokens: 0
   ExpansionId: 
+  IncludeStoryOnly: 0
+  FilterCharmDuration: 0
+  CharmDuration: 0
   Cards:
   - {fileID: 11400000, guid: 21c30d438d5c7c941831ae6f0cef749b, type: 2}
   - {fileID: 11400000, guid: 55a2511e85e0ce74e850b012a420a51e, type: 2}
   - {fileID: 11400000, guid: 1dbd2a8101d4e3943b1402b202e21921, type: 2}
+  - {fileID: 11400000, guid: 82b9e8d648f3aae4683168436f6dd306, type: 2}
   - {fileID: 11400000, guid: b466477fc60219b4cbc50bdb233c40e9, type: 2}
   - {fileID: 11400000, guid: f782c13faf86c3047a41cf53cfd79dda, type: 2}
   - {fileID: 11400000, guid: 78076986f0e86b845ba847d655634377, type: 2}

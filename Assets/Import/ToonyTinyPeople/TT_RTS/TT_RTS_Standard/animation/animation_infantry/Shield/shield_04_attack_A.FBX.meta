@@ -230,7 +230,7 @@ ModelImporter:
         floatParameter: 0
         intParameter: 0
         messageOptions: 0
-      - time: 0.9945289
+      - time: 1
         functionName: FinishEvent
         data: 
         objectReferenceParameter: {instanceID: 0}

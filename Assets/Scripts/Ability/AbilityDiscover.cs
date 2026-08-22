@@ -118,11 +118,22 @@ namespace Game.Core.Ability
         [Tooltip("Ручной пул ассетов CardInstanceData (если PoolAsset не задан).")]
         public List<ScriptableObject> Pool = new();
 
+        [Tooltip("Не предлагать карты, уже выбранные ПРЕДЫДУЩИМИ раскопками этого же источника за текущий " +
+                 "каст (RecordDiscoverPickEffect должен стоять Modifier'ом у тех раскопок) — «Проклятье для " +
+                 "принцессы»: второй проход по тому же пулу эффектов не должен дать дубль первого.")]
+        public bool ExcludeAlreadyPicked = false;
+
         protected override void Configure(EcsWorld world, int cardEntity, ref DiscoverRequestComponent req)
         {
             req.FromPool = true;
             var exp = new List<string>();
             var ids = new List<int>();
+
+            // Пул кладём ПОЛНЫМ, без фильтра: несколько таких эффектов на одной способности резолвятся
+            // синхронно один за другим (Apply идёт по списку Effects в кадре резолва), а сам выбор игрока —
+            // асинхронный (окно/пик приходит кадрами позже). На момент ЭТОГО Configure отбор предыдущего
+            // прохода ещё не записан. Фильтр — в RunDiscoverSystem.BuildPoolOffer, который строит показ
+            // ПОСЛЕ того, как HasEarlierPending гарантирует резолв более раннего запроса того же источника.
             if (PoolAsset is ICardPool cp && cp.Cards != null && cp.Cards.Count > 0)
             {
                 foreach (var c in cp.Cards)
@@ -133,8 +144,9 @@ namespace Game.Core.Ability
                 foreach (var so in Pool)
                     if (so is ICreatable c) { exp.Add(c.ExpansionId); ids.Add(c.CardId); }
             }
-            req.PoolExp    = exp.ToArray();
-            req.PoolCardId = ids.ToArray();
+            req.PoolExp              = exp.ToArray();
+            req.PoolCardId           = ids.ToArray();
+            req.ExcludeAlreadyPicked = ExcludeAlreadyPicked;
         }
     }
 

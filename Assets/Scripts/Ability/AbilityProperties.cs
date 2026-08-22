@@ -214,6 +214,8 @@ namespace Game.Core.Ability
     {
         [SerializeReference] public ICreatureProperty Property;
 
+        public bool Permanent => false;
+
         public void Apply(EcsWorld world, int source, int target)  => Property?.Apply(world, target);
         public void Revert(EcsWorld world, int source, int target) => Property?.Remove(world, target);
     }

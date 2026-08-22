@@ -822,9 +822,10 @@ MonoBehaviour:
   _holdInspectEnabled: 1
   _holdThreshold: 0.45
   _returnDuration: 0.25
-  _zoomScale: 1.6
-  _zoomLift: 90
-  _zoomDuration: 0.15
+  _zoomScale: 2.4
+  _zoomScreenAnchor: {x: 0.5, y: 0.6}
+  _zoomDuration: 0.22
+  _zoomDragThreshold: 90
   _cooldownOverlay: {fileID: 2421835623013312038}
   _cooldownText: {fileID: 6144284186254618898}
 --- !u!1 &8629489872709511408 stripped

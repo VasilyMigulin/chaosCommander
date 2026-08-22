@@ -32,6 +32,7 @@ namespace Game.Core.Ecs.Systems
 
         readonly EcsPoolInject<HealthComponent> _hpPool = default;
         readonly EcsPoolInject<DeadTag> _deadPool = default;
+        readonly EcsPoolInject<HandTag> _handPool = default;   // фидбэк «урон карте в руке» (см. ApplyDamage)
         readonly EcsPoolInject<OwnerComponent> _ownerPool = default;
         readonly EcsPoolInject<PlayerComponent> _playerPool = default;
         readonly EcsPoolInject<LastDamageTakenComponent> _lastDmgPool = default;
@@ -173,6 +174,12 @@ namespace Game.Core.Ecs.Systems
 
             ref var hp = ref _hpPool.Value.Get(entity);
             hp.Current -= amount;
+
+            // Фидбэк «урон карте В РУКЕ» (напр. существо задето Zone=Hand/Any способностью, пока не разыграно).
+            // CardFeedbackUtil (Game.Core.Ability) отсюда не позвать — Ecs.Systems на Ability не ссылается
+            // (см. Poison/Shield выше в этом же файле) — дублируем его логику: HandTag → событие для UI.
+            if (_handPool.Value.Has(entity))
+                GameEventBus.Publish(new CardAffectedInHandUIEvent { CardEntity = entity, Kind = CardAffectKind.Damaged });
 
             // «Вампиризм» (АТАКУЮЩИЙ, sourceEntity): урон РЕАЛЬНО прошёл (не заблокирован Щитом/Неуязвимостью
             // выше) → лечит ВЛАДЕЛЬЦА носителя (игрока-аватар), а не сам носитель, на ту же величину.

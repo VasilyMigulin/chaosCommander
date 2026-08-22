@@ -32,5 +32,11 @@ namespace Game.Core.Shared.Interface
 
         // Что делает стадия.
         [SerializeReference] public List<IEffect> Effects = new();
+
+        [Tooltip("NonTarget-стадия технически целит в самого КАСТЕРА (ResolveTargets: цели нет → подставляется " +
+                 "игрок-владелец) — бить визуально почти всегда нечего, общий Vfx способности на такой стадии " +
+                 "обычно лишний (см. RunChainSystem.EmitStageVfx — по умолчанию НЕ проигрывается на NonTarget). " +
+                 "Включи, если этой конкретной NonTarget-стадии VFX всё-таки нужен (напр. вспышка НА кастере).")]
+        public bool ForceVfxOnNonTarget = false;
     }
 }

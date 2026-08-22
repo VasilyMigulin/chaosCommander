@@ -21,5 +21,18 @@
       { "weights": { "rare": 0.60, "epic": 0.34, "legendary": 0.06 } },
       { "weights": { "epic": 0.55, "legendary": 0.35, "exotic": 0.10 } }
     ]
+  },
+  "booster_stolen_princess": {
+    "_comment": "requiresCampaign — OpenBooster проверяет UserReadOnlyData['campaign_done_'+requiresCampaign] (пишет ClaimCampaignReward) ДО ролла. Единственный источник бустера — награда за прохождение кампании, в магазине не продаётся.",
+    "expansion": "stolen_princess",
+    "cardCount": 5,
+    "requiresCampaign": "stolen_princess",
+    "slots": [
+      { "weights": { "common": 0.80, "rare": 0.18, "epic": 0.02 } },
+      { "weights": { "common": 0.80, "rare": 0.18, "epic": 0.02 } },
+      { "weights": { "common": 0.75, "rare": 0.22, "epic": 0.03 } },
+      { "weights": { "common": 0.70, "rare": 0.25, "epic": 0.05 } },
+      { "weights": { "rare": 0.70, "epic": 0.24, "legendary": 0.05, "exotic": 0.01 } }
+    ]
   }
 }

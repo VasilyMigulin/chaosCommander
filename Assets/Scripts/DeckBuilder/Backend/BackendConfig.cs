@@ -45,6 +45,9 @@ namespace Game.Core.Backend
             // Бустеры
             public const string OpenBooster      = "OpenBooster";
 
+            // Разовая награда за полное прохождение стори-кампании (CampaignConfig.name → Title Data "campaignRewards")
+            public const string ClaimCampaignReward = "ClaimCampaignReward";
+
             // Чёрный рынок
             public const string GetBlackMarket   = "GetBlackMarket";
             public const string BuyBlackMarket   = "BuyBlackMarketCard";

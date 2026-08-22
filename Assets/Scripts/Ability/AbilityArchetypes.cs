@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Game.Core.Ecs.Components;
+using Game.Core.Service;
 using Game.Core.Shared.Interface;
 using Leopotam.EcsLite;
 
@@ -37,4 +38,20 @@ namespace Game.Core.Ability
     [Serializable] public sealed class WorkerArchetype : ArchetypeTag { public override string Key => "Worker"; }
     [Serializable] public sealed class ImpArchetype    : ArchetypeTag { public override string Key => "Imp"; }
     [Serializable] public sealed class FloraArchetype  : ArchetypeTag { public override string Key => "Flora"; }  // зелёный трайб = «сорняки» (Сорняк/Плющ/сорняк-карты)
+
+    /// <summary>Архетип/именная семья с ключом-ДАННЫМИ вместо захардкоженного класса (Key — поле с
+    /// [KeyDropdown], выбирается из KeyRegistry вместо ручного набора текста). Для «одноразовых»
+    /// тегов — именных семей карт (Шальной принц во всех вариациях — см. ArchetypeTargetFilter) и
+    /// будущих трайбов, которым не нужен отдельный класс. Worker/Imp/Flora выше — устоявшийся костяк,
+    /// их не трогаем; новые архетипы/семьи заводи через этот класс, не через новый ArchetypeTag-наследник.</summary>
+    [Serializable]
+    public sealed class CustomFamilyTag : ArchetypeTag
+    {
+        // Строка захардкожена (не KeyRegistry.SectionArchetype) — KeyRegistry живёт в Game.Core.Configs,
+        // а Ability эту сборку не видит (Configs -> Model.Card -> Ability, обратная ссылка = цикл).
+        // Должна совпадать с KeyRegistry.SectionArchetype.
+        [KeyDropdown("Archetype")]
+        public string TagKey;
+        public override string Key => TagKey;
+    }
 }

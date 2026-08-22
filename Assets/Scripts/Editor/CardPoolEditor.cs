@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Game.Core.Configs;
 using Game.Core.Instance.Card;
 using Sirenix.OdinInspector.Editor;
 using UnityEditor;
@@ -53,13 +54,15 @@ namespace Game.Core.EditorTools
         // Собрать один пул (SaveAssets НЕ вызываем — батч RebuildAllPools/кнопка сохраняют разом).
         static void Rebuild(CardPool pool)
         {
+            var storyOnlyCards = CollectStoryOnlyCards();
+
             var list = new List<CardInstanceData>();
             foreach (var guid in AssetDatabase.FindAssets("t:CardInstanceData", new[] { Root }))
             {
                 var path = AssetDatabase.GUIDToAssetPath(guid);
                 var card = AssetDatabase.LoadAssetAtPath<CardInstanceData>(path);
                 if (card == null || card.CardData == null) continue;
-                if (!pool.Matches(card.CardData, path)) continue;
+                if (!pool.Matches(card.CardData, path, storyOnlyCards.Contains(card))) continue;
                 list.Add(card);
             }
             list.Sort((a, b) => string.Compare(a.CardData.Name, b.CardData.Name, System.StringComparison.OrdinalIgnoreCase));
@@ -68,6 +71,24 @@ namespace Game.Core.EditorTools
             pool.Cards = list;
             EditorUtility.SetDirty(pool);
             Debug.Log($"[CardPool] '{pool.name}': собрано {list.Count} карт по критериям.");
+        }
+
+        // Членство «эта карта — из StoryOnly-экспаншена» считаем по ExpansionConfig.Cards (авторитетный
+        // список), а не по пути/CardModel.ExpansionId — тот же приём, что PlayerLibrary.FillFullCollection
+        // (см. её докстринг: «стори-экспаншен — в коллекцию не идёт»). Путь ненадёжен: имя папки не всегда
+        // совпадает с ExpansionId («StollenPrincess» папка / «stolen_princess» id), а CardModel.ExpansionId
+        // у части карт не заполнен (см. stolen_princess/0).
+        static HashSet<CardInstanceData> CollectStoryOnlyCards()
+        {
+            var result = new HashSet<CardInstanceData>();
+            foreach (var guid in AssetDatabase.FindAssets("t:ExpansionConfig"))
+            {
+                var cfg = AssetDatabase.LoadAssetAtPath<ExpansionConfig>(AssetDatabase.GUIDToAssetPath(guid));
+                if (cfg == null || !cfg.StoryOnly || cfg.Cards == null) continue;
+                foreach (var c in cfg.Cards)
+                    if (c != null) result.Add(c);
+            }
+            return result;
         }
     }
 }

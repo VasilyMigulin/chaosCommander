@@ -4,6 +4,7 @@ using Game.Core.Configs;
 using Game.Core.Ecs.Components;
 using Game.Core.Events;
 using Game.Core.Mono;
+using Game.Core.Service;
 using Game.Core.Shared.Interface;
 using Leopotam.EcsLite;
 using Leopotam.EcsLite.Di;
@@ -413,20 +414,40 @@ namespace Game.Core.Ecs.Systems
                 else
                 {
                     if (pcPool.Has(first)) pcPool.Del(first);
+
+                    // Довесок (баг 2026-08-21, «Посредственное руководство»): способность сработала повторно
+                    // за НОВОГО виновника, пока ЭТОТ резолв ещё стоял в очереди (резолв — по одной способности
+                    // за тик, первая легко залёживается) — RunAbilityTargetingSystem.Queue не даёт стереть
+                    // текущие Targets, а копит следующие сюда (см. AbilityQueuedState.PendingTargets). Сняв
+                    // текущий state, сразу ставим следующий — БЕЗ похода через AbilityCastEvent/повторный
+                    // таргетинг (цели уже посчитаны на момент ТОГО срабатывания, как и у обычного Queue).
+                    var pendingTargets = queuedPool.Has(first) ? queuedPool.Get(first).PendingTargets : null;
                     if (queuedPool.Has(first)) queuedPool.Del(first);
 
-                    // Очередь виновников (TriggerSubject): RunAbilityTargetingSystem (AdvanceOrClearSubject)
-                    // оставляет TriggerSubjectComponent живым, если для этой же ability-сущности в кадре
-                    // призыва уже стоит СЛЕДУЮЩИЙ виновник (пачка токенов — FillRowWithCardEffect{MaxCount>1},
-                    // RepeatEffect). Перезапускаем полный цикл (rules→targeting→resolve) для него — иначе
-                    // «Двойной удар» (и любая другая TriggerSubject-способность) доставался бы только первому
-                    // из пачки. AbilityCastEvent уже снят RunCheckAbilityRulesSystem — можно ставить заново.
-                    var subjPool = world.GetPool<TriggerSubjectComponent>();
-                    if (subjPool.Has(first) && !world.GetPool<AbilityCastEvent>().Has(first))
+                    if (pendingTargets != null && pendingTargets.Count > 0)
                     {
-                        ref var c2 = ref world.GetPool<AbilityCastEvent>().Add(first);
-                        c2.CardEntity = caster;
-                        c2.OwnerPlayerEntity = playerEntity;
+                        int[] nextTargets = pendingTargets[0];
+                        pendingTargets.RemoveAt(0);
+                        ref var q2 = ref queuedPool.Add(first);
+                        q2.Targets = nextTargets;
+                        q2.Key = RunAbilityTargetingSystem.BuildKey(world, first);
+                        q2.PendingTargets = pendingTargets.Count > 0 ? pendingTargets : null;
+                    }
+                    else
+                    {
+                        // Очередь виновников (TriggerSubject): RunAbilityTargetingSystem (AdvanceOrClearSubject)
+                        // оставляет TriggerSubjectComponent живым, если для этой же ability-сущности в кадре
+                        // призыва уже стоит СЛЕДУЮЩИЙ виновник (пачка токенов — FillRowWithCardEffect{MaxCount>1},
+                        // RepeatEffect). Перезапускаем полный цикл (rules→targeting→resolve) для него — иначе
+                        // «Двойной удар» (и любая другая TriggerSubject-способность) доставался бы только первому
+                        // из пачки. AbilityCastEvent уже снят RunCheckAbilityRulesSystem — можно ставить заново.
+                        var subjPool = world.GetPool<TriggerSubjectComponent>();
+                        if (subjPool.Has(first) && !world.GetPool<AbilityCastEvent>().Has(first))
+                        {
+                            ref var c2 = ref world.GetPool<AbilityCastEvent>().Add(first);
+                            c2.CardEntity = caster;
+                            c2.OwnerPlayerEntity = playerEntity;
+                        }
                     }
                 }
             }
@@ -443,7 +464,16 @@ namespace Game.Core.Ecs.Systems
             if (_boardView.Value != null)
             {
                 if (hasCustomVisual && targets.Length > 0)
-                    EmitVfx(world, vfxSpec, caster, targets);
+                {
+                    // Field-способность (AbilityToField «по всем врагам/своим» и т.п.) — Area-VFX красит ЗОНУ
+                    // (половину/всё поле), а не баунды фактических целей (см. VfxEmitUtil.ZoneBounds — иначе
+                    // единственная задетая цель схлопывает эффект в точку вместо «всей стороны», как в HS).
+                    var fieldPool = world.GetPool<AbilityFieldComponent>();
+                    Bounds? zone = fieldPool.Has(first)
+                        ? VfxEmitUtil.ZoneBounds(world, _boardView.Value, fieldPool.Get(first).Area, caster, playerEntity)
+                        : null;
+                    EmitVfx(world, vfxSpec, caster, targets, zone);
+                }
                 EmitDefaultTriggerVfx(world, caster, triggerKey, isSelfTrigger);
             }
 
@@ -508,8 +538,8 @@ namespace Game.Core.Ecs.Systems
         }
 
         // Публикует косметику Beam/Area (Projectile запускается в LaunchProjectile с токеном ожидания).
-        void EmitVfx(EcsWorld world, VfxSpec spec, int caster, int[] targets)
-            => VfxEmitUtil.EmitInstantVfx(world, _boardView.Value, spec, caster, targets);
+        void EmitVfx(EcsWorld world, VfxSpec spec, int caster, int[] targets, Bounds? zoneBounds = null)
+            => VfxEmitUtil.EmitInstantVfx(world, _boardView.Value, spec, caster, targets, zoneBounds);
 
         // Мировая позиция сущности для VFX (см. VfxEmitUtil.WorldPos — общая логика).
         Vector3 WorldPos(EcsWorld world, int entity) => VfxEmitUtil.WorldPos(world, _boardView.Value, entity);

@@ -3,6 +3,9 @@ using Leopotam.EcsLite;
 using Leopotam.EcsLite.Di;
 using Game.Core.Ecs.Components;
 using Game.Core.Events;
+using Game.Core.Configs;
+using Game.Core.Model.Card;
+using Game.Core.Shared;
 
 namespace Game.Core.Ecs.Systems
 {
@@ -24,12 +27,19 @@ namespace Game.Core.Ecs.Systems
     /// </summary>
     public sealed class CharmTimerTickSystem : IEcsInitSystem, IEcsRunSystem, IEcsDestroySystem, System.IDisposable
     {
+        readonly EcsWorldInject _world = default;
+        readonly EcsCustomInject<CardConfig> _cardConfig = default;
         readonly EcsFilterInject<Inc<CharmTimerComponent, BoardTag, OwnerComponent>> _filter = default;
         readonly EcsPoolInject<CharmTimerComponent> _timerPool = default;
         readonly EcsPoolInject<OwnerComponent> _ownerPool = default;
         readonly EcsPoolInject<DeadTag> _deadPool = default;
+        readonly EcsPoolInject<CardModelComponent> _modelPool = default;
+        readonly EcsPoolInject<CardViewDataComponent> _viewPool = default;
+        readonly EcsPoolInject<PlayerComponent> _playerPool = default;
+        readonly EcsFilterInject<Inc<PlayerComponent>> _playerFilter = default;
 
         readonly Queue<(int playerId, CharmTickMoment moment)> _pending = new();
+        readonly Queue<int> _pendingBumped = new();   // CharmTimerBumpedEvent — просят только перерендер, не тик
         bool _subscribed;
 
         public void Init(IEcsSystems systems) => Subscribe();
@@ -43,6 +53,7 @@ namespace Game.Core.Ecs.Systems
             if (!_subscribed) return;
             GameEventBus.Unsubscribe<TurnEndedEvent>(OnTurnEnded);
             GameEventBus.Unsubscribe<TurnStartedEvent>(OnTurnStarted);
+            GameEventBus.Unsubscribe<CharmTimerBumpedEvent>(OnCharmTimerBumped);
             _subscribed = false;
         }
 
@@ -52,10 +63,12 @@ namespace Game.Core.Ecs.Systems
             _subscribed = true;
             GameEventBus.Subscribe<TurnEndedEvent>(OnTurnEnded);
             GameEventBus.Subscribe<TurnStartedEvent>(OnTurnStarted);
+            GameEventBus.Subscribe<CharmTimerBumpedEvent>(OnCharmTimerBumped);
         }
 
         void OnTurnEnded(TurnEndedEvent e)     => _pending.Enqueue((e.ActivePlayerId, CharmTickMoment.TurnEnd));
         void OnTurnStarted(TurnStartedEvent e) => _pending.Enqueue((e.ActivePlayerId, CharmTickMoment.TurnStart));
+        void OnCharmTimerBumped(CharmTimerBumpedEvent e) => _pendingBumped.Enqueue(e.CardEntity);
 
         public void Run(IEcsSystems systems)
         {
@@ -63,6 +76,14 @@ namespace Game.Core.Ecs.Systems
             {
                 var (playerId, moment) = _pending.Dequeue();
                 Tick(playerId, moment);
+            }
+
+            // Ретроактивный бонус (AddCharmDurationBonusEffect) уже поправил TurnsRemaining сам —
+            // тут только перерендер бейджа/описания под новое значение, без декремента/death-check.
+            while (_pendingBumped.Count > 0)
+            {
+                int e = _pendingBumped.Dequeue();
+                if (_timerPool.Value.Has(e) && !_deadPool.Value.Has(e)) RefreshDescription(e);
             }
         }
 
@@ -81,7 +102,41 @@ namespace Game.Core.Ecs.Systems
                     // Синк: пассив сам не тикает чужой таймер → шлём смерть, он повторит (как у существ).
                     GameEventBus.Publish(new TimerDeathNetEvent { CreatureEntity = entity });
                 }
+                else
+                {
+                    // Живая чара на столе: снэпшот описания под свежий TurnsRemaining + событие для
+                    // открытого инспект-попапа/индикатора — раньше тут просто молчали, и «Действует N ходов»
+                    // застывало на печатном значении навсегда, даже без Зачарованного (баг 2026-08-21).
+                    RefreshDescription(entity);
+                }
             }
+        }
+
+        void RefreshDescription(int cardEntity)
+        {
+            if (!_modelPool.Value.Has(cardEntity)) return;
+            ref var m = ref _modelPool.Value.Get(cardEntity);
+            var inst = _cardConfig.Value.Get(m.ExpansionId, m.ModelId);
+            var model = inst?.CardData;
+            if (model == null) return;
+
+            string key = CardTextLocalization.DescKey(model.ExpansionId, model.Id);
+            int playerEntity = OwnerPlayerEntity(cardEntity);
+            var live = CardDynamicValues.Collect(_world.Value, cardEntity, playerEntity);
+            string desc = CardDescriptionFormatter.Format(key, model.Description, model.GetCardType(),
+                _timerPool.Value.Get(cardEntity).TurnsRemaining, live);
+
+            if (_viewPool.Value.Has(cardEntity)) _viewPool.Value.Get(cardEntity).Description = desc;
+            GameEventBus.Publish(new CardDescriptionChangedUIEvent { CardEntity = cardEntity, Description = desc });
+        }
+
+        int OwnerPlayerEntity(int cardEntity)
+        {
+            if (!_ownerPool.Value.Has(cardEntity)) return -1;
+            int ownerId = _ownerPool.Value.Get(cardEntity).OwnerId;
+            foreach (var pe in _playerFilter.Value)
+                if (_playerPool.Value.Get(pe).PlayerId == ownerId) return pe;
+            return -1;
         }
     }
 }

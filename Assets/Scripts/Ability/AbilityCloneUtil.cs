@@ -25,6 +25,13 @@ namespace Game.Core.Ability
             if (obj is UnityEngine.Object) return obj;                  // ассеты не клонируем
             if (obj is Delegate) return null;                           // подписки на шаблоне игнорируем
 
+            // EcsWorld — рантайм-ссылка, а не authored-данные. У неё нет пустого ctor, и клонировать её
+            // незачем: почти каждый триггер кэширует world-поле ПОСЛЕ Init (AbilityTriggers.cs), и это
+            // поле пусто у обычного (доInit) шаблона. Но GraftAbilitiesFromTargetEffect клонирует уже
+            // ЖИВЫЕ способности материализованной цели — там world уже проставлен, и слепая рекурсия
+            // валила MissingMethodException. Копируем по ссылке; следом всё равно зовётся Init заново.
+            if (obj is Leopotam.EcsLite.EcsWorld) return obj;
+
             if (obj is Array array)
             {
                 var clone = Array.CreateInstance(type.GetElementType()!, array.Length);

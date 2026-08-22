@@ -3895,14 +3895,226 @@ MonoBehaviour:
     m_Key: card.stolen_princess.117.desc
     m_Metadata:
       m_Items: []
+  - m_Id: 32542547968
+    m_Key: card.story.0.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879616
+    m_Key: card.story.0.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879617
+    m_Key: card.story.1.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879618
+    m_Key: card.story.1.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879619
+    m_Key: card.story.2.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879620
+    m_Key: card.story.2.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879621
+    m_Key: card.story.3.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879622
+    m_Key: card.story.3.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879623
+    m_Key: card.story.4.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879624
+    m_Key: card.story.4.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879625
+    m_Key: card.story.5.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879626
+    m_Key: card.story.5.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879627
+    m_Key: card.story.6.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879628
+    m_Key: card.story.6.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879629
+    m_Key: card.story.7.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879630
+    m_Key: card.story.7.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879631
+    m_Key: card.story.8.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879632
+    m_Key: card.story.8.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879633
+    m_Key: card.story.9.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879634
+    m_Key: card.story.9.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879635
+    m_Key: card.story.10.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879636
+    m_Key: card.story.10.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879637
+    m_Key: card.story.11.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879638
+    m_Key: card.story.11.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879639
+    m_Key: story.narrator.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879640
+    m_Key: ui.story.campaign.stolen_princess
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073920
+    m_Key: story.c1e5.event.1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073921
+    m_Key: story.c1e5.event.2
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073922
+    m_Key: story.c1e6.event.2
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073923
+    m_Key: story.c1e6.event.3
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073924
+    m_Key: story.c1e6.event.4
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073925
+    m_Key: story.c1e6.event.5
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073926
+    m_Key: card.stolen_princess.118.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073927
+    m_Key: card.stolen_princess.118.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073928
+    m_Key: card.stolen_princess.119.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073929
+    m_Key: card.stolen_princess.119.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073930
+    m_Key: ui.promo.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073931
+    m_Key: ui.promo.hint
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073932
+    m_Key: ui.promo.placeholder
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073933
+    m_Key: ui.promo.apply
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073934
+    m_Key: ui.promo.accepted
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073935
+    m_Key: ui.promo.boosters
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073936
+    m_Key: ui.promo.avatars
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073937
+    m_Key: ui.promo.cards
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073938
+    m_Key: ui.promo.founder_title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073939
+    m_Key: ui.promo.launch_title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073940
+    m_Key: ui.err.promo_unknown
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073941
+    m_Key: ui.err.promo_used
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073942
+    m_Key: ui.err.promo_expired
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073943
+    m_Key: ui.err.promo_not_started
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073944
+    m_Key: ui.err.promo_disabled
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073945
+    m_Key: ui.err.promo_limit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073946
+    m_Key: ui.err.promo_throttled
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
-    rid: 1051486639125954797
+    rid: 2425736462308474991
   references:
     version: 2
     RefIds:
-    - rid: 1051486639125954797
+    - rid: 2425736462308474991
       type: {class: DistributedUIDGenerator, ns: UnityEngine.Localization.Tables, asm: Unity.Localization}
       data:
-        m_CustomEpoch: 1782412406618
+        m_CustomEpoch: 1787392056400

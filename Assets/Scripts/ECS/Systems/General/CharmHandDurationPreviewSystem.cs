@@ -19,7 +19,6 @@ namespace Game.Core.Ecs.Systems
     /// </summary>
     public sealed class CharmHandDurationPreviewSystem : IEcsRunSystem
     {
-        readonly EcsWorldInject _world = default;
         readonly EcsCustomInject<CardConfig> _cardConfig = default;
 
         // CharmTimerComponent как гейт «есть печатная длительность» — вместо резолва CardCharmModel.TurnsAlive:
@@ -51,17 +50,27 @@ namespace Game.Core.Ecs.Systems
                 _lastShownBonus[e] = bonus;
 
                 int baseTurns = _charmTimerPool.Value.Get(e).TurnsRemaining;   // печатное значение, пока в руке
-                string desc = RenderDescription(e, model, baseTurns + bonus);
+                string desc = RenderDescription(e, baseTurns + bonus);
+                if (desc == null) continue;   // нет текущего описания вовсе — нечего подменять
                 if (_viewPool.Value.Has(e)) _viewPool.Value.Get(e).Description = desc;   // снэпшот — верный текст при пересоздании вьюхи
                 GameEventBus.Publish(new CardDescriptionChangedUIEvent { CardEntity = e, Description = desc });
             }
         }
 
-        string RenderDescription(int cardEntity, CardModel model, int effectiveTurns)
+        // Подменяем ТОЛЬКО последнюю строку (длительность) в уже ЖИВОМ описании — не перерендериваем с нуля
+        // из статичного model.Description. Собранная графтом чара («Проклятье для принцессы») держит в
+        // CardViewDataComponent смёрженный текст донор-эффектов ПОВЕРХ печатного шаблона базового тира —
+        // полный перерендер из model.Description стирал бы графт при первом же кадре в руке (баг 2026-08-21).
+        string RenderDescription(int cardEntity, int effectiveTurns)
         {
-            string key = CardTextLocalization.DescKey(model.ExpansionId, model.Id);
-            var live = CardDynamicValues.Collect(_world.Value, cardEntity, OwnerPlayerEntity(cardEntity));
-            return CardDescriptionFormatter.Format(key, model.Description, model.GetCardType(), effectiveTurns, live);
+            if (!_viewPool.Value.Has(cardEntity)) return null;
+            string current = _viewPool.Value.Get(cardEntity).Description ?? string.Empty;
+            string lang = CardTextLocalization.Language;
+            string duration = CardTextLocalization.DurationLine(effectiveTurns, lang);
+
+            int lastNl = current.LastIndexOf('\n');
+            string body = lastNl >= 0 ? current.Substring(0, lastNl) : string.Empty;
+            return string.IsNullOrEmpty(body) ? duration : body + "\n" + duration;
         }
 
         CardModel ResolveModel(int e)
@@ -69,15 +78,6 @@ namespace Game.Core.Ecs.Systems
             ref var m = ref _modelPool.Value.Get(e);
             var inst = _cardConfig.Value.Get(m.ExpansionId, m.ModelId);
             return inst != null ? inst.CardData : null;
-        }
-
-        int OwnerPlayerEntity(int cardEntity)
-        {
-            if (!_ownerPool.Value.Has(cardEntity)) return -1;
-            int ownerId = _ownerPool.Value.Get(cardEntity).OwnerId;
-            foreach (var pe in _world.Value.Filter<PlayerComponent>().End())
-                if (_world.Value.GetPool<PlayerComponent>().Get(pe).PlayerId == ownerId) return pe;
-            return -1;
         }
     }
 }

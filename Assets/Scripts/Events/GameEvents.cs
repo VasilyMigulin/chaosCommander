@@ -63,6 +63,22 @@ namespace Game.Core.Events
         public UnityEngine.Vector3? FromWorld;
     }
 
+    /// <summary>
+    /// Карта легла В КОЛОДУ (генерация/втасовка — CreateCardSystem, зона Deck) — ECS-зеркало CardDrawnEvent,
+    /// только «улетает В колоду», а не «прилетает ИЗ колоды». SourceEntity/FromWorld — та же семантика
+    /// (обычно кастер эффекта: Старый колдун — своё же существо, «Дать газу!» — сама карта заклинания, у
+    /// которой нет борд-позиции → DeckShuffleUISystem провалится в OwnerComponent → аватар владельца, «летит
+    /// от игрока» естественным фолбэком EntityWorldPosUtil, без отдельной логики). Публикуется только для
+    /// СВОЕЙ колоды (чужая не визуализируется, как и чужая рука).
+    /// </summary>
+    public struct CardShuffledToDeckEvent : IGameEvent
+    {
+        public int CardEntity;
+        public int PlayerId;
+        public int? SourceEntity;
+        public UnityEngine.Vector3? FromWorld;
+    }
+
     /// <summary>Локальный (turn-start) добор Count карт игроком-сущностью PlayerEntity. Шлёт DrawCardSystem
     /// только для Sync-доборов → CollectActionSystem отправляет ActionDrawData оппоненту (синк зеркала колоды/руки).</summary>
     public struct DeckDrawNetEvent : IGameEvent
@@ -247,6 +263,15 @@ namespace Game.Core.Events
         public string Description;
     }
 
+    /// <summary>TurnsRemaining чары на столе поменялся ВНЕ обычного тика (AddCharmDurationBonusEffect —
+    /// «Зачарованный» ретроактивно продлевает уже разыгранные чары, не только будущие). Публикует Ability
+    /// (CardConfig ей недоступен — цикл сборок), слушает CharmTimerTickSystem (Ecs.Systems, уже умеет
+    /// перерендерить описание тем же путём, что и обычный тик) и зовёт тот же RefreshDescription.</summary>
+    public struct CharmTimerBumpedEvent : IGameEvent
+    {
+        public int CardEntity;
+    }
+
     /// <summary>Токен с OnDraw-форс-кастом (Вонючее облако) авто-разыгран сразу при доборе. Чистая косметика
     /// у владельца: CardLayout показывает пришедшую карту и проигрывает анимацию сброса («пришла → ушла»).
     /// Сама симуляция розыгрыша идёт отдельно (PlayCardUtil.Play). CardLayout берёт на себя удаление слота,
@@ -284,7 +309,22 @@ namespace Game.Core.Events
         public Game.Core.Shared.CardVisualData Visual;
         public bool IsLocalOwner;
     }
-     
+
+    /// <summary>
+    /// Карта легла В КОЛОДУ (генерация/втасовка) — публикует DeckShuffleUISystem (перевод
+    /// CardShuffledToDeckEvent, зеркало HandUISystem→CardAddedToHandUIEvent). Только своя колода.
+    /// FromScreen — уже спроецированная экранная точка источника (см. CardAddedToHandUIEvent) — null,
+    /// если источник не резолвится (эффект без карты-кастера) — презентер сам решает дефолт.
+    /// </summary>
+    public struct CardShuffledToDeckUIEvent : IGameEvent
+    {
+        public int CardEntity;
+        public string CardName;
+        public UnityEngine.Sprite Icon;
+        public Game.Core.Shared.CardVisualData Visual;
+        public UnityEngine.Vector2? FromScreen;
+    }
+
     public struct CommanderOnCooldownUIEvent : IGameEvent
     {
         public int CardEntity;
@@ -358,7 +398,7 @@ namespace Game.Core.Events
     /// <summary>Счётчик руки/колоды ЛОКАЛЬНОГО игрока — для ResourceIndicatorView (та же панель, что
     /// золото/мана/здоровье; см. PlayerStatsViewSystem). Не переиспользует ResourceChangedEvent/ResourceType
     /// намеренно — ResourceType означает «трачу на каст», а рука/колода не тратятся, это просто счётчик.
-    /// HandMax — HandComponent.MaxHandSize (6); DeckMax=0 — у колоды нет фиксированного максимума (не рисуем
+    /// HandMax — HandComponent.MaxHandSize; DeckMax=0 — у колоды нет фиксированного максимума (не рисуем
     /// слайдер, ResourceIndicatorView просто покажет число).</summary>
     public struct HandDeckCountChangedUIEvent : IGameEvent
     {
@@ -978,6 +1018,18 @@ namespace Game.Core.Events
     public struct TimerDeathNetEvent : IGameEvent
     {
         public int CreatureEntity;
+    }
+
+    /// <summary>
+    /// Карта в руке сброшена СИСТЕМНЫМ таймером («будет сброшена через N ходов») на активе. Не
+    /// воспроизводится детерминированно у пассива (тот не тикает чужой таймер в чужой ход) →
+    /// CollectActionSystem шлёт это как ActionDiscardData, пассив повторяет AltCostUtil.Discard по
+    /// ключу. Публикует HandDiscardTimerTickSystem. (Аналог TimerDeathNetEvent, но карта не «гибнет» —
+    /// ReplayDeath/DeadTag тут не подходят, сброс не идёт через DieSystem.)
+    /// </summary>
+    public struct TimerDiscardNetEvent : IGameEvent
+    {
+        public int CardEntity;
     }
 
     /// <summary>

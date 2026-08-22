@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
   m_Name: creature_card_017
   m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
   CardData:
     rid: 8072968609180155924
   references:
@@ -27,12 +28,24 @@ MonoBehaviour:
         Rules: []
         Effects:
         - rid: 1051486567619100880
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
         Vfx:
           Kind: 0
           Prefab: {fileID: 0}
           HitPrefab: {fileID: 185366, guid: 2f98e91049e674d43b96757a89dceecc, type: 3}
           ProjectileSpeed: 12
+          ProjectileScale: 1
           MergeArea: 0
+          Delivery: 0
+          Trajectory: 0
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
           PlayCasterAnimation: 0
     - rid: 1051486567619100879
       type: {class: OnDieTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
@@ -42,6 +55,10 @@ MonoBehaviour:
       data:
         ConditionRoot:
           rid: -2
+    - rid: 2425736371507560541
+      type: {class: CustomFamilyTag, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        TagKey: Skeleton
     - rid: 8072968609180155924
       type: {class: CardCreatureModel, ns: Game.Core.Model.Card.Creature, asm: Game.Core.Model.Card.Creature}
       data:
@@ -57,14 +74,18 @@ MonoBehaviour:
         PlayCostAmount: 1
         IsToken: 0
         ShowAsLinked: 1
-        MulliganStartingHand: 0
-        MulliganUnlimitedReplace: 0
+        HideAsLinked: 0
+        NonBattleAbilities: []
         RuntimeAbilities:
         - rid: 1051486567619100878
-        Archetypes: []
+        Archetypes:
+        - rid: 2425736371507560541
+        TierSource: 0
+        Tiers: []
         MaxHealth: 1
         Attack: 3
         Speed: 1
+        Properties: []
         ViewPrefab: {fileID: 8026686172653069236, guid: 5e09170fbcf71664d90a24af403906b9, type: 3}
         SummonVfx:
           PrePrefab: {fileID: 0}

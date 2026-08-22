@@ -86,6 +86,18 @@ namespace Game.Core.Ecs.Systems
                     continue;
                 }
 
+                // pre-cost: доп. цена ПОВЕРХ обычной (RequiresAdditionalCostComponent) — печатное свойство
+                // карты (не AltCost — тот временный маркер игрока для чужого СЛЕДУЮЩЕГО каста). Саму уплату
+                // (сброс/жертву/милл/урон) делает СОБСТВЕННЫЙ OnCast-эффект карты на резолве — здесь только
+                // гейт: нечем платить → недоступна, как нехватка маны.
+                var addCostPool = world.GetPool<RequiresAdditionalCostComponent>();
+                if (addCostPool.Has(card)
+                    && !AltCostUtil.CanPay(world, addCostPool.Get(card).Kind, ownerId, card))
+                {
+                    Decline(declinePool, card, DeclineReason.NoAdditionalCostPayment);
+                    continue;
+                }
+
                 if (!free)
                 {
                     if (world.GetPool<AltCostComponent>().Has(player))
@@ -237,9 +249,12 @@ namespace Game.Core.Ecs.Systems
             return -1;
         }
 
+        // Токены (TokenTag) в лимит НЕ считаются — та же конвенция, что у PlayerStatsViewSystem.GatherAuras
+        // (бар аур тоже Exc<TokenTag>): токен — расходник без «владения» в обычном смысле (не уходит на
+        // кладбище, не тратит лимит копий), лимит защищает от РУЧНОГО заспама настоящими чарами.
         static int CharmCount(EcsWorld world, EcsPool<OwnerComponent> ownerPool, int ownerId)
         {
-            var filter = world.Filter<CharmTag>().Inc<BoardTag>().End();
+            var filter = world.Filter<CharmTag>().Inc<BoardTag>().Exc<TokenTag>().End();
             int n = 0;
             foreach (var e in filter)
                 if (ownerPool.Has(e) && ownerPool.Get(e).OwnerId == ownerId) n++;

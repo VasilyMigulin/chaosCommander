@@ -426,8 +426,26 @@ namespace AwesomeUI.Feature.Battle
             _forcePlayed.Remove(cardEntity);
 
             var slot = FindHandSlot(cardEntity);
-            if (slot != null) ReleaseSlot(slot);   // остальные сдвигаются при RefreshFan внутри
-            // Слота нет — карту либо уже увели (форс-каст отыграл свой уход сам), либо её приход схлопнулся
+            if (slot != null) { ReleaseSlot(slot); return; }   // остальные сдвигаются при RefreshFan внутри
+
+            // Командир — отдельный слот (_commanderSlot), FindHandSlot его не видит (ищет только среди
+            // _handSlots). Призыв командира на стол снимает HandTag, и RunMoveCardToBoardSystem шлёт тот
+            // же CardRemovedFromHandUIEvent, что и для обычных карт (см. его коммент «Освобождаем UI-слот
+            // руки») — раньше это молча игнорировалось: слот оставался «занят» призраком до возврата
+            // командира (смерть → SetCard), GetAllActiveSlots().Count был на 1 больше настоящего всё это
+            // время, и последняя реальная карта руки никогда не получала t=0.5 → angle=0 (см. GetFanPose).
+            if (_commanderSlot != null && _commanderSlot.IsOccupied && _commanderSlot.CardEntity == cardEntity)
+            {
+                // keepEntity: командирский CardEntity — та же ECS-сущность весь матч (в отличие от обычных
+                // слотов, этот не отдают под другую карту). Сброс в -1 ронял CommanderOnCooldownUIEvent при
+                // возврате командира в руку, если тот приходил раньше, чем CardLayout успевал показать
+                // карту обратно (RunCommanderCooldownSystem и очередь CardLayout — независимые дороги).
+                _commanderSlot.ClearCard(keepEntity: true);
+                RefreshFan();
+                return;
+            }
+
+            // Иначе — карту либо уже увели (форс-каст отыграл свой уход сам), либо её приход схлопнулся
             // с этим уходом ещё в очереди. Обе ветки штатные, гасить нечего.
         }
 
@@ -805,6 +823,14 @@ namespace AwesomeUI.Feature.Battle
         // конечная точка нужна ДО того, как она полетит: дуга целится сразу в свой слот и в свой угол.
         private void GetFanPose(int index, int count, out Vector3 pos, out float angle)
         {
+            // Командир — РАВНОПРАВНЫЙ участник веера (слот 0 в GetAllActiveSlots), угол/позиция считаются
+            // по общим index/count без исключений. Формула сама даёт angle=0, когда слот ровно один
+            // (t=0.5 → Lerp(half,-half,0.5)=0) — единственная карта, будь то командир один в руке или
+            // одна карта руки при выведенном на стол командире, и так должна была выпрямляться. Если не
+            // выпрямлялась — see FindHandSlot/RunRemoveStep: командир уходит на стол (HandTag снимается,
+            // RunMoveCardToBoardSystem шлёт CardRemovedFromHandUIEvent), а этот эвент раньше НЕ находил
+            // _commanderSlot (FindHandSlot искал только среди _handSlots) → слот оставался «занят»
+            // призраком, count был на 1 больше настоящего, и «последняя карта» никогда не получала t=0.5.
             float halfAngle = _fanAngleRange * 0.5f;
             float baseY     = _isExpanded ? _expandedCardY : _collapsedCardY;
             float t         = count > 1 ? (float)index / (count - 1) : 0.5f;

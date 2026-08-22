@@ -16,7 +16,7 @@ namespace Game.Core.EditorTools
         [MenuItem("Tools/Backend/Export Shop Config (Title Data 'shopConfig')")]
         public static void Export()
         {
-            var asset = FindAsset();
+            var asset = TitleDataExportUtil.FindSingleAsset<ShopConfigAsset>("[ShopExport]");
             if (asset == null)
             {
                 Debug.LogWarning("[ShopExport] Нет ассета ShopConfigAsset. Создай: Create → Game → Shop Config.");
@@ -46,15 +46,6 @@ namespace Game.Core.EditorTools
             EditorUtility.RevealInFinder(outPath);
         }
 
-        static ShopConfigAsset FindAsset()
-        {
-            var guids = AssetDatabase.FindAssets("t:ShopConfigAsset");
-            if (guids.Length == 0) return null;
-            if (guids.Length > 1)
-                Debug.LogWarning($"[ShopExport] Ассетов ShopConfigAsset: {guids.Length} — беру первый.");
-            return AssetDatabase.LoadAssetAtPath<ShopConfigAsset>(AssetDatabase.GUIDToAssetPath(guids[0]));
-        }
-
         static string BuildJson(List<ShopConfigAsset.Entry> entries)
         {
             var sb = new StringBuilder();
@@ -68,10 +59,10 @@ namespace Game.Core.EditorTools
                 string name = string.IsNullOrEmpty(e.DisplayName) ? id : e.DisplayName;
 
                 sb.Append("    { ");
-                sb.Append($"\"itemId\": \"{Esc(id)}\", ");
-                sb.Append($"\"displayName\": \"{Esc(name)}\", ");
+                sb.Append($"\"itemId\": \"{TitleDataExportUtil.Esc(id)}\", ");
+                sb.Append($"\"displayName\": \"{TitleDataExportUtil.Esc(name)}\", ");
                 sb.Append($"\"category\": \"{e.ResolveCategory()}\", ");
-                sb.Append($"\"priceCode\": \"{Esc(code)}\", ");
+                sb.Append($"\"priceCode\": \"{TitleDataExportUtil.Esc(code)}\", ");
                 sb.Append($"\"priceAmount\": {e.PriceAmount}, ");
                 sb.Append($"\"quantity\": {qty}, ");
                 sb.Append($"\"unique\": {(e.Unique ? "true" : "false")}, ");
@@ -81,13 +72,6 @@ namespace Game.Core.EditorTools
             }
             sb.Append("  ]\n}");
             return sb.ToString();
-        }
-
-        // Минимальный JSON-эскейп для строк (кавычки/бэкслеш/переводы строк).
-        static string Esc(string s)
-        {
-            if (string.IsNullOrEmpty(s)) return "";
-            return s.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n").Replace("\r", "");
         }
     }
 }

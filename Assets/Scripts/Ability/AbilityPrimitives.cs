@@ -1,7 +1,9 @@
 using System;
 using Game.Core.Ecs.Components;
 using Game.Core.Service;
+using Game.Core.Shared.Interface;
 using Leopotam.EcsLite;
+using UnityEngine;
 
 namespace Game.Core.Ability
 {
@@ -57,10 +59,12 @@ namespace Game.Core.Ability
         }
     }
 
-    // === class (OOP) === «Похитить» Amount здоровья у цели: урон цели + ПЕРМАНЕНТНО +Max HP получателю на
-    // Amount и лечение на столько же. Получатель настраивается (Beneficiary): Owner — игрок-владелец карты
-    // (Всадник Голода: OnDie + Random[Enemy] + DrainHealth{2} → твой герой); Self — само существо-источник
-    // (вампир, что растёт; не для OnDie — мёртвое). Перманент через HealthComponent.AddModifier(value, true).
+    // === class (OOP) === «Похитить» Amount здоровья у цели: цель ПЕРМАНЕНТНО теряет Max HP на Amount (+ обычный
+    // урон — смерть/трекинг/редиректы идут штатным TakeDamageEvent, это НЕ трогаем), получатель — ПЕРМАНЕНТНО
+    // +Max HP на Amount и лечение на столько же. Получатель настраивается (Beneficiary): Owner — игрок-владелец
+    // карты (Всадник Голода: OnDie + Random[Enemy] + DrainHealth{2} → твой герой); Self — само существо-источник
+    // (вампир, что растёт; не для OnDie — мёртвое). Симметрично: что цель потеряла навсегда, получатель навсегда
+    // приобрёл (баг 2026-08-21 — раньше цель теряла только текущее HP, обычным уроном, и могла вылечиться обратно).
     [Serializable]
     public sealed class DrainHealthEffect : EffectBase
     {
@@ -82,8 +86,18 @@ namespace Game.Core.Ability
             d.Amount += Amount;
             d.Attacker = cardEntity;
 
-            int beneficiary = Beneficiary == DrainBeneficiary.Self ? cardEntity : PlayerEntity;
+            // Цель ПЕРМАНЕНТНО теряет Max HP (истинное «похищение» — не просто урон, который можно отхилить).
+            // RecalculateValue сам клампит Current, если он теперь выше нового Max.
             var hpPool = world.GetPool<HealthComponent>();
+            if (hpPool.Has(target))
+            {
+                ref var th = ref hpPool.Get(target);
+                th.AddModifier(-Amount, true);
+                if (world.GetPool<PlayerComponent>().Has(target))   // игроку — обновить ресурс-бар; существо обновит CreatureStatsViewSystem
+                    EffectUtil.RaiseResource(world, target, EnumService.ResourceType.Health, th.Current, th.Max);
+            }
+
+            int beneficiary = Beneficiary == DrainBeneficiary.Self ? cardEntity : PlayerEntity;
             if (beneficiary >= 0 && hpPool.Has(beneficiary))
             {
                 ref var h = ref hpPool.Get(beneficiary);
@@ -129,6 +143,46 @@ namespace Game.Core.Ability
             ref var d = ref dmgPool.Get(target);
             d.Amount += amount;
             d.Attacker = cardEntity;
+        }
+    }
+
+    // === class (OOP) === Нанести цели урон, равный ТЕКУЩЕМУ стату ИСТОЧНИКА или его ВЛАДЕЛЬЦА (Stat/Source —
+    // тот же StatKind/StatSourceEntity/StatCompareTargetFilter.TryRead, что и у RepeatEffect.CountSource.Stat).
+    // Attack/Self — «урон = своя атака» (по факту работает только у существ: у карты-заклинания источник —
+    // сама карта-спелл, без AttackComponent). Mana/Gold всегда требуют Source=Owner — у карты этих пулов нет
+    // физически, только у игрока. Нет нужного компонента на резолвнутой сущности → 0 урона (Apply — no-op).
+    // На будущее: если атака когда-нибудь появится у другого источника (напр. у игрока — оружие/герой-атака),
+    // эффект заработает сам, без правок — читаем компонент С РЕЗОЛВНУТОЙ сущности, не ветвим по типу карты.
+    [Serializable]
+    public sealed class DealDamageEqualToStatEffect : EffectBase, IDynamicValue
+    {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Damage;
+
+        [Tooltip("Какой стат читаем.")]
+        public StatKind Stat = StatKind.Attack;
+        [Tooltip("Чей стат — сам источник или его владелец-игрок (обязательно Owner для Mana/Gold).")]
+        public StatSourceEntity Source = StatSourceEntity.Self;
+
+        public int DynamicValueCount => 1;
+        public int GetDynamicValue(int index, EcsWorld world, int cardEntity, int playerEntity) => ReadStat(world, cardEntity);
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            if (target < 0 || !world.GetPool<HealthComponent>().Has(target)) return;
+            int amount = ReadStat(world, cardEntity);
+            if (amount <= 0) return;
+
+            var dmgPool = world.GetPool<TakeDamageEvent>();
+            if (!dmgPool.Has(target)) dmgPool.Add(target);
+            ref var d = ref dmgPool.Get(target);
+            d.Amount += amount;
+            d.Attacker = cardEntity;
+        }
+
+        int ReadStat(EcsWorld world, int cardEntity)
+        {
+            int e = StatSourceUtil.Resolve(world, cardEntity, Source);
+            return StatCompareTargetFilter.TryRead(world, e, Stat, out int v) ? v : 0;
         }
     }
 

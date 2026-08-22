@@ -27,10 +27,15 @@ namespace Game.Core.Configs
         public string EncounterName = "Противник";
 
         [Header("Колода ИИ")]
-        [Tooltip("Командир ИИ (может быть пустым — тогда без командира).")]
+        [Tooltip("Командир ИИ (может быть пустым — тогда без командира). Игнорируется, если ниже задан DeckPool.")]
         public CardInstanceData Commander;
-        [Tooltip("Карты колоды: ассет + количество копий.")]
+        [Tooltip("Карты колоды: ассет + количество копий. Игнорируется, если ниже задан DeckPool.")]
         public List<DeckEntry> Cards = new();
+        [Tooltip("Пул готовых колод (DeckPreset) — если не пуст, при старте боя ИИ СЛУЧАЙНО берёт ОДНУ колоду " +
+                 "отсюда вместо Commander/Cards выше (та же идея, что PlayerDeck, но с вариативностью — юзер " +
+                 "устал биться против одной и той же колоды в тренировке). Пресеты собираются визуально в игре: " +
+                 "Tools → Cards → Deck Code → Preset.")]
+        public List<DeckPreset> DeckPool = new();
 
         [Header("Параметры боя")]
         [Tooltip("Сколько карт ИИ берёт в стартовую руку (мулигана у ИИ нет).")]
@@ -82,13 +87,15 @@ namespace Game.Core.Configs
             ShuffleCardToDeck, // втасовать Amount копий Card в колоду (TargetPlayer: игроку/ИИ)
             AddCardToHand,     // дать Amount копий Card в руку
             DealDamage,        // нанести Amount урона игроку/ИИ (аватару)
+            PlayCard,          // ПО-НАСТОЯЩЕМУ разыграть Amount копий Card (не спавн!) — своё «при разыгрывании» сработает
+            PlayCommander,     // форс-розыгрыш КОМАНДИРА игрока/ИИ из руки (Card/Amount игнорируются)
         }
 
         [Serializable]
         public struct ScriptedAction
         {
             public ScriptedActionKind Kind;
-            [Tooltip("Карта для Shuffle/AddCard (напр. Вонючее облако). Для DealDamage не нужна.")]
+            [Tooltip("Карта для Shuffle/AddCard/PlayCard (напр. Вонючее облако). Для DealDamage не нужна.")]
             public CardInstanceData Card;
             [Tooltip("Количество карт / величина урона.")]
             [Min(1)] public int Amount;

@@ -25,6 +25,9 @@ MonoBehaviour:
     rid: -2
   IncludeTokens: 0
   ExpansionId: standard
+  IncludeStoryOnly: 0
+  FilterCharmDuration: 0
+  CharmDuration: 0
   Cards:
   - {fileID: 11400000, guid: b80677caa0615ea45813621434aa5f21, type: 2}
   - {fileID: 11400000, guid: ced2f33b65c570245b4c5214f39e74ce, type: 2}

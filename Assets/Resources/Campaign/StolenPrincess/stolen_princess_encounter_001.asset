@@ -12,20 +12,51 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 94fdf3306b821744da4c1a68d4e68c38, type: 3}
   m_Name: stolen_princess_encounter_001
   m_EditorClassIdentifier: Game.Core.Configs::Game.Core.Configs.PveEncounterConfig
-  EncounterName: "\u041D\u0435\u043F\u043E\u0434\u043A\u0443\u043F\u043D\u044B\u0439
-    \u0441\u0442\u0440\u0430\u0436\u043D\u0438\u043A"
-  Commander: {fileID: 11400000, guid: dc8cd7d76ebd25e4f87efb1c0ae3f617, type: 2}
+  EncounterName: "\u0422\u044E\u0440\u0435\u043C\u0449\u0438\u043A \u041C\u043E\u0440\u0434\u043E\u0432\u043E\u0440\u043E\u0442"
+  Commander: {fileID: 11400000, guid: 651b0f0d185b2bb824fc8b7e74f00e48, type: 2}
   Cards:
-  - Card: {fileID: 11400000, guid: 62af00cfa4f08ea469e96ad7de17cda6, type: 2}
+  - Card: {fileID: 11400000, guid: b468378bc69da0440bedc29d1e97b81f, type: 2}
+    Count: 10
+  - Card: {fileID: 11400000, guid: 96b463e1ed58d744da21ce4f23b2eb9a, type: 2}
     Count: 4
+  - Card: {fileID: 11400000, guid: e29dc3150ffc1104fa283dec61519f99, type: 2}
+    Count: 6
   StartingHand: 4
-  Health: 30
+  Health: 10
   PlayerDeck: {fileID: 11400000, guid: ae712d374f099b64391f79e2a6215be7, type: 2}
-  IntroLines: []
-  VictoryLines: []
-  DefeatLines: []
+  IntroLines:
+  - Portrait: {fileID: 21300000, guid: 049d1403ca0954c6e8c805419a41f803, type: 3}
+    SpeakerKey: story.guard.name
+    TextKey: story.c1e1.intro.1
+    FallbackText: "\u0421\u0442\u0440\u0430\u0436\u0430! \u042F, \u0428\u0430\u043B\u044C\u043D\u043E\u0439
+      \u043F\u0440\u0438\u043D\u0446, \u0442\u0440\u0435\u0431\u0443\u044E \u0432\u044B\u043F\u0443\u0441\u0442\u0438\u0442\u044C
+      \u043C\u0435\u043D\u044F. \u2026\u0410\u0445, \u0432\u044B \u0438 \u0435\u0441\u0442\u044C
+      \u0441\u0442\u0440\u0430\u0436\u0430."
+    Duration: 3.5
+  - Portrait: {fileID: 21300000, guid: ea0d15c8ad5814d68ba5d1f53bae6247, type: 3}
+    SpeakerKey: story.prince.name
+    TextKey: story.c1e1.intro.2
+    FallbackText: "\u041D\u0443 \u0445\u043E\u0442\u044C \u0440\u0430\u0437\u043E\u043C\u043D\u0451\u043C\u0441\u044F
+      \u043F\u0435\u0440\u0435\u0434 \u0441\u043F\u0430\u0441\u0435\u043D\u0438\u0435\u043C
+      \u043F\u0440\u0438\u043D\u0446\u0435\u0441\u0441\u044B."
+    Duration: 3.5
+  VictoryLines:
+  - Portrait: {fileID: 21300000, guid: ea0d15c8ad5814d68ba5d1f53bae6247, type: 3}
+    SpeakerKey: story.prince.name
+    TextKey: story.c1e1.victory.1
+    FallbackText: "\u041F\u043E\u0431\u0435\u0433 \u0437\u0430\u0441\u0447\u0438\u0442\u0430\u043D!
+      \u0417\u0430\u043C\u043E\u043A, \u0442\u044B \u0431\u044B\u043B \u0442\u0430\u043A
+      \u0441\u0435\u0431\u0435."
+    Duration: 3.5
+  DefeatLines:
+  - Portrait: {fileID: 21300000, guid: ea0d15c8ad5814d68ba5d1f53bae6247, type: 3}
+    SpeakerKey: story.prince.name
+    TextKey: story.c1e1.defeat.1
+    FallbackText: "\u041E\u0431\u0440\u0430\u0442\u043D\u043E \u0432 \u043A\u0430\u043C\u0435\u0440\u0443.
+      \u0422\u0430\u043C \u0445\u043E\u0442\u044F \u0431\u044B \u043A\u043E\u0440\u043C\u044F\u0442."
+    Duration: 3.5
   ScriptedEvents: []
   RewardCards:
-  - Card: {fileID: 11400000, guid: 46457980a7a62a74bb3a7487cdb6e887, type: 2}
-    Count: 3
-  ActionInterval: 0.9
+  - Card: {fileID: 11400000, guid: 6f95e5189fe2877458cb12eb73a9f0f5, type: 2}
+    Count: 2
+  ActionInterval: 1.1

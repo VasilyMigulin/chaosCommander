@@ -118,8 +118,10 @@ namespace Game.Core.Ecs.Systems
                         // тиком), пока у ЭТОЙ ЖЕ карты уже висит другой интерактивный запрос.
                         if (HasInteractivePending(world, owner.CardEntity)) continue;
 
-                        // нет валидных целей → способность фуззлится, не зависаем в ожидании выбора
-                        var valid = TargetGather.Gather(world, tc.Filters, owner.CardEntity, owner.PlayerEntity, null, tc.Zone, tc.IncludeCommanderInZones);
+                        // нет валидных целей → способность фуззлится, не зависаем в ожидании выбора.
+                        // blockStealthed=true — ЕДИНСТВЕННОЕ место, где Скрытность реально должна защищать:
+                        // игрок физически кликает цель (см. TargetGather.Gather).
+                        var valid = TargetGather.Gather(world, tc.Filters, owner.CardEntity, owner.PlayerEntity, null, tc.Zone, tc.IncludeCommanderInZones, blockStealthed: true);
                         if (valid.Count > 0)
                         {
                             if (tc.Zone == TargetZone.Board)
@@ -258,19 +260,20 @@ namespace Game.Core.Ecs.Systems
 
         static void Queue(EcsWorld world, EcsPool<AbilityQueuedState> pool, int entity, int[] targets)
         {
-            // FIFO-ЗАЩИТА (баг 2026-07-30 «выпрыгивает только один Медлительный дворецкий»): способность
+            // ЗАЩИТА ОТ ЗАТИРАНИЯ (баг 2026-07-30 «выпрыгивает только один Медлительный дворецкий»): способность
             // могла сработать ПОВТОРНО, пока прошлое срабатывание ещё стоит в очереди нерезолвнутым —
-            // и перезапись затирала его цели. Классический сценарий: две копии реагируют на выход
-            // существа, первая выходит на стол → её выход = новый CreatureInvokedEvent → вторая копия
-            // фейрится ещё раз, уже вхолостую (свой не проходит фильтры), и пустой результат стирал
-            // ЕЁ ЖЕ валидную цель. Держим ПЕРВОЕ срабатывание (оно старше), новое отбрасываем.
+            // и перезапись затирала его цели. Раньше повтор молча ОТБРАСЫВАЛСЯ целиком — годилось, пока
+            // повтор был спойленным (пустые цели, как у второй копии дворецкого), но стало багом 2026-08-21
+            // («Посредственное руководство» баффает только ПЕРВОГО из двух призванных — второй, ВАЛИДНЫЙ
+            // виновник терялся так же молча, т.к. резолв идёт по одной способности за тик и первый успевал
+            // залежаться). Теперь копим повтор в PendingTargets — RunResolveAbilityQueueSystem, сняв текущий
+            // state, сразу поставит следующий отсюда в очередь (см. AbilityQueuedState.PendingTargets).
             if (pool.Has(entity))
             {
-                var prev = pool.Get(entity).Targets;
-                if (prev != null && prev.Length > 0)
+                ref var existing = ref pool.Get(entity);
+                if (existing.Targets != null && existing.Targets.Length > 0)
                 {
-                    if (targets != null && targets.Length > 0)
-                        UnityEngine.Debug.LogWarning($"[Targeting] ability={entity} повторное срабатывание, пока прошлое в очереди → пропущено (цели первого сохранены)");
+                    (existing.PendingTargets ??= new List<int[]>()).Add(targets ?? Array.Empty<int>());
                     return;
                 }
             }
@@ -284,7 +287,9 @@ namespace Game.Core.Ecs.Systems
         /// <summary>Ключ порядка для активации. РЕАКЦИЯ (хрип и т.п.) наследует ключ вызвавшей её
         /// активации и встаёт сразу за ней; всё остальное открывает свою волну. Глубина вложенности
         /// исчерпана или причины нет → корневой ключ (отработает, но в конце очереди).</summary>
-        static ActivationKey BuildKey(EcsWorld world, int abilityEntity)
+        /// <summary>internal: RunResolveAbilityQueueSystem зовёт это же построение ключа, когда промотирует
+        /// AbilityQueuedState.PendingTargets в свежий queued-state (см. её докстринг).</summary>
+        internal static ActivationKey BuildKey(EcsWorld world, int abilityEntity)
         {
             var ownerPool = world.GetPool<AbilityOwnerComponent>();
             var keyPool = world.GetPool<AbilityTriggerKeyComponent>();

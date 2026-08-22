@@ -28,6 +28,14 @@ namespace Game.Core.Ecs.Systems
             if (world.GetPool<CharmTag>().Has(cardEntity) && CharmCount(world, ownerId) >= CharmLimit)
                 return false;
 
+            // Доп. цена ПОВЕРХ обычной (RequiresAdditionalCostComponent, печатное свойство карты — не
+            // AltCostComponent, тот временный маркер игрока для чужого следующего каста) — нечем платить
+            // (сбросить/пожертвовать/смиллить нечего) → недоступна, как нехватка маны.
+            var addCostPool = world.GetPool<RequiresAdditionalCostComponent>();
+            if (addCostPool.Has(cardEntity)
+                && !AltCostUtil.CanPay(world, addCostPool.Get(cardEntity).Kind, ownerId, cardEntity))
+                return false;
+
             // Маркер альтернативной уплаты (Букмекер и семейство): играбельность = есть ли ЧЕМ платить.
             var altPool = world.GetPool<AltCostComponent>();
             if (altPool.Has(ownerEntity))
@@ -47,11 +55,12 @@ namespace Game.Core.Ecs.Systems
             return true;
         }
 
+        // Токены не считаются — см. тот же комментарий в RunCastRouterSystem.CharmCount.
         static int CharmCount(EcsWorld world, int ownerId)
         {
             var ownerPool = world.GetPool<OwnerComponent>();
             int n = 0;
-            foreach (var e in world.Filter<CharmTag>().Inc<BoardTag>().End())
+            foreach (var e in world.Filter<CharmTag>().Inc<BoardTag>().Exc<TokenTag>().End())
                 if (ownerPool.Has(e) && ownerPool.Get(e).OwnerId == ownerId) n++;
             return n;
         }

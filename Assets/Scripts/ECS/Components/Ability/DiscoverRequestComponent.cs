@@ -3,8 +3,12 @@ using Game.Core.Shared.Interface;
 namespace Game.Core.Ecs.Components
 {
     /// <summary>Куда отправить ВЫБРАННУЮ карту (терминал discover). Hand — в руку, Deck — замешать в колоду,
-    /// Grave — сбросить. Кому — определяет TakeOwnership. Для FromPool всегда Hand владельца (создаём новую).</summary>
-    public enum DiscoverDest { Hand, Deck, Grave }
+    /// Grave — сбросить. Кому — определяет TakeOwnership. Для FromPool всегда Hand владельца (создаём новую).
+    /// None — карту вообще НЕ трогать (осталась там же, где была): для карт, где раскопка — только способ
+    /// ВЫБРАТЬ цель для Modifiers (Королевский указ: «посмотрите 3 карты в руке, разыграйте 3 её копии» —
+    /// оригинал остаётся в руке нетронутым, без лишнего снятия/установки тегов и повторного CardDrawnEvent).
+    /// TakeOwnership с None не сочетается (воровство подразумевает смену владельца — самостоятельная задача).</summary>
+    public enum DiscoverDest { Hand, Deck, Grave, None }
 
     // === struct (Component) ===
     /// <summary>
@@ -41,6 +45,12 @@ namespace Game.Core.Ecs.Components
         public ITargetFilter[] Filters;  // фильтры для зоны (для пула игнор — пул сам отфильтрован)
         public string[]        PoolExp;  // пул: идентичности
         public int[]           PoolCardId;
+        public bool            ExcludeAlreadyPicked;   // фильтр применяем ПРИ ПОКАЗЕ (BuildPoolOffer), а не
+                                         // здесь при Configure: несколько DiscoverFromPoolEffect на одной
+                                         // способности резолвятся синхронно один за другим ДО того, как игрок
+                                         // выберет хоть что-то — на момент Configure второго прохода отбор
+                                         // первого ещё не записан (DiscoverExclusionComponent пуст) — «Проклятье
+                                         // для принцессы» предлагало дубль (2026-08-21).
 
         // ── показанный поднабор (заполняется при offer) — маппинг выбора → идентичность ──
         public int[]    ShownTokens;     // что ушло в OfferedCardEntities (реальные сущности зоны / синтетические id пула)

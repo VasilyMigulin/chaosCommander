@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Core.Configs::Game.Core.Configs.ExpansionConfig
   ExpansionId: stolen_princess
   StoryOnly: 0
+  RequiresCampaignCompletion: 0
   Cards:
   - {fileID: 11400000, guid: d6f36af567cf38c43abd4cd01c686dbc, type: 2}
   - {fileID: 11400000, guid: e220341e12fc3854c8c6558f0fdcacc5, type: 2}
@@ -133,3 +134,50 @@ MonoBehaviour:
   - {fileID: 11400000, guid: f40459d2381736246811841c2c8a267d, type: 2}
   - {fileID: 11400000, guid: df01fedd21dd245468d27d6b4916f5d0, type: 2}
   - {fileID: 11400000, guid: 48099e872ac18a442abb9eff9afb737b, type: 2}
+  - {fileID: 11400000, guid: 39458d9ae1ed1d34e8c79291bbd2dd1c, type: 2}
+  - {fileID: 11400000, guid: d11651f26f3517647a4f4777d9101f3e, type: 2}
+  - {fileID: 11400000, guid: b24ce74af084bb844a531df82a85fac7, type: 2}
+  - {fileID: 11400000, guid: 7c2f99dc6d2c2fc41bd413a298c76042, type: 2}
+  - {fileID: 11400000, guid: 0321648c7b2ebd5459f85798160ef338, type: 2}
+  - {fileID: 11400000, guid: 3fdfcb835f781cf4eabf0d164d4bc8a1, type: 2}
+  - {fileID: 11400000, guid: 82b9e8d648f3aae4683168436f6dd306, type: 2}
+  - {fileID: 11400000, guid: 6a63d337585c1a649aee70df8d552b65, type: 2}
+  - {fileID: 11400000, guid: fa433c54ef5d7504880295479d1c8460, type: 2}
+  - {fileID: 11400000, guid: 019abc4f8f877c044bc591a5803de269, type: 2}
+  - {fileID: 11400000, guid: 56ff6392774e1b949bc1615fe05b69b3, type: 2}
+  - {fileID: 11400000, guid: b7466c41681d9294398f379791c958da, type: 2}
+  - {fileID: 11400000, guid: ef917f4fa4263c64399f5f2fb4d58b69, type: 2}
+  - {fileID: 11400000, guid: 389c4cd7731a9b645b5a107e9f7d0c22, type: 2}
+  - {fileID: 11400000, guid: 06ffdff5fd2230a4faec046d932565b8, type: 2}
+  - {fileID: 11400000, guid: 126c70b3f7999314ebcbe97b9b44e228, type: 2}
+  - {fileID: 11400000, guid: 042b8028b5d8c844385621b0070dd178, type: 2}
+  - {fileID: 11400000, guid: aefb97fd28572da45abef5a2197832ac, type: 2}
+  - {fileID: 11400000, guid: c76333f9cc58e6c40b2eeab248472a24, type: 2}
+  - {fileID: 11400000, guid: 50d1b49fbee0ba844a6b705ecc4444e9, type: 2}
+  - {fileID: 11400000, guid: a2f9aa55ad507bc4987801595d19c210, type: 2}
+  - {fileID: 11400000, guid: 2a901b133edd7b349a0d30e5a65e11ab, type: 2}
+  - {fileID: 11400000, guid: dc7e614fb5a301a44a26b92fa968ebf1, type: 2}
+  - {fileID: 11400000, guid: c424b7167f62fab45aab84e141d65e25, type: 2}
+  - {fileID: 11400000, guid: adee1bab7c1dc50489d7a7d11ab298a8, type: 2}
+  - {fileID: 11400000, guid: c6ab4d6bed1502148915b633ee918acb, type: 2}
+  - {fileID: 11400000, guid: c51633adc58ef074388a413c4837f72a, type: 2}
+  - {fileID: 11400000, guid: 3402326d7ae8fde4fbd6713fd7b08b64, type: 2}
+  - {fileID: 11400000, guid: 1ac0093a063f4ee4da33a80b5a1886c5, type: 2}
+  - {fileID: 11400000, guid: 5cbdabea8d4a598418c913470ffcd0aa, type: 2}
+  - {fileID: 11400000, guid: 386e7601612e78c46aa452007555b7e7, type: 2}
+  - {fileID: 11400000, guid: c4629f241a681de4fbd3979018d6cef9, type: 2}
+  - {fileID: 11400000, guid: 5468e7868d40d7b4bbbf41ec58e7fd07, type: 2}
+  - {fileID: 11400000, guid: 211a82a17a16cb541b76a9a4cfb9d283, type: 2}
+  - {fileID: 11400000, guid: 4e6702056dafcc241a93e9c5115d3fd9, type: 2}
+  - {fileID: 11400000, guid: 7740c84ba34c81143bf33956f9073a19, type: 2}
+  - {fileID: 11400000, guid: 02147f2c5a6b2d6a44375c1674ef1ebd, type: 2}
+  - {fileID: 11400000, guid: b0bcb01092439991706e1030d24676ef, type: 2}
+  - {fileID: 11400000, guid: 5dbcb8210125439caa2efcd9938dffec, type: 2}
+  - {fileID: 11400000, guid: 0cbed518764dd5f499237d72461408d9, type: 2}
+  - {fileID: 11400000, guid: 3b80851e93492f645897d91f9f3eb791, type: 2}
+  - {fileID: 11400000, guid: 5d0f61fc5b9acab40ae010f4c243f634, type: 2}
+  - {fileID: 11400000, guid: 853123b3433994040aaf1fde7bbdb607, type: 2}
+  - {fileID: 11400000, guid: 6c46900e1fcb27f428cbafa40b44b4e8, type: 2}
+  - {fileID: 11400000, guid: f84e973371e6fa044aee7c727e254422, type: 2}
+  - {fileID: 11400000, guid: 6300c765223a17c4e9acc0169948567d, type: 2}
+  - {fileID: 11400000, guid: 0ab70e5710757404f84ca1d0f01ba1fd, type: 2}

@@ -30,11 +30,21 @@ MonoBehaviour:
         MaxActivationsPerTurn: 0
         LimitGroup: 0
         Vfx:
-          Kind: 0
-          Prefab: {fileID: 0}
+          Kind: 3
+          Prefab: {fileID: 101082, guid: 6b88dc69c37f0ac47825973a9c9dcb1a, type: 3}
           HitPrefab: {fileID: 185366, guid: 6dcff98dc6fbe6e4bbbdac7b196f0c5e, type: 3}
           ProjectileSpeed: 12
-          MergeArea: 0
+          ProjectileScale: 1
+          MergeArea: 1
+          Delivery: 0
+          Trajectory: 0
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
           PlayCasterAnimation: 0
         Stages:
         - Mode: 2
@@ -64,9 +74,9 @@ MonoBehaviour:
     - rid: 1051486475324227792
       type: {class: DealDamageEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
-        Amount: 2
         ConditionRoot:
           rid: -2
+        Amount: 2
     - rid: 1051486475324227793
       type: {class: GainRandomCardEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
@@ -83,6 +93,8 @@ MonoBehaviour:
           rid: -2
         Source: 1
         FixedCount: 1
+        Stat: 1
+        StatSource: 0
         ShowCountInDescription: 0
         CountCard: {fileID: 0}
         Archetype:

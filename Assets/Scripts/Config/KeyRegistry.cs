@@ -17,6 +17,7 @@ namespace Game.Core.Configs
     {
         // Имена «системных» разделов, на которые ссылаемся из кода.
         public const string SectionExpansion = "Expansion";
+        public const string SectionArchetype = "Archetype";
 
         [Serializable]
         public sealed class Section

@@ -260,9 +260,9 @@ namespace Game.Core.Mono
 
             if (e.Merge)
             {
-                Bounds b = CellsBounds(e.CellCenters, e.CellSize);
+                Bounds b = e.ZoneBounds ?? CellsBounds(e.CellCenters, e.CellSize);
                 var go = Instantiate(e.Prefab, Lift(b.center), Quaternion.identity);
-                FitParticlesToBounds(go, b.size);
+                PlayAll(go);
                 AutoDestroy(go);
                 foreach (var c in e.CellCenters) SpawnHit(e.HitPrefab, Lift(c));
             }
@@ -303,24 +303,13 @@ namespace Game.Core.Mono
             return b;
         }
 
-        /// <summary>Растягивает ОБЪЁМ эмиссии PS под Bounds (Box-shape.scale), НЕ трогая размер частиц.
-        /// Плотность частиц подгоняем по площади (бёрст ∝ число «клеток» в области).</summary>
-        static void FitParticlesToBounds(GameObject go, Vector3 size)
+        /// <summary>Запускает ВСЕ дочерние Particle System как есть — без подгонки под границы поля
+        /// (контейнмент AOE-эффектов признан нецелесообразным, эффекты играют в оригинальном размере/
+        /// позиции автора, за пределы поля выходят и это нормально).</summary>
+        static void PlayAll(GameObject go)
         {
-            var ps = go.GetComponentInChildren<ParticleSystem>();
-            if (ps == null) return;
-
-            var shape = ps.shape;
-            shape.enabled = true;
-            shape.shapeType = ParticleSystemShapeType.Box;
-            shape.scale = size;
-
-            // плотность под площадь (в «клетках» ~ size.x*size.z)
-            float area = Mathf.Max(1f, size.x * size.z);
-            var emission = ps.emission;
-            emission.burstCount = 1;   // гарантируем слот перед SetBurst (иначе бросит при пустых бёрстах)
-            emission.SetBurst(0, new ParticleSystem.Burst(0f, (short)Mathf.Clamp(area * 12f, 12f, 400f)));
-            ps.Play();
+            foreach (var ps in go.GetComponentsInChildren<ParticleSystem>())
+                ps.Play();
         }
 
         void AutoDestroy(GameObject go)

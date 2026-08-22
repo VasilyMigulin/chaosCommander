@@ -27,6 +27,7 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<BoardPositionComponent> _posPool = default;
         readonly EcsPoolInject<PlayerComponent> _playerPool = default;
         readonly EcsPoolInject<CreatureTag> _creaturePool = default;
+        readonly EcsPoolInject<LocalComponent> _localPool = default;   // атакующий-аватар: OwnCardTag на нём не бывает
 
         private int _currentTurnNumber;
         private int _actionIndex;
@@ -45,6 +46,7 @@ namespace Game.Core.Ecs.Systems
             GameEventBus.Subscribe<CardPickResolvedNetEvent>(OnCardPicked);
             GameEventBus.Subscribe<AbilityResolvedNetEvent>(OnAbilityResolved);
             GameEventBus.Subscribe<TimerDeathNetEvent>(OnTimerDeath);
+            GameEventBus.Subscribe<TimerDiscardNetEvent>(OnTimerDiscard);
             GameEventBus.Subscribe<ControlRevertedNetEvent>(OnControlReverted);
             GameEventBus.Subscribe<DrawReplacementResolvedNetEvent>(OnDrawReplacement);
             GameEventBus.Subscribe<DeckDrawNetEvent>(OnDeckDraw);
@@ -66,6 +68,7 @@ namespace Game.Core.Ecs.Systems
             GameEventBus.Unsubscribe<CardPickResolvedNetEvent>(OnCardPicked);
             GameEventBus.Unsubscribe<AbilityResolvedNetEvent>(OnAbilityResolved);
             GameEventBus.Unsubscribe<TimerDeathNetEvent>(OnTimerDeath);
+            GameEventBus.Unsubscribe<TimerDiscardNetEvent>(OnTimerDiscard);
             GameEventBus.Unsubscribe<ControlRevertedNetEvent>(OnControlReverted);
             GameEventBus.Unsubscribe<DrawReplacementResolvedNetEvent>(OnDrawReplacement);
             GameEventBus.Unsubscribe<DeckDrawNetEvent>(OnDeckDraw);
@@ -187,13 +190,18 @@ namespace Game.Core.Ecs.Systems
 
         private void OnCreatureAttacked(CreatureAttackedEvent evt)
         {
-            if (!IsOwnCard(evt.AttackerEntity)) return;
+            // Атакующий — либо своя карта на борде (IsOwnCard), либо СВОЙ аватар (AvatarAttackSystem):
+            // у entity игрока никогда не бывает OwnCardTag, поэтому гейт «я симулятор» ведёт LocalComponent
+            // — тот же принцип, что и IsOwnCard («двигают/атакуют только по инпуту своих»), просто для игрока.
+            bool mine = IsOwnCard(evt.AttackerEntity)
+                || (_playerPool.Value.Has(evt.AttackerEntity) && _localPool.Value.Has(evt.AttackerEntity));
+            if (!mine) return;
 
             Enqueue(new ActionAttackData
             {
                 TurnNumber          = _currentTurnNumber,
                 ActionIndex         = _actionIndex++,
-                AttackerEntityKey   = GetNetKey(evt.AttackerEntity),
+                AttackerEntityKey   = TargetKey(evt.AttackerEntity),   // игрок (аватар) → "PLAYER:{id}"
                 DefenderEntityKey   = TargetKey(evt.DefenderEntity),   // игрок → "PLAYER:{id}"
             });
         }
@@ -269,6 +277,18 @@ namespace Game.Core.Ecs.Systems
                 TurnNumber  = _currentTurnNumber,
                 ActionIndex = _actionIndex++,
                 EntityKey   = GetNetKey(evt.CreatureEntity),
+            });
+        }
+
+        private void OnTimerDiscard(TimerDiscardNetEvent evt)
+        {
+            if (!IsOwnCard(evt.CardEntity)) return;   // шлём сброс только своих карт
+
+            Enqueue(new ActionDiscardData
+            {
+                TurnNumber  = _currentTurnNumber,
+                ActionIndex = _actionIndex++,
+                EntityKey   = GetNetKey(evt.CardEntity),
             });
         }
 

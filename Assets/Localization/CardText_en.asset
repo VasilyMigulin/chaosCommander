@@ -3340,8 +3340,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 14896143405146144
-    m_Localized: 'At the start of turn: choose to cast a random spell costing 1,
-      3, 5, or 7'
+    m_Localized: 'At the start of turn: look at and cast a spell costing 1, 3, 5,
+      or 7'
     m_Metadata:
       m_Items: []
   - m_Id: 14896143405146145
@@ -3349,7 +3349,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 14896143405146146
-    m_Localized: Cast a random spell costing 1 or less
+    m_Localized: Look at 3 spells costing 1, choose 1, and cast it
     m_Metadata:
       m_Items: []
   - m_Id: 14896143405146147
@@ -3357,7 +3357,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 14896143405146148
-    m_Localized: Cast a random spell costing 3 or less
+    m_Localized: Look at 3 spells costing 3, choose 1, and cast it
     m_Metadata:
       m_Items: []
   - m_Id: 14896143405146149
@@ -3365,7 +3365,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 14896143405146150
-    m_Localized: Cast a random spell costing 5 or less
+    m_Localized: Look at 3 spells costing 5, choose 1, and cast it
     m_Metadata:
       m_Items: []
   - m_Id: 14896143405146151
@@ -3373,7 +3373,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 14896143405146152
-    m_Localized: Cast a random spell costing 7 or less
+    m_Localized: Look at 3 spells costing 7, choose 1, and cast it
     m_Metadata:
       m_Items: []
   - m_Id: 14896143405146153
@@ -3536,12 +3536,11 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 15476869599059988
-    m_Localized: Pull an Ace from Your Sleeve
+    m_Localized: Second Wave
     m_Metadata:
       m_Items: []
   - m_Id: 15476869599059989
-    m_Localized: "Look at 3 spells that cost 1, choose 1 and put it into your hand
-      \u2014 it costs 1 less. Put \xABSecond Ace up the Sleeve\xBB into your hand"
+    m_Localized: 'At the start of the turn: deal 2 damage to enemy creatures'
     m_Metadata:
       m_Items: []
   - m_Id: 15476869599059990
@@ -4007,6 +4006,438 @@ MonoBehaviour:
   - m_Id: 17255609370927108
     m_Localized: 'When played: look at 3 cards in the opponent''s deck, deal 3 damage
       to the chosen creature and to the chosen character on the battlefield'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000001
+    m_Localized: First Wave
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000002
+    m_Localized: 'Put Second Wave into your hand. At the end of turn: deal 2 damage
+      to the opponent''s creatures'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000003
+    m_Localized: Merzlin the Weary Sorcerer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000004
+    m_Localized: 'While you control this: whenever you play a spell, you also play
+      a random charm of the same cost'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000005
+    m_Localized: Palace Runt
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000006
+    m_Localized: 'When played: deal 1 damage to an enemy'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000007
+    m_Localized: Supreme Black Mage Volodya
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000008
+    m_Localized: 'When played: your black creatures gain +1/+1 until the end of the
+      match; if your deck is all black, they gain +1/+1 more'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000009
+    m_Localized: Deal with the Devil
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000010
+    m_Localized: Put 3 red cards into your hand; they will be discarded after 3 turns
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000011
+    m_Localized: Back to Work
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000012
+    m_Localized: Look at 3 creatures in your graveyard, choose 1 and summon it to
+      the battlefield
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000013
+    m_Localized: Curse for the Princess
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000014
+    m_Localized: Craft your own fairy-tale curse
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000015
+    m_Localized: Poisoned Dagger
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000016
+    m_Localized: Deal 1 damage to a random enemy three times; if your deck is all
+      green, also poisons them
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000017
+    m_Localized: Mediocre Leadership
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000018
+    m_Localized: Tokens gain +1 Attack
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000019
+    m_Localized: Haste for the Skeleton
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000020
+    m_Localized: Your Skeletons gain +1 Speed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000021
+    m_Localized: Harmless Curse
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000022
+    m_Localized: Hurtful Curse
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000023
+    m_Localized: Merciless Curse
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000024
+    m_Localized: Empowerment of Black Creatures
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000025
+    m_Localized: Your black creatures gain +1/+1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000026
+    m_Localized: Great Empowerment of Black Creatures
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000027
+    m_Localized: Your black creatures gain +2/+2
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000028
+    m_Localized: Ratling
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000029
+    m_Localized: Inconvenient Curse
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000030
+    m_Localized: The opponent discards 1 card
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000031
+    m_Localized: Maiming Curse
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000032
+    m_Localized: Destroys the opponent's commander; if it's not on the battlefield,
+      blocks it for 3 turns
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000033
+    m_Localized: Curse of Poverty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000034
+    m_Localized: The opponent doesn't draw a card at the start of turn
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000035
+    m_Localized: Painful Curse
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000036
+    m_Localized: Deal 2 damage to a random enemy, repeating once more for every past
+      activation
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000037
+    m_Localized: Curse of Weakness
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000038
+    m_Localized: The opponent's creatures gain -1/-1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000039
+    m_Localized: Curse of Flame
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000040
+    m_Localized: All of the opponent's creatures take 1 damage
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000041
+    m_Localized: Curse of Debts
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000042
+    m_Localized: The opponent's cards in hand and deck cost 1 more
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000043
+    m_Localized: Curse of Rats
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000044
+    m_Localized: Turns a random enemy creature into a Ratling
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000045
+    m_Localized: Fetid Swamp
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000046
+    m_Localized: 'At the start of turn: poisons all enemies'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000047
+    m_Localized: Part-Time Warlock
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000048
+    m_Localized: 'When played: plays "Warlock Habits"'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000049
+    m_Localized: Warlock's Beast
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000050
+    m_Localized: 'When played: gains +1/+1 for each "Warlock Habits" you''ve played
+      this match'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000051
+    m_Localized: Warlock Habits
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000052
+    m_Localized: Deals 1 damage to all enemies, repeating for every card with this
+      name you've played this match
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000053
+    m_Localized: Clean Up!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18050297700000054
+    m_Localized: Removes all creatures from the battlefield
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32542547968
+    m_Localized: Local Old-Timer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879616
+    m_Localized: Gets +1/+1 for each Old-Timer summoned this match
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879617
+    m_Localized: The Reckless Prince
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879618
+    m_Localized: 'At the end of turn: your creatures get +1/+2'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879619
+    m_Localized: The Fairest Princess
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879620
+    m_Localized: 'When played: all your creatures get +2/+2 and are fully healed'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879621
+    m_Localized: Bruiser the Jailer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879623
+    m_Localized: Sensei Boarman
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879624
+    m_Localized: 'At the end of turn: your strongest creature gets +2 Attack'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879625
+    m_Localized: Moldwick the Warlock
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879626
+    m_Localized: "At the start of turn: plays \xABSorcerous Antics\xBB"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879627
+    m_Localized: Royal Retinue
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879629
+    m_Localized: The Prince's Squire
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879630
+    m_Localized: 'When played: your Prince gets +2/+2, wherever he is'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879631
+    m_Localized: The Prince's Slap
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879632
+    m_Localized: Deal 1 damage to an enemy, draw a card
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879633
+    m_Localized: Annoying Gymbro
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879634
+    m_Localized: 'At the end of turn: deals damage equal to its Attack to a random
+      enemy'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879635
+    m_Localized: Pump Up
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879636
+    m_Localized: Creatures in hand get +1 Attack
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879637
+    m_Localized: Sorcerous Antics
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879638
+    m_Localized: Deals 1 damage to all enemies; repeats for each card with this name
+      you've played this match
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879639
+    m_Localized: Narrator
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32592879640
+    m_Localized: The Stolen Princess
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073920
+    m_Localized: "Main thing is \u2014 don't burn out at work!"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073921
+    m_Localized: Summon the Beast! But tidy up in here first.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073922
+    m_Localized: Feels like I ate something funky yesterday!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073923
+    m_Localized: Oops, couldn't hold it in!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073924
+    m_Localized: Time to finish this!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073925
+    m_Localized: Not long left for you now!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073926
+    m_Localized: Eternal Hard Labor
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073927
+    m_Localized: Until the end of the match, whenever a Worker dies under your control,
+      shuffle it into your deck
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073928
+    m_Localized: Royal Execution
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073929
+    m_Localized: Destroy the opponent's most expensive creature
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073930
+    m_Localized: Promo code
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073931
+    m_Localized: A code from a crowdfunding campaign or a promo
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073932
+    m_Localized: Enter promo code
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073933
+    m_Localized: Redeem
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073934
+    m_Localized: Promo code redeemed!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073935
+    m_Localized: Boosters
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073936
+    m_Localized: Avatars
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073937
+    m_Localized: Cards
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073938
+    m_Localized: Founder's perks
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073939
+    m_Localized: Launch gift
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073940
+    m_Localized: No such promo code
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073941
+    m_Localized: This promo code has already been used
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073942
+    m_Localized: This promo code has expired
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073943
+    m_Localized: This promo code is not active yet
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073944
+    m_Localized: This promo code is disabled
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073945
+    m_Localized: All redemptions of this code are taken
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32597073946
+    m_Localized: "Too many attempts \u2014 try again later"
     m_Metadata:
       m_Items: []
   references:

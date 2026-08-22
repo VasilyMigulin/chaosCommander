@@ -20,6 +20,7 @@ namespace Game.Core.Network
     [MemoryPackUnion(8, typeof(ActionDrawReplacementData))]
     [MemoryPackUnion(9, typeof(ActionDrawData))]
     [MemoryPackUnion(10, typeof(ActionControlRevertData))]
+    [MemoryPackUnion(11, typeof(ActionDiscardData))]
     public partial interface IActionData
     {
         /// <summary>Глобальный номер хода матча.</summary>
@@ -214,6 +215,18 @@ namespace Game.Core.Network
         public int ActionIndex { get; set; }
 
         /// <summary>NetworkEntityKey погибшего существа.</summary>
+        public string EntityKey { get; set; }
+    }
+
+    /// <summary>Карта в руке сброшена СИСТЕМНЫМ таймером (Сделка с чертом и т.п.) на активе — как
+    /// ActionDeathData, но AltCostUtil.Discard вместо DeadTag (сброс не «гибель», DieSystem не при чём).</summary>
+    [MemoryPackable]
+    public partial class ActionDiscardData : IActionData
+    {
+        public int TurnNumber  { get; set; }
+        public int ActionIndex { get; set; }
+
+        /// <summary>NetworkEntityKey сброшенной карты.</summary>
         public string EntityKey { get; set; }
     }
 

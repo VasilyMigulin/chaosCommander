@@ -22,17 +22,21 @@ namespace Game.Core.Ability
         public int Attack = 0, Health = 0, Speed = 0;
         public bool Permanent = false;   // переживает смерть (ModifiersPermanent)
 
+        bool IBuffable.Permanent => Permanent;
+
         public void Apply(EcsWorld world, int source, int target)
         {
             if (Attack != 0) { var p = world.GetPool<AttackComponent>(); if (p.Has(target)) p.Get(target).AddModifier(Attack, Permanent); }
             if (Health != 0) { var p = world.GetPool<HealthComponent>(); if (p.Has(target)) { ref var h = ref p.Get(target); h.AddModifier(Health, Permanent); if (Health > 0) h.Current += Health; GameEventBus.Publish(new CreatureHealthChangedEvent { CreatureEntity = target }); } }
             if (Speed  != 0) { var p = world.GetPool<SpeedComponent>();  if (p.Has(target)) p.Get(target).AddModifier(Speed, Permanent); }
+            CardFeedbackUtil.MarkAffectedInHand(world, target, Game.Core.Service.CardAffectKind.Buffed);
         }
         public void Revert(EcsWorld world, int source, int target)
         {
             if (Attack != 0) { var p = world.GetPool<AttackComponent>(); if (p.Has(target)) p.Get(target).RemoveModifier(Attack); }
             if (Health != 0) { var p = world.GetPool<HealthComponent>(); if (p.Has(target)) { p.Get(target).RemoveModifier(Health); GameEventBus.Publish(new CreatureHealthChangedEvent { CreatureEntity = target }); } }
             if (Speed  != 0) { var p = world.GetPool<SpeedComponent>();  if (p.Has(target)) p.Get(target).RemoveModifier(Speed); }
+            CardFeedbackUtil.MarkAffectedInHand(world, target, Game.Core.Service.CardAffectKind.Buffed);
         }
     }
 
@@ -58,11 +62,14 @@ namespace Game.Core.Ability
         public bool FixSpeed = false;
         public int Speed = 0;
 
+        public bool Permanent => false;   // Override не имеет мягкой/перманентной развилки — снимается Revert'ом как обычно
+
         public void Apply(EcsWorld world, int source, int target)
         {
             if (FixAttack) { var p = world.GetPool<AttackComponent>(); if (p.Has(target)) p.Get(target).AddOverride(Attack); }
             if (FixHealth) { var p = world.GetPool<HealthComponent>(); if (p.Has(target)) { p.Get(target).AddOverride(Health); GameEventBus.Publish(new CreatureHealthChangedEvent { CreatureEntity = target }); } }
             if (FixSpeed)  { var p = world.GetPool<SpeedComponent>();  if (p.Has(target)) p.Get(target).AddOverride(Speed); }
+            CardFeedbackUtil.MarkAffectedInHand(world, target, Game.Core.Service.CardAffectKind.Buffed);
         }
 
         public void Revert(EcsWorld world, int source, int target)
@@ -70,6 +77,7 @@ namespace Game.Core.Ability
             if (FixAttack) { var p = world.GetPool<AttackComponent>(); if (p.Has(target)) p.Get(target).RemoveOverride(Attack); }
             if (FixHealth) { var p = world.GetPool<HealthComponent>(); if (p.Has(target)) { p.Get(target).RemoveOverride(Health); GameEventBus.Publish(new CreatureHealthChangedEvent { CreatureEntity = target }); } }
             if (FixSpeed)  { var p = world.GetPool<SpeedComponent>();  if (p.Has(target)) p.Get(target).RemoveOverride(Speed); }
+            CardFeedbackUtil.MarkAffectedInHand(world, target, Game.Core.Service.CardAffectKind.Buffed);
         }
     }
 
@@ -84,6 +92,8 @@ namespace Game.Core.Ability
         [Tooltip("Сдвиг стоимости: -2 = на 2 дешевле, +1 = на 1 дороже.")]
         public int Delta = -1;
         public bool Permanent = false;
+
+        bool IBuffable.Permanent => Permanent;
 
         public void Apply(EcsWorld world, int source, int target)  { if (Delta != 0) Add(world, target, Delta, Permanent); }
         public void Revert(EcsWorld world, int source, int target) { if (Delta != 0) Remove(world, target, Delta); }
@@ -119,6 +129,8 @@ namespace Game.Core.Ability
 
         static void Remove(EcsWorld world, int card, int delta)
         {
+            // Симметрично Add — откат стоимости (истёк Duration, умер источник ауры) тоже фидбэчим.
+            CardFeedbackUtil.MarkAffectedInHand(world, card, Game.Core.Service.CardAffectKind.CostChanged);
             var g = world.GetPool<GoldCostComponent>();   if (g.Has(card)) { g.Get(card).RemoveModifier(delta); NotifyChanged(); return; }
             var m = world.GetPool<ManaCostComponent>();    if (m.Has(card)) { m.Get(card).RemoveModifier(delta); NotifyChanged(); return; }
             var h = world.GetPool<HealthCostComponent>();  if (h.Has(card)) { h.Get(card).RemoveModifier(delta); NotifyChanged(); }
@@ -153,10 +165,19 @@ namespace Game.Core.Ability
         public void Remove(EcsWorld world, int target) { var p = world.GetPool<GoldBlockComponent>(); if (p.Has(target)) p.Del(target); }
     }
 
+    // Маркер «игрок не берёт карту в начале хода» (Проклятье для принцессы), пока жив источник. Цель — player-сущность.
+    [Serializable]
+    public sealed class DrawBlockMarker : IMarker
+    {
+        public void Add(EcsWorld world, int target)    { var p = world.GetPool<DrawBlockComponent>(); if (!p.Has(target)) p.Add(target); }
+        public void Remove(EcsWorld world, int target) { var p = world.GetPool<DrawBlockComponent>(); if (p.Has(target)) p.Del(target); }
+    }
+
     [Serializable]
     public sealed class BuffMarker : IBuffable
     {
         [SerializeReference] public IMarker Marker;
+        public bool Permanent => false;
         public void Apply(EcsWorld world, int source, int target)  => Marker?.Add(world, target);
         public void Revert(EcsWorld world, int source, int target) => Marker?.Remove(world, target);
     }
@@ -166,6 +187,7 @@ namespace Game.Core.Ability
     public sealed class BuffDeathTimer : IBuffable
     {
         public int Turns = 1;
+        public bool Permanent => false;
         public void Apply(EcsWorld world, int source, int target)
         {
             if (Turns <= 0 || target < 0) return;
@@ -188,6 +210,7 @@ namespace Game.Core.Ability
     public sealed class ExtendCharmTimer : IBuffable
     {
         public int Turns = 1;
+        public bool Permanent => false;
         public void Apply(EcsWorld world, int source, int target)
         {
             if (Turns == 0 || target < 0) return;
@@ -196,6 +219,33 @@ namespace Game.Core.Ability
             if (p.Has(target)) p.Get(target).TurnsRemaining += Turns;
         }
         public void Revert(EcsWorld world, int source, int target) { }
+    }
+
+    // === buff: наложить Яд (стаки «Отравленного») ===
+    // Тот же PoisonComponent, что вешает свойство Ядовитый/VenomousComponent при попадании по цели
+    // (TakeDamageSystem) — но НАПРЯМУЮ, без урона: «отравите цель» как самостоятельный эффект спелла/ауры.
+    // Revert — no-op: яд НЕ снимается игровыми средствами (см. докстринг PoisonComponent), копится и тикает
+    // своим чередом (PoisonTickSystem) до смерти носителя — DieSystem чистит стаки и бейдж на смерти сам.
+    [Serializable]
+    public sealed class BuffPoison : IBuffable
+    {
+        [Tooltip("Сколько стаков Отравленного наложить (копится с уже имеющимися на цели).")]
+        public int Stacks = 1;
+        public bool Permanent => false;
+
+        public void Apply(EcsWorld world, int source, int target)
+        {
+            if (Stacks <= 0 || target < 0) return;
+            var p = world.GetPool<PoisonComponent>();
+            if (!p.Has(target)) p.Add(target);
+            p.Get(target).Stacks += Stacks;
+
+            // Бейдж «Отравлен» над целью — тот же канал, что и у боевого наложения (TakeDamageSystem),
+            // Active=true идемпотентен (PropertyAuraVisualSystem не пересоздаст, если уже показан).
+            GameEventBus.Publish(new CreaturePropertyAuraChangedEvent { CreatureEntity = target, Key = "Poisoned", Active = true });
+        }
+
+        public void Revert(EcsWorld world, int source, int target) { }   // яд не снимается — см. PoisonComponent
     }
 
     // === class (OOP) === Продлить таймер СВОИХ чар на столе (Прокачать чары: разовое «+1 ход»). NonTarget
@@ -230,6 +280,7 @@ namespace Game.Core.Ability
     public sealed class BuffRecurringDamage : IBuffable
     {
         public int Amount = 1;
+        public bool Permanent => false;
         public void Apply(EcsWorld world, int source, int target)
         {
             if (Amount <= 0 || target < 0) return;

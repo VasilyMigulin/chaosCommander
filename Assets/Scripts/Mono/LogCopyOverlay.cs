@@ -14,8 +14,9 @@ namespace Game.Core.Mono
     /// Пока закрыто, на экране только эта кнопка (не залепляет боевой/меню интерфейс). Тот же тумблер
     /// открывает и DevCheatMenu (экономика) — одна кнопка на все дев-панели.
     ///
-    /// Кнопки внутри: Copy (всё), Copy Err (Warning/Error/Exception), Clear, Show/Hide (панель логов),
-    /// End Turn, Fill Res, ColorRule, Copy Filt, PvE, 1stRun ✗, Tut ✓.
+    /// Кнопки внутри: Copy (всё), Copy Err (Warning/Error/Exception), Save/Save Err (то же — в файл
+    /// Application.persistentDataPath/dev_log.txt, СТАБИЛЬНЫЙ путь, плюс дублируется в буфер), Clear,
+    /// Show/Hide (панель логов), End Turn, Fill Res, ColorRule, Copy Filt/Save Filt, PvE, 1stRun ✗, Tut ✓.
     /// Отключить целиком: DISABLE_LOG_OVERLAY в Scripting Define Symbols или удалить файл.
     /// </summary>
     public sealed class LogCopyOverlay : MonoBehaviour
@@ -59,13 +60,13 @@ namespace Game.Core.Mono
             }
         }
 
-        // ── Clipboard ──────────────────────────────────────────────────────────
+        // ── Clipboard / файл ─────────────────────────────────────────────────────
 
-        void CopyToClipboard(bool problemsOnly, string filter = null)
+        string BuildLogText(bool problemsOnly, string filter, out int count)
         {
             bool hasFilter = !string.IsNullOrEmpty(filter);
             var sb = new StringBuilder(8192);
-            int count = 0;
+            count = 0;
             lock (_lock)
             {
                 foreach (var e in _entries)
@@ -81,9 +82,34 @@ namespace Game.Core.Mono
                     count++;
                 }
             }
+            return sb.ToString();
+        }
 
-            GUIUtility.systemCopyBuffer = sb.ToString();
-            Toast($"Copied {count} logs{(problemsOnly ? " (problems)" : "")}{(hasFilter ? $" [{filter}]" : "")} ({sb.Length} chars)");
+        void CopyToClipboard(bool problemsOnly, string filter = null)
+        {
+            string text = BuildLogText(problemsOnly, filter, out int count);
+            GUIUtility.systemCopyBuffer = text;
+            Toast($"Copied {count} logs{(problemsOnly ? " (problems)" : "")}{(!string.IsNullOrEmpty(filter) ? $" [{filter}]" : "")} ({text.Length} chars)");
+        }
+
+        // Путь СТАБИЛЬНЫЙ (одно и то же имя каждый раз) — чтобы можно было просто кинуть тот же файл
+        // повторно, не выискивая свежий. persistentDataPath — кроссплатформенно (Editor/Android), в отличие
+        // от «Рабочего стола», который есть только на десктопе конкретного юзера.
+        static string LogFilePath => System.IO.Path.Combine(Application.persistentDataPath, "dev_log.txt");
+
+        void SaveToFile(bool problemsOnly, string filter = null)
+        {
+            string text = BuildLogText(problemsOnly, filter, out int count);
+            try
+            {
+                System.IO.File.WriteAllText(LogFilePath, text);
+                GUIUtility.systemCopyBuffer = text;   // и в буфер тоже — на случай, если файл открыть неоткуда
+                Toast($"Saved {count} logs → {LogFilePath}");
+            }
+            catch (System.Exception e)
+            {
+                Toast($"Save failed: {e.Message}");
+            }
         }
 
         static string Prefix(LogType t) => t switch
@@ -166,6 +192,8 @@ namespace Game.Core.Mono
 
             if (FlowButton($"Copy ({total})",        200 * _scale)) CopyToClipboard(false);
             if (FlowButton($"Copy Err ({problems})", 220 * _scale)) CopyToClipboard(true);
+            if (FlowButton("Save",                   130 * _scale)) SaveToFile(false);
+            if (FlowButton("Save Err",                170 * _scale)) SaveToFile(true);
             if (FlowButton("Clear",                  130 * _scale)) { lock (_lock) _entries.Clear(); Toast("Cleared"); }
             if (FlowButton(_showPanel ? "Hide" : "Show", 150 * _scale)) _showPanel = !_showPanel;
             // Ручной конец хода (пока нет UI-кнопки): сработает только если локальный игрок активен.
@@ -190,6 +218,7 @@ namespace Game.Core.Mono
             // Фильтр-подстрока + копирование только совпавших строк.
             _filter = GUI.TextField(FlowField(300 * _scale), _filter ?? "", _field);
             if (FlowButton("Copy Filt",              170 * _scale)) CopyToClipboard(false, _filter);
+            if (FlowButton("Save Filt",              170 * _scale)) SaveToFile(false, _filter);
             // PvE: бой против ИИ без сети (энкаунтер из Resources/{PveMode.EncounterPath}). Через шину →
             // MenuState.StartPveBattle: тот сперва гасит активный матчмейкинг. В бою события никто не слушает.
             if (FlowButton("PvE",                    130 * _scale))

@@ -92,6 +92,17 @@ namespace Game.Core.Ecs.Components
             pool.Get(card).Node = node;
         }
 
+        /// <summary>Эта карта СЕЙЧАС разыграна/появилась КАК СЛЕДСТВИЕ другого эффекта (Развилка/любой
+        /// дискавер-с-автоигрой, Гомункул и т.п. — Mark выше уже отработал на ней), а не самостоятельным
+        /// ходом игрока. КАНОНИЧЕСКАЯ проверка для любой карты-«комбо»-механики, считающей/множащей чужие
+        /// касты (Сказочный волшебник Упс, Временная петля и подобные): такой каст — внутренний механизм
+        /// ДРУГОЙ карты, засчитывать его как отдельное самостоятельное «N-е заклинание» не по духу игры
+        /// (юзер 2026-08-21: «Водица», разыгранная ИЗ РУКИ как обычный токен, — считается и множится;
+        /// автоигранный пик Развилки — нет). Единая точка, а не отдельная проверка компонента в каждом
+        /// потребителе CardCastEvent — новые комбо-карты просто зовут её же.</summary>
+        public static bool IsCaused(Leopotam.EcsLite.EcsWorld world, int card)
+            => card >= 0 && world.GetPool<CausedByActivationComponent>().Has(card);
+
         /// <summary>Снять записки со всех карт. Зовётся на границе ХОДА: каскад её не пересекает, а карта,
         /// пролежавшая в руке до следующего хода, иначе утащила бы за собой древнюю волну и встала бы
         /// в очередь ПЕРЕД свежими активациями.</summary>
@@ -129,6 +140,20 @@ namespace Game.Core.Ecs.Components
     /// (Петля: 1,2 в первый ход, 3,4 во второй). КАВЕАТ: стадии цепочек на пассиве (ApplyChainStage) идут
     /// мимо → SelfResolves внутри AbilityChain не использовать.</summary>
     public struct AbilityResolveCounterComponent
+    {
+        public int Count;
+    }
+
+    // === struct (Component) ===
+    /// <summary>Сколько раз RepeatAbility (см. RepeatAbility.cs) уже была ОТМЕЧЕНА триггером за матч —
+    /// отдельный счётчик для Source=SelfResolves у RepeatAbility, а НЕ AbilityResolveCounterComponent.
+    /// Причина: RepeatAbility строит N ChainStage ПРЯМО в AbilityFire.Mark, ДО того, как способность вообще
+    /// попадёт в RunResolveAbilityQueueSystem (которая инкрементит AbilityResolveCounterComponent) — то есть
+    /// на момент подсчёта N тот счётчик ещё не своей активации, а хвост чужой/предыдущей (Math.Max(1,...)
+    /// тихо давал 1 всегда — «Болезненное проклятье» не масштабировалось по ходам, баг 2026-08-21). Инкремент —
+    /// прямо в Mark, синхронно на активе и пассиве (триггер мирорится на обоих зеркально, как и остальная
+    /// логика Mark — TriggerKey/TriggerSubject), поэтому раздельного скрэтча вроде ResolveContext не нужно.</summary>
+    public struct RepeatAbilityActivationCounterComponent
     {
         public int Count;
     }

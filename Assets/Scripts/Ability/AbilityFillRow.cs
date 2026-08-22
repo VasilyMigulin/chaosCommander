@@ -241,7 +241,7 @@ namespace Game.Core.Ability
     public sealed class FillHandWithCardEffect : EffectBase
     {
         public ScriptableObject Source;                              // ассет токена (ICreatable)
-        public int MaxHand = HandComponent.MaxNonCommanderCards;     // обычно 5
+        public int MaxHand = HandComponent.MaxNonCommanderCards;
 
         public override void Apply(EcsWorld world, int cardEntity, int target)
         {

@@ -54,5 +54,35 @@ namespace Game.Core.Ecs.Components
             }
             buffs.Records.Clear();
         }
+
+        /// <summary>Убрать ЦЕЛЬ из трекинга ВСЕХ источников (зовётся при смерти/уходе цели) — тот же повод и
+        /// тот же баг, что чинит TrackedBuffs.RemoveTarget (см. её докстринг): КОМАНДИР возвращается в игру
+        /// ТОЙ ЖЕ ecs-сущностью, и без снятия записи идемпотентность (Stack=false: «эту цель уже баффали»)
+        /// навсегда блокирует повторную выдачу баффа той же реактивной аурой при повторном розыгрыше — то
+        /// же самое «Королевский шарм перестаёт действовать», только для ApplyTrackedBuffEffect, у которого
+        /// раньше не было своего RemoveTarget вовсе (баг 2026-08-21). В отличие от TrackedBuff, у BuffRecord
+        /// нет понятия Permanent — модификатор снимается всегда.</summary>
+        public static void RemoveTarget(Leopotam.EcsLite.EcsWorld world, int target)
+        {
+            var buffsPool = world.GetPool<AppliedBuffsComponent>();
+            var atkPool = world.GetPool<AttackComponent>();
+            var hpPool  = world.GetPool<HealthComponent>();
+            var spdPool = world.GetPool<SpeedComponent>();
+
+            foreach (var source in world.Filter<AppliedBuffsComponent>().End())
+            {
+                ref var buffs = ref buffsPool.Get(source);
+                if (buffs.Records == null) continue;
+                for (int i = buffs.Records.Count - 1; i >= 0; i--)
+                {
+                    var r = buffs.Records[i];
+                    if (r.Target != target) continue;
+                    if (r.Atk   != 0 && atkPool.Has(target)) { ref var a = ref atkPool.Get(target); a.RemoveModifier(r.Atk); }
+                    if (r.Hp    != 0 && hpPool.Has(target))  { ref var h = ref hpPool.Get(target);  h.RemoveModifier(r.Hp); GameEventBus.Publish(new CreatureHealthChangedEvent { CreatureEntity = target }); }
+                    if (r.Speed != 0 && spdPool.Has(target)) { ref var s = ref spdPool.Get(target); s.RemoveModifier(r.Speed); }
+                    buffs.Records.RemoveAt(i);
+                }
+            }
+        }
     }
 }

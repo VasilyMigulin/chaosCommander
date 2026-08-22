@@ -1,3 +1,7 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using DG.Tweening;
 using Game.Core.Shared;
 using TMPro;
 using UnityEngine;
@@ -51,6 +55,30 @@ namespace Game.Core.Mono
         int _hp = int.MinValue, _maxHp, _gold = int.MinValue, _mana = int.MinValue;
         int _handCount = int.MinValue, _deckCount = int.MinValue;
 
+        [Header("Combat animation (опционально — Attack/Hit/Death на аниматоре текущей косметики)")]
+        [Tooltip("Страховка: макс. длительность анимации атаки/смерти, если клип не вызвал Animation Event " +
+                 "'FinishEvent' (см. CreatureAnimationRelay). Та же конвенция, что у CreatureView.")]
+        [SerializeField] float attackMaxSeconds = 2f;
+        [SerializeField] float deathMaxSeconds  = 2f;
+
+        Animator _combatAnimator;   // ищется на текущем _visual (или дефолт-ребёнке _viewRoot) — см. RefreshCombatAnimator
+        readonly HashSet<int> _combatAnimParams = new HashSet<int>();
+
+        static readonly int AttackHash = Animator.StringToHash("Attack");
+        static readonly int HitHash    = Animator.StringToHash("Hit");
+        static readonly int DeathHash  = Animator.StringToHash("Death");
+
+        Action _onAttackHit;
+        Action _currentFinish;   // общий обработчик конца анимации — атака или смерть (что сейчас играет)
+        Coroutine _attackFallback;
+        Coroutine _deathFallback;
+        Tween _hitPunchTween;
+
+        // Отдельный кэш ТОЛЬКО для детекта «получен урон» (PlayHit) — независим от _hp, который кэширует
+        // именно ТЕКСТ ниже и у локального игрока вообще не обновляется (см. SetStats). Смешать их сломало
+        // бы отрисовку HP-текста оппонента (hp != _hp перестал бы срабатывать при обычном изменении HP).
+        int _lastHpForHit = int.MinValue;
+
         public void Init(int ownerId)
         {
             OwnerId = ownerId;
@@ -71,6 +99,7 @@ namespace Game.Core.Mono
             _visual = Instantiate(prefab, _viewRoot);
             _visual.transform.localPosition = Vector3.zero;
             _visual.transform.localRotation = Quaternion.identity;
+            RefreshCombatAnimator();   // косметика сменилась в рантайме — перецепить Animator/relay под неё
         }
 
         void Awake()
@@ -78,6 +107,8 @@ namespace Game.Core.Mono
             // ВРЕМЕННО: разовая проверка wiring (не спамит — один раз при создании инстанса).
             _auraBar = _auraBarBehaviour as IAuraStatusReceiver;
             Debug.Log($"[Aura] {name} Awake: canvasRootAssigned={_canvasRoot != null} auraBarBehaviourAssigned={_auraBarBehaviour != null} behaviourType={(_auraBarBehaviour != null ? _auraBarBehaviour.GetType().Name : "null")} castOk={_auraBar != null}");
+
+            RefreshCombatAnimator();   // дефолт-визуал (на случай если ApplyEquippedAvatar/SetAvatarVisual не вызовется)
         }
 
         void LateUpdate()
@@ -106,6 +137,11 @@ namespace Game.Core.Mono
         {
             if (_canvasRoot != null && _canvasRoot.activeSelf == isLocal)
                 _canvasRoot.SetActive(!isLocal);   // у локального скрываем ВЕСЬ канвас целиком (статы + ауры)
+
+            // Реакция 3D-модели на удар — НЕЗАВИСИМО от isLocal: модель аватара видна всегда, даже когда
+            // текстовый канвас над ней скрыт (HP локального игрока показывает BattlePanel, не этот канвас).
+            if (hp < _lastHpForHit && _lastHpForHit != int.MinValue) PlayHit();
+            _lastHpForHit = hp;
 
             if (isLocal) return;
 
@@ -145,6 +181,120 @@ namespace Game.Core.Mono
         {
             _auraBar ??= _auraBarBehaviour as IAuraStatusReceiver;
             _auraBar?.SetAuras(visuals, turnsRemaining, stackCounts);
+        }
+
+        // ──── Боевая анимация (та же конвенция, что CreatureView: Animator-триггеры Attack/Hit/Death,
+        // Animation Event'ы AttackEvent/FinishEvent через CreatureAnimationRelay). Косметика БЕЗ этих
+        // триггеров/клипов (сегодняшний дефолт) — колбэки вызываются мгновенно, как у существа без вью. ────
+
+        /// <summary>Перецепляет Animator/relay под ТЕКУЩИЙ визуал (_visual, либо дефолт-ребёнок _viewRoot,
+        /// если косметика не надета) — звать при Awake и при каждой смене косметики (SetAvatarVisual),
+        /// иначе кэш аниматора остался бы от предыдущего/пустого визуала.</summary>
+        void RefreshCombatAnimator()
+        {
+            Transform root = _visual != null ? _visual.transform : _viewRoot;
+            _combatAnimator = root != null ? root.GetComponentInChildren<Animator>() : null;
+
+            _combatAnimParams.Clear();
+            if (_combatAnimator == null) return;
+
+            foreach (var p in _combatAnimator.parameters)
+                _combatAnimParams.Add(p.nameHash);
+
+            var relay = _combatAnimator.GetComponent<CreatureAnimationRelay>();
+            if (relay == null) relay = _combatAnimator.gameObject.AddComponent<CreatureAnimationRelay>();
+            relay.AttackHit = OnAttackHit;
+            relay.Finish    = OnFinishEvent;
+        }
+
+        bool HasCombatParam(int hash) => _combatAnimParams.Contains(hash);
+
+        /// <summary>Атака аватара (row0 своей стороны, см. AvatarAttackSystem). onHit — Animation Event
+        /// "AttackEvent" (момент удара), onFinished — "FinishEvent" (конец анимации). Нет Animator/
+        /// параметра "Attack" → оба колбэка вызываются мгновенно (полная обратная совместимость).</summary>
+        public void PlayAttack(Action onHit, Action onFinished)
+        {
+            _onAttackHit   = onHit;
+            _currentFinish = onFinished;
+
+            if (_combatAnimator != null && HasCombatParam(AttackHash))
+            {
+                _combatAnimator.SetTrigger(AttackHash);
+
+                if (_attackFallback != null) StopCoroutine(_attackFallback);
+                _attackFallback = StartCoroutine(AttackFallback());
+            }
+            else
+            {
+                onHit?.Invoke();
+                onFinished?.Invoke();
+                _onAttackHit = null; _currentFinish = null;
+            }
+        }
+
+        IEnumerator AttackFallback()
+        {
+            yield return new WaitForSeconds(attackMaxSeconds);
+            OnAttackHit();       // null-guard внутри — не задвоит, если ивент клипа уже пришёл
+            OnFinishEvent();
+            _attackFallback = null;
+        }
+
+        /// <summary>Реакция на полученный урон (см. SetStats) — триггер "Hit" + лёгкий флинч масштабом,
+        /// виден даже без клипа. Не гейтит ничего (как CreatureView.PlayHit — чистая реакция без колбэка).</summary>
+        public void PlayHit()
+        {
+            if (_combatAnimator != null && HasCombatParam(HitHash))
+                _combatAnimator.SetTrigger(HitHash);
+
+            Transform punchTarget = _visual != null ? _visual.transform : _viewRoot;
+            if (punchTarget == null) return;
+
+            _hitPunchTween?.Kill(true);
+            _hitPunchTween = punchTarget.DOPunchScale(Vector3.one * -0.1f, 0.18f, 6, 0.6f);
+        }
+
+        /// <summary>Визуальная реакция на поражение (GameOverCheckSystem, после HP≤0 проигравшего) — БЕЗ
+        /// гейтинга каскада, в отличие от CreatureView.PlayDeath/DeathAnimPendingTag: матч уже завершается
+        /// терминально (MatchState.IsOver), ничего дальше не обязано ждать конец этой анимации. Аватар не
+        /// прячется после (в отличие от существа) — матч и так закрывается попапом результата.</summary>
+        public void PlayDeath(Action onFinished = null)
+        {
+            if (_combatAnimator != null && HasCombatParam(DeathHash))
+            {
+                _currentFinish = onFinished;
+                _combatAnimator.SetTrigger(DeathHash);
+
+                if (_deathFallback != null) StopCoroutine(_deathFallback);
+                _deathFallback = StartCoroutine(DeathFallback());
+            }
+            else
+            {
+                onFinished?.Invoke();
+            }
+        }
+
+        IEnumerator DeathFallback()
+        {
+            yield return new WaitForSeconds(deathMaxSeconds);
+            OnFinishEvent();
+            _deathFallback = null;
+        }
+
+        // ──── Animation Events (вызываются через CreatureAnimationRelay на объекте _combatAnimator) ────
+
+        public void OnAttackHit()
+        {
+            var cb = _onAttackHit;
+            _onAttackHit = null;
+            cb?.Invoke();
+        }
+
+        public void OnFinishEvent()
+        {
+            var cb = _currentFinish;
+            _currentFinish = null;
+            cb?.Invoke();
         }
     }
 }

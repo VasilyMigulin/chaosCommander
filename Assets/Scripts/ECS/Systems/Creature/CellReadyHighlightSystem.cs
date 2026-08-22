@@ -33,6 +33,11 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<BoardPositionComponent> _posPool = default;
         readonly EcsPoolInject<SpeedComponent> _speedPool = default;
         readonly EcsPoolInject<OwnerComponent> _ownerPool = default;
+        readonly EcsPoolInject<StealthComponent> _stealthPool = default;
+
+        // Аватар — та же «ещё можно действовать» подсветка (row0 своей стороны, см. RunSelectCellSystem).
+        readonly EcsPoolInject<PlayerSideComponent> _sidePool = default;
+        readonly EcsPoolInject<AttacksUsedComponent> _attacksUsedPool = default;
 
         // Пока игрок выбирает цель (розыгрыш карты / способность / размещение существа) доска и так
         // расписана оранжевым — фоновая подсветка «можно ходить» в этот момент только мешает читать выбор.
@@ -55,25 +60,31 @@ namespace Game.Core.Ecs.Systems
 
             foreach (var cell in _prev)
                 if (!_cur.Contains(cell))
-                    board.GetCell(cell.Row, cell.Col, cell.Owner)?.SetReady(false);
+                    GetCellView(board, cell)?.SetReady(false);
 
             foreach (var cell in _cur)
                 if (!_prev.Contains(cell))
-                    board.GetCell(cell.Row, cell.Col, cell.Owner)?.SetReady(true);
+                    GetCellView(board, cell)?.SetReady(true);
 
             _prev.Clear();
             foreach (var cell in _cur) _prev.Add(cell);
         }
 
+        // Сентинел (-1,-1,side) — аватар-клетка (см. RunSelectCellSystem), не обычная клетка доски.
+        static CellView GetCellView(BoardView board, (int Row, int Col, int Owner) cell)
+            => cell.Row == -1 ? board.GetAvatarCell(cell.Owner) : board.GetCell(cell.Row, cell.Col, cell.Owner);
+
         void Collect()
         {
             // Не наш ход (или идёт выбор цели) → набор пуст, дифф сам погасит всё, что горело.
             int localActiveId = -1;
+            int localActiveEntity = -1;
             foreach (var pe in _activePlayerFilter.Value)
             {
                 ref var p = ref _playerPool.Value.Get(pe);
                 if (!p.IsLocalPlayer) continue;
                 localActiveId = p.PlayerId;
+                localActiveEntity = pe;
                 break;
             }
             if (localActiveId < 0) return;
@@ -90,6 +101,30 @@ namespace Game.Core.Ecs.Systems
                 ref var pos = ref _posPool.Value.Get(ce);
                 _cur.Add((pos.Row, pos.Col, pos.OwnerId));
             }
+
+            // Аватар (#A): та же «ещё можно действовать» подсветка на его клетке, если атака ещё не
+            // потрачена в этом ходу и есть хотя бы одна вражеская цель в row0 его стороны.
+            if (_sidePool.Value.Has(localActiveEntity))
+            {
+                int side = _sidePool.Value.Get(localActiveEntity).Side;
+                int used = _attacksUsedPool.Value.Has(localActiveEntity) ? _attacksUsedPool.Value.Get(localActiveEntity).Value : 0;
+                if (used < 1 && HasAvatarTarget(side, localActiveId))
+                    _cur.Add((-1, -1, side));
+            }
+        }
+
+        // Есть ли хотя бы одна вражеская цель в row0 стороны side (без «Скрытых» — не выбираются кликом).
+        bool HasAvatarTarget(int side, int playerId)
+        {
+            foreach (var ce in _creatures.Value)
+            {
+                ref var p = ref _posPool.Value.Get(ce);
+                if (p.Row != 0 || p.OwnerId != side) continue;
+                if (_ownerPool.Value.Get(ce).OwnerId == playerId) continue;
+                if (_stealthPool.Value.Has(ce)) continue;
+                return true;
+            }
+            return false;
         }
     }
 }

@@ -1,0 +1,176 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: charm_token_015
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
+  CardData:
+    rid: 2425736393348874519
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 2425736393348874519
+      type: {class: CardCharmModel, ns: Game.Core.Model.Card.Charm, asm: Game.Core.Model.Card.Charm}
+      data:
+        Id: 158
+        Name: "\u0423\u0441\u0438\u043B\u0435\u043D\u0438\u0435 \u0447\u0435\u0440\u043D\u044B\u0445
+          \u0442\u0432\u0430\u0440\u0435\u0439"
+        Description: "\u0412\u0430\u0448\u0438 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0430
+          \u0447\u0435\u0440\u043D\u043E\u0433\u043E \u0446\u0432\u0435\u0442\u0430
+          \u043F\u043E\u043B\u0443\u0447\u0430\u044E\u0442 +1/+1"
+        Rarity: 3
+        Element: 0
+        ArtImage: {fileID: 0}
+        ExpansionId: stolen_princess
+        PlayCost: 1
+        PlayCostAmount: 0
+        RequiresAdditionalCost: 0
+        AdditionalCostKind: 0
+        AdditionalCostAmount: 1
+        IsToken: 1
+        ShowAsLinked: 0
+        HideAsLinked: 1
+        NonBattleAbilities: []
+        RuntimeAbilities:
+        - rid: 2425736393348874520
+        - rid: 2425736393348874548
+        Archetypes: []
+        TierSource: 0
+        Tiers: []
+        TurnsAlive: 0
+        TickMoment: 0
+        FixTurns: 0
+    - rid: 2425736393348874520
+      type: {class: AbilityToField, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 2425736393348874521
+        Rules: []
+        Effects:
+        - rid: 2425736393348874522
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 185366, guid: 2f98e91049e674d43b96757a89dceecc, type: 3}
+          ProjectileSpeed: 12
+          ProjectileScale: 1
+          MergeArea: 0
+          Delivery: 0
+          Trajectory: 0
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
+          PlayCasterAnimation: 0
+        Area: 0
+        Zone: 0
+        Filters:
+        - rid: 2425736393348874524
+        - rid: 2425736393348874525
+        IncludeCommanderInZones: 0
+    - rid: 2425736393348874521
+      type: {class: OnCharmInvokedTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736393348874522
+      type: {class: AddBuffEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        Buff:
+          rid: 2425736393348874523
+        Tracked: 1
+        RevertOnSourceDeath: 1
+        Duration: 0
+        ExpireAt: 0
+    - rid: 2425736393348874523
+      type: {class: BuffStat, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Attack: 1
+        Health: 1
+        Speed: 0
+        Permanent: 1
+    - rid: 2425736393348874524
+      type: {class: AllyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736393348874525
+      type: {class: NotAlreadyTrackedTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736393348874548
+      type: {class: AbilityToTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 2425736393348874549
+        Rules: []
+        Effects:
+        - rid: 2425736393348874550
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 185366, guid: 2f98e91049e674d43b96757a89dceecc, type: 3}
+          ProjectileSpeed: 12
+          ProjectileScale: 1
+          MergeArea: 0
+          Delivery: 0
+          Trajectory: 0
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
+          PlayCasterAnimation: 0
+        Selection: 3
+        Count: 1
+        Zone: 0
+        OfferCount: 3
+        Filters:
+        - rid: 2425736393348874552
+        - rid: 2425736393348874553
+        IncludeCommanderInZones: 0
+    - rid: 2425736393348874549
+      type: {class: OnCreatureInvokedTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Zone: 1
+    - rid: 2425736393348874550
+      type: {class: AddBuffEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        Buff:
+          rid: 2425736393348874551
+        Tracked: 1
+        RevertOnSourceDeath: 1
+        Duration: 0
+        ExpireAt: 0
+    - rid: 2425736393348874551
+      type: {class: BuffStat, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Attack: 1
+        Health: 1
+        Speed: 0
+        Permanent: 1
+    - rid: 2425736393348874552
+      type: {class: AllyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736393348874553
+      type: {class: NotAlreadyTrackedTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 

@@ -114,6 +114,8 @@ namespace AwesomeUI.Core.Card
         [Tooltip("UI-VFX под каждый вид воздействия. Выключенный объект-ребёнок карты (ParticleSystem/Animator). Проигрывается SetActive(true)+Play; гасит себя сам (Stop Action = Disable / длина клипа).")]
         [SerializeField] AffectVfxEntry[] _affectVfx;
 
+        Tween _affectPunchTween;   // свой punch по _punchTarget==root — гасим ТОЛЬКО его, не все твины корня (см. PlayAffectFeedback)
+
         int _baseCost, _baseAttack, _baseMaxHealth, _baseSpeed;   // печатные значения (из CardVisualData)
         int _shownCost, _shownAttack, _shownHealth, _shownSpeed;  // что сейчас на тексте (для панча по изменению)
         Color _defaultCostColor, _defaultAttackColor, _defaultHealthColor;
@@ -141,13 +143,26 @@ namespace AwesomeUI.Core.Card
         public void PlayAffectFeedback(CardAffectKind kind)
         {
             var t = _punchTarget != null ? _punchTarget : transform;
-            // DOKill+reset — ТОЛЬКО для выделенного внутреннего контейнера (его никто больше не твинит).
-            // Если Punch Target — сам корень карты (или не назначен → фолбэк на корень), НЕ киллим: там живут
-            // твины веера/зума (DOScale/DOLocalMove), а DOPunchScale трогает только scale и сам вернётся к
-            // текущему масштабу — конфликт минимален (веер двигает position/rotation).
             bool isRoot = (t == transform);
-            if (!isRoot) { t.DOKill(true); t.localScale = Vector3.one; }
-            t.DOPunchScale(Vector3.one * _cardPunchScale, _cardPunchDuration, vibrato: 1, elasticity: 0.5f);
+            if (!isRoot)
+            {
+                // Выделенный внутренний контейнер — его никто больше не твинит, можно киллить целиком.
+                t.DOKill(true);
+                t.localScale = Vector3.one;
+                t.DOPunchScale(Vector3.one * _cardPunchScale, _cardPunchDuration, vibrato: 1, elasticity: 0.5f);
+            }
+            else
+            {
+                // Punch Target — сам корень карты: там живут твины веера/зума (DOScale/DOLocalMove), их
+                // бланкет-DOKill трогать НЕЛЬЗЯ. Но если не гасить хотя бы СВОЙ предыдущий punch, второй
+                // punch подряд (например, от Дупликатора/多-хита) стартует с уже вздутого scale вместо 1 —
+                // и если его потом оборвёт чужой DOKill()(без complete) на полпути наружу, карта навсегда
+                // остаётся раздутой (RefreshFan/ClearCard scale не трогают, чинит только следующий SetCard
+                // или ручной ховер). Гасим ИМЕННО свою ссылку — довершаем (Kill(true) = jump to end = 1).
+                _affectPunchTween?.Kill(true);
+                _affectPunchTween = t.DOPunchScale(Vector3.one * _cardPunchScale, _cardPunchDuration, vibrato: 1, elasticity: 0.5f)
+                    .OnKill(() => _affectPunchTween = null);
+            }
             PlayAffectVfx(kind);
         }
 
@@ -486,6 +501,15 @@ namespace AwesomeUI.Core.Card
             return true;
         }
 
+        // Пока true — потеря наведения (OnPointerExit) НЕ схлопывает удержание, закрыть предпросмотр
+        // может только реальное отпускание пальца (OnPointerUp). Нужно наследникам, у которых сам
+        // предпросмотр уводит объект из-под пальца (PlayCardView.zoom — карта улетает к центру экрана):
+        // Unity шлёт Exit каждый раз, когда её раскаст под НЕПОДВИЖНЫМ пальцем перестаёт попадать в
+        // сдвинувшийся объект — это движение карты, а не жест игрока, и раньше гасило зум от любого
+        // удержания. OnPointerUp наследник получает в любом случае — Unity шлёт его исходной цели
+        // нажатия независимо от того, что сейчас под пальцем, так что реальное отпускание не теряется.
+        protected virtual bool SuppressExitRelease => false;
+
         public void OnPointerDown(PointerEventData eventData)
         {
             _pressed = true;
@@ -494,8 +518,13 @@ namespace AwesomeUI.Core.Card
             _pressTime = Time.unscaledTime;
         }
 
-        public void OnPointerUp(PointerEventData eventData)   => HandleRelease();
-        public void OnPointerExit(PointerEventData eventData) => HandleRelease();
+        public void OnPointerUp(PointerEventData eventData) => HandleRelease();
+
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            if (SuppressExitRelease) return;
+            HandleRelease();
+        }
 
         // Общий пресс-релиз для Up/Exit (палец может уйти с объекта, не отпуская — тот же случай, что и
         // отпускание). _holdFired гасим сразу, чтобы Up+Exit подряд на одном жесте не вызвали двойной релиз.
