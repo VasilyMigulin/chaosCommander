@@ -19,30 +19,22 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<LocalComponent> _localPool  = default;
         readonly EcsFilterInject<Inc<StartTurnState>> _filter = default;
 
-        // «Каскад в работе»: способности резолвятся/целятся или идут анимации.
-        readonly EcsFilterInject<Inc<AbilityCastEvent>>       _abilityCast    = default;
-        readonly EcsFilterInject<Inc<AbilityTargetingState>>  _abilityTarget  = default;
-        readonly EcsFilterInject<Inc<AbilityQueuedState>>     _abilityQueued  = default;
-        readonly EcsFilterInject<Inc<MovingTag>>              _moving         = default;
-        readonly EcsFilterInject<Inc<AttackAnimPendingTag>>   _attackAnim     = default;
-        readonly EcsFilterInject<Inc<PendingOnCastComponent>> _pendingOnCast  = default;   // #2: призыв → OnCast
-        readonly EcsFilterInject<Inc<ChainStateComponent>>    _chainResolving = default;   // цепочка (RunChainSystem) в процессе
-        readonly EcsFilterInject<Inc<DeathAnimPendingTag>>    _deathAnim      = default;   // существо ещё доигрывает анимацию смерти
-
         public void Run(IEcsSystems systems)
         {
             if (MatchState.IsOver) return;   // матч окончен — новый ход не выдаём
 
-            bool busy = _abilityCast.Value.GetEntitiesCount()   > 0
-                     || _abilityTarget.Value.GetEntitiesCount() > 0
-                     || _abilityQueued.Value.GetEntitiesCount() > 0
-                     || _moving.Value.GetEntitiesCount()        > 0
-                     || _attackAnim.Value.GetEntitiesCount()    > 0
-                     || _pendingOnCast.Value.GetEntitiesCount() > 0    // #2: ждём призыв → OnCast
-                     || _chainResolving.Value.GetEntitiesCount() > 0   // цепочка ещё резолвится (снаряд/оседание стадий)
-                     || _deathAnim.Value.GetEntitiesCount()      > 0;  // баг 2026-08-11: ход не начинался, пока смерть доигрывает
+            // Гейт имеет смысл ТОЛЬКО если кто-то реально ждёт старта хода (StartTurnState есть) — иначе
+            // «пайплайн не осел» может означать что угодно постороннее (игрок минуту разглядывает Discover-
+            // попап посреди СВОЕГО уже идущего хода) и никак не связано со стартом хода. Без этой проверки
+            // ReportIfStuck кричал «старт хода ЗАСТРЯЛ» на пустом месте (баг 2026-08-23: DiscoverRequestComponent
+            // висел из-за обычного ожидания клика игрока, а не старта хода).
+            if (_filter.Value.GetEntitiesCount() == 0) { _stuckSince = 0f; return; }
 
-            if (busy) return;
+            // «Каскад в работе» — единая проверка (см. PipelineGate: раньше это был свой список тегов,
+            // который разошёлся с соседними копиями в EndTurnRequestSystem/RunAiTurnSystem).
+            var world = systems.GetWorld();
+            if (!PipelineGate.IsSettled(world)) { ReportIfStuck(world); return; }
+            _stuckSince = 0f;
 
             foreach (var entity in _filter.Value)
             {
@@ -74,6 +66,20 @@ namespace Game.Core.Ecs.Systems
                 UnityEngine.Debug.Log($"[Activate] ActiveState set, turn={turnNumber} local={isLocal}");
                 break;   // один за кадр
             }
+        }
+
+        // [SyncWatch] см. тот же приём в EndTurnRequestSystem.ReportIfStuck/RunAiTurnSystem.ReportIfStuck.
+        float _stuckSince;
+        const float StuckReportAfter = 5f;
+
+        void ReportIfStuck(EcsWorld world)
+        {
+            if (_stuckSince == 0f) { _stuckSince = UnityEngine.Time.time; return; }
+            if (_stuckSince < 0f) return;
+            if (UnityEngine.Time.time - _stuckSince < StuckReportAfter) return;
+
+            UnityEngine.Debug.LogError("[SyncWatch] старт хода ЗАСТРЯЛ (PipelineGate не оседает):" + PipelineGate.DescribeBusy(world));
+            _stuckSince = -1f;
         }
     }
 }

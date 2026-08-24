@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Game.Core.Events;
 using Game.Core.Ecs.Components;
 using Game.Core.Service;
@@ -414,6 +415,36 @@ namespace Game.Core.Ability
         }
     }
 
+    // === class (OOP) === АУРА-модификатор стоимости карт, ПОКА источник жив на столе (Носитель кодила:
+    // «карты обоих игроков без жёлтого цвета стоят на 1 дороже») — в отличие от AddCostModifierEffect
+    // («Гиперинфляция», одноразовый ПЕРМАНЕНТНЫЙ эффект), это настоящая аура: снимается при смерти/уходе
+    // источника с поля (см. AuraCostModifiers.RemoveBySource, вызывается из DieSystem/RunLeaveBoardSystem —
+    // тем же приёмом, что TrackedBuffs/AppliedBuffs.RemoveTarget). ExcludeElement — маска цветов
+    // (флаговый EnumService.Element), которых модификатор НЕ касается; пусто = касается всех цветов.
+    [Serializable]
+    public sealed class AddCostAuraEffect : EffectBase, ICasterScopedEffect
+    {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Resource;
+        public int Amount = 1;
+        public bool AllPlayers = true;
+        public EnumService.Element ExcludeElement;
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            if (AllPlayers)
+            {
+                foreach (var pe in world.Filter<PlayerComponent>().End())
+                    AuraCostModifiers.Add(world, pe, cardEntity, Amount, ExcludeElement);
+            }
+            else
+            {
+                AuraCostModifiers.Add(world, target, cardEntity, Amount, ExcludeElement);   // target = игрок (NonTarget)
+            }
+
+            GameEventBus.Publish(new CostModifierChangedEvent());
+        }
+    }
+
     // === class (OOP) === Постоянный бонус к длительности БУДУЩИХ чар владельца (Зачарованный: «ваши чары
     // в этом матче длятся на 1 дольше»). Одноразовый перм. эффект на игроке (не аура — не откатывается со
     // смертью источника), хранится в CharmDurationBonusService (match-lifetime, как CastMultiplierService).
@@ -578,6 +609,7 @@ namespace Game.Core.Ability
             SelfResolves = 11,          // порядковый номер ТЕКУЩЕГО применения этой способности: 1,2,3… (Нечищенный источник). НЕ для цепочек (AbilityChain)
             ChainDiscardedCost = 12,    // стоимость карты, СБРОШЕННОЙ прошлой стадией цепочки (Утилизация: урон = ей). Читает ChainContext.LastDiscardedCost
             Stat = 13,                  // ТЕКУЩИЙ стат (StatKind) источника или его владельца (StatSource) — «повторить по атаке существа»
+            CountByFilter = 14,         // существа на поле, прошедшие CountFilters (пусто = все живые, любая сторона) — «Расстрелять»: EnemyTargetFilter
         }
 
         public CountSource Source = CountSource.Fixed;
@@ -596,6 +628,11 @@ namespace Game.Core.Ability
         public ScriptableObject CountCard;
         [Tooltip("Для MatchArchetypeInvoked: архетип, чьи призывы считаем (Грыз → ImpArchetype). Ключ берётся из него.")]
         [SerializeReference] public ICreatureTag Archetype;
+
+        [Tooltip("Для Source=CountByFilter: фильтры существ на поле, которые считаем (пусто = все живые, " +
+                 "любая сторона). Та же семантика combos, что в AbilityToField.Filters — селекторы " +
+                 "(Ally/Enemy) между собой ИЛИ, остальное — И (см. TargetGather.FiltersOk).")]
+        [SerializeReference] public List<ITargetFilter> CountFilters = new();
 
         [SerializeReference] public IEffect Inner;
 
@@ -633,12 +670,12 @@ namespace Game.Core.Ability
         }
 
         int ResolveCount(EcsWorld world, int cardEntity, int target)
-            => AbilityCount.Resolve(world, PlayerEntity, cardEntity, Source, FixedCount, CountCard, Archetype, Stat, StatSource, target);
+            => AbilityCount.Resolve(world, PlayerEntity, cardEntity, Source, FixedCount, CountCard, Archetype, Stat, StatSource, target, CountFilters);
 
         // IDynamicValue (opt-in): *N* = резолвнутое число повторов. Та же величина, что читает Apply (инвариант).
         public int DynamicValueCount => ShowCountInDescription ? 1 : 0;
         public int GetDynamicValue(int index, EcsWorld world, int cardEntity, int playerEntity)
-            => AbilityCount.Resolve(world, playerEntity, cardEntity, Source, FixedCount, CountCard, Archetype, Stat, StatSource);
+            => AbilityCount.Resolve(world, playerEntity, cardEntity, Source, FixedCount, CountCard, Archetype, Stat, StatSource, -1, CountFilters);
     }
 
     // === helper === резолв «сколько» для RepeatEffect И count-driven эффектов (SummonTokensByCount).
@@ -649,7 +686,7 @@ namespace Game.Core.Ability
                                   RepeatEffect.CountSource source, int fixedCount,
                                   ScriptableObject countCard, ICreatureTag archetype,
                                   StatKind statKind = StatKind.Attack, StatSourceEntity statSource = StatSourceEntity.Self,
-                                  int target = -1)
+                                  int target = -1, IReadOnlyList<ITargetFilter> countFilters = null)
         {
             if (source == RepeatEffect.CountSource.Fixed) return fixedCount;
             if (source == RepeatEffect.CountSource.ChainKilled) return ChainContext.CurrentKilled;
@@ -674,6 +711,20 @@ namespace Game.Core.Ability
             // до оседания следующих действий) → счёт детерминирован, отдельный синк не нужен.
             if (source == RepeatEffect.CountSource.OwnCreaturesOnBoard)
                 return RuleUtil.CountCreaturesOnBoard(world, OwnerIdOf(world, cardEntity, playerEntity));
+
+            // CountByFilter — общий счётчик существ на поле по ПРОИЗВОЛЬНОМУ набору фильтров (Расстрелять:
+            // EnemyTargetFilter → «за каждого врага»). В отличие от OwnCreaturesOnBoard не завязан на владельца
+            // жёстко — пусто = все живые существа, любая сторона. Своя мини-версия TargetGather.FiltersOk
+            // (селекторы Ally/Enemy между собой ИЛИ, остальное — И): Systems→Ability однонаправленно,
+            // AbilityCount (в Ability) не может звать TargetGather (в Systems).
+            if (source == RepeatEffect.CountSource.CountByFilter)
+            {
+                int n = 0;
+                foreach (var e in world.Filter<CreatureTag>().Inc<BoardTag>().Exc<DeadTag>().End())
+                    if (CreatureFiltersOk(world, e, cardEntity, playerEntity, countFilters))
+                        n++;
+                return n;
+            }
 
             // MatchGenerated — ГЛОБАЛЬНО: «за каждое замешанное в этом матче» (кем угодно, в любую колоду —
             // Гнидальф/Старый колдун мешают оппоненту, Газовое вздутие — оппонент сам себе). Суммируем
@@ -718,6 +769,30 @@ namespace Game.Core.Ability
 
         static int Get(System.Collections.Generic.Dictionary<int, int> d, int key)
             => (d != null && d.TryGetValue(key, out int v)) ? v : 0;
+
+        // Мини-копия TargetGather.FiltersOk (та сборка недоступна отсюда, см. коммент у CountByFilter):
+        // селекторы (ITargetSelector — Ally/Enemy и т.п.) между собой ИЛИ, остальные фильтры — И. Пусто/null → true.
+        static bool CreatureFiltersOk(EcsWorld world, int candidate, int casterCard, int casterPlayer, IReadOnlyList<ITargetFilter> filters)
+        {
+            if (filters == null || filters.Count == 0) return true;
+
+            bool hasSelector = false;
+            bool selectorHit = false;
+            foreach (var f in filters)
+            {
+                if (f == null) continue;
+                if (f is ITargetSelector)
+                {
+                    hasSelector = true;
+                    if (f.Match(world, candidate, casterCard, casterPlayer)) selectorHit = true;
+                }
+                else if (!f.Match(world, candidate, casterCard, casterPlayer))
+                {
+                    return false;
+                }
+            }
+            return !hasSelector || selectorHit;
+        }
 
         static int SelfModel(EcsWorld world, int cardEntity)
         {

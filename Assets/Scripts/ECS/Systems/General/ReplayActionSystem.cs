@@ -478,6 +478,9 @@ namespace Game.Core.Ecs.Systems
                 }
 
                 p.Ttl--;
+                if (p.Ttl <= 0 && p.Keys.Count > 0)
+                    Debug.LogWarning($"[SyncWatch] SummonModifiers TTL истёк, caster={p.Caster}, "
+                        + $"не разрешились ключи: {string.Join(",", p.Keys)} — модификаторы призыва ПОТЕРЯНЫ на пассиве (десинк статов).");
                 if (p.Keys.Count == 0 || p.Ttl <= 0)
                     _pendingMods.RemoveAt(i);
             }

@@ -25,6 +25,7 @@ namespace Game.Core.Ecs.Systems
         readonly EcsFilterInject<Inc<HandTag, OwnCardTag>> _handFilter = default;
 
         bool _resourceDirty;
+        bool _wasSettled = true;
 
         public void Init(IEcsSystems systems)
         {
@@ -67,7 +68,10 @@ namespace Game.Core.Ecs.Systems
             GameEventBus.Publish(new CardAffordableChangedEvent
             {
                 CardEntity   = cardEntity,
-                IsAffordable = IsAffordable(cardEntity),
+                // Пайплайн busy (чейн/каст/анимация ещё резолвится) → карта временно НЕ играбельна руками,
+                // даже если ресурсов хватает: иначе можно розыграть новую карту в паузе между стадиями
+                // чужого AbilityChain (см. RunSelectCellSystem — тот же гейт для клика по борду).
+                IsAffordable = IsAffordable(cardEntity) && PipelineGate.IsSettled(_world.Value),
             });
             // Иконка/число коста для СВЕЖЕсозданной вьюхи: карта могла прийти в руку при висящем маркере
             // альтернативной уплаты (иконка уплаты вместо ресурса) — SetCard ставит обычную по типу.
@@ -107,12 +111,21 @@ namespace Game.Core.Ecs.Systems
 
         public void Run(IEcsSystems systems)
         {
+            // Пайплайн ТОЛЬКО ЧТО осел (чейн/каст/анимация закончились) — руке нужно снять временную
+            // «неиграбельность» из IsAffordable ниже, а событие, однозначно бьющее ИМЕННО в этот момент,
+            // не гарантировано (см. коммент у IsAffordable = ... && PipelineGate.IsSettled ниже) —
+            // ловим переход по фронту сами, иначе карты остались бы визуально недоступны до случайного
+            // не связанного события (ResourceChanged и т.п.).
+            bool settled = PipelineGate.IsSettled(_world.Value);
+            if (settled && !_wasSettled) _resourceDirty = true;
+            _wasSettled = settled;
+
             if (!_resourceDirty) return;
             _resourceDirty = false;
 
             foreach (var cardEntity in _handFilter.Value)
             {
-                bool affordable = IsAffordable(cardEntity);
+                bool affordable = IsAffordable(cardEntity) && settled;
                 GameEventBus.Publish(new CardAffordableChangedEvent
                 {
                     CardEntity   = cardEntity,
@@ -133,11 +146,11 @@ namespace Game.Core.Ecs.Systems
             if (ownerEntity < 0) return false;
 
             if (_goldCostPool.Value.Has(cardEntity))
-            { effective = CostModifierUtil.Effective(_world.Value, ownerEntity, _goldCostPool.Value.Get(cardEntity).Cost); return true; }
+            { effective = CostModifierUtil.Effective(_world.Value, ownerEntity, cardEntity, _goldCostPool.Value.Get(cardEntity).Cost); return true; }
             if (_manaCostPool.Value.Has(cardEntity))
-            { effective = CostModifierUtil.Effective(_world.Value, ownerEntity, _manaCostPool.Value.Get(cardEntity).Cost); return true; }
+            { effective = CostModifierUtil.Effective(_world.Value, ownerEntity, cardEntity, _manaCostPool.Value.Get(cardEntity).Cost); return true; }
             if (_healthCostPool.Value.Has(cardEntity))
-            { effective = CostModifierUtil.Effective(_world.Value, ownerEntity, _healthCostPool.Value.Get(cardEntity).Cost); return true; }
+            { effective = CostModifierUtil.Effective(_world.Value, ownerEntity, cardEntity, _healthCostPool.Value.Get(cardEntity).Cost); return true; }
             return false;
         }
 

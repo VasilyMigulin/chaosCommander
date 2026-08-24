@@ -131,7 +131,7 @@ namespace Game.Core.Ability
                 }
                 else
                 {
-                    n = Math.Max(0, AbilityCount.Resolve(world, playerEntity, cardEntity, spec.Source, spec.FixedCount, spec.CountCard, spec.Archetype, spec.Stat, spec.StatSource));
+                    n = Math.Max(0, AbilityCount.Resolve(world, playerEntity, cardEntity, spec.Source, spec.FixedCount, spec.CountCard, spec.Archetype, spec.Stat, spec.StatSource, -1, spec.CountFilters));
                 }
                 var stages = new ChainStage[n];
                 for (int i = 0; i < n; i++) stages[i] = spec.Template;

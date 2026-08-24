@@ -322,6 +322,159 @@ namespace Game.Core.Ability
         }
     }
 
+    // === class (OOP) === Призвать ТОЧНУЮ копию целевого существа — как SummonCopyOfTargetEffect (та же
+    // печатная карта), но ДОПОЛНИТЕЛЬНО переносит на клон текущее РАНТАЙМ-состояние цели: суммарный бафф
+    // статов (Attack/Health/Speed сверх печатной базы, единым перманентным дельта-баффом) и текущие
+    // свойства (Taunt/Shielded/Invulnerable/Poisoned/Stealthed/DoubleAttack/Venomous/Retaliate/Vampirism).
+    // Снимок цели строится СЕЙЧАС (Apply), а не после материализации клона — GenerateCardEffect асинхронен
+    // (CreateCardEvent обрабатывается отложенно), поэтому снимок едет summonModifiers-каналом, тем же, что
+    // Modifiers у SummonCopyOfTargetEffect (см. DeepCloneSnapshotEffect ниже).
+    //
+    // ПОЛНЫЙ клон — переносит и текущий урон (Current HP), не только Max: если у цели 5/8, клон тоже
+    // выходит с 5/8, а не с полным баром.
+    //
+    // Тир (карты с CardModel.Tiers) НЕ трогаем явно, и это НЕ баг: CardTierSystem каждый кадр пересчитывает
+    // текущий уровень по TierSource (GoldMax/ManaMax/Corpses — счётчик ВЛАДЕЛЬЦА, не сущности) и пишет
+    // статы уровня В БАЗУ (SetBase/SetBaseMax), а не в Modifiers. У клона тот же владелец → та же система
+    // за тот же кадр-два сама подтянет его на идентичный уровень — копировать нечего, это не бафф-дельта,
+    // а отдельный, ортогональный слой (Base), который наш _attackDelta/_healthDelta/_speedDelta (Value-Base
+    // на МОМЕНТ снимка, когда Base у цели уже тир-скорректирован) не трогает и не задваивает.
+    //
+    // ЧЕГО НЕ переносит (сознательно):
+    //   • Роль ИСТОЧНИКА чужих аур (TrackedBuffs/AppliedBuffs как SOURCE) — это исходящие ауры цели на
+    //     ДРУГИХ существ, а не баффы НА ней самой. Баффы, полученные целью КАК цель (в т.ч. от чужого
+    //     Tracked-источника — «выберите существо, оно получает +1 к здоровью»), уже сидят в её текущих
+    //     Attack.Value/Health.Max/Speed.Max, поэтому дельта-снимок выше их и так переносит.
+    [Serializable]
+    public sealed class SummonDeepCloneEffect : EffectBase
+    {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Summon;
+        public int Count = 1;
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            if (target < 0) return;
+            var pool = world.GetPool<CardModelComponent>();
+            if (!pool.Has(target)) return;
+            ref var m = ref pool.Get(target);
+            if (m.CardType != Game.Core.Service.EnumService.CardType.Creature) return;   // клонируем только существ
+
+            var ownerPool = world.GetPool<OwnerComponent>();
+            if (!ownerPool.Has(cardEntity)) return;
+            int ownerId = ownerPool.Get(cardEntity).OwnerId;
+
+            var snapshot = new IEffect[] { DeepCloneSnapshotEffect.Capture(world, target) };
+
+            int n = Count <= 0 ? 1 : Count;
+            for (int i = 0; i < n; i++)
+            {
+                int col = BoardFrontRow.ClaimFreeCell(world, ownerId);   // резерв: мульти-клоны не сядут на одну клетку
+                if (col < 0) return;                                     // фронт полон
+                GenerateCardEffect.SpawnToBoard(world, cardEntity, m.ExpansionId, m.ModelId, BoardFrontRow.FrontRow, col, snapshot);
+            }
+        }
+    }
+
+    // === helper === Снимок рантайм-состояния цели для SummonDeepCloneEffect — НЕ author-facing эффект
+    // (не [Serializable], в SerializeReference-дропдауне не появляется): строится программно из ЖИВОЙ
+    // цели в момент Apply, а не настраивается в инспекторе. Наследует EffectBase (не голый IEffect) —
+    // тот же принцип, что у всех остальных эффектов проекта (иначе молча ломается подсветка AbilityReady).
+    sealed class DeepCloneSnapshotEffect : EffectBase
+    {
+        int _attackDelta, _healthDelta, _speedDelta;
+        bool _hasHealth; int _currentHealth;
+        bool _taunt, _invulnerable, _doubleAttack, _retaliate, _vampirism;
+        bool _shielded, _stealthed;
+        int _shieldCharges, _poisonStacks, _stealthTurns, _venomousStacks;
+
+        public static DeepCloneSnapshotEffect Capture(EcsWorld world, int target)
+        {
+            var snap = new DeepCloneSnapshotEffect();
+
+            var atk = world.GetPool<AttackComponent>();
+            if (atk.Has(target)) { ref var a = ref atk.Get(target); snap._attackDelta = a.Value - a.Base; }
+            var hp = world.GetPool<HealthComponent>();
+            if (hp.Has(target)) { ref var h = ref hp.Get(target); snap._healthDelta = h.Max - h.BaseMax; snap._hasHealth = true; snap._currentHealth = h.Current; }
+            var spd = world.GetPool<SpeedComponent>();
+            if (spd.Has(target)) { ref var s = ref spd.Get(target); snap._speedDelta = s.Max - s.BaseMax; }
+
+            snap._taunt        = world.GetPool<TauntTag>().Has(target);
+            snap._invulnerable = world.GetPool<InvulnerableTag>().Has(target);
+            snap._doubleAttack = world.GetPool<DoubleAttackTag>().Has(target);
+            snap._retaliate    = world.GetPool<RetaliateTag>().Has(target);
+            snap._vampirism    = world.GetPool<VampirismTag>().Has(target);
+
+            var shield = world.GetPool<ShieldComponent>();
+            if (shield.Has(target)) { snap._shielded = true; snap._shieldCharges = shield.Get(target).Charges; }
+            var poison = world.GetPool<PoisonComponent>();
+            if (poison.Has(target)) snap._poisonStacks = poison.Get(target).Stacks;
+            var stealth = world.GetPool<StealthComponent>();
+            if (stealth.Has(target)) { snap._stealthed = true; snap._stealthTurns = stealth.Get(target).TurnsRemaining; }
+            var venomous = world.GetPool<VenomousComponent>();
+            if (venomous.Has(target)) snap._venomousStacks = venomous.Get(target).Stacks;
+
+            return snap;
+        }
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            if (_attackDelta != 0 || _healthDelta != 0 || _speedDelta != 0)
+                new BuffStat { Attack = _attackDelta, Health = _healthDelta, Speed = _speedDelta, Permanent = true }
+                    .Apply(world, cardEntity, target);
+
+            // ПОЛНЫЙ клон — переносим и текущий урон, не только Max. BuffStat.Apply выше для позитивной
+            // Health-дельты уже поднял Current вслед за Max; здесь перезаписываем ТОЧНЫМ снятым значением
+            // (не суммируем повторно) — так клон выходит с той же царапиной, что и цель на момент снятия.
+            if (_hasHealth)
+            {
+                var hp = world.GetPool<HealthComponent>();
+                if (hp.Has(target))
+                {
+                    ref var h = ref hp.Get(target);
+                    h.Current = _currentHealth > h.Max ? h.Max : _currentHealth;
+                    GameEventBus.Publish(new CreatureHealthChangedEvent { CreatureEntity = target });
+                }
+            }
+
+            if (_taunt)        EnsureTag<TauntTag>(world, target);
+            if (_invulnerable) EnsureTag<InvulnerableTag>(world, target);
+            if (_doubleAttack) EnsureTag<DoubleAttackTag>(world, target);
+            if (_retaliate)    EnsureTag<RetaliateTag>(world, target);
+            if (_vampirism)    EnsureTag<VampirismTag>(world, target);
+
+            if (_shielded)
+            {
+                var p = world.GetPool<ShieldComponent>();
+                if (!p.Has(target)) p.Add(target);
+                p.Get(target).Charges = _shieldCharges;
+            }
+            if (_poisonStacks > 0)
+            {
+                var p = world.GetPool<PoisonComponent>();
+                if (!p.Has(target)) p.Add(target);
+                p.Get(target).Stacks = _poisonStacks;
+            }
+            if (_stealthed)
+            {
+                var p = world.GetPool<StealthComponent>();
+                if (!p.Has(target)) p.Add(target);
+                p.Get(target).TurnsRemaining = _stealthTurns;
+            }
+            if (_venomousStacks > 0)
+            {
+                var p = world.GetPool<VenomousComponent>();
+                if (!p.Has(target)) p.Add(target);
+                p.Get(target).Stacks = _venomousStacks;
+            }
+        }
+
+        static void EnsureTag<T>(EcsWorld world, int entity) where T : struct
+        {
+            var p = world.GetPool<T>();
+            if (!p.Has(entity)) p.Add(entity);
+        }
+    }
+
     // === class (OOP) === РАЗЫГРАТЬ (бесплатно, авто-кастом) КОПИЮ целевой карты («Подписка на утилизацию»:
     // сбросили карту → «разыграйте копию»; таргетинг TriggerSubject от OnOwnerDiscardArmedTrigger). Отличие
     // от PlayTargetCardEffect: играется НЕ сама цель (она в кладбище и должна там остаться), а СВЕЖАЯ копия

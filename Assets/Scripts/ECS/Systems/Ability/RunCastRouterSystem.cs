@@ -64,7 +64,7 @@ namespace Game.Core.Ecs.Systems
                 // заклинания (Королевская пиньята) срабатывают при смерти В ЛЮБОЙ ход, в т.ч. чужой — иначе Decline.
                 if (!free && !activeStatePool.Has(player) && !startStatePool.Has(player) && !endStatePool.Has(player))
                 {
-                    Decline(declinePool, card, DeclineReason.Unknown);
+                    Decline(world, declinePool, card, DeclineReason.Unknown);
                     continue;
                 }
 
@@ -75,14 +75,14 @@ namespace Game.Core.Ecs.Systems
                 // RunTurnStartSystem снимает его на старте хода доступности. Проверяем ДО оплаты.
                 if (commanderTag.Has(card) && commanderCd.Has(card))
                 {
-                    Decline(declinePool, card, DeclineReason.CommanderOnCooldown);
+                    Decline(world, declinePool, card, DeclineReason.CommanderOnCooldown);
                     continue;
                 }
 
                 // pre-cost: лимит чар (5) — чтобы не списывать стоимость зря
                 if (charmTag.Has(card) && CharmCount(world, ownerPool, ownerId) >= CharmLimit)
                 {
-                    Decline(declinePool, card, DeclineReason.CharmLimitReached);
+                    Decline(world, declinePool, card, DeclineReason.CharmLimitReached);
                     continue;
                 }
 
@@ -94,7 +94,7 @@ namespace Game.Core.Ecs.Systems
                 if (addCostPool.Has(card)
                     && !AltCostUtil.CanPay(world, addCostPool.Get(card).Kind, ownerId, card))
                 {
-                    Decline(declinePool, card, DeclineReason.NoAdditionalCostPayment);
+                    Decline(world, declinePool, card, DeclineReason.NoAdditionalCostPayment);
                     continue;
                 }
 
@@ -108,7 +108,7 @@ namespace Game.Core.Ecs.Systems
                         // существа/карт в колоде) → каст отклоняется, как без маны; заряд НЕ тратится.
                         if (!AltCostUtil.CanPay(world, world.GetPool<AltCostComponent>().Get(player).Kind, ownerId, card))
                         {
-                            Decline(declinePool, card, DeclineReason.NoAltCostPayment);
+                            Decline(world, declinePool, card, DeclineReason.NoAltCostPayment);
                             continue;
                         }
                         var kind = AltCostUtil.ConsumeCharge(world, player);
@@ -151,7 +151,7 @@ namespace Game.Core.Ecs.Systems
                     }
                     else if (!TryPayCost(world, card, player, out var reason))
                     {
-                        Decline(declinePool, card, reason);
+                        Decline(world, declinePool, card, reason);
                         continue;
                     }
                 }
@@ -177,7 +177,7 @@ namespace Game.Core.Ecs.Systems
                         {
                             // Ряд призыва полон — ставить некуда. Карта остаётся в руке (стоимость вернёт
                             // Decline), а не зависает без клетки и без каста.
-                            Decline(declinePool, card, DeclineReason.Unknown);
+                            Decline(world, declinePool, card, DeclineReason.Unknown);
                             continue;
                         }
                         ref var autoMove = ref moveToBoardPool.Add(card);
@@ -214,10 +214,43 @@ namespace Game.Core.Ecs.Systems
         }
 
         // Отказ каста: помечаем карту + просим UI вернуть её в руку (PlayCardView слушает это событие).
-        static void Decline(EcsPool<DeclineCardCastEvent> declinePool, int card, DeclineReason reason)
+        static void Decline(EcsWorld world, EcsPool<DeclineCardCastEvent> declinePool, int card, DeclineReason reason)
         {
             if (!declinePool.Has(card)) declinePool.Add(card).Reason = reason;
             GameEventBus.Publish(new TargetSelectionCancelledEvent { CardEntity = card });
+
+            // Ручной розыгрыш эту точку проходит, ПОКА карта ещё в руке (её зону снимает код НИЖЕ по потоку,
+            // уже ПОСЛЕ всех этих гейтов) — для него всё ниже просто не сработает (HandTag уже есть). А вот
+            // форс/фри-каст (PlayCardUtil.Play — deathrattle, дискавер, эффект «разыграй карту») снимает
+            // исходную зону СРАЗУ, до того как AutoCastSystem вообще превратит маркер в этот запрос (иначе
+            // однокадровый RequestCardCastEvent не пережил бы границу кадра — см. докстринг PlayCardUtil.Play).
+            // Если такой каст всё же отклонён (лимит чар и т.п.) — карта виснет НИ В ОДНОЙ зоне и пропадает
+            // без следа (баг 2026-08-23: «Зачаровать матч» выбрала чару сверх лимита в 5 — чара тихо исчезала).
+            if (world.GetPool<HandTag>().Has(card) || world.GetPool<BoardTag>().Has(card)
+                || world.GetPool<DeckTag>().Has(card) || world.GetPool<GraveTag>().Has(card))
+                return;
+
+            var ownerPool = world.GetPool<OwnerComponent>();
+            if (!ownerPool.Has(card)) return;
+            int ownerId = ownerPool.Get(card).OwnerId;
+
+            int playerEntity = FindPlayer(world, world.GetPool<PlayerComponent>(), ownerPool, card);
+            if (playerEntity < 0) return;
+
+            var handTagPool = world.GetPool<HandTag>();
+            if (!handTagPool.Has(card)) handTagPool.Add(card);
+
+            var handPool = world.GetPool<HandComponent>();
+            if (handPool.Has(playerEntity))
+            {
+                ref var hand = ref handPool.Get(playerEntity);
+                hand.CardEntities ??= new System.Collections.Generic.List<int>();
+                if (!hand.CardEntities.Contains(card)) hand.CardEntities.Add(card);
+                hand.Count = hand.CardEntities.Count;
+            }
+
+            UnityEngine.Debug.LogWarning($"[Decline] card={card} reason={reason}: карта была вне всех зон (форс-каст отклонён) — вернул в руку owner={ownerId}");
+            GameEventBus.Publish(new CardDrawnEvent { CardEntity = card, PlayerId = ownerId });
         }
 
         // Свободная клетка ряда призыва владельца для АВТО-размещения (спросить некого). Занятость
@@ -282,9 +315,9 @@ namespace Game.Core.Ecs.Systems
         // Эффективная стоимость карты (тот кост-компонент, что есть + модификатор владельца) — для пейн-оплаты.
         static int EffectiveCost(EcsWorld world, int card, int player)
         {
-            var g = world.GetPool<GoldCostComponent>();   if (g.Has(card)) return CostModifierUtil.Effective(world, player, g.Get(card).Cost);
-            var m = world.GetPool<ManaCostComponent>();   if (m.Has(card)) return CostModifierUtil.Effective(world, player, m.Get(card).Cost);
-            var h = world.GetPool<HealthCostComponent>(); if (h.Has(card)) return CostModifierUtil.Effective(world, player, h.Get(card).Cost);
+            var g = world.GetPool<GoldCostComponent>();   if (g.Has(card)) return CostModifierUtil.Effective(world, player, card, g.Get(card).Cost);
+            var m = world.GetPool<ManaCostComponent>();   if (m.Has(card)) return CostModifierUtil.Effective(world, player, card, m.Get(card).Cost);
+            var h = world.GetPool<HealthCostComponent>(); if (h.Has(card)) return CostModifierUtil.Effective(world, player, card, h.Get(card).Cost);
             return 0;
         }
 
@@ -295,7 +328,7 @@ namespace Game.Core.Ecs.Systems
             var goldCost = world.GetPool<GoldCostComponent>();
             if (goldCost.Has(card))
             {
-                int cost = CostModifierUtil.Effective(world, player, goldCost.Get(card).Cost);
+                int cost = CostModifierUtil.Effective(world, player, card, goldCost.Get(card).Cost);
                 var pool = world.GetPool<GoldComponent>();
                 if (!pool.Has(player) || pool.Get(player).Current < cost) { reason = DeclineReason.NotEnoughGold; return false; }
                 ref var gold = ref pool.Get(player);
@@ -307,7 +340,7 @@ namespace Game.Core.Ecs.Systems
             var manaCost = world.GetPool<ManaCostComponent>();
             if (manaCost.Has(card))
             {
-                int cost = CostModifierUtil.Effective(world, player, manaCost.Get(card).Cost);
+                int cost = CostModifierUtil.Effective(world, player, card, manaCost.Get(card).Cost);
                 var pool = world.GetPool<ManaComponent>();
                 if (!pool.Has(player) || pool.Get(player).Current < cost) { reason = DeclineReason.NotEnoughMana; return false; }
                 ref var mana = ref pool.Get(player);
@@ -319,7 +352,7 @@ namespace Game.Core.Ecs.Systems
             var healthCost = world.GetPool<HealthCostComponent>();
             if (healthCost.Has(card))
             {
-                int cost = CostModifierUtil.Effective(world, player, healthCost.Get(card).Cost);
+                int cost = CostModifierUtil.Effective(world, player, card, healthCost.Get(card).Cost);
                 var pool = world.GetPool<HealthComponent>();   // у игрока тоже есть HealthComponent
                 if (!pool.Has(player) || pool.Get(player).Current < cost) { reason = DeclineReason.NotEnoughHealth; return false; }
                 ref var hp = ref pool.Get(player);

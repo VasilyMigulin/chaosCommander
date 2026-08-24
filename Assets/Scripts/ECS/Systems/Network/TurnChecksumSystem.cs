@@ -172,6 +172,22 @@ namespace Game.Core.Ecs.Systems
             // Порядок колод логируем на КАЖДОЙ границе: при десинке важно найти границу, где порядок
             // разошёлся, пока множества ещё сходились (дифф O-строк двух клиентов той же границы).
             UnityEngine.Debug.Log($"[Checksum] boundary={boundary} hash={hash:X16}\n{string.Join("\n", orderLines)}");
+
+            // [SyncWatch] золото/мана НЕ входят в хэш (см. докстринг класса — «пассив не зеркалит доход»,
+            // «под вопросом» по отчёту аудита): чексумма их расхождение не поймает никогда. Логируем отдельно,
+            // чтобы при ручном сравнении logcat двух клиентов на той же границе это было видно глазами.
+            var goldPool = world.GetPool<GoldComponent>();
+            var manaPool = world.GetPool<ManaComponent>();
+            var sbRes = new System.Text.StringBuilder($"[SyncWatch] boundary={boundary} resources (вне чексуммы):");
+            foreach (var pe in world.Filter<PlayerComponent>().End())
+            {
+                int pid = playerPool.Get(pe).PlayerId;
+                int gold = goldPool.Has(pe) ? goldPool.Get(pe).Current : -1;
+                int mana = manaPool.Has(pe) ? manaPool.Get(pe).Current : -1;
+                sbRes.Append($" P{pid}[gold={gold} mana={mana}]");
+            }
+            UnityEngine.Debug.Log(sbRes.ToString());
+
             TryCompare(boundary);
         }
 

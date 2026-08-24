@@ -135,3 +135,4 @@ MonoBehaviour:
       type: {class: AllCardsHaveColorCondition, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
         Color: 4
+        IncludeHand: 0

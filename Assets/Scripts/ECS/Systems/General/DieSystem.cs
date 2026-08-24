@@ -190,6 +190,10 @@ namespace Game.Core.Ecs.Systems
                 TrackedBuffs.RemoveTarget(_world.Value, entity);
                 AppliedBuffs.RemoveTarget(_world.Value, entity);
 
+                // Существо было ИСТОЧНИКОМ ауро-модификатора стоимости (AddCostAuraEffect, напр. Носитель
+                // кодила) — снимаем его записи со всех игроков, иначе налог остаётся навсегда после смерти.
+                AuraCostModifiers.RemoveBySource(_world.Value, entity);
+
                 bool isCommander = _commanderPool.Value.Has(entity);
                 bool isToken = _tokenPool.Value.Has(entity);
 

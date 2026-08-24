@@ -722,7 +722,7 @@ PrefabInstance:
       objectReference: {fileID: 241863491562589412}
     - target: {fileID: 3950527706335384032, guid: 0053874201539f04885cf64bfab3db9e, type: 3}
       propertyPath: _actionGapSeconds
-      value: 0.6
+      value: 0.2
       objectReference: {fileID: 0}
     - target: {fileID: 5832578747947616320, guid: 0053874201539f04885cf64bfab3db9e, type: 3}
       propertyPath: m_LocalPosition.x

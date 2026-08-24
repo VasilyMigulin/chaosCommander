@@ -19,6 +19,9 @@ namespace Game.Core.Instance.Card
     /// Обычные карты пулов без флага не показываются — иначе Фокус-покус вываливал бы весь пул.
     /// CardModel.HideAsLinked — обратный флаг, приоритетнее обоих: скрывает карту, даже если она
     /// токен или помечена ShowAsLinked.
+    /// CardModel.HideRelatedCards — флаг на КАРТЕ-ИСТОЧНИКЕ (не на цели): гасит весь список для НЕЁ,
+    /// даже если карты её пула сами помечены ShowAsLinked (нужно, когда связь недетерминированная —
+    /// «выберите 1 из широкого пула», а не «эта карта создаёт именно ту»).
     /// Никаких эвристик по именам полей: решение целиком на флагах самой карты.
     ///
     /// Как работает: обходит граф RuntimeAbilities рефлексией и собирает все ссылки на
@@ -35,7 +38,7 @@ namespace Game.Core.Instance.Card
         public static List<CardModel> Resolve(CardModel source)
         {
             var result = new List<CardModel>();
-            if (source == null) return result;
+            if (source == null || source.HideRelatedCards) return result;
 
             // RuntimeAbilities имеет тип List<Ability> (сборка Game.Core.Ability), которую Instance.Card
             // НЕ референсит (asmdef не трогаем). Достаём значение рефлексией и обходим как

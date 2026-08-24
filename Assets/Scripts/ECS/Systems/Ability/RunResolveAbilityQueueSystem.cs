@@ -76,7 +76,8 @@ namespace Game.Core.Ecs.Systems
             // каскада: её ключ со старой волной вклинил бы реакцию ПЕРЕД свежими активациями.
             if (world.Filter<AbilityQueuedState>().End().GetEntitiesCount() == 0
                 && world.Filter<AbilityCastPendingComponent>().End().GetEntitiesCount() == 0
-                && world.Filter<AbilityAnimPendingComponent>().End().GetEntitiesCount() == 0)
+                && world.Filter<AbilityAnimPendingComponent>().End().GetEntitiesCount() == 0
+                && world.Filter<VfxStepsPendingComponent>().End().GetEntitiesCount() == 0)
             {
                 // Записки о причине НА КАРТАХ тут НЕ трогаем: пиньята создаёт 10 карт разом, очередь
                 // между их розыгрышами опустевает, и зачистка здесь стёрла бы им родителя. Их снимает
@@ -84,17 +85,46 @@ namespace Game.Core.Ecs.Systems
                 AbilityResolveContext.ClearCause();
             }
 
-            // 1) Приземлившиеся снаряды → применить отложенные эффекты.
+            // 1) Приземлившиеся снаряды → применить отложенные эффекты (одиночный VfxSpec-путь).
+            //    VFX-таймлайн (VfxSteps) считает прилёты СЧЁТЧИКОМ — см. 1b) ниже, тот же Token может
+            //    прилетать НЕСКОЛЬКО раз (по одному на каждый Projectile-шаг), а не один раз на способность.
+            var stepsPendingPool = world.GetPool<VfxStepsPendingComponent>();
             while (_arrived.Count > 0)
             {
                 int token = _arrived.Dequeue();
-                if (token >= 0 && pendingPool.Has(token)) LandAndResolve(world, token);
+                if (token < 0) continue;
+                if (pendingPool.Has(token)) LandAndResolve(world, token);
+                if (stepsPendingPool.Has(token)) stepsPendingPool.Get(token).PendingArrivals--;
             }
 
             // 2) Анти-софтлок снарядов: форсим резолв просроченных «в полёте» (нет VfxPresenter/префаба).
             foreach (var e in world.Filter<AbilityCastPendingComponent>().End())
             {
                 if (pendingPool.Get(e).Deadline <= Time.time) { LandAndResolve(world, e); break; }
+            }
+
+            // 1b) VFX-таймлайн: запустить шаги, чьё время настало (StartDelay от начала резолва); когда
+            //     ВСЕ шаги запущены И долетели — применить эффекты способности (как LandAndResolve).
+            var stepsCompPool = world.GetPool<AbilityVfxStepsComponent>();
+            var ownerPoolForSteps = world.GetPool<AbilityOwnerComponent>();
+            var queuedPoolForSteps = world.GetPool<AbilityQueuedState>();
+            foreach (var e in world.Filter<VfxStepsPendingComponent>().End())
+            {
+                if (!stepsCompPool.Has(e) || !ownerPoolForSteps.Has(e) || !queuedPoolForSteps.Has(e)) continue;
+                ref var pending = ref stepsPendingPool.Get(e);
+                var steps = stepsCompPool.Get(e).Steps;
+                int caster = ownerPoolForSteps.Get(e).CardEntity;
+                int ownerPlayer = ownerPoolForSteps.Get(e).PlayerEntity;
+                int[] targets = queuedPoolForSteps.Get(e).Targets ?? Array.Empty<int>();
+                VfxEmitUtil.TryLaunchDueSteps(world, _boardView.Value, e, caster, ownerPlayer, targets, steps, ref pending);
+
+                if (VfxEmitUtil.AllStepsLaunched(pending) && pending.PendingArrivals <= 0)
+                {
+                    stepsPendingPool.Del(e);
+                    GameEventBus.Publish(new InputRestoredEvent());
+                    ResolveAbility(world, e, skipRecompute: true);
+                    break;   // ResolveAbility может пере-выставить очередь (Временная петля/TriggerSubject) — не идём дальше по устаревшему filter-снапшоту
+                }
             }
 
             // 3) CastEvent анимации кастера → применить эффекты (или запустить снаряд — та же ветка, что и
@@ -111,6 +141,7 @@ namespace Game.Core.Ecs.Systems
             // 4) Пока что-то в полёте/анимируется — следующее действие не берём (гейт, как у атаки).
             if (world.Filter<AbilityCastPendingComponent>().End().GetEntitiesCount() > 0) return;
             if (world.Filter<AbilityAnimPendingComponent>().End().GetEntitiesCount()  > 0) return;
+            if (world.Filter<VfxStepsPendingComponent>().End().GetEntitiesCount()     > 0) return;
 
             // 4b) Базовая пауза между соседними резолвами очереди: читаемость каскада эффектов + снапшоты
             //     (AbilityResolvedNetEvent) не улетают пачкой в соседние кадры. Анимацию/снаряд не трогает
@@ -230,9 +261,23 @@ namespace Game.Core.Ecs.Systems
             var ownerPool  = world.GetPool<AbilityOwnerComponent>();
             if (!ownerPool.Has(first) || !queuedPool.Has(first)) return;
 
-            var vfxPool = world.GetPool<AbilityVfxComponent>();
             int[] targets = queuedPool.Get(first).Targets ?? Array.Empty<int>();
 
+            // ПРИОРИТЕТ: VFX-таймлайн (VfxSteps) — если способность собрана через конструктор шагов,
+            // одиночный Vfx-путь ниже для неё не применяется (Ability.Init кладёт только ОДИН из двух
+            // компонентов, см. Init()).
+            var stepsPool = world.GetPool<AbilityVfxStepsComponent>();
+            if (_boardView.Value != null && stepsPool.Has(first) && targets.Length > 0)
+            {
+                var steps = stepsPool.Get(first).Steps;
+                if (steps != null && steps.Count > 0)
+                {
+                    LaunchVfxSteps(world, first, ownerPool.Get(first).CardEntity, targets, steps);
+                    return;
+                }
+            }
+
+            var vfxPool = world.GetPool<AbilityVfxComponent>();
             if (_boardView.Value != null && vfxPool.Has(first) && targets.Length > 0)
             {
                 var spec = vfxPool.Get(first).Spec;
@@ -257,6 +302,23 @@ namespace Game.Core.Ecs.Systems
             pending.Deadline = Time.time + ProjectileTimeout;
             GameEventBus.Publish(new InputBlockedEvent());
             Debug.Log($"[Resolve] projectile launched ability={ability} targets={targets.Length} (ждём хит)");
+        }
+
+        // Старт VFX-таймлайна: вешаем гейт-счётчик (VfxStepsPendingComponent) и сразу запускаем шаги
+        // с StartDelay<=0 (обычно первый залп). Остальные шаги подхватит 1b) в Run() по мере наступления
+        // их времени (VfxEmitUtil.TryLaunchDueSteps — общая логика с RunChainSystem). Эффекты способности
+        // применяются, когда ВСЕ шаги запущены и долетели.
+        void LaunchVfxSteps(EcsWorld world, int ability, int caster, int[] targets, List<VfxStep> steps)
+        {
+            ref var pending = ref world.GetPool<VfxStepsPendingComponent>().Add(ability);
+            pending.ResolveStartTime = Time.time;
+            pending.Launched = new bool[steps.Count];
+            pending.PendingArrivals = 0;
+            GameEventBus.Publish(new InputBlockedEvent());
+
+            int ownerPlayer = world.GetPool<AbilityOwnerComponent>().Has(ability) ? world.GetPool<AbilityOwnerComponent>().Get(ability).PlayerEntity : -1;
+            VfxEmitUtil.TryLaunchDueSteps(world, _boardView.Value, ability, caster, ownerPlayer, targets, steps, ref pending);
+            Debug.Log($"[Resolve] vfx timeline started ability={ability} steps={steps.Count} targets={targets.Length}");
         }
 
         /// <summary>

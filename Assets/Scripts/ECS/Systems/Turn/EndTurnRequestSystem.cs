@@ -35,31 +35,6 @@ namespace Game.Core.Ecs.Systems
         readonly EcsPoolInject<TurnCounterComponent> _counterPool = default;
         readonly EcsFilterInject<Inc<AbilityContainerComponent, BoardTag, OwnerComponent>, Exc<HandTag, DeckTag>> _boardCards = default;
 
-        // Ждём только авто-стадии ability-пайплайна (без AbilityTargetPendingState — это ожидание игрока,
-        // которого после снятия ActiveState уже не будет; и без анимаций).
-        readonly EcsFilterInject<Inc<AbilityCastEvent>>      _abilityCast   = default;
-        readonly EcsFilterInject<Inc<AbilityTargetingState>> _abilityTarget = default;
-        readonly EcsFilterInject<Inc<AbilityQueuedState>>    _abilityQueued = default;
-        // ВАЖНО: ждём и НЕЗАВЕРШЁННЫЙ каст (форс-плей токена с добора: RequestCardCastEvent добавлен, но роутер
-        // ещё не сделал из него AbilityCastEvent). Иначе ранний End Turn хендофит ход до сбора ActionCastData
-        // авто-каста → у пассива зеркало руки держит фантом разыгранного токена.
-        readonly EcsFilterInject<Inc<RequestCardCastEvent>>  _castRequest   = default;
-        readonly EcsFilterInject<Inc<CastEvent>>             _castInProgress = default;
-        // #2: ждём гейт «призыв → OnCast» — иначе ранний End Turn хендофит ход до отложенного OnCast
-        // (напр. SelfDestruct/деатрэттл Всадников) → его снапшот уехал бы после передачи хода.
-        readonly EcsFilterInject<Inc<PendingOnCastComponent>> _pendingOnCast = default;
-        // Раскопка (DiscoverEffect) ещё не резолвнута — RunDiscoverSystem форсит случайный выбор на
-        // TurnEndedEvent (см. ForceResolveForEndedTurn), но это отдельная система/следующий тик; ждём, пока
-        // её запись реально уйдёт (без этого гейта Step B хендофил бы ход, пока discover-запрос ещё жив).
-        readonly EcsFilterInject<Inc<DiscoverRequestComponent>> _discoverPending = default;
-        // Цепочка (RunChainSystem — AbilityChain/RepeatAbility) ещё резолвится (снаряд летит между стадиями
-        // ИЛИ мир оседает между ними) — без этого гейта Step B хендофил бы ход до применения её эффектов.
-        readonly EcsFilterInject<Inc<ChainStateComponent>> _chainResolving = default;
-        // Существо ещё доигрывает ВИЗУАЛЬНУЮ анимацию смерти — DeadTag/BoardTag снимает DieSystem
-        // синхронно ДО запуска анимации, поэтому без этого гейта ход мог хендофиться раньше, чем
-        // предсмертный эффект (напр. Водонос → Водица в руку) успевал прийти (баг 2026-08-11, PvE).
-        readonly EcsFilterInject<Inc<DeathAnimPendingTag>> _deathAnim = default;
-
         public void Run(IEcsSystems systems)
         {
             if (MatchState.IsOver) return;   // матч окончен — конец хода не обрабатываем
@@ -94,11 +69,11 @@ namespace Game.Core.Ecs.Systems
             }
 
             // Шаг B: дождаться оседания ability-пайплайна → отправить EndTurn-снапшот, снять EndTurnState.
+            var world = systems.GetWorld();
             if (_endFilter.Value.GetEntitiesCount() == 0) { _waitingSince = 0f; return; }
-            if (AbilitiesPending()) { ReportIfStuck(); return; }
+            if (!PipelineGate.IsSettled(world)) { ReportIfStuck(world); return; }
             _waitingSince = 0f;
 
-            var world = systems.GetWorld();
             bool solo = _remotePlayers.Value.GetEntitiesCount() == 0;   // нет сетевого оппонента
 
             foreach (var entity in _endFilter.Value)
@@ -164,40 +139,14 @@ namespace Game.Core.Ecs.Systems
         float _waitingSince;
         const float StuckReportAfter = 8f;
 
-        void ReportIfStuck()
+        void ReportIfStuck(EcsWorld world)
         {
             if (_waitingSince == 0f) { _waitingSince = UnityEngine.Time.time; return; }
             if (_waitingSince < 0f) return;                                   // уже отчитались
             if (UnityEngine.Time.time - _waitingSince < StuckReportAfter) return;
 
-            var sb = new System.Text.StringBuilder("[EndTurn] передача хода ЗАСТРЯЛА, не осели:");
-            Append(sb, "AbilityCastEvent",        _abilityCast.Value.GetEntitiesCount());
-            Append(sb, "AbilityTargetingState",   _abilityTarget.Value.GetEntitiesCount());
-            Append(sb, "AbilityQueuedState",      _abilityQueued.Value.GetEntitiesCount());
-            Append(sb, "RequestCardCastEvent",    _castRequest.Value.GetEntitiesCount());
-            Append(sb, "CastEvent",               _castInProgress.Value.GetEntitiesCount());
-            Append(sb, "PendingOnCastComponent",  _pendingOnCast.Value.GetEntitiesCount());
-            Append(sb, "DiscoverRequestComponent", _discoverPending.Value.GetEntitiesCount());
-            Append(sb, "ChainStateComponent",      _chainResolving.Value.GetEntitiesCount());
-            Append(sb, "DeathAnimPendingTag",      _deathAnim.Value.GetEntitiesCount());
-            UnityEngine.Debug.LogError(sb.ToString());
+            UnityEngine.Debug.LogError("[EndTurn] передача хода ЗАСТРЯЛА, не осели:" + PipelineGate.DescribeBusy(world));
             _waitingSince = -1f;
         }
-
-        static void Append(System.Text.StringBuilder sb, string name, int count)
-        {
-            if (count > 0) sb.Append(' ').Append(name).Append('=').Append(count);
-        }
-
-        bool AbilitiesPending()
-            => _abilityCast.Value.GetEntitiesCount()    > 0
-            || _abilityTarget.Value.GetEntitiesCount()  > 0
-            || _abilityQueued.Value.GetEntitiesCount()  > 0
-            || _castRequest.Value.GetEntitiesCount()    > 0   // форс-плей: каст запрошен, ещё не разрезолвлен
-            || _castInProgress.Value.GetEntitiesCount() > 0   // каст в процессе (до OnCast-способностей)
-            || _pendingOnCast.Value.GetEntitiesCount()  > 0   // #2: призыв не «дозрел» до OnCast
-            || _discoverPending.Value.GetEntitiesCount() > 0  // раскопка не резолвнута (окно/форс-выбор)
-            || _chainResolving.Value.GetEntitiesCount() > 0   // цепочка (RunChainSystem) ещё резолвится
-            || _deathAnim.Value.GetEntitiesCount() > 0;       // существо ещё доигрывает анимацию смерти
     }
 }

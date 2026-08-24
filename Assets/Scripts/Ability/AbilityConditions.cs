@@ -86,17 +86,23 @@ namespace Game.Core.Ability
         public void Dispose() => GameEventBus.UnsubscribeAll(this);
     }
 
-    // === class (OOP) === Готово, пока ВСЕ карты владельца в КОЛОДЕ И РУКЕ (кроме командира) имеют цвет(а)
-    // Color (Проповедник: «если все карты жёлтого цвета — удвойте здоровье»). Хоть одна карта БЕЗ нужного
-    // цвета (в т.ч. бесцветная) → не готово. Обе зоны обязательны: OnMatchStart резолвится на ПЕРВОМ ХОДУ,
-    // стартовая рука уже раздана — скан только колоды её пропустил бы (старый баг RequireDeckColor: к тому же
-    // проверял «есть хотя бы одна цветная», а не «все»). Мультицвет ок: карта должна СОДЕРЖАТЬ все флаги
-    // маски Color. Пересчёт на событиях состава зон (замешанное оппонентом Вонючее облако ЛОМАЕТ условие —
-    // осмысленная контр-игра). Теги зеркальны → IsReady одинаков на обоих клиентах.
+    // === class (OOP) === Готово, пока ВСЕ карты владельца в КОЛОДЕ (кроме командира) имеют цвет(а) Color;
+    // IncludeHand=true (умолч. — как было раньше, ради обратной совместимости с уже настроенными картами)
+    // добавляет ещё и РУКУ (Проповедник: «если все карты жёлтого цвета — удвойте здоровье» — OnMatchStart
+    // резолвится на ПЕРВОМ ХОДУ, стартовая рука уже раздана, скан только колоды её пропустил бы). Для карт
+    // БЕЗ такой привязки к таймингу матча (кастуется в любой момент — «Отравленный кортик»: печатный текст
+    // говорит только «в вашей колоде», про руку ни слова) ставь IncludeHand=false — иначе случайная не той
+    // расцветки карта в руке роняла условие, хотя по тексту карты не должна была вообще участвовать (баг
+    // 2026-08-24: «не накладывал яд при пустой колоде» — колода вправду vacuous true, а вот рука с чужим
+    // цветом внутри — нет, и это никак не было видно игроку). Хоть одна карта БЕЗ нужного цвета (в т.ч.
+    // бесцветная) → не готово. Мультицвет ок: карта должна СОДЕРЖАТЬ все флаги маски Color. Пересчёт на
+    // событиях состава зон (замешанное оппонентом Вонючее облако ЛОМАЕТ условие — осмысленная контр-игра).
+    // Теги зеркальны → IsReady одинаков на обоих клиентах.
     [Serializable]
     public sealed class AllCardsHaveColorCondition : ICondition
     {
         public EnumService.Element Color = EnumService.Element.Yellow;
+        public bool IncludeHand = true;
 
         public bool IsReady { get; private set; }
         public event Action Changed;
@@ -116,7 +122,7 @@ namespace Game.Core.Ability
         void Recompute()
         {
             int ownerId = RuleUtil.OwnerId(_ctx.World, _ctx.CardEntity);
-            bool now = ownerId >= 0 && AllColored<DeckTag>(ownerId) && AllColored<HandTag>(ownerId);
+            bool now = ownerId >= 0 && AllColored<DeckTag>(ownerId) && (!IncludeHand || AllColored<HandTag>(ownerId));
             if (now == IsReady) return;
             IsReady = now;
             Changed?.Invoke();
@@ -187,11 +193,17 @@ namespace Game.Core.Ability
             var world = _ctx.World;
             var owner = world.GetPool<OwnerComponent>();
             var commander = world.GetPool<CommanderTag>();
+            var creature = world.GetPool<CreatureTag>();
             foreach (var e in world.Filter<TZone>().Inc<CardModelComponent>().Inc<OwnerComponent>().End())
             {
                 if (owner.Get(e).OwnerId != ownerId) continue;
                 if (commander.Has(e)) continue;                  // командир — не из 20 карт колоды
-                if (!Archetype.Has(world, e)) return false;      // карта вне архетипа (спелл — всегда вне)
+                // Архетип — трайб СУЩЕСТВ (ICreatureTag); спелл/чара не могут его иметь в принципе, поэтому
+                // раньше ЛЮБОЙ спелл/чара в зоне валили всю проверку (Has всегда false для не-существа) —
+                // «все карты архетипа X» на практике требовало колоду БЕЗ единого спелла. Пропускаем не-существ:
+                // они не считаются ни за, ни против, проверяем только существ (без архетипа — не проходят).
+                if (!creature.Has(e)) continue;
+                if (!Archetype.Has(world, e)) return false;
             }
             return true;
         }

@@ -118,11 +118,11 @@ namespace Game.Core.Ecs.Systems
         int EffectiveCost(int cardEntity, int playerEntity, int fallback)
         {
             if (_goldCostPool.Value.Has(cardEntity))
-                return CostModifierUtil.Effective(_world.Value, playerEntity, _goldCostPool.Value.Get(cardEntity).Cost);
+                return CostModifierUtil.Effective(_world.Value, playerEntity, cardEntity, _goldCostPool.Value.Get(cardEntity).Cost);
             if (_manaCostPool.Value.Has(cardEntity))
-                return CostModifierUtil.Effective(_world.Value, playerEntity, _manaCostPool.Value.Get(cardEntity).Cost);
+                return CostModifierUtil.Effective(_world.Value, playerEntity, cardEntity, _manaCostPool.Value.Get(cardEntity).Cost);
             if (_healthCostPool.Value.Has(cardEntity))
-                return CostModifierUtil.Effective(_world.Value, playerEntity, _healthCostPool.Value.Get(cardEntity).Cost);
+                return CostModifierUtil.Effective(_world.Value, playerEntity, cardEntity, _healthCostPool.Value.Get(cardEntity).Cost);
             return fallback;
         }
 

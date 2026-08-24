@@ -14,6 +14,7 @@ namespace Game.Core.Ecs.Systems
     /// </summary>
     public sealed class PoisonTickSystem : IEcsInitSystem, IEcsRunSystem, IEcsDestroySystem, System.IDisposable
     {
+        readonly EcsWorldInject _world = default;
         readonly EcsFilterInject<Inc<PoisonComponent>, Exc<DeadTag>> _filter = default;
         readonly EcsPoolInject<PoisonComponent> _poisonPool = default;
         readonly EcsPoolInject<TakeDamageEvent> _takeDamagePool = default;
@@ -49,6 +50,11 @@ namespace Game.Core.Ecs.Systems
 
         void Tick(int playerId)
         {
+            // [SyncWatch] в отличие от соседних тик-систем (CharmTimerTickSystem/CreatureTimerTickSystem/
+            // HandDiscardTimerTickSystem) у этой нет доккомментария про актив/пассив — HP входит в чексумму,
+            // так что если этот тик реально асимметричен между клиентами, десинк будет виден на границе хода.
+            // Лог фиксирует, на КАКОМ клиенте (актив/пассив) и сколько целей тикнуло — сравнить между собой.
+            int ticked = 0;
             foreach (var entity in _filter.Value)
             {
                 if (OwnerPlayerId(entity) != playerId) continue;
@@ -59,7 +65,11 @@ namespace Game.Core.Ecs.Systems
                 ref var d = ref _takeDamagePool.Value.Get(entity);
                 d.Amount += stacks;
                 d.Attacker = -1;   // амбиентный урон — как у таймера смерти/саранчи, атрибуция киллов не нужна
+                ticked++;
             }
+            if (ticked > 0)
+                UnityEngine.Debug.Log($"[SyncWatch] PoisonTick player={playerId} ticked={ticked} "
+                    + $"active={Game.Core.Ecs.Components.TurnGate.IsLocalActive(_world.Value)}");
         }
 
         // Владелец сущности: игрок сам себе владелец, у существа — OwnerComponent.

@@ -46,6 +46,9 @@ namespace Game.Core.Ecs.Components
             var hpPool  = world.GetPool<HealthComponent>();
             var spdPool = world.GetPool<SpeedComponent>();
 
+            // [SyncWatch] см. тот же лог у TrackedBuffs.RevertAll — тот же класс допущения "строится
+            // зеркально, спец-канала нет".
+            UnityEngine.Debug.Log($"[SyncWatch] AppliedBuffs.RevertAll source={source} records={buffs.Records.Count}");
             foreach (var r in buffs.Records)
             {
                 if (r.Atk   != 0 && atkPool.Has(r.Target)) { ref var a = ref atkPool.Get(r.Target); a.RemoveModifier(r.Atk); }

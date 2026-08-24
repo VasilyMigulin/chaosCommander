@@ -56,6 +56,14 @@ namespace Game.Core.Model.Card
         /// см. RelatedCardsResolver.Collect.</summary>
         public bool HideAsLinked;
 
+        /// <summary>Эта карта — ИСТОЧНИК: не показывать её СОБСТВЕННЫЙ список «связанных карт» в инспекторе,
+        /// даже если её способности ссылаются на карты с ShowAsLinked (в т.ч. через широкий пул). Нужно
+        /// картам, которые лишь ВЫБИРАЮТ одну ИЗ ПУЛА (дискавер «3 заклинания красного цвета») — там
+        /// ShowAsLinked карты пула (нужен для карт, которые создают её АДРЕСНО, напр. Маг-пиромант →
+        /// Поджог) иначе протекал бы и в этот список, хотя связь не детерминированная — «Поджог» тут лишь
+        /// один из многих возможных вариантов, а не гарантированный результат. См. RelatedCardsResolver.Resolve.</summary>
+        public bool HideRelatedCards;
+
         /// <summary>НЕБОЕВЫЕ способности — те, что действуют вне боевого цикла: сборка колоды (Сказочник:
         /// отложить 3 карты) и подготовка матча до первого хода (Билли: стартовая рука 4). Отдельное
         /// семейство от RuntimeAbilities, потому что там, где они срабатывают, ECS-мира ещё нет —
@@ -285,6 +293,18 @@ namespace Game.Core.Model.Card
             if (entities != null)
                 foreach (var ae in entities)
                 {
+                    // [SyncWatch] кавеат выше: если способность в этот момент стоит в резолв-очереди, её
+                    // резолв тихо отфильтруется после DelEntity. Для полиморфа это желаемо — но если это
+                    // случилось на одном клиенте и НЕ случилось на другом (разное время получения полиморфа
+                    // активом/пассивом), результат резолва (был/не был) разойдётся молча. Лог фиксирует
+                    // сам факт «отфильтровано», чтобы это было видно в logcat при подозрении на десинк.
+                    bool wasPending = world.GetPool<AbilityQueuedState>().Has(ae)
+                        || world.GetPool<AbilityCastEvent>().Has(ae)
+                        || world.GetPool<AbilityTargetingState>().Has(ae);
+                    if (wasPending)
+                        UnityEngine.Debug.LogWarning($"[SyncWatch] полиморф card={cardEntity} снёс ability={ae}, "
+                            + "стоявшую в резолв-очереди — её резолв тихо отфильтрован (см. CardModel.DisposeAbilities).");
+
                     if (refPool.Has(ae)) refPool.Get(ae).Ability?.Dispose();
                     world.DelEntity(ae);
                 }

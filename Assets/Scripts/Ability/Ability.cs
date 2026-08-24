@@ -39,6 +39,11 @@ namespace Game.Core.Ability
         // Косметика каста (луч/снаряд/область). Авторится на карте, на game-state НЕ влияет.
         public VfxSpec Vfx;
 
+        [Tooltip("VFX-КОНСТРУКТОР: несколько шагов (Source/Destination/StartDelay каждый) вместо одного Vfx. " +
+                 "Непусто → ПРИОРИТЕТНЕЕ Vfx (тот игнорируется для этой способности, см. Init). Пусто (умолч.) " +
+                 "→ ноль изменений в поведении, старый одиночный Vfx работает как раньше.")]
+        public List<VfxStep> VfxSteps = new();
+
         // Отписки от ConditionRoot.Changed (подсветка «условие эффекта готово» — см. WireConditionHighlight).
         readonly List<Action> _conditionUnsubs = new();
 
@@ -88,7 +93,9 @@ namespace Game.Core.Ability
             // нужно). Иначе RunResolveAbilityQueueSystem.Run()/ResolveAbility (гейт `vfxPool.Has(first)`)
             // никогда не увидит спеку → ни анимация каста, ни HitPrefab-вспышка не сработают НИКОГДА, даже
             // если оба поля честно проставлены в инспекторе.
-            if (Vfx != null && (Vfx.PlayCasterAnimation || Vfx.HitPrefab != null || (Vfx.Kind != VfxKind.None && Vfx.Prefab != null)))
+            if (VfxSteps != null && VfxSteps.Count > 0)
+                world.GetPool<AbilityVfxStepsComponent>().Add(abilityEntity).Steps = VfxSteps;
+            else if (Vfx != null && (Vfx.PlayCasterAnimation || Vfx.HitPrefab != null || (Vfx.Kind != VfxKind.None && Vfx.Prefab != null)))
                 world.GetPool<AbilityVfxComponent>().Add(abilityEntity).Spec = Vfx;
 
             OnInit(world, abilityEntity);
@@ -124,6 +131,8 @@ namespace Game.Core.Ability
             Del<AbilityEffectContainerComponent>(world, ae);
             Del<AbilityTriggerContainerComponent>(world, ae);
             Del<AbilityVfxComponent>(world, ae);
+            Del<AbilityVfxStepsComponent>(world, ae);
+            Del<VfxStepsPendingComponent>(world, ae);
             Del<AbilityTargetComponent>(world, ae);
             Del<AbilityFieldComponent>(world, ae);
             Del<AbilitySelfComponent>(world, ae);

@@ -43,6 +43,9 @@ namespace Game.Core.Ability
         public StatKind Stat = StatKind.Attack;
         [Tooltip("Для Source=Stat: чей стат — сам источник или его владелец-игрок (нужно для Mana/Gold).")]
         public StatSourceEntity StatSource = StatSourceEntity.Self;
+        [Tooltip("Для Source=CountByFilter: фильтры существ на поле, которые считаем (пусто = все живые, " +
+                 "любая сторона). См. RepeatEffect.CountFilters.")]
+        [SerializeReference] public List<ITargetFilter> CountFilters = new();
 
         protected override void OnInit(EcsWorld world, int abilityEntity)
         {
@@ -68,6 +71,7 @@ namespace Game.Core.Ability
                 Archetype = Archetype,
                 Stat = Stat,
                 StatSource = StatSource,
+                CountFilters = CountFilters,
             };
 
             // Stages пуст до первого AbilityFire.Mark — он пересчитает N и наполнит массив ПЕРЕД тем, как
@@ -90,5 +94,6 @@ namespace Game.Core.Ability
         public ICreatureTag Archetype;
         public StatKind Stat;
         public StatSourceEntity StatSource;
+        public List<ITargetFilter> CountFilters;
     }
 }

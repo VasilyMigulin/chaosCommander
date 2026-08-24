@@ -14,6 +14,7 @@ namespace Game.Core.Ecs.Systems
     /// </summary>
     public sealed class RecurringDamageTickSystem : IEcsInitSystem, IEcsRunSystem, IEcsDestroySystem, System.IDisposable
     {
+        readonly EcsWorldInject _world = default;
         readonly EcsFilterInject<Inc<RecurringDamageComponent, BoardTag>, Exc<DeadTag>> _filter = default;
         readonly EcsPoolInject<RecurringDamageComponent> _dmgPool = default;
         readonly EcsPoolInject<TakeDamageEvent> _takeDamagePool = default;
@@ -55,6 +56,9 @@ namespace Game.Core.Ecs.Systems
 
         void Tick()
         {
+            // [SyncWatch] см. тот же лог в PoisonTickSystem — сосед без доккомментария про актив/пассив,
+            // а бьёт HP (входит в чексумму). Сравнить ticked/active между клиентами при подозрении на десинк.
+            int ticked = 0;
             foreach (var entity in _filter.Value)
             {
                 int amount = _dmgPool.Value.Get(entity).Amount;
@@ -64,7 +68,11 @@ namespace Game.Core.Ecs.Systems
                 ref var d = ref _takeDamagePool.Value.Get(entity);
                 d.Amount += amount;
                 d.Attacker = -1;   // амбиентный урон, не от конкретной карты — атрибуция киллов не нужна (как у таймера смерти)
+                ticked++;
             }
+            if (ticked > 0)
+                UnityEngine.Debug.Log($"[SyncWatch] RecurringDamageTick ticked={ticked} "
+                    + $"active={Game.Core.Ecs.Components.TurnGate.IsLocalActive(_world.Value)}");
         }
     }
 }

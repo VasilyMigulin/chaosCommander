@@ -30,6 +30,7 @@ MonoBehaviour:
   CharmDuration: 0
   Cards:
   - {fileID: 11400000, guid: f7ebfa7d706879b4cabf6af501872cc3, type: 2}
+  - {fileID: 11400000, guid: 6c46900e1fcb27f428cbafa40b44b4e8, type: 2}
   - {fileID: 11400000, guid: 6c8a8cb7192199446940a6304622a09f, type: 2}
   - {fileID: 11400000, guid: 180e0acf8c97dbe4eaf88076b2698d88, type: 2}
   - {fileID: 11400000, guid: 51848da2ec4618a4e9e7decf70ef81ef, type: 2}
@@ -90,6 +91,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 53b05d72425ee2f44815b5b93dd6f7dc, type: 2}
   - {fileID: 11400000, guid: cc2a9a4ad2bf91ae5cd91793447aa6db, type: 2}
   - {fileID: 11400000, guid: fa433c54ef5d7504880295479d1c8460, type: 2}
+  - {fileID: 11400000, guid: 853123b3433994040aaf1fde7bbdb607, type: 2}
   - {fileID: 11400000, guid: b95570dec0b9bd54a80407943ca6f365, type: 2}
   - {fileID: 11400000, guid: 9dab1f94b12d75a4d8de7f3ab8447ef3, type: 2}
   - {fileID: 11400000, guid: 13e0d7a3e3cd14744b1049c586dd2e33, type: 2}

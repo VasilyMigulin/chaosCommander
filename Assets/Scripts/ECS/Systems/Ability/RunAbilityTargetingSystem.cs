@@ -154,7 +154,7 @@ namespace Game.Core.Ecs.Systems
                     else if (tc.Selection == TargetSelection.LeastExpensive) picked = PickByCost(world, candidates, tc.Count, mostExpensive: false);
                     else if (tc.Selection == TargetSelection.MostWounded)    picked = PickMostWounded(world, candidates, tc.Count);
                     else if (pref != AiTargetPreference.None)                picked = PickByPreference(world, candidates, tc.Count, pref);
-                    else                                                     picked = PickRandom(candidates, tc.Count);
+                    else                                                     picked = PickRandom(world, candidates, tc.Count);
                     Queue(world, queuedPool, entity, picked);
                 }
                 else if (fieldPool.Has(entity))
@@ -214,7 +214,7 @@ namespace Game.Core.Ecs.Systems
             if (tc.Selection == TargetSelection.LeastExpensive) return PickByCost(world, candidates, tc.Count, mostExpensive: false);
             if (tc.Selection == TargetSelection.MostWounded)    return PickMostWounded(world, candidates, tc.Count);
             if (pref != AiTargetPreference.None)                return PickByPreference(world, candidates, tc.Count, pref);
-            return PickRandom(candidates, tc.Count);
+            return PickRandom(world, candidates, tc.Count);
         }
 
         // У ЭТОЙ ЖЕ карты уже есть другая способность в интерактивном ожидании (Board-клик ИЛИ Pick-окно)?
@@ -417,10 +417,17 @@ namespace Game.Core.Ecs.Systems
             return res;
         }
 
-        static int[] PickRandom(List<int> candidates, int count)
+        static int[] PickRandom(EcsWorld world, List<int> candidates, int count)
         {
             if (count <= 0 || candidates.Count == 0) return Array.Empty<int>();
             if (candidates.Count <= count) return candidates.ToArray();
+
+            // [SyncWatch] UnityEngine.Random ниже НЕ детерминирован между клиентами (TODO синка) — если
+            // это когда-нибудь вызовется на пассиве, цели у него разойдутся с активом молча. Гейт
+            // TurnGate.IsLocalActive должен исключать этот путь на пассиве целиком; лог — страховка,
+            // чтобы увидеть момент, если гейт где-то прохудился.
+            if (!TurnGate.IsLocalActive(world))
+                UnityEngine.Debug.LogError("[SyncWatch] PickRandom вызван НЕ на активном клиенте — цели разойдутся (десинк).");
 
             for (int i = 0; i < count; i++)   // частичный Фишер-Йейтс; TODO: детерминизм для синка
             {

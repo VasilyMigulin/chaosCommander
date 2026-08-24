@@ -73,14 +73,19 @@ namespace Game.Core.Ecs.Systems
             // цикла ниже projectilePool.Has(entity) уже false, а state.Applied всё ещё false → ветка «стадия
             // ещё не начата» перевыбирала цели и запускала НОВЫЙ снаряд заново, бесконечно (эффект так и не
             // применялся). Держим компонент живым до тех пор, пока его явно не снимет ветка обработки.
+            var vfxStepsPendingPool = world.GetPool<VfxStepsPendingComponent>();
             while (_arrived.Count > 0)
             {
                 int token = _arrived.Dequeue();
-                if (token >= 0 && projectilePool.Has(token))
+                if (token < 0) continue;
+                if (projectilePool.Has(token))
                 {
                     ref var p = ref projectilePool.Get(token);
                     p.Deadline = 0f;
                 }
+                // VFX-таймлайн стадии (VfxSteps) — тот же Token=entity может прилетать НЕСКОЛЬКО раз (по
+                // одному на Projectile-шаг), считаем счётчиком (см. VfxEmitUtil.TryLaunchDueSteps).
+                if (vfxStepsPendingPool.Has(token)) vfxStepsPendingPool.Get(token).PendingArrivals--;
             }
 
             // Анимация кастера стадии (opt-in, VfxSpec.PlayCasterAnimation): CastEvent → применить эффекты
@@ -109,12 +114,29 @@ namespace Game.Core.Ecs.Systems
                 {
                     statePool.Del(entity);
                     if (projectilePool.Has(entity)) projectilePool.Del(entity);   // цепочку прервали — снаряд не долетит
+                    if (vfxStepsPendingPool.Has(entity)) vfxStepsPendingPool.Del(entity);   // ...или таймлайн шагов
                     continue;
                 }
 
                 if (!state.Applied)
                 {
                     if (castAnimPool.Has(entity)) continue;   // анимация кастера стадии ещё играет (ждём CastEvent/FinishEvent)
+
+                    // VFX-таймлайн стадии (VfxSteps) уже запущен — тикаем шаги и ждём, пока все не долетят
+                    // (аналог ветки projectilePool ниже, но для НЕСКОЛЬКИХ параллельных/растянутых шагов).
+                    if (vfxStepsPendingPool.Has(entity))
+                    {
+                        ref var vp = ref vfxStepsPendingPool.Get(entity);
+                        var vsteps = world.GetPool<AbilityVfxStepsComponent>().Get(entity).Steps;
+                        int vOwnerPlayer = ownerPool.Get(entity).PlayerEntity;
+                        VfxEmitUtil.TryLaunchDueSteps(world, _boardView.Value, entity, ownerPool.Get(entity).CardEntity,
+                                                       vOwnerPlayer, state.LastTargets ?? System.Array.Empty<int>(), vsteps, ref vp);
+                        if (!VfxEmitUtil.AllStepsLaunched(vp) || vp.PendingArrivals > 0) continue;   // не всё долетело
+                        vfxStepsPendingPool.Del(entity);
+                        GameEventBus.Publish(new InputRestoredEvent());
+                        FinishStage(world, entity, ref state, stages, ownerPool);
+                        continue;
+                    }
 
                     if (projectilePool.Has(entity))
                     {
@@ -129,6 +151,20 @@ namespace Game.Core.Ecs.Systems
 
                     int[] targets = ResolveTargets(world, stage, owner.CardEntity, owner.PlayerEntity);
                     state.LastTargets = targets;   // ДО возможного ожидания снаряда/анимации — резолв на прилёте/CastEvent бьёт ТЕ ЖЕ цели
+
+                    // ПРИОРИТЕТ: VFX-таймлайн (VfxSteps) — та же логика, что в RunResolveAbilityQueueSystem.
+                    // ResolveOrLaunch: если способность собрана через конструктор шагов, легаси Vfx-путь ниже
+                    // для неё не применяется (Ability.Init кладёт только ОДИН из двух компонентов).
+                    var vfxStepsPool = world.GetPool<AbilityVfxStepsComponent>();
+                    if (targets.Length > 0 && vfxStepsPool.Has(entity) && _boardView.Value != null)
+                    {
+                        var stepsList = vfxStepsPool.Get(entity).Steps;
+                        if (stepsList != null && stepsList.Count > 0)
+                        {
+                            LaunchStageVfxSteps(world, entity, owner.CardEntity, targets, stepsList);
+                            continue;
+                        }
+                    }
 
                     var vfxPool = world.GetPool<AbilityVfxComponent>();
                     var spec = vfxPool.Has(entity) ? vfxPool.Get(entity).Spec : null;
@@ -263,6 +299,18 @@ namespace Game.Core.Ecs.Systems
             if (stages == null || state.Current >= stages.Length) return;
 
             var targets = state.LastTargets ?? System.Array.Empty<int>();
+
+            var vfxStepsPool = world.GetPool<AbilityVfxStepsComponent>();
+            if (targets.Length > 0 && vfxStepsPool.Has(abilityEntity) && _boardView.Value != null)
+            {
+                var stepsList = vfxStepsPool.Get(abilityEntity).Steps;
+                if (stepsList != null && stepsList.Count > 0)
+                {
+                    LaunchStageVfxSteps(world, abilityEntity, ownerPool.Get(abilityEntity).CardEntity, targets, stepsList);
+                    return;
+                }
+            }
+
             var vfxPool = world.GetPool<AbilityVfxComponent>();
             var spec = vfxPool.Has(abilityEntity) ? vfxPool.Get(abilityEntity).Spec : null;
 
@@ -282,6 +330,21 @@ namespace Game.Core.Ecs.Systems
 
             ref var pending = ref world.GetPool<ChainProjectilePendingComponent>().Add(abilityEntity);
             pending.Deadline = Time.time + ProjectileTimeout;
+        }
+
+        // Старт VFX-таймлайна стадии (VfxSteps) — тот же VfxStepsPendingComponent/VfxEmitUtil.TryLaunchDueSteps,
+        // что у RunResolveAbilityQueueSystem.LaunchVfxSteps; ждём его в ветке vfxStepsPendingPool.Has(entity)
+        // основного цикла (Run()) — она сама зовёт FinishStage, когда всё запущено и долетело.
+        void LaunchStageVfxSteps(EcsWorld world, int abilityEntity, int caster, int[] targets, List<VfxStep> steps)
+        {
+            ref var pending = ref world.GetPool<VfxStepsPendingComponent>().Add(abilityEntity);
+            pending.ResolveStartTime = Time.time;
+            pending.Launched = new bool[steps.Count];
+            pending.PendingArrivals = 0;
+
+            var ownerPool = world.GetPool<AbilityOwnerComponent>();
+            int ownerPlayer = ownerPool.Has(abilityEntity) ? ownerPool.Get(abilityEntity).PlayerEntity : -1;
+            VfxEmitUtil.TryLaunchDueSteps(world, _boardView.Value, abilityEntity, caster, ownerPlayer, targets, steps, ref pending);
         }
 
         static void PublishStageResolved(int card, int abilityIndex, int step, int[] targets, int killed)
@@ -334,7 +397,7 @@ namespace Game.Core.Ecs.Systems
                         case TargetSelection.MostExpensive:  return RunAbilityTargetingSystem.PickByCost(world, list, stage.Count, mostExpensive: true);
                         case TargetSelection.Strongest:      return RunAbilityTargetingSystem.PickStrongest(world, list, stage.Count);
                         case TargetSelection.MostWounded:    return RunAbilityTargetingSystem.PickMostWounded(world, list, stage.Count);
-                        default:                             return PickRandom(list, stage.Count);
+                        default:                             return PickRandom(world, list, stage.Count);
                     }
                 }
                 default:
@@ -419,10 +482,15 @@ namespace Game.Core.Ecs.Systems
             return n;
         }
 
-        static int[] PickRandom(List<int> candidates, int count)
+        static int[] PickRandom(EcsWorld world, List<int> candidates, int count)
         {
             if (count <= 0 || candidates.Count == 0) return System.Array.Empty<int>();
             if (candidates.Count <= count) return candidates.ToArray();
+
+            // [SyncWatch] см. тот же лог в RunAbilityTargetingSystem.PickRandom — цепочка должна крутиться
+            // только на активе; если этот путь дошёл до пассива, стадии цепочки разойдутся молча.
+            if (!TurnGate.IsLocalActive(world))
+                UnityEngine.Debug.LogError("[SyncWatch] RunChainSystem.PickRandom вызван НЕ на активном клиенте — цели стадии разойдутся (десинк).");
 
             for (int i = 0; i < count; i++)   // частичный Фишер-Йейтс; детерминизм для синка — TODO
             {

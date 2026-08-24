@@ -96,6 +96,17 @@ namespace Game.Core.Ecs.Systems
             if (_pendingCellFilter.Value.GetEntitiesCount() > 0) { if (hasClick) UnityEngine.Debug.Log("[Select] blocked: PendingSelectCell"); return; }             // размещение существа
             if (_pendingAbilityTargetFilter.Value.GetEntitiesCount() > 0) { if (hasClick) UnityEngine.Debug.Log("[Select] blocked: AbilityTargetPending"); return; }    // выбор цели способности
 
+            // Карта ещё резолвится (чейн/повтор — напр. «Запустить фейерверки», AbilityChain со стадиями)
+            // — список выше был СВОИМ отдельным набором тегов, который проверял только часть пайплайна и
+            // не знал про ChainStateComponent/AbilityQueuedState/и т.п.: между стадиями чейна (в паузах
+            // ActionPacing.GapSeconds) игрок мог подвигать/атаковать существ, пока карта ещё не отыграна
+            // до конца. PipelineGate — единый источник истины (см. её докстринг) — ловит и это.
+            if (!PipelineGate.IsSettled(_world.Value))
+            {
+                if (hasClick) UnityEngine.Debug.Log("[Select] blocked: pipeline busy -" + PipelineGate.DescribeBusy(_world.Value));
+                return;
+            }
+
             foreach (var clickEntity in _clickFilter.Value)
             {
                 ref var click   = ref _clickPool.Value.Get(clickEntity);

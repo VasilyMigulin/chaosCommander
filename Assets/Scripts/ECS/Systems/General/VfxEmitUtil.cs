@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Game.Core.Ecs.Components;
 using Game.Core.Events;
 using Game.Core.Mono;
@@ -116,6 +117,63 @@ namespace Game.Core.Ecs.Systems
                 Delivery = spec.Delivery, Trajectory = spec.Trajectory, BallisticHeight = spec.BallisticHeight,
                 Wobble = spec.Wobble, WobbleAmount = spec.WobbleAmount, WobbleFrequency = spec.WobbleFrequency,
             });
+        }
+
+        // ── VFX-таймлайн (VfxStep) — общая логика ДВУХ вызывающих (RunResolveAbilityQueueSystem — обычный
+        // резолв, RunChainSystem — стадии RepeatAbility/AbilityChain), каждый со своим гейт-компонентом
+        // вокруг (AbilityCastPendingComponent-аналог/ChainProjectilePendingComponent-аналог), но одним и тем
+        // же VfxStepsPendingComponent-счётчиком и одной и той же логикой «чьё время настало — запустить».
+
+        /// <summary>Запускает все ещё не отправленные шаги, чьё время (ResolveStartTime + StartDelay) уже
+        /// настало. Projectile-шаги регистрируют себя на VfxArrivedEvent (Token=ability, PendingArrivals++);
+        /// остальные виды (Beam/Area/Hit) мгновенны — ждать нечего, отмечаем запущенным и всё.</summary>
+        public static void TryLaunchDueSteps(EcsWorld world, BoardView bv, int ability, int caster, int ownerPlayer,
+                                              int[] targets, List<VfxStep> steps, ref VfxStepsPendingComponent pending)
+        {
+            for (int i = 0; i < steps.Count; i++)
+            {
+                if (pending.Launched[i]) continue;
+                if (Time.time < pending.ResolveStartTime + steps[i].StartDelay) continue;
+
+                var step = steps[i];
+                int source = ResolveEndpoint(step.Source, caster, ownerPlayer, targets);
+                int[] dest = ResolveEndpoints(step.Destination, caster, ownerPlayer, targets);
+
+                if (step.Kind == VfxKind.Projectile && step.Prefab != null)
+                {
+                    LaunchProjectile(world, bv, step, source, dest, ability);
+                    pending.PendingArrivals++;
+                }
+                else
+                {
+                    EmitInstantVfx(world, bv, step, source, dest);
+                }
+                pending.Launched[i] = true;
+            }
+        }
+
+        static int ResolveEndpoint(VfxEndpoint e, int caster, int ownerPlayer, int[] targets) => e switch
+        {
+            VfxEndpoint.Caster => caster,
+            VfxEndpoint.Owner  => ownerPlayer,
+            VfxEndpoint.Target => targets.Length > 0 ? targets[0] : caster,
+            _ => caster,
+        };
+
+        static int[] ResolveEndpoints(VfxEndpoint e, int caster, int ownerPlayer, int[] targets) => e switch
+        {
+            VfxEndpoint.Caster => new[] { caster },
+            VfxEndpoint.Owner  => new[] { ownerPlayer },
+            VfxEndpoint.Target => targets,
+            _ => targets,
+        };
+
+        public static bool AllStepsLaunched(in VfxStepsPendingComponent pending)
+        {
+            if (pending.Launched == null) return true;
+            foreach (var launched in pending.Launched)
+                if (!launched) return false;
+            return true;
         }
     }
 }

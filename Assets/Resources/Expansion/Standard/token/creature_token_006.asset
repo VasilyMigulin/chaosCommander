@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
   m_Name: creature_token_006
   m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
   CardData:
     rid: 2419359952424665284
   references:
@@ -29,16 +30,23 @@ MonoBehaviour:
         ExpansionId: standard
         PlayCost: 0
         PlayCostAmount: 1
+        RequiresAdditionalCost: 0
+        AdditionalCostKind: 0
+        AdditionalCostAmount: 1
         IsToken: 1
         ShowAsLinked: 0
-        MulliganStartingHand: 0
-        MulliganUnlimitedReplace: 0
+        HideAsLinked: 0
+        HideRelatedCards: 0
+        NonBattleAbilities: []
         RuntimeAbilities: []
         Archetypes:
         - rid: 2419359952424665294
+        TierSource: 0
+        Tiers: []
         MaxHealth: 1
         Attack: 1
         Speed: 2
+        Properties: []
         ViewPrefab: {fileID: 8026686172653069236, guid: e610a7d38b3e8e64dad1b0cabeea4e23, type: 3}
         SummonVfx:
           PrePrefab: {fileID: 0}

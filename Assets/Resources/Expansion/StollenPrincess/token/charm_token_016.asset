@@ -79,7 +79,7 @@ MonoBehaviour:
           LightningJitter: 0.4
           PlayCasterAnimation: 0
         Area: 0
-        Zone: 0
+        Zone: 4
         Filters:
         - rid: 2425736393348874524
         - rid: 2425736393348874525

@@ -44,12 +44,12 @@ namespace Game.Core.Ecs.Systems
             var goldCostPool = world.GetPool<GoldCostComponent>();
             var goldPool = world.GetPool<GoldComponent>();
             if (goldCostPool.Has(cardEntity) && goldPool.Has(ownerEntity))
-                return goldPool.Get(ownerEntity).Current >= CostModifierUtil.Effective(world, ownerEntity, goldCostPool.Get(cardEntity).Cost);
+                return goldPool.Get(ownerEntity).Current >= CostModifierUtil.Effective(world, ownerEntity, cardEntity, goldCostPool.Get(cardEntity).Cost);
 
             var manaCostPool = world.GetPool<ManaCostComponent>();
             var manaPool = world.GetPool<ManaComponent>();
             if (manaCostPool.Has(cardEntity) && manaPool.Has(ownerEntity))
-                return manaPool.Get(ownerEntity).Current >= CostModifierUtil.Effective(world, ownerEntity, manaCostPool.Get(cardEntity).Cost);
+                return manaPool.Get(ownerEntity).Current >= CostModifierUtil.Effective(world, ownerEntity, cardEntity, manaCostPool.Get(cardEntity).Cost);
 
             // Карта без ресурсного коста (напр. HealthCost — «суицид» разрешён всегда) — доступна.
             return true;

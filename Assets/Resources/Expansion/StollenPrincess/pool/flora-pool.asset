@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b6336606c687b0341a9a2922c8a8d6b2, type: 3}
+  m_Name: flora-pool
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardPool
+  ColorMask: 0
+  FilterType: 1
+  Type: 0
+  FilterCost: 0
+  CostType: 0
+  MinCost: 0
+  MaxCost: 99
+  FilterRarity: 0
+  Rarity: 0
+  Archetype:
+    rid: 2425736462308475117
+  IncludeTokens: 0
+  ExpansionId: 
+  IncludeStoryOnly: 0
+  FilterCharmDuration: 0
+  CharmDuration: 0
+  Cards:
+  - {fileID: 11400000, guid: 16efd86080aa9fb49a21c9fdcb1667f3, type: 2}
+  - {fileID: 11400000, guid: 39ff7d8f769b3894ca7043fa43a2a60e, type: 2}
+  - {fileID: 11400000, guid: 15b386f313b55a34e86a7b4f66828688, type: 2}
+  - {fileID: 11400000, guid: 2fecd8f1a41ae084eaf75613dbc4405e, type: 2}
+  - {fileID: 11400000, guid: 0225a5a9070e6324781ae43beff8e2c4, type: 2}
+  - {fileID: 11400000, guid: aefc55f185354f84cafda6fff035c25e, type: 2}
+  references:
+    version: 2
+    RefIds:
+    - rid: 2425736462308475117
+      type: {class: FloraArchetype, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 

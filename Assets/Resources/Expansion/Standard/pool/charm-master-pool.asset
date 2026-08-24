@@ -29,12 +29,13 @@ MonoBehaviour:
   FilterCharmDuration: 0
   CharmDuration: 0
   Cards:
+  - {fileID: 11400000, guid: 6c46900e1fcb27f428cbafa40b44b4e8, type: 2}
   - {fileID: 11400000, guid: 180e0acf8c97dbe4eaf88076b2698d88, type: 2}
   - {fileID: 11400000, guid: 79bf4f943b96c58408a942f0cd22b6ea, type: 2}
   - {fileID: 11400000, guid: 63b8f7a1b6543b345895dce6e2d797ff, type: 2}
   - {fileID: 11400000, guid: 58fd72d84ac4e0f45b25d6ca1c846cff, type: 2}
-  - {fileID: 11400000, guid: f05f68bbd7464de4e835da22366417fe, type: 2}
   - {fileID: 11400000, guid: 60dffb175f67f3c46b4703a17c6311c4, type: 2}
+  - {fileID: 11400000, guid: f05f68bbd7464de4e835da22366417fe, type: 2}
   - {fileID: 11400000, guid: 6c2639b8df5a5154d8ce3fe333dec9a6, type: 2}
   - {fileID: 11400000, guid: 4a6bfbf9494a6f24d8392edd96804405, type: 2}
   - {fileID: 11400000, guid: db426ffc7df79aa4e8573a29f170f0e3, type: 2}
@@ -53,8 +54,11 @@ MonoBehaviour:
   - {fileID: 11400000, guid: fa433c54ef5d7504880295479d1c8460, type: 2}
   - {fileID: 11400000, guid: dc7e614fb5a301a44a26b92fa968ebf1, type: 2}
   - {fileID: 11400000, guid: 9dab1f94b12d75a4d8de7f3ab8447ef3, type: 2}
+  - {fileID: 11400000, guid: 6300c765223a17c4e9acc0169948567d, type: 2}
   - {fileID: 11400000, guid: 1c590af4a7891014891ad273dde81dc2, type: 2}
   - {fileID: 11400000, guid: afd423fbba0afd94d80a2610d9204141, type: 2}
+  - {fileID: 11400000, guid: f84e973371e6fa044aee7c727e254422, type: 2}
+  - {fileID: 11400000, guid: 4bf40c159e112484ca6c57f27b43b7ae, type: 2}
   - {fileID: 11400000, guid: d75f972363b593f488719927e0fe9cc0, type: 2}
   - {fileID: 11400000, guid: b3a438209d9ed33419e0299e0465c8e6, type: 2}
   - {fileID: 11400000, guid: 711fb833c98232201bb313ad6775cf07, type: 2}

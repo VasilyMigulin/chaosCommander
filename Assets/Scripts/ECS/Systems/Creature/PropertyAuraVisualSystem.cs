@@ -103,13 +103,23 @@ namespace Game.Core.Ecs.Systems
         {
             if (!_viewPool.Value.Has(e.CreatureEntity))
             {
-                UnityEngine.Debug.Log($"[PropAura] entity={e.CreatureEntity} key={e.Key}: НЕТ ViewRefComponent — жду");
-                waitList.Add(e);
-                return false;
+                // Компонента нет вовсе (сущность удалена целиком) — вью не появится НИКОГДА, ждать нечего
+                // (см. докстринг класса — раньше код это утверждал, но на деле копил в waitList навечно).
+                UnityEngine.Debug.Log($"[PropAura] entity={e.CreatureEntity} key={e.Key}: НЕТ ViewRefComponent — сдаюсь");
+                return true;
             }
             var go = _viewPool.Value.Get(e.CreatureEntity).View;
             if (go == null)
             {
+                // Active=false (снять визуал ауры, обычно ClearStatModifiers при смерти) — снимать уже
+                // не с чего, вью уже destroy()-нулась вместе с существом: копить в очереди НАВЕЧНО (баг
+                // 2026-08-23 — спам «View==null — жду» до конца матча на каждого умершего Щит/Защитника)
+                // смысла нет. Active=true — легитимный кейс «печатное свойство раньше спавна вью», ждём.
+                if (!e.Active)
+                {
+                    UnityEngine.Debug.Log($"[PropAura] entity={e.CreatureEntity} key={e.Key}: View==null, Active=false — снимать нечего, сдаюсь");
+                    return true;
+                }
                 UnityEngine.Debug.Log($"[PropAura] entity={e.CreatureEntity} key={e.Key}: View==null — жду");
                 waitList.Add(e);
                 return false;

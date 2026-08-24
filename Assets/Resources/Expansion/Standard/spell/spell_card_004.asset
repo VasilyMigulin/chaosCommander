@@ -35,9 +35,13 @@ MonoBehaviour:
         ExpansionId: standard
         PlayCost: 1
         PlayCostAmount: 2
+        RequiresAdditionalCost: 0
+        AdditionalCostKind: 0
+        AdditionalCostAmount: 1
         IsToken: 0
         ShowAsLinked: 0
         HideAsLinked: 0
+        HideRelatedCards: 1
         NonBattleAbilities: []
         RuntimeAbilities:
         - rid: 1051486611725615292
@@ -60,7 +64,17 @@ MonoBehaviour:
           Prefab: {fileID: 0}
           HitPrefab: {fileID: 185366, guid: 6dcff98dc6fbe6e4bbbdac7b196f0c5e, type: 3}
           ProjectileSpeed: 12
+          ProjectileScale: 1
           MergeArea: 0
+          Delivery: 0
+          Trajectory: 0
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
           PlayCasterAnimation: 0
     - rid: 1051486611725615293
       type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
@@ -74,3 +88,4 @@ MonoBehaviour:
         ToDeck: 0
         PoolAsset: {fileID: 11400000, guid: 3f6ccbf8dbbaf494ea1982f1b2472b1f, type: 2}
         Pool: []
+        Modifiers: []

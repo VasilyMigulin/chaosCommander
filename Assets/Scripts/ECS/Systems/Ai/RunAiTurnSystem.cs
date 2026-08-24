@@ -93,19 +93,6 @@ namespace Game.Core.Ecs.Systems
         // Конец хода
         readonly EcsPoolInject<EndTurnRequestEvent> _endReqPool = default;
 
-        // «Пайплайн осел» — не действуем, пока крутятся способности/движение/анимации/касты.
-        readonly EcsFilterInject<Inc<AbilityCastEvent>> _abilityCast = default;
-        readonly EcsFilterInject<Inc<AbilityTargetingState>> _abilityTargeting = default;
-        readonly EcsFilterInject<Inc<AbilityQueuedState>> _abilityQueued = default;
-        readonly EcsFilterInject<Inc<AbilityCastPendingComponent>> _abilityFlight = default;
-        readonly EcsFilterInject<Inc<RequestCardCastEvent>> _castRequests = default;
-        readonly EcsFilterInject<Inc<CastEvent>> _castsInProgress = default;
-        readonly EcsFilterInject<Inc<MovingTag>> _moving = default;
-        readonly EcsFilterInject<Inc<AttackAnimPendingTag>> _attackAnim = default;
-        readonly EcsFilterInject<Inc<PendingOnCastComponent>> _pendingOnCast = default;
-        readonly EcsFilterInject<Inc<ChainStateComponent>> _chainResolving = default;   // цепочка (RunChainSystem) в процессе
-        readonly EcsFilterInject<Inc<DeathAnimPendingTag>> _deathAnim = default;         // существо ещё доигрывает анимацию смерти
-
         const int FrontRow = 0;
         const int BackRow = 1;
         const int Cols = 5;
@@ -148,7 +135,8 @@ namespace Game.Core.Ecs.Systems
                 return;
             }
 
-            if (PipelineBusy()) return;
+            if (PipelineBusy()) { ReportIfStuck(); return; }
+            _stuckSince = 0f;
             if (Time.time < _nextActionTime) return;
 
             bool acted = _actionsThisTurn < MaxActionsPerTurn && TryAct(ai);
@@ -162,18 +150,23 @@ namespace Game.Core.Ecs.Systems
             }
         }
 
-        bool PipelineBusy()
-            => _abilityCast.Value.GetEntitiesCount() > 0
-            || _abilityTargeting.Value.GetEntitiesCount() > 0
-            || _abilityQueued.Value.GetEntitiesCount() > 0
-            || _abilityFlight.Value.GetEntitiesCount() > 0
-            || _castRequests.Value.GetEntitiesCount() > 0
-            || _castsInProgress.Value.GetEntitiesCount() > 0
-            || _moving.Value.GetEntitiesCount() > 0
-            || _attackAnim.Value.GetEntitiesCount() > 0
-            || _pendingOnCast.Value.GetEntitiesCount() > 0
-            || _chainResolving.Value.GetEntitiesCount() > 0
-            || _deathAnim.Value.GetEntitiesCount() > 0;
+        bool PipelineBusy() => !PipelineGate.IsSettled(_world.Value);
+
+        // [SyncWatch] диагностика зависшего хода ИИ (баг 2026-08-23: после объединения PipelineGate ход ИИ
+        // застрял намертво — «сам ничего не делает», а причина не была видна ни в одном логе). Тот же приём,
+        // что в EndTurnRequestSystem.ReportIfStuck: ждём дольше разумного, печатаем РОВНО что висит, один раз.
+        float _stuckSince;
+        const float StuckReportAfter = 5f;
+
+        void ReportIfStuck()
+        {
+            if (_stuckSince == 0f) { _stuckSince = Time.time; return; }
+            if (_stuckSince < 0f) return;
+            if (Time.time - _stuckSince < StuckReportAfter) return;
+
+            Debug.LogError("[SyncWatch] ход ИИ ЗАСТРЯЛ (PipelineGate не оседает):" + PipelineGate.DescribeBusy(_world.Value));
+            _stuckSince = -1f;
+        }
 
         // ── контекст хода (пересобирается на каждое действие — доска меняется) ─────────
 
@@ -1082,13 +1075,13 @@ namespace Game.Core.Ecs.Systems
         {
             if (_goldCostPool.Value.Has(card))
                 return _goldPool.Value.Has(aiPlayer) &&
-                       _goldPool.Value.Get(aiPlayer).Current >= CostModifierUtil.Effective(_world.Value, aiPlayer, _goldCostPool.Value.Get(card).Cost);
+                       _goldPool.Value.Get(aiPlayer).Current >= CostModifierUtil.Effective(_world.Value, aiPlayer, card, _goldCostPool.Value.Get(card).Cost);
             if (_manaCostPool.Value.Has(card))
                 return _manaPool.Value.Has(aiPlayer) &&
-                       _manaPool.Value.Get(aiPlayer).Current >= CostModifierUtil.Effective(_world.Value, aiPlayer, _manaCostPool.Value.Get(card).Cost);
+                       _manaPool.Value.Get(aiPlayer).Current >= CostModifierUtil.Effective(_world.Value, aiPlayer, card, _manaCostPool.Value.Get(card).Cost);
             if (_healthCostPool.Value.Has(card))
                 return _healthPool.Value.Has(aiPlayer) &&
-                       _healthPool.Value.Get(aiPlayer).Current > CostModifierUtil.Effective(_world.Value, aiPlayer, _healthCostPool.Value.Get(card).Cost);
+                       _healthPool.Value.Get(aiPlayer).Current > CostModifierUtil.Effective(_world.Value, aiPlayer, card, _healthCostPool.Value.Get(card).Cost);
             return true;
         }
 

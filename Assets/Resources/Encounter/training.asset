@@ -18,6 +18,7 @@ MonoBehaviour:
   DeckPool:
   - {fileID: 11400000, guid: 502a9267a643eab4b8636c5719958759, type: 2}
   - {fileID: 11400000, guid: 0eef86bedbb418c49a743cd1cf0b0f37, type: 2}
+  - {fileID: 11400000, guid: 2ed2564601748b9419164daffbbc9163, type: 2}
   StartingHand: 4
   Health: 30
   PlayerDeck: {fileID: 0}

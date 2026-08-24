@@ -34,8 +34,11 @@ MonoBehaviour:
         ExpansionId: stolen_princess
         PlayCost: 1
         PlayCostAmount: 1
+        RequiresAdditionalCost: 0
+        AdditionalCostKind: 0
+        AdditionalCostAmount: 1
         IsToken: 0
-        ShowAsLinked: 0
+        ShowAsLinked: 1
         HideAsLinked: 0
         NonBattleAbilities: []
         RuntimeAbilities:
@@ -84,6 +87,8 @@ MonoBehaviour:
         CountCard: {fileID: 0}
         Archetype:
           rid: -2
+        Stat: 1
+        StatSource: 0
     - rid: 2425736124044673339
       type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 

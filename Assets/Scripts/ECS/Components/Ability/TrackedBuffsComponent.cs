@@ -50,6 +50,10 @@ namespace Game.Core.Ecs.Components
             if (!pool.Has(source)) return;
             ref var t = ref pool.Get(source);
             if (t.Items == null) return;
+            // [SyncWatch] трекинг строится зеркально на активе/пассиве БЕЗ спец-канала (см. докстринг класса
+            // выше — "не синкается", допущение "резолв реплеится по тем же целям"). Если это допущение хоть
+            // раз нарушится, разойдётся именно Count здесь — сравнить лог на обоих клиентах на этой границе.
+            UnityEngine.Debug.Log($"[SyncWatch] TrackedBuffs.RevertAll source={source} items={t.Items.Count}");
             foreach (var it in t.Items) it.Buff?.Revert(world, source, it.Target);
             t.Items.Clear();
         }

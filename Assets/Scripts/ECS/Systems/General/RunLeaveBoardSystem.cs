@@ -189,6 +189,22 @@ namespace Game.Core.Ecs.Systems
             // ApplyTrackedBuffEffect, у которого раньше не было своего RemoveTarget вовсе, баг 2026-08-21).
             TrackedBuffs.RemoveTarget(_world.Value, entity);
             AppliedBuffs.RemoveTarget(_world.Value, entity);
+
+            // Существо было ИСТОЧНИКОМ ауро-модификатора стоимости (AddCostAuraEffect) — в отличие от
+            // AbilityAura.cs (см. кавеат ниже), этот механизм снимается и по баунсу, не только по OnDie.
+            AuraCostModifiers.RemoveBySource(_world.Value, entity);
+
+            // [SyncWatch] признанный кавеат ауры (AbilityAura.cs): реверт баффов, выданных ЭТИМ существом
+            // как ИСТОЧНИКОМ ауры, привязан к OnDie — баунс в руку/колоду его не дёргает. Если тут есть
+            // непустой трекинг — бафф на чужих существах остаётся навсегда, атака/HP входят в чексумму →
+            // при асимметричном баунсе (одна сторона видит его раньше другой) это честный десинк.
+            var trackedPool = _world.Value.GetPool<TrackedBuffsComponent>();
+            var appliedPool = _world.Value.GetPool<AppliedBuffsComponent>();
+            int trackedLeft = trackedPool.Has(entity) ? (trackedPool.Get(entity).Items?.Count ?? 0) : 0;
+            int appliedLeft = appliedPool.Has(entity) ? (appliedPool.Get(entity).Records?.Count ?? 0) : 0;
+            if (trackedLeft > 0 || appliedLeft > 0)
+                UnityEngine.Debug.LogWarning($"[SyncWatch] existing={entity} баунсится с активной аурой-ИСТОЧНИКОМ "
+                    + $"(TrackedBuffs.Items={trackedLeft}, AppliedBuffs.Records={appliedLeft}) — баффы НЕ отревертились (кавеат AbilityAura).");
         }
 
         void AddToZoneList(int entity, bool toHand, Vector3? fromWorld = null)
