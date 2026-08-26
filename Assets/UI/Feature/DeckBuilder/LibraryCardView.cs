@@ -50,7 +50,12 @@ namespace AwesomeUI.Feature.DeckBuilder
                 _icon.enabled = _data.Icon != null;
             }
 
-            ApplyVisualData(_data.Visual);
+            ApplyVisualData(_data.Visual);   // сбрасывает баннер уровня — вне боя живого прогресса нет (ниже)
+
+            // Карта-с-уровнями (CardModel.Tiers>0, «Королевская пиньята» и т.п.) — вне матча реального тира
+            // не существует (он считается от live-статов, TierSource, только в бою — см. CardTierSystem),
+            // поэтому в коллекции бейдж всегда «Ур. 1»: не текущий прогресс, а просто пометка «эта карта растёт».
+            if (Model != null && Model.Tiers != null && Model.Tiers.Count > 0) SetTierBanner(1);
 
             int available = _data.OwnedCount - _data.DeckCount;
 

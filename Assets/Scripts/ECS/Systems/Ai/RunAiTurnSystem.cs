@@ -817,8 +817,10 @@ namespace Game.Core.Ecs.Systems
 
                 // Атака аватара: только с фронт-ряда человека (его row 0). Летал ловится раньше
                 // (TryLethalRush), здесь — обычный урон в лицо; чем ниже HP человека, тем ценнее.
-                if (canAttack && !tauntBlocks && pos.OwnerId == ctx.HumanId && pos.Row == FrontRow && ctx.Human >= 0
-                    && !_attempted.Contains(AttemptKey(creature, Kind.Attack, ctx.Human)))
+                // Атака НЕ отмечается в _attempted: лимит бьёт AttacksUsedComponent/MaxAttacksFor, а
+                // блеклист по (существо, цель) ломал бы второй удар «Двойного удара» по единственной
+                // соседней цели (тот же таргет — легитимный повторный удар, не «долбёж в отклонённое»).
+                if (canAttack && !tauntBlocks && pos.OwnerId == ctx.HumanId && pos.Row == FrontRow && ctx.Human >= 0)
                 {
                     int faceScore = 22 + (ctx.HumanHp <= myAtk * 2 ? 6 : 0);   // «в двух ударах от летала» — дожимаем
                     if (faceScore > bestScore)
@@ -835,8 +837,7 @@ namespace Game.Core.Ecs.Systems
                         // рядом ограничивает выбор ИМ (tauntBlocks && occupant не Защитник → пропуск).
                         if (_ownerPool.Value.Get(occupant).OwnerId != ctx.AiId && canAttack
                             && !_stealthPool.Value.Has(occupant)
-                            && (!tauntBlocks || _tauntPool.Value.Has(occupant))
-                            && !_attempted.Contains(AttemptKey(creature, Kind.Attack, occupant)))
+                            && (!tauntBlocks || _tauntPool.Value.Has(occupant)))
                         {
                             int tHp  = _healthPool.Value.Has(occupant) ? _healthPool.Value.Get(occupant).Current : 1;
                             int tAtk = _attackValuePool.Value.Has(occupant) ? _attackValuePool.Value.Get(occupant).Value : 0;
@@ -939,7 +940,6 @@ namespace Game.Core.Ecs.Systems
 
             if (bestKind == (int)Kind.Attack)
             {
-                _attempted.Add(AttemptKey(bestCreature, Kind.Attack, bestTarget));
                 MarkAttacked(bestCreature);   // паритет с вводом человека: лимит атак ведём сами
                 if (!_attackPool.Value.Has(bestCreature)) _attackPool.Value.Add(bestCreature).TargetEntity = bestTarget;
                 Debug.Log($"[AI] существо {bestCreature} атакует {(bestTarget == ctx.Human ? "аватара" : bestTarget.ToString())} (score={bestScore})");

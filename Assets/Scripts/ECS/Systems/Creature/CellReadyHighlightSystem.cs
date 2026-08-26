@@ -24,6 +24,7 @@ namespace Game.Core.Ecs.Systems
     /// </summary>
     public sealed class CellReadyHighlightSystem : IEcsRunSystem
     {
+        readonly EcsWorldInject _world = default;
         readonly EcsCustomInject<BoardView> _boardView = default;
 
         readonly EcsFilterInject<Inc<PlayerComponent, ActiveState>> _activePlayerFilter = default;
@@ -76,6 +77,12 @@ namespace Game.Core.Ecs.Systems
 
         void Collect()
         {
+            // Идёт резолв способности/цепочки/RepeatAbility (PipelineGate) → клик по существу всё равно
+            // ничего не даст (RunSelectCellSystem её же проверяет) — раньше подсветка это не учитывала:
+            // существо продолжало гореть зелёным «готов ходить», хотя ввод уже заблокирован, диссонанс
+            // особенно заметен на затяжных FixedInterval-очередях снарядов (баг 2026-08-24).
+            if (!PipelineGate.IsSettled(_world.Value)) return;
+
             // Не наш ход (или идёт выбор цели) → набор пуст, дифф сам погасит всё, что горело.
             int localActiveId = -1;
             int localActiveEntity = -1;

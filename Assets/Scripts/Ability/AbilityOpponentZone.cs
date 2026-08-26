@@ -167,6 +167,50 @@ namespace Game.Core.Ability
         }
     }
 
+    // === class (OOP) === Похитить цель-карту ИЗ РУКИ оппонента, замешав в СВОЮ колоду (Шулер: «посмотрите
+    // 3 карты в руке противника, выберите 1»). Зеркало StealToHandEffect (Hand↔Deck поменяны местами:
+    // источник — рука, назначение — колода), без скидки по стоимости (тут её не просят) — та же смена
+    // владельца + тогл Own/EnemyCardTag + AbilityOwnershipUtil.Rebind (см. коммент StealToHandEffect —
+    // способности украденной карты должны служить новому хозяину, а не старому).
+    [Serializable]
+    public sealed class StealFromHandToDeckEffect : EffectBase
+    {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.HandDisruption;
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            if (target < 0) return;
+            var handTag = world.GetPool<HandTag>();
+            if (!handTag.Has(target)) return;                              // только из руки
+            if (world.GetPool<CommanderTag>().Has(target)) return;         // командир неуязвим (как Discard/Mill)
+
+            var ownerPool = world.GetPool<OwnerComponent>();
+            if (!ownerPool.Has(target)) return;
+            int oldOwnerId = ownerPool.Get(target).OwnerId;
+
+            var playerPool = world.GetPool<PlayerComponent>();
+            if (!playerPool.Has(PlayerEntity)) return;
+            int newOwnerId = playerPool.Get(PlayerEntity).PlayerId;
+            if (oldOwnerId == newOwnerId) return;                         // уже моя
+
+            ZoneListUtil.RemoveFromHand(world, target, oldOwnerId);
+            handTag.Del(target);
+            ownerPool.Get(target).OwnerId = newOwnerId;
+
+            var ownT = world.GetPool<OwnCardTag>();
+            var enemyT = world.GetPool<EnemyCardTag>();
+            if (ownT.Has(target)) { ownT.Del(target); if (!enemyT.Has(target)) enemyT.Add(target); }
+            else                  { if (enemyT.Has(target)) enemyT.Del(target); if (!ownT.Has(target)) ownT.Add(target); }
+
+            var deckTag = world.GetPool<DeckTag>();
+            if (!deckTag.Has(target)) deckTag.Add(target);
+            ZoneListUtil.AddToDeck(world, target, PlayerEntity);
+
+            // ХС-семантика: см. StealToHandEffect — способности украденной карты теперь служат вору.
+            AbilityOwnershipUtil.Rebind(world, target, PlayerEntity);
+        }
+    }
+
     // === helper === перенос карты между списками зон владельца (по PlayerId / сущности игрока).
     static class ZoneListUtil
     {
@@ -204,6 +248,19 @@ namespace Game.Core.Ability
             hand.CardEntities ??= new System.Collections.Generic.List<int>();
             if (!hand.CardEntities.Contains(card)) hand.CardEntities.Add(card);
             hand.Count = hand.CardEntities.Count;
+        }
+
+        // Вставка В СЛУЧАЙНУЮ позицию (не в конец/начало) — «замешать» буквально, а не «положить сверху».
+        public static void AddToDeck(EcsWorld world, int card, int playerEntity)
+        {
+            var dp = world.GetPool<DeckComponent>();
+            if (!dp.Has(playerEntity)) return;
+            ref var deck = ref dp.Get(playerEntity);
+            deck.CardEntities ??= new System.Collections.Generic.List<int>();
+            if (deck.CardEntities.Contains(card)) return;
+            int idx = deck.CardEntities.Count == 0 ? 0 : UnityEngine.Random.Range(0, deck.CardEntities.Count + 1);
+            deck.CardEntities.Insert(idx, card);
+            deck.Count = deck.CardEntities.Count;
         }
 
         public static int FindPlayerEntity(EcsWorld world, int ownerId)

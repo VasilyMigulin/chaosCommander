@@ -66,7 +66,11 @@ namespace AwesomeUI.Feature.DeckBuilder
                 _icon.enabled = _data.Icon != null;
             }
 
-            ApplyVisualData(_data.Visual);
+            ApplyVisualData(_data.Visual);   // сбрасывает баннер уровня — вне боя живого прогресса нет (ниже)
+
+            // Карта-с-уровнями (CardModel.Tiers>0) — та же пометка «Ур. 1», что и в LibraryCardView (см. её
+            // коммент): вне матча реального тира не существует, бейдж тут просто «эта карта растёт».
+            if (Model != null && Model.Tiers != null && Model.Tiers.Count > 0) SetTierBanner(1);
 
             bool isCommander = _data.IsCommander;
             if (_counterText    != null) _counterText.gameObject.SetActive(!isCommander);

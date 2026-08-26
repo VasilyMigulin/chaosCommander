@@ -18,13 +18,13 @@ namespace Game.Core.Ecs.Systems
     /// AbilityChain/RepeatAbility) — та же логика: пока цепочка резолвится (снаряд летит между стадиями
     /// ИЛИ мир оседает между ними), таймер стоит.
     ///
-    /// НЕТ ДЕЙСТВИЙ → ШОРТКАТ (2026-08-11): если у активного локального игрока не осталось ни одной
-    /// играбельной карты в руке, ни одного существа с остатком скорости — ждать полные TurnDuration
-    /// секунд бессмысленно (ход всё равно пассивный). Остаток таймера форсится до NoActionsTimeCap (3с),
-    /// НЕ мгновенно — чтобы игрок успел это увидеть, а не потерял ход стелс-скипом. Проверка НЕ каждый
-    /// кадр (поле меняется только действиями игрока) — на двух точках: (1) пайплайн только что осел
-    /// (busy→idle edge — «действие только что применилось и доигралось»), (2) начало хода
-    /// (LocalTurnStartedEvent — «действий не было ни одного»).
+    /// НЕТ ДЕЙСТВИЙ → UI-ПИНГ (2026-08-26): если у активного локального игрока не осталось ни одной
+    /// играбельной карты в руке, ни одного существа с остатком скорости — ход НЕ завершается сам
+    /// (раньше форсился остаток таймера и ход скипался стелсом). Вместо этого публикуется
+    /// NoActionsAvailableUIEvent — UI (EndTurnButtonView) подсвечивает кнопку «Конец хода» пульсацией,
+    /// решение нажать её остаётся за игроком. Проверка НЕ каждый кадр (поле меняется только действиями
+    /// игрока) — на двух точках: (1) пайплайн только что осел (busy→idle edge — «действие только что
+    /// применилось и доигралось»), (2) начало хода (LocalTurnStartedEvent — «действий не было ни одного»).
     /// </summary>
     public sealed class TurnTimerSystem : IEcsInitSystem, IEcsRunSystem, IEcsDestroySystem
     {
@@ -49,8 +49,6 @@ namespace Game.Core.Ecs.Systems
         readonly EcsFilterInject<Inc<PendingOnCastComponent>>      _pendingOnCast    = default;
         readonly EcsFilterInject<Inc<ChainStateComponent>>         _chainResolving   = default;   // цепочка (RunChainSystem) в процессе — снаряд/оседание между стадиями
         readonly EcsFilterInject<Inc<DeathAnimPendingTag>>         _deathAnim        = default;   // существо ещё доигрывает анимацию смерти
-
-        const float NoActionsTimeCap = 3f;
 
         bool _wasBusy;
 
@@ -107,8 +105,9 @@ namespace Game.Core.Ecs.Systems
             }
         }
 
-        // Активному локальному игроку нечем ходить (см. докстринг класса) → форсируем остаток таймера
-        // до NoActionsTimeCap. Только вниз — уже идущий более короткий отсчёт не продлеваем назад.
+        // Активному локальному игроку нечем ходить (см. докстринг класса) → шлём UI-пинг кнопки конца
+        // хода вместо форсирования таймера. Публикуем на каждый вызов (не только на смену состояния) —
+        // UI сам решает, идемпотентно ли реагировать (см. EndTurnButtonView).
         void CheckNoActions()
         {
             foreach (var entity in _activeFilter.Value)
@@ -116,11 +115,8 @@ namespace Game.Core.Ecs.Systems
                 ref var player = ref _playerPool.Value.Get(entity);
                 if (!player.IsLocalPlayer) continue;
 
-                ref var active = ref _activePool.Value.Get(entity);
-                if (active.TimeRemaining <= NoActionsTimeCap) continue;
-                if (HasAnyAction(player.PlayerId)) continue;
-
-                active.TimeRemaining = NoActionsTimeCap;
+                bool noActions = !HasAnyAction(player.PlayerId);
+                GameEventBus.Publish(new NoActionsAvailableUIEvent { NoActions = noActions });
             }
         }
 

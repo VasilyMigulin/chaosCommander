@@ -88,18 +88,22 @@ namespace Game.Core.Ecs.Systems
 
         public void Run(IEcsSystems systems)
         {
-            while (_incoming.Count > 0) TryApply(_incoming.Dequeue(), _waitingForView);
+            while (_incoming.Count > 0) TryApply(_incoming.Dequeue(), _waitingForView, logIfWaiting: true);
 
             if (_waitingForView.Count == 0) return;
 
+            // logIfWaiting: false — карта может валяться в руке/колоде ВЕСЬ матч (вью и не должен
+            // появиться), тут это легитимный бесконечный ретрай, а не баг: лог о том, что событие
+            // встало в очередь ожидания, уже дан один раз выше при первой попытке (баг 2026-08-24 —
+            // «жду» на каждый кадр забивал dev_log.txt под завязку за минуту, вытесняя всё остальное).
             var stillWaiting = new List<CreaturePropertyAuraChangedEvent>();
-            foreach (var e in _waitingForView) TryApply(e, stillWaiting);
+            foreach (var e in _waitingForView) TryApply(e, stillWaiting, logIfWaiting: false);
             _waitingForView = stillWaiting;
         }
 
         // true — применено (или применять уже нечего, вью с CreatureView не найти НИКОГДА). false — вью
         // ещё не заспавнен, событие ушло в waitList (retryList текущего кадра ИЛИ следующего) для повтора.
-        bool TryApply(CreaturePropertyAuraChangedEvent e, List<CreaturePropertyAuraChangedEvent> waitList)
+        bool TryApply(CreaturePropertyAuraChangedEvent e, List<CreaturePropertyAuraChangedEvent> waitList, bool logIfWaiting)
         {
             if (!_viewPool.Value.Has(e.CreatureEntity))
             {
@@ -120,7 +124,8 @@ namespace Game.Core.Ecs.Systems
                     UnityEngine.Debug.Log($"[PropAura] entity={e.CreatureEntity} key={e.Key}: View==null, Active=false — снимать нечего, сдаюсь");
                     return true;
                 }
-                UnityEngine.Debug.Log($"[PropAura] entity={e.CreatureEntity} key={e.Key}: View==null — жду");
+                if (logIfWaiting)
+                    UnityEngine.Debug.Log($"[PropAura] entity={e.CreatureEntity} key={e.Key}: View==null — жду (дальше ретраю молча)");
                 waitList.Add(e);
                 return false;
             }

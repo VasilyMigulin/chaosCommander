@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Game.Core.Configs;
 using Game.Core.Instance.Card;
 using Game.Core.Service;
 using UnityEditor;
@@ -46,6 +47,7 @@ namespace Game.Core.EditorTools
         [MenuItem("Tools/Backend/Export Card Catalog (JSON)")]
         public static void Export()
         {
+            var storyOnlyCards = CollectStoryOnlyCards();
             var file = new CatalogFile { generatedAtUtc = DateTime.UtcNow.ToString("o") };
 
             foreach (var guid in AssetDatabase.FindAssets("t:CardInstanceData", new[] { Root }))
@@ -53,6 +55,7 @@ namespace Game.Core.EditorTools
                 var path = AssetDatabase.GUIDToAssetPath(guid);
                 var card = AssetDatabase.LoadAssetAtPath<CardInstanceData>(path);
                 if (card == null || card.CardData == null) continue;
+                if (storyOnlyCards.Contains(card)) continue;   // сюжетные боссы/эксклюзивы — не для каталога/бустеров
 
                 string expansionId = ExpansionFromPath(path);
                 if (string.IsNullOrEmpty(expansionId))
@@ -90,6 +93,8 @@ namespace Game.Core.EditorTools
         [MenuItem("Tools/Backend/Export Card Pool (Title Data 'cardPool')")]
         public static void ExportPool()
         {
+            var storyOnlyCards = CollectStoryOnlyCards();
+
             // expansion → rarity → [itemId]. Читается Azure Function OpenBooster.
             var pool = new Dictionary<string, Dictionary<string, List<string>>>();
 
@@ -98,6 +103,7 @@ namespace Game.Core.EditorTools
                 var path = AssetDatabase.GUIDToAssetPath(guid);
                 var card = AssetDatabase.LoadAssetAtPath<CardInstanceData>(path);
                 if (card == null || card.CardData == null) continue;
+                if (storyOnlyCards.Contains(card)) continue;   // сюжетные боссы/эксклюзивы — не в случайные бустеры
 
                 string expansionId = ResolveExpansionId(card, path);
                 if (string.IsNullOrEmpty(expansionId)) continue;
@@ -168,6 +174,7 @@ namespace Game.Core.EditorTools
         {
             const string catalogVersion = "main";
 
+            var storyOnlyCards = CollectStoryOnlyCards();
             var items = new List<string>();
 
             foreach (var guid in AssetDatabase.FindAssets("t:CardInstanceData", new[] { Root }))
@@ -175,6 +182,7 @@ namespace Game.Core.EditorTools
                 var path = AssetDatabase.GUIDToAssetPath(guid);
                 var card = AssetDatabase.LoadAssetAtPath<CardInstanceData>(path);
                 if (card == null || card.CardData == null) continue;
+                if (storyOnlyCards.Contains(card)) continue;   // сюжетные боссы/эксклюзивы — не в общий каталог/бустеры
 
                 string expansionId = ResolveExpansionId(card, path);
                 if (string.IsNullOrEmpty(expansionId)) continue;
@@ -275,6 +283,25 @@ namespace Game.Core.EditorTools
             string rest = assetPath.Substring(i + marker.Length);
             int slash = rest.IndexOf('/');
             return slash > 0 ? rest.Substring(0, slash) : null;
+        }
+
+        // Членство «эта карта — из StoryOnly-экспаншена» считаем по ExpansionConfig.Cards (авторитетный
+        // список), а не по пути/CardModel.ExpansionId — тот же приём, что CardPoolEditor.CollectStoryOnlyCards
+        // (см. её докстринг: путь ненадёжен, «StollenPrincess» папка / «stolen_princess» id, ExpansionId у
+        // части карт не заполнен). Баг 2026-08-25: экспорт каталога/пула тянул все три экспаншена без
+        // разбора — сюжетные боссы/эксклюзивы (Story, StoryOnly=true) утекали в общий каталог/бустеры
+        // (322 айтема вместо 305 = 300 карт + 3 бустера + 2 аватара — разница ровно 17 стори-карт).
+        static HashSet<CardInstanceData> CollectStoryOnlyCards()
+        {
+            var result = new HashSet<CardInstanceData>();
+            foreach (var guid in AssetDatabase.FindAssets("t:ExpansionConfig"))
+            {
+                var cfg = AssetDatabase.LoadAssetAtPath<ExpansionConfig>(AssetDatabase.GUIDToAssetPath(guid));
+                if (cfg == null || !cfg.StoryOnly || cfg.Cards == null) continue;
+                foreach (var c in cfg.Cards)
+                    if (c != null) result.Add(c);
+            }
+            return result;
         }
 
         static string ElementTags(EnumService.Element element)

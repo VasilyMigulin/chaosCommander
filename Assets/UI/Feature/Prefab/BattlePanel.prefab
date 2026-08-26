@@ -2352,6 +2352,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: AwesomeUI.Feature::AwesomeUI.Feature.Battle.EndTurnButtonView
   _button: {fileID: 2435837702926470757}
+  _icon: {fileID: 2435837702926470756}
+  _normalSprite: {fileID: 21300000, guid: b44d9f7b7df104361b98f0f8c76e2111, type: 3}
+  _endTurnSprite: {fileID: 21300000, guid: ec54ea78b696e4906b4c2fba7cd1b22f, type: 3}
+  _pulseScale: 1.15
+  _pulseDuration: 0.5
 --- !u!114 &2622221328266118492
 MonoBehaviour:
   m_ObjectHideFlags: 0

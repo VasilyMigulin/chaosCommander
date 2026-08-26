@@ -1,0 +1,2751 @@
+﻿{
+  "CatalogVersion": "main",
+  "Catalog": [
+    {
+      "ItemId": "standard_50",
+      "DisplayName": "За работу!",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_52",
+      "DisplayName": "Молитва за здравие",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_67",
+      "DisplayName": "Наступающий кризис",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_68",
+      "DisplayName": "Вербовка",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_70",
+      "DisplayName": "Долгий обряд",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_71",
+      "DisplayName": "Позвать батю",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_73",
+      "DisplayName": "Пожарище",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_84",
+      "DisplayName": "Плохая погода",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_85",
+      "DisplayName": "Великое отлучение",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_exotic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_86",
+      "DisplayName": "Великое обращение",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_exotic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_91",
+      "DisplayName": "Благоговейный приход",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_104",
+      "DisplayName": "Вонючий туман",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_107",
+      "DisplayName": "Мракобесие",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_108",
+      "DisplayName": "Ритуальный костер",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_114",
+      "DisplayName": "Сезон дождей",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_131",
+      "DisplayName": "Скучный урок",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_133",
+      "DisplayName": "Нечищенный источник",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_140",
+      "DisplayName": "Безконтрольная заросль",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_142",
+      "DisplayName": "Судный час",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_143",
+      "DisplayName": "Неудачная молитва",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_144",
+      "DisplayName": "Плохое варево",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_145",
+      "DisplayName": "Вулканчик из содовой",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_155",
+      "DisplayName": "Сотворение чудес",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_156",
+      "DisplayName": "Профсоюзное знамя",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_157",
+      "DisplayName": "Сглаз",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_158",
+      "DisplayName": "Черная бухгалтерия",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_159",
+      "DisplayName": "Займ под проценты",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_160",
+      "DisplayName": "Порча",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_161",
+      "DisplayName": "Дупликатор",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_162",
+      "DisplayName": "Вербовка",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_163",
+      "DisplayName": "Страховка",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_0",
+      "DisplayName": "Черт",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_1",
+      "DisplayName": "Старший черт",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_2",
+      "DisplayName": "Главарь чертов",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_3",
+      "DisplayName": "Главарь преисподней",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_4",
+      "DisplayName": "Грыз",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_5",
+      "DisplayName": "Голубой волшебник",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_6",
+      "DisplayName": "Неудачливый чародей",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_7",
+      "DisplayName": "Старый колдун",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_8",
+      "DisplayName": "Гнидальф немытый",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_9",
+      "DisplayName": "Работяга",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_10",
+      "DisplayName": "Начальник смены",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_11",
+      "DisplayName": "Прораб",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_12",
+      "DisplayName": "Боец на арене",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_13",
+      "DisplayName": "Маг-пиромант",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_14",
+      "DisplayName": "Глава сатанистов",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_15",
+      "DisplayName": "Сатанист",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_16",
+      "DisplayName": "Начитанный волшебник Попадос",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_17",
+      "DisplayName": "Скелетон",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_18",
+      "DisplayName": "Скелетон-чародей, без кожи",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_19",
+      "DisplayName": "Свежий зомби",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_20",
+      "DisplayName": "Дерзкий расхититель гробниц",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_21",
+      "DisplayName": "Охотник за твоей головой",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_22",
+      "DisplayName": "Верховный волшебник Барабук",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_23",
+      "DisplayName": "Пресвятой Душ'Нила",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_24",
+      "DisplayName": "Еретик попущенный",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_25",
+      "DisplayName": "Библиотекарь на смене",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_26",
+      "DisplayName": "Шнырь",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_27",
+      "DisplayName": "Кладка",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_28",
+      "DisplayName": "Всадник Разложения",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_29",
+      "DisplayName": "Всадник Войны",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_30",
+      "DisplayName": "Всадник Голода",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_31",
+      "DisplayName": "Всадник Смерти",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_32",
+      "DisplayName": "Токсичная мать",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_33",
+      "DisplayName": "Батя улья",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_34",
+      "DisplayName": "Проповедник из качалки",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_exotic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_35",
+      "DisplayName": "Очиститель",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_36",
+      "DisplayName": "Харизматичный священник",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_37",
+      "DisplayName": "Патриарх",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_38",
+      "DisplayName": "Тайный воздыхатель",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_39",
+      "DisplayName": "Водонос",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_40",
+      "DisplayName": "Магический гомункул",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_45",
+      "DisplayName": "Адовый червь",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_47",
+      "DisplayName": "Босс качалки Билли",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_exotic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_56",
+      "DisplayName": "Бешеная бабка",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_63",
+      "DisplayName": "Биба",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_99",
+      "DisplayName": "Чертов начальник",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_102",
+      "DisplayName": "Канализационная крыса",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_103",
+      "DisplayName": "Крысиный король",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_105",
+      "DisplayName": "Латентный работяга",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_106",
+      "DisplayName": "Хранительница рощи",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_109",
+      "DisplayName": "Черт-задира",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_110",
+      "DisplayName": "Надоедливый сорняк",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_112",
+      "DisplayName": "Матушка полено",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_115",
+      "DisplayName": "Плющ переросток",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_118",
+      "DisplayName": "Селекционер",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_120",
+      "DisplayName": "Друид в комуфляже",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_121",
+      "DisplayName": "Собиратель побрякушек",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_135",
+      "DisplayName": "Шаман покровитель сорняков",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_141",
+      "DisplayName": "Мастер над чарами",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_148",
+      "DisplayName": "Лесная милфа",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_149",
+      "DisplayName": "Голодный повар",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_150",
+      "DisplayName": "Обжора",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_151",
+      "DisplayName": "Мистер Постоянство",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_exotic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_152",
+      "DisplayName": "Стукач",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_41",
+      "DisplayName": "Сатанинский круг",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_42",
+      "DisplayName": "Окропить святой водой",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_43",
+      "DisplayName": "Чертовщина",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_46",
+      "DisplayName": "Очистить от скверны",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_48",
+      "DisplayName": "Уничтожить",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_53",
+      "DisplayName": "Штраф на предприятии",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_54",
+      "DisplayName": "Позвать рой",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_57",
+      "DisplayName": "Вудду-будду",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_exotic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_60",
+      "DisplayName": "Дать газу!",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_61",
+      "DisplayName": "Поджог",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_64",
+      "DisplayName": "Дьявольский обряд",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_65",
+      "DisplayName": "Газовое вздутие",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_66",
+      "DisplayName": "Обнести хату",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_69",
+      "DisplayName": "Грабеж!",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_74",
+      "DisplayName": "Разгром кладбища",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_75",
+      "DisplayName": "Закопать заживо",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_76",
+      "DisplayName": "Массовое захоронение",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_77",
+      "DisplayName": "Призвать ураган",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_78",
+      "DisplayName": "Фокус-покус",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_79",
+      "DisplayName": "Та самая цепная молния",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_80",
+      "DisplayName": "Кара божественная",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_81",
+      "DisplayName": "Отлучение",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_82",
+      "DisplayName": "Покайся",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_83",
+      "DisplayName": "Обращение в веру",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_87",
+      "DisplayName": "Облопошить",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_88",
+      "DisplayName": "Временная петля",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_exotic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_89",
+      "DisplayName": "Мертвячая рука",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_90",
+      "DisplayName": "Машина пропаганды",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_exotic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_92",
+      "DisplayName": "Грядущий шторм ",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_93",
+      "DisplayName": "Прилив сил",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_94",
+      "DisplayName": "Бомбануть!",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_95",
+      "DisplayName": "Зажигалка",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_96",
+      "DisplayName": "Гиперинфляция",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_exotic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_97",
+      "DisplayName": "Подстава",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_100",
+      "DisplayName": "Неудачная насмешка",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_101",
+      "DisplayName": "Надоедливый укус",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_111",
+      "DisplayName": "Перегной",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_116",
+      "DisplayName": "Заполонить сорняками",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_119",
+      "DisplayName": "Сбор урожая",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_122",
+      "DisplayName": "Воображаемые друзья",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_124",
+      "DisplayName": "Опять все самому делать!",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_exotic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_125",
+      "DisplayName": "Искорка",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_126",
+      "DisplayName": "Запойное чтение",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_127",
+      "DisplayName": "Полезный конспект",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_128",
+      "DisplayName": "Обидчевый гримуар",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_130",
+      "DisplayName": "Финишер",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_132",
+      "DisplayName": "Книжка-пустышка",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_134",
+      "DisplayName": "Дежавю",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_exotic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_136",
+      "DisplayName": "Время кормежки",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_137",
+      "DisplayName": "Почему пауки",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_138",
+      "DisplayName": "Вторая попытка",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_139",
+      "DisplayName": "Дикий призыв",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_146",
+      "DisplayName": "Первая помощь",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_153",
+      "DisplayName": "Прикурить",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_standard"]
+    },
+    {
+      "ItemId": "standard_154",
+      "DisplayName": "Дополнительная возможность",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_standard"]
+    },
+    {
+      "ItemId": "stolen_princess_4",
+      "DisplayName": "Королевский шарм",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_20",
+      "DisplayName": "Проходная на свалку",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_33",
+      "DisplayName": "Очарование принцессы",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_34",
+      "DisplayName": "Попаданцы",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_36",
+      "DisplayName": "Развилка",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_56",
+      "DisplayName": "Сказочное желание",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_exotic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_88",
+      "DisplayName": "Вечеринка в бараке",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_95",
+      "DisplayName": "Полевой госпиталь",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_125",
+      "DisplayName": "Заправиться к бою",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_126",
+      "DisplayName": "Ожидание в очереди",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_128",
+      "DisplayName": "Пониженная мораль",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_129",
+      "DisplayName": "Назойливые крестьяне",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_140",
+      "DisplayName": "Отложенная эксгумация",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_161",
+      "DisplayName": "Антисанитарные условия",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_162",
+      "DisplayName": "Поддержание морали",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_163",
+      "DisplayName": "Первая волна",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_169",
+      "DisplayName": "Поднять настроение",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_198",
+      "DisplayName": "Украсть чужое время",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_0",
+      "DisplayName": "Шальной принц",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_1",
+      "DisplayName": "Распрекрасная принцесса",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_2",
+      "DisplayName": "Местный браток",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_9",
+      "DisplayName": "Выгребной мусор",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_10",
+      "DisplayName": "Королевская пиньята",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_11",
+      "DisplayName": "Начальник мусорки",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_15",
+      "DisplayName": "Домашний медик",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_16",
+      "DisplayName": "Плюющий сорняк",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_17",
+      "DisplayName": "Королевский сорняк",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_24",
+      "DisplayName": "Крышующий мусорку",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_exotic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_25",
+      "DisplayName": "Королевский собутыльник",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_26",
+      "DisplayName": "Мастер трансмутаций",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_30",
+      "DisplayName": "Бесчестный букмекер",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_31",
+      "DisplayName": "Медлительный дворецкий",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_32",
+      "DisplayName": "Блаженный дьякон",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_35",
+      "DisplayName": "Шальной десница",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_40",
+      "DisplayName": "Сказочник",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_41",
+      "DisplayName": "Королевский шут",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_42",
+      "DisplayName": "Собиратель кукол",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_43",
+      "DisplayName": "Сказочный волшебник Упс",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_44",
+      "DisplayName": "Королевский садовник",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_exotic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_45",
+      "DisplayName": "Королевский подвпевала",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_46",
+      "DisplayName": "Поедатель дворцовой жратвы",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_47",
+      "DisplayName": "Усталый работяга",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_48",
+      "DisplayName": "Придворный друид",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_49",
+      "DisplayName": "Придворный демонолог",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_50",
+      "DisplayName": "Пиротехник на пол стваки",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_77",
+      "DisplayName": "Контрабандист",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_78",
+      "DisplayName": "Батюшка-барыга",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_79",
+      "DisplayName": "Рыцарь с переростком",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_80",
+      "DisplayName": "Сторожевая статуя",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_73",
+      "DisplayName": "Зачарованный",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_86",
+      "DisplayName": "Командующий королевской гвардией",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_87",
+      "DisplayName": "Неуклюжий страж",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_100",
+      "DisplayName": "Посредственынй начальник",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_102",
+      "DisplayName": "Распорядитель королвеской тусовки",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_103",
+      "DisplayName": "Тройняшки из прислуги",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_105",
+      "DisplayName": "Надоедливый начальник",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_106",
+      "DisplayName": "Чемпион королевской вечеринки",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_107",
+      "DisplayName": "Королевский палач",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_108",
+      "DisplayName": "Чертяга-король",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_114",
+      "DisplayName": "Ее велчичество Кобра",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_115",
+      "DisplayName": "Мелкий шулер",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_116",
+      "DisplayName": "Вампир из погреба",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_117",
+      "DisplayName": "Граф Жракула",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_120",
+      "DisplayName": "Мерзлин уставший чародей",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_122",
+      "DisplayName": "Костян",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_124",
+      "DisplayName": "Дворцовый заморыш",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_131",
+      "DisplayName": "Неудачный эксперимент",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_132",
+      "DisplayName": "Продажный оруженосец",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_157",
+      "DisplayName": "Верховный черный маг Володя",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_exotic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_166",
+      "DisplayName": "Брат по оружию",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_168",
+      "DisplayName": "Карета с тусовщиками",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_170",
+      "DisplayName": "Шальной черт",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_172",
+      "DisplayName": "Обидчевый маникен",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_173",
+      "DisplayName": "Утренняя капля",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_174",
+      "DisplayName": "Идейный настоятель",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_175",
+      "DisplayName": "Начинающий садовник",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_176",
+      "DisplayName": "Неуклюжий разбойник",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_177",
+      "DisplayName": "Подсапожная змеюка",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_178",
+      "DisplayName": "Придворный пиротехник",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_179",
+      "DisplayName": "Сорняк переросток",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_180",
+      "DisplayName": "Начинающий рассказчик",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_181",
+      "DisplayName": "Начинающий чернокнижник",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_182",
+      "DisplayName": "Истинноверующий",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_183",
+      "DisplayName": "Оценщик",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_184",
+      "DisplayName": "Заведующий королевским гербарием",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_185",
+      "DisplayName": "Ядовитый плющ",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_186",
+      "DisplayName": "Неубиваемый сорняк",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_188",
+      "DisplayName": "Мастер над кинжалами",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_190",
+      "DisplayName": "Репетитор по математике",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_191",
+      "DisplayName": "Медиум шарлатан",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_192",
+      "DisplayName": "Казначей",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_193",
+      "DisplayName": "Стойкий чародей",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_194",
+      "DisplayName": "Взрывной некромант",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_195",
+      "DisplayName": "Шулер",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_196",
+      "DisplayName": "Перегруженный рядовой",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_3",
+      "DisplayName": "Вот эта потасовка",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_5",
+      "DisplayName": "Королевская попойка",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_6",
+      "DisplayName": "Вечная попойка",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_exotic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_8",
+      "DisplayName": "Канализационный прорыв",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_12",
+      "DisplayName": "Выбросить мусор",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_14",
+      "DisplayName": "Утилизация",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_18",
+      "DisplayName": "Подлечись",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_19",
+      "DisplayName": "Запойное время",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_21",
+      "DisplayName": "Пожизненная подписка на утилизацию",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_exotic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_22",
+      "DisplayName": "Приглашение на королвескую вечеринку",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_27",
+      "DisplayName": "Каналлизационный мутаген",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_28",
+      "DisplayName": "Профилактический экзорцизм",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_29",
+      "DisplayName": "Накопившееся раздрожение",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_61",
+      "DisplayName": "Пригласить вип-гостей",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_65",
+      "DisplayName": "Испортить урожай",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_67",
+      "DisplayName": "Напустить саранчу",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_68",
+      "DisplayName": "Проигранная партия",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_69",
+      "DisplayName": "Богоугодное дело",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_81",
+      "DisplayName": "Позвать стражу",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_82",
+      "DisplayName": "Предсказать будущее",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_83",
+      "DisplayName": "Запустить фейерверки",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_84",
+      "DisplayName": "Покрестить принца",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_85",
+      "DisplayName": "Задать жару",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_70",
+      "DisplayName": "Достать туза из рукава",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_72",
+      "DisplayName": "Прокачать чары",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_74",
+      "DisplayName": "Зачаровать матч",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_90",
+      "DisplayName": "Уроки махания палкой",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_92",
+      "DisplayName": "На штурм!",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_93",
+      "DisplayName": "Штурмовая лестница",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_94",
+      "DisplayName": "Вызвать скорую!",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_97",
+      "DisplayName": "Братская помощь",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_98",
+      "DisplayName": "Одобрение принцессы",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_99",
+      "DisplayName": "Круговой удар",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_109",
+      "DisplayName": "Волна мутагена",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_110",
+      "DisplayName": "Чертова вечеринка",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_111",
+      "DisplayName": "Забросать чертовыми огнями",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_113",
+      "DisplayName": "Чертово нашествие",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_118",
+      "DisplayName": "Вечаная каторга",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_exotic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_119",
+      "DisplayName": "Экзекуция по-королевски",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_121",
+      "DisplayName": "Тим-билдинг",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_133",
+      "DisplayName": "Накормить скелетонов",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_134",
+      "DisplayName": "Ритуал с подвохом",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_136",
+      "DisplayName": "Позвать товарища",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_137",
+      "DisplayName": "Шарады с черной магией",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_138",
+      "DisplayName": "Удобрить королевский гербарий",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_139",
+      "DisplayName": "Сделка с чертом",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_rare", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_141",
+      "DisplayName": "Вернуть на работу",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_142",
+      "DisplayName": "Репликация",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_143",
+      "DisplayName": "Достойная жертва",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_144",
+      "DisplayName": "Проклятье для принцессы",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_legendary", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_160",
+      "DisplayName": "Отравленный кортик",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_165",
+      "DisplayName": "Опоздание на вечеринку",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_187",
+      "DisplayName": "Растоптать",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_189",
+      "DisplayName": "Расстрелять",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_epic", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "stolen_princess_197",
+      "DisplayName": "Саженцы",
+      "ItemClass": "card",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["card", "rarity_common", "expansion_stolen_princess"]
+    },
+    {
+      "ItemId": "booster_standard",
+      "DisplayName": "Бустер «Standard»",
+      "ItemClass": "booster",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["booster"]
+    },
+    {
+      "ItemId": "booster_premium",
+      "DisplayName": "Бустер «Премиум»",
+      "ItemClass": "booster",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["booster"]
+    },
+    {
+      "ItemId": "booster_stolen_princess",
+      "DisplayName": "Бустер «Похищение принцессы»",
+      "ItemClass": "booster",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["booster"]
+    },
+    {
+      "ItemId": "avatar_prince",
+      "DisplayName": "Аватар «Шальной принц»",
+      "ItemClass": "avatar",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["avatar"]
+    },
+    {
+      "ItemId": "avatar_gnidalf",
+      "DisplayName": "Аватар «Гнидальф»",
+      "ItemClass": "avatar",
+      "CatalogVersion": "main",
+      "IsStackable": false,
+      "IsTradable": false,
+      "Tags": ["avatar"]
+    }
+  ],
+  "DropTables": []
+}

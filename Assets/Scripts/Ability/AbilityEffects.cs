@@ -323,6 +323,62 @@ namespace Game.Core.Ability
         }
     }
 
+    // === class (OOP) === Увеличить ЗАПАС золота владельца (Max), без выдачи Current — сиблинг
+    // GainGoldEffect (тот трогает только Current, см. его коммент). Раздельные эффекты, а не один флаг
+    // «AlsoMax» на GainGoldEffect (Казначей: «получите 1 золота» + «увеличьте запас золота на 1» — два
+    // разных действия в тексте карты, комбинируются в Effects двумя отдельными записями).
+    // Кап 10 — как у золота/маны (см. RunTurnStartSystem.cs:93, DieSystem.cs ManaCap-коммент).
+    [Serializable]
+    public sealed class GainGoldMaxEffect : EffectBase, ICasterScopedEffect, IDynamicValue
+    {
+        public override Game.Core.Shared.Interface.AiEffectRole AiRole => Game.Core.Shared.Interface.AiEffectRole.Resource;
+        public int Amount = 1;
+
+        public int DynamicValueCount => 1;
+        public int GetDynamicValue(int index, EcsWorld world, int cardEntity, int playerEntity) => Amount;
+
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            const int GoldCap = 10;
+            var pool = world.GetPool<GoldComponent>();
+            if (!pool.Has(PlayerEntity)) return;
+            ref var gold = ref pool.Get(PlayerEntity);
+            gold.Max = Math.Min(gold.Max + Amount, GoldCap);
+            EffectUtil.RaiseResource(world, PlayerEntity, EnumService.ResourceType.Gold, gold.Current, gold.Max);
+        }
+    }
+
+    // === class (OOP) === Форс-активировать способности ВСЕХ своих чар на столе (Медиум шарлатан) — не
+    // «переиздать CharmInvokedEvent» (тот узкий канал — только «чара родилась сразу на столе», см.
+    // OnCharmInvokedTrigger), а буквально дёрнуть AbilityFire.Mark на КАЖДОЙ загруженной способности каждой
+    // чары, вне зависимости от того, какой у неё триггер (OnTurnStart/OnCast/что угодно) — ровно «включить
+    // ещё раз», как обычный ручной вызов той же точки, которой уже пользуется любой триггер-класс. Чара без
+    // подходящих условий/правил под способностью просто не резолвится — то же самое, как если бы её родной
+    // триггер сработал вхолостую.
+    [Serializable]
+    public sealed class ActivateCharmsEffect : EffectBase, ICasterScopedEffect
+    {
+        public override void Apply(EcsWorld world, int cardEntity, int target)
+        {
+            var playerPool = world.GetPool<PlayerComponent>();
+            if (!playerPool.Has(PlayerEntity)) return;
+            int ownerId = playerPool.Get(PlayerEntity).PlayerId;
+
+            var ownerPool = world.GetPool<OwnerComponent>();
+            var containerPool = world.GetPool<AbilityContainerComponent>();
+            foreach (var e in world.Filter<CharmTag>().Inc<BoardTag>().Inc<OwnerComponent>().End())
+            {
+                if (e == cardEntity) continue;                       // не дёргаем сами себя
+                if (ownerPool.Get(e).OwnerId != ownerId) continue;
+                if (!containerPool.Has(e)) continue;
+                var abilities = containerPool.Get(e).AbilityEntities;
+                if (abilities == null) continue;
+                foreach (var abilityEntity in abilities)
+                    AbilityFire.Mark(world, abilityEntity, e, PlayerEntity);
+            }
+        }
+    }
+
     // === class (OOP) === Временная мана до конца хода (Освежающий напиток). NonTarget: target = игрок.
     // +Amount к Current сейчас (может превышать Max — временная), а TemporaryManaRefundSystem вернёт
     // RefundAmount в конце хода. КАВЕАТ синка: возврат у ПАССИВА для маны оппонента косметичен —

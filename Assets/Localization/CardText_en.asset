@@ -4744,6 +4744,80 @@ MonoBehaviour:
     m_Localized: Deal 1 damage to a random enemy, repeat the effect for each enemy
     m_Metadata:
       m_Items: []
+  - m_Id: 1111706796285952
+    m_Localized: Math Tutor
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1111706867589120
+    m_Localized: 'On play: your next spell triggers twice'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1111706867589121
+    m_Localized: Charlatan Medium
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1111706867589122
+    m_Localized: 'On play: activate your charms'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1111706867589123
+    m_Localized: Treasurer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1111706867589124
+    m_Localized: 'On play: gain 1 gold, increase your gold capacity by 1'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1111706867589125
+    m_Localized: Resilient Sorcerer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1111706867589126
+    m_Localized: 'After surviving damage: plays a random spell costing 3 or less'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1111706867589127
+    m_Localized: Explosive Necromancer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1111706867589128
+    m_Localized: 'On death: plays 2 random spells costing 3 or less'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1111706867589129
+    m_Localized: Card Sharp
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1111706867589130
+    m_Localized: 'On play: look at 3 cards in the opponent''s hand, choose 1 and
+      shuffle it into your deck'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1167899145265152
+    m_Localized: Overloaded Private
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1167899216568320
+    m_Localized: 'On death: deals 4 damage to all of the opponent''s creatures'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1167899216568321
+    m_Localized: Seedlings
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1167899216568322
+    m_Localized: Put 2 1/1/3 Weeds into your hand, they get +1/+1 at the start of
+      your turn
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1167899216568323
+    m_Localized: Steal Someone Else's Time
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1167899216568324
+    m_Localized: 'At the end of turn: steal 1 health from enemies'
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

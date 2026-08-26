@@ -143,6 +143,16 @@ namespace Game.Core.Ecs.Systems
                     }
                     if (UnityEngine.Time.time - since < GateDeadlineSeconds) continue;
                     UnityEngine.Debug.LogWarning($"[Die] entity={entity} гейт смерти висит > {GateDeadlineSeconds}с (потерян Finish анимации?) → форсим обработку смерти");
+
+                    // AttackAnimPendingTag снимает ТОЛЬКО AttackSystem.onFinished (Animation Event/фолбэк-
+                    // корутина на CreatureView) — если ProcessDeath ниже уничтожит/скроет вьюху раньше, чем
+                    // тот колбэк успеет отработать, корутина обрывается вместе с GameObject'ом и тег остаётся
+                    // НАВСЕГДА (PipelineGate его видит без привязки к BoardTag/DeadTag). Дедлайн этого гейта
+                    // задуман как «вьюшечный анти-софтлок», но раньше форсил только СВОЮ бухгалтерию
+                    // (_gateSince), а не сам тег — баг 2026-08-24: «[EndTurn] ЗАСТРЯЛА: AttackAnimPendingTag=1»
+                    // навечно. AbilityAnimPendingComponent (см. HasPendingCastAnim) не трогаем — у него свой
+                    // анти-софтлок таймаут в RunResolveAbilityQueueSystem, дублировать снятие здесь не нужно.
+                    if (_attackAnimPool.Value.Has(entity)) _attackAnimPool.Value.Del(entity);
                 }
                 _gateSince.Remove(entity);
 

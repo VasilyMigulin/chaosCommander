@@ -30,11 +30,29 @@ namespace Game.Core.Ability
         public int Count = 1;   // сколько карт создать (<=0 трактуем как 1 — старые ассеты без поля)
         protected enum Zone { Hand, Deck }
 
+        [Tooltip("Эффекты к КАЖДОЙ порождённой карте при материализации (та же GeneratedModScratch-точка, что " +
+                 "у SpawnToBoard/дискавера) — напр. AddAbilityEffect{Granted: AbilityToSelf{OnTurnStart → " +
+                 "AddBuffEffect{Permanent}}} для «растущего» токена (Саженцы: 2 Сорняка в руку, каждый +1/+1 " +
+                 "в начале хода). Пусто (умолч.) — порождённая карта как есть, старые ассеты без поля читаются так же.")]
+        [SerializeReference] public List<IEffect> Modifiers = new();
+
         /// <summary>Куда кладём порождённую карту.</summary>
         protected abstract Zone TargetZone { get; }
 
         /// <summary>Идентичность создаваемой карты (из ассета-ICreatable или из самого источника).</summary>
         protected abstract bool TryGetCardIdentity(EcsWorld world, int cardEntity, out string expansionId, out int cardId);
+
+        public override void Init(EcsWorld world, int cardEntity, int playerEntity)
+        {
+            base.Init(world, cardEntity, playerEntity);
+            if (Modifiers != null) foreach (var mod in Modifiers) mod?.Init(world, cardEntity, playerEntity);
+        }
+
+        public override void Dispose()
+        {
+            base.Dispose();
+            if (Modifiers != null) foreach (var mod in Modifiers) mod?.Dispose();
+        }
 
         public override void Apply(EcsWorld world, int cardEntity, int target)
         {
@@ -42,7 +60,7 @@ namespace Game.Core.Ability
             for (int i = 0; i < n; i++)
             {
                 if (!TryGetCardIdentity(world, cardEntity, out string exp, out int cardId)) return;
-                Spawn(world, cardEntity, exp, cardId, TargetZone == Zone.Hand);
+                Spawn(world, cardEntity, exp, cardId, TargetZone == Zone.Hand, modifiers: Modifiers);
             }
         }
 

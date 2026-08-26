@@ -47,6 +47,16 @@ namespace Game.Core.Ability
                  "любая сторона). См. RepeatEffect.CountFilters.")]
         [SerializeReference] public List<ITargetFilter> CountFilters = new();
 
+        [Tooltip("Пауза читаемости МЕЖДУ повторами (сек). -1 (умолч.) = общий ActionPacing.GapSeconds. Для " +
+                 "очередей снарядов (Расстрелять) задай маленькое значение — иначе поверх реального времени " +
+                 "полёта VfxStep каждый повтор ДОПОЛНИТЕЛЬНО ждёт полновесную читаемую паузу, и залп выглядит " +
+                 "как редкие одиночные выстрелы, а не очередь. См. ChainStage.GapSecondsOverride.")]
+        public float GapSecondsOverride = -1f;
+
+        [Tooltip("См. ChainStage.AdvanceMode. FixedInterval — для очередей снарядов (Расстрелять): активации " +
+                 "не ждут прилёта своего снаряда, идут внахлёст с шагом GapSecondsOverride.")]
+        public ChainStage.AdvanceMode Advance = ChainStage.AdvanceMode.WaitForVfxArrival;
+
         protected override void OnInit(EcsWorld world, int abilityEntity)
         {
             // Effects — базовый список (Ability.Effects): Init/условия/AbilityEffectContainerComponent уже
@@ -60,6 +70,8 @@ namespace Game.Core.Ability
                 Area = Area,
                 Filters = Filters,
                 Effects = Effects,
+                GapSecondsOverride = GapSecondsOverride,
+                Advance = Advance,
             };
 
             world.GetPool<RepeatAbilitySpecComponent>().Add(abilityEntity) = new RepeatAbilitySpecComponent

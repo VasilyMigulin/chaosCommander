@@ -114,6 +114,8 @@ MonoBehaviour:
         CountFilters:
         - rid: 2425736462308475157
         - rid: 2425736462308475158
+        GapSecondsOverride: 0.02
+        Advance: 1
     - rid: 2425736462308475152
       type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 

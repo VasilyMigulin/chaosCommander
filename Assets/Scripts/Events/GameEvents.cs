@@ -22,6 +22,11 @@ namespace Game.Core.Events
     // ровно ОДНО Restored на каждый Blocked).
     public struct TurnTimerBusyUIEvent : IGameEvent { public bool IsBusy; }
 
+    // Публикует TurnTimerSystem, когда у ЛОКАЛЬНОГО активного игрока меняется наличие доступных действий
+    // (играбельная карта в руке / существо с остатком скорости). Ход НЕ завершается сам — вместо этого
+    // UI (EndTurnButtonView) подсвечивает кнопку «Конец хода» пульсацией, чтобы игрок нажал сам.
+    public struct NoActionsAvailableUIEvent : IGameEvent { public bool NoActions; }
+
     public struct InputBlockedEvent : IGameEvent { }
     public struct InputRestoredEvent : IGameEvent { }
 

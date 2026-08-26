@@ -31,13 +31,17 @@ MonoBehaviour:
         Rarity: 1
         Element: 8
         ArtImage: {fileID: 0}
-        ExpansionId: 
+        ExpansionId: stolen_princess
         PlayCost: 1
         PlayCostAmount: 3
+        RequiresAdditionalCost: 0
+        AdditionalCostKind: 0
+        AdditionalCostAmount: 1
         IsToken: 0
         ShowAsLinked: 0
-        MulliganStartingHand: 0
-        MulliganUnlimitedReplace: 0
+        HideAsLinked: 0
+        HideRelatedCards: 0
+        NonBattleAbilities: []
         RuntimeAbilities: []
         Archetypes: []
         TierSource: 2
@@ -65,27 +69,41 @@ MonoBehaviour:
         Rules: []
         Effects:
         - rid: 2419360554740613166
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
         Vfx:
           Kind: 0
-          Prefab: {fileID: 0}
-          HitPrefab: {fileID: 185366, guid: 6dcff98dc6fbe6e4bbbdac7b196f0c5e, type: 3}
+          Prefab: {fileID: 134696, guid: b7e5be8cde65c7c42915ee6e2273d19b, type: 3}
+          HitPrefab: {fileID: 1938031414114752, guid: d616c4de34d1bda439766b6dab9b9609, type: 3}
           ProjectileSpeed: 12
+          ProjectileScale: 1
           MergeArea: 0
+          Delivery: 0
+          Trajectory: 0
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
           PlayCasterAnimation: 0
+        VfxSteps: []
         Area: 0
         Zone: 0
         Filters:
         - rid: 2419360554740613167
         - rid: 2419360554740613168
+        IncludeCommanderInZones: 0
     - rid: 2419360554740613165
       type: {class: OnCastTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
     - rid: 2419360554740613166
       type: {class: DealDamageEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
-        Amount: 3
         ConditionRoot:
           rid: -2
+        Amount: 3
     - rid: 2419360554740613167
       type: {class: AllyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
@@ -111,18 +129,32 @@ MonoBehaviour:
         Rules: []
         Effects:
         - rid: 2419360554740613174
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
         Vfx:
           Kind: 0
-          Prefab: {fileID: 0}
-          HitPrefab: {fileID: 185366, guid: 6dcff98dc6fbe6e4bbbdac7b196f0c5e, type: 3}
+          Prefab: {fileID: 134696, guid: b7e5be8cde65c7c42915ee6e2273d19b, type: 3}
+          HitPrefab: {fileID: 1938031414114752, guid: d616c4de34d1bda439766b6dab9b9609, type: 3}
           ProjectileSpeed: 12
+          ProjectileScale: 1
           MergeArea: 0
+          Delivery: 0
+          Trajectory: 0
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
           PlayCasterAnimation: 0
+        VfxSteps: []
         Area: 0
         Zone: 0
         Filters:
         - rid: 2419360554740613171
         - rid: 2419360554740613172
+        IncludeCommanderInZones: 0
     - rid: 2419360554740613171
       type: {class: AllyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
@@ -135,9 +167,9 @@ MonoBehaviour:
     - rid: 2419360554740613174
       type: {class: DealDamageEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
-        Amount: 5
         ConditionRoot:
           rid: -2
+        Amount: 5
     - rid: 2419360554740613175
       type: {class: CardTier, ns: Game.Core.Model.Card, asm: Game.Core.Model.Card}
       data:
@@ -157,18 +189,32 @@ MonoBehaviour:
         Rules: []
         Effects:
         - rid: 2419360554740613180
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
         Vfx:
-          Kind: 0
-          Prefab: {fileID: 0}
-          HitPrefab: {fileID: 185366, guid: 6dcff98dc6fbe6e4bbbdac7b196f0c5e, type: 3}
+          Kind: 3
+          Prefab: {fileID: 134696, guid: b7e5be8cde65c7c42915ee6e2273d19b, type: 3}
+          HitPrefab: {fileID: 1938031414114752, guid: d616c4de34d1bda439766b6dab9b9609, type: 3}
           ProjectileSpeed: 12
-          MergeArea: 0
+          ProjectileScale: 1
+          MergeArea: 1
+          Delivery: 0
+          Trajectory: 0
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
           PlayCasterAnimation: 0
+        VfxSteps: []
         Area: 0
         Zone: 0
         Filters:
         - rid: 2419360554740613177
         - rid: 2419360554740613178
+        IncludeCommanderInZones: 0
     - rid: 2419360554740613177
       type: {class: AllyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
@@ -181,6 +227,6 @@ MonoBehaviour:
     - rid: 2419360554740613180
       type: {class: DealDamageEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
-        Amount: 7
         ConditionRoot:
           rid: -2
+        Amount: 7

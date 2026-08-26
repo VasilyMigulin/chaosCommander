@@ -1,0 +1,112 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1821386627242444b0fd40fdc59ef56, type: 3}
+  m_Name: creature_card_076
+  m_EditorClassIdentifier: Game.Core.Instance.Card::Game.Core.Instance.Card.CardInstanceData
+  _miniature: {fileID: 0}
+  CardData:
+    rid: 2425736532963098702
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 2425736532963098702
+      type: {class: CardCreatureModel, ns: Game.Core.Model.Card.Creature, asm: Game.Core.Model.Card.Creature}
+      data:
+        Id: 196
+        Name: "\u041F\u0435\u0440\u0435\u0433\u0440\u0443\u0436\u0435\u043D\u043D\u044B\u0439
+          \u0440\u044F\u0434\u043E\u0432\u043E\u0439"
+        Description: "\u041F\u0440\u0438 \u0441\u043C\u0435\u0440\u0442\u0438: \u043D\u0430\u043D\u043E\u0441\u0438\u0442
+          4 \u0443\u0440\u043E\u043D\u0430 \u0432\u0441\u0435\u043C \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0430\u043C
+          \u043E\u043F\u043F\u043E\u043D\u0435\u043D\u0442\u0430"
+        Rarity: 0
+        Element: 16
+        ArtImage: {fileID: 0}
+        ExpansionId: 
+        PlayCost: 0
+        PlayCostAmount: 8
+        RequiresAdditionalCost: 0
+        AdditionalCostKind: 0
+        AdditionalCostAmount: 1
+        IsToken: 0
+        ShowAsLinked: 0
+        HideAsLinked: 0
+        HideRelatedCards: 0
+        NonBattleAbilities: []
+        RuntimeAbilities:
+        - rid: 2425736532963098703
+        Archetypes: []
+        TierSource: 0
+        Tiers: []
+        MaxHealth: 6
+        Attack: 2
+        Speed: 2
+        Properties: []
+        ViewPrefab: {fileID: 1046069417137952589, guid: 0a4455957a243a449ba135fd36e9714d, type: 3}
+        SummonVfx:
+          PrePrefab: {fileID: 0}
+          PreLeadSeconds: 0
+          ResolvePrefab: {fileID: 0}
+          ResolveAttach: 1
+          ResolveDelaySeconds: 0.1
+          ResolveFollow: 1
+          FinishPrefab: {fileID: 0}
+          FinishAnchor: 1
+          FinishAttach: 0
+        TurnsAlive: 0
+        IsCommander: 0
+    - rid: 2425736532963098703
+      type: {class: AbilityToField, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        Triggers:
+        - rid: 2425736532963098704
+        Rules: []
+        Effects:
+        - rid: 2425736532963098705
+        MaxActivationsPerTurn: 0
+        LimitGroup: 0
+        Vfx:
+          Kind: 0
+          Prefab: {fileID: 0}
+          HitPrefab: {fileID: 152634, guid: c816e04fdd948ef479558e37f6acc4ae, type: 3}
+          ProjectileSpeed: 12
+          ProjectileScale: 1
+          MergeArea: 0
+          Delivery: 0
+          Trajectory: 0
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
+          PlayCasterAnimation: 0
+        VfxSteps: []
+        Area: 0
+        Zone: 0
+        Filters:
+        - rid: 2425736532963098706
+        IncludeCommanderInZones: 0
+    - rid: 2425736532963098704
+      type: {class: OnDieTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736532963098705
+      type: {class: DealDamageEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data:
+        ConditionRoot:
+          rid: -2
+        Amount: 4
+    - rid: 2425736532963098706
+      type: {class: EnemyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 

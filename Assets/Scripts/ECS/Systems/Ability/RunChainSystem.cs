@@ -152,6 +152,24 @@ namespace Game.Core.Ecs.Systems
                     int[] targets = ResolveTargets(world, stage, owner.CardEntity, owner.PlayerEntity);
                     state.LastTargets = targets;   // ДО возможного ожидания снаряда/анимации — резолв на прилёте/CastEvent бьёт ТЕ ЖЕ цели
 
+                    // FixedInterval (см. ChainStage.AdvanceMode) — НЕ ждём прилёта: косметика улетает
+                    // fire-and-forget, эффект применяется сразу же. Без этого каждая активация RepeatAbility
+                    // ждёт ПОЛНОГО времени полёта своего снаряда, прежде чем следующая вообще начнёт
+                    // выбирать цель — GapSecondsOverride тогда сокращает только маленькую паузу ПОСЛЕ
+                    // прилёта, а не доминирующее время полёта (баг 2026-08-24 — «Расстрелять» на 0.01 всё
+                    // равно бил одиночными выстрелами, не очередью внахлёст).
+                    if (targets.Length > 0 && stage.Advance == ChainStage.AdvanceMode.FixedInterval)
+                    {
+                        var stepsFI = world.GetPool<AbilityVfxStepsComponent>();
+                        if (stepsFI.Has(entity) && stepsFI.Get(entity).Steps is { Count: > 0 } stepsList && _boardView.Value != null)
+                            FireAndForgetVfxSteps(world, entity, owner.CardEntity, owner.PlayerEntity, targets, stepsList);
+                        else if (world.GetPool<AbilityVfxComponent>().Has(entity) && _boardView.Value != null)
+                            FireAndForgetLegacyVfx(world, owner.CardEntity, targets, world.GetPool<AbilityVfxComponent>().Get(entity).Spec);
+
+                        FinishStage(world, entity, ref state, stages, ownerPool);
+                        continue;
+                    }
+
                     // ПРИОРИТЕТ: VFX-таймлайн (VfxSteps) — та же логика, что в RunResolveAbilityQueueSystem.
                     // ResolveOrLaunch: если способность собрана через конструктор шагов, легаси Vfx-путь ниже
                     // для неё не применяется (Ability.Init кладёт только ОДИН из двух компонентов).
@@ -197,8 +215,16 @@ namespace Game.Core.Ecs.Systems
                 }
                 else
                 {
-                    if (!WorldSettled(world)) continue;              // ждём, пока урон/смерти прошлой стадии осядут
-                    if (Time.time < state.NextAdvanceAt) continue;    // пауза читаемости (ActionPacing.GapSeconds)
+                    // FixedInterval (см. ChainStage.AdvanceMode) — НЕ ждём осевшего мира между активациями:
+                    // WorldSettled смотрит на ВЕСЬ мир (DeathAnimPendingTag/AttackAnimPendingTag и т.п.), не
+                    // только на цели ЭТОЙ способности — если «Расстрелять» кого-то добивает по пути, ждать
+                    // пришлось бы, пока полностью доиграет анимация смерти, прежде чем полетит следующий
+                    // снаряд (баг 2026-08-24: залп fire-and-forget всё равно выглядел рваным — гейт запуска
+                    // снаряда убрали, а этот, между активациями, забыли). Only таймер держит темп очереди.
+                    bool fixedInterval = stages[state.Current] != null
+                                          && stages[state.Current].Advance == ChainStage.AdvanceMode.FixedInterval;
+                    if (!fixedInterval && !WorldSettled(world)) continue;   // ждём, пока урон/смерти прошлой стадии осядут
+                    if (Time.time < state.NextAdvanceAt) continue;          // пауза читаемости (ActionPacing.GapSeconds)
 
                     state.Killed += CountDead(world, state.LastTargets);
                     state.Current++;
@@ -231,7 +257,11 @@ namespace Game.Core.Ecs.Systems
             PublishStageResolved(card, abilityIndex, state.Current, targets, state.Killed);
 
             state.Applied = true;
-            state.NextAdvanceAt = Time.time + ActionPacing.GapSeconds;
+            // Пауза читаемости перед следующей стадией: ChainStage.GapSecondsOverride (>=0) переопределяет
+            // общий ActionPacing.GapSeconds — нужно карточкам-очередям снарядов (Расстрелять), где реальное
+            // время полёта VfxStep УЖЕ разносит выстрелы по времени, и полновесная пауза поверх этого мешает.
+            float gap = stage != null && stage.GapSecondsOverride >= 0f ? stage.GapSecondsOverride : ActionPacing.GapSeconds;
+            state.NextAdvanceAt = Time.time + gap;
         }
 
         // ── анимация кастера стадии ──────────────────────────────────────────
@@ -345,6 +375,35 @@ namespace Game.Core.Ecs.Systems
             var ownerPool = world.GetPool<AbilityOwnerComponent>();
             int ownerPlayer = ownerPool.Has(abilityEntity) ? ownerPool.Get(abilityEntity).PlayerEntity : -1;
             VfxEmitUtil.TryLaunchDueSteps(world, _boardView.Value, abilityEntity, caster, ownerPlayer, targets, steps, ref pending);
+        }
+
+        // FixedInterval (ChainStage.AdvanceMode) — косметика VfxSteps БЕЗ гейта ожидания: ResolveStartTime
+        // искусственно в прошлом, поэтому TryLaunchDueSteps считает все StartDelay уже прошедшими и
+        // запускает шаги немедленно. throwaway.PendingArrivals намеренно не сохраняем никуда — вызывающий
+        // не ждёт, а когда VfxPresenter всё же опубликует VfxArrivedEvent{Token=abilityEntity}, верхний
+        // цикл Run() не найдёт для этой сущности РЕАЛЬНОГО VfxStepsPendingComponent (мы его не завели) и
+        // молча пропустит декремент — снаряд просто долетает сам по себе, никого не блокируя.
+        void FireAndForgetVfxSteps(EcsWorld world, int abilityEntity, int caster, int ownerPlayer, int[] targets, List<VfxStep> steps)
+        {
+            var throwaway = new VfxStepsPendingComponent
+            {
+                ResolveStartTime = Time.time - 999f,
+                Launched = new bool[steps.Count],
+                PendingArrivals = 0,
+            };
+            VfxEmitUtil.TryLaunchDueSteps(world, _boardView.Value, abilityEntity, caster, ownerPlayer, targets, steps, ref throwaway);
+        }
+
+        // То же самое для легаси Vfx (не VfxSteps) — token<0 у LaunchProjectile означает «чистая косметика
+        // без арривал-сигнала» (см. докстринг VfxEmitUtil.LaunchProjectile, тот же режим уже используется
+        // пассивным реплеем).
+        void FireAndForgetLegacyVfx(EcsWorld world, int caster, int[] targets, VfxSpec spec)
+        {
+            if (spec == null) return;
+            if (spec.Kind == VfxKind.Projectile && spec.Prefab != null)
+                VfxEmitUtil.LaunchProjectile(world, _boardView.Value, spec, caster, targets, token: -1);
+            else
+                VfxEmitUtil.EmitInstantVfx(world, _boardView.Value, spec, caster, targets);
         }
 
         static void PublishStageResolved(int card, int abilityIndex, int step, int[] targets, int killed)

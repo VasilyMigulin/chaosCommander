@@ -37,10 +37,14 @@ MonoBehaviour:
         ExpansionId: standard
         PlayCost: 1
         PlayCostAmount: 5
+        RequiresAdditionalCost: 0
+        AdditionalCostKind: 0
+        AdditionalCostAmount: 1
         IsToken: 0
         ShowAsLinked: 0
-        MulliganStartingHand: 0
-        MulliganUnlimitedReplace: 0
+        HideAsLinked: 0
+        HideRelatedCards: 0
+        NonBattleAbilities: []
         RuntimeAbilities:
         - rid: 2419359952424665677
         Archetypes: []
@@ -48,6 +52,7 @@ MonoBehaviour:
         Tiers: []
         TurnsAlive: 3
         TickMoment: 0
+        FixTurns: 0
     - rid: 2419359952424665677
       type: {class: AbilityToTarget, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
@@ -61,27 +66,47 @@ MonoBehaviour:
         Vfx:
           Kind: 0
           Prefab: {fileID: 0}
-          HitPrefab: {fileID: 0}
+          HitPrefab: {fileID: 107252, guid: 3d5ed84f5937c3446b7ac5a44c0d045c, type: 3}
           ProjectileSpeed: 12
+          ProjectileScale: 1
           MergeArea: 0
+          Delivery: 0
+          Trajectory: 0
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
           PlayCasterAnimation: 0
+        VfxSteps: []
         Selection: 3
         Count: 1
         Zone: 0
         OfferCount: 3
         Filters:
         - rid: 2419359952424665681
+        - rid: 2425736532963098727
+        - rid: 2425736532963098728
+        IncludeCommanderInZones: 0
     - rid: 2419359952424665678
       type: {class: OnCreatureInvokedTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
-        AllowFromAnyZone: 0
+        Zone: 1
     - rid: 2419359952424665679
       type: {class: DealDamageEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
-        Amount: 3
         ConditionRoot:
           rid: -2
+        Amount: 3
     - rid: 2419359952424665681
       type: {class: WithoutColorTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
         Color: 8
+    - rid: 2425736532963098727
+      type: {class: AllyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 
+    - rid: 2425736532963098728
+      type: {class: EnemyTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
+      data: 

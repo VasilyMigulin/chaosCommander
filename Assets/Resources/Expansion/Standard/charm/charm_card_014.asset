@@ -31,13 +31,17 @@ MonoBehaviour:
         Rarity: 0
         Element: 1
         ArtImage: {fileID: 0}
-        ExpansionId: 
+        ExpansionId: standard
         PlayCost: 1
         PlayCostAmount: 2
+        RequiresAdditionalCost: 0
+        AdditionalCostKind: 0
+        AdditionalCostAmount: 1
         IsToken: 0
         ShowAsLinked: 0
-        MulliganStartingHand: 0
-        MulliganUnlimitedReplace: 0
+        HideAsLinked: 0
+        HideRelatedCards: 0
+        NonBattleAbilities: []
         RuntimeAbilities:
         - rid: 2419359952424665187
         Archetypes: []
@@ -45,6 +49,7 @@ MonoBehaviour:
         Tiers: []
         TurnsAlive: 7
         TickMoment: 1
+        FixTurns: 0
     - rid: 2419359952424665187
       type: {class: AbilityToField, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
@@ -58,24 +63,37 @@ MonoBehaviour:
         Vfx:
           Kind: 0
           Prefab: {fileID: 0}
-          HitPrefab: {fileID: 0}
+          HitPrefab: {fileID: 1573430751113452, guid: 0f22b44ec7df41a49adb3c3269118434, type: 3}
           ProjectileSpeed: 12
+          ProjectileScale: 1
           MergeArea: 0
+          Delivery: 0
+          Trajectory: 0
+          BallisticHeight: 3
+          Wobble: 0
+          WobbleAmount: 0.4
+          WobbleFrequency: 2
+          BeamVisual: 0
+          LightningSegments: 10
+          LightningJitter: 0.4
           PlayCasterAnimation: 0
+        VfxSteps: []
         Area: 0
         Zone: 0
         Filters:
         - rid: 2419359952424665190
         - rid: 2419359952424665191
+        IncludeCommanderInZones: 0
     - rid: 2419359952424665188
       type: {class: OnTurnStartTrigger, ns: Game.Core.Ability, asm: Game.Core.Ability}
-      data: 
+      data:
+        Zone: 1
     - rid: 2419359952424665189
       type: {class: DealDamageEffect, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data:
-        Amount: 1
         ConditionRoot:
           rid: -2
+        Amount: 1
     - rid: 2419359952424665190
       type: {class: OwnPlayerTargetFilter, ns: Game.Core.Ability, asm: Game.Core.Ability}
       data: 
